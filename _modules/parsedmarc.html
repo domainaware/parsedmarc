@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 1.0.3 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 1.0.4 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="parsedmarc 1.0.3 documentation" href="../index.html"/>
+    <link rel="top" title="parsedmarc 1.0.4 documentation" href="../index.html"/>
         <link rel="up" title="Module code" href="index.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                1.0.3
+                1.0.4
               </div>
             
           
@@ -185,13 +185,13 @@
 <span class="kn">import</span> <span class="nn">geoip2.database</span>
 <span class="kn">import</span> <span class="nn">geoip2.errors</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0.3&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0.4&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
 
 
-<span class="c1">#  Python 2 comparability hack</span>
+<span class="c1"># Python 2 comparability hack</span>
 <span class="k">if</span> <span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
     <span class="n">unicode</span> <span class="o">=</span> <span class="nb">str</span>
 
@@ -218,7 +218,7 @@
 <span class="sd">        str: The base domain of the given domain</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">psl_path</span> <span class="o">=</span> <span class="s2">&quot;public_suffix_list.dat&quot;</span>
+    <span class="n">psl_path</span> <span class="o">=</span> <span class="s2">&quot;.public_suffix_list.dat&quot;</span>
 
     <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
         <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>
@@ -340,19 +340,25 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        str: And ISO country code associated with the given IP address</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">db_filename</span> <span class="o">=</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span>
+    <span class="n">db_filename</span> <span class="o">=</span> <span class="s2">&quot;.GeoLite2-Country.mmdb&quot;</span>
 
-    <span class="k">def</span> <span class="nf">download_country_database</span><span class="p">():</span>
-        <span class="sd">&quot;&quot;&quot;Downloads the MaxMind Geolite2 Country database to the current</span>
-<span class="sd">        working directory&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">download_country_database</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Downloads the MaxMind Geolite2 Country database</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            location (str): Local location for the database file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://geolite.maxmind.com/download/geoip/database/&quot;</span> \
               <span class="s2">&quot;GeoLite2-Country.tar.gz&quot;</span>
+        <span class="n">origional_filename</span> <span class="o">=</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span>
         <span class="n">tar_file</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r:gz&quot;</span><span class="p">)</span>
         <span class="n">tar_dir</span> <span class="o">=</span> <span class="n">tar_file</span><span class="o">.</span><span class="n">getnames</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">tar_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tar_dir</span><span class="p">,</span> <span class="n">db_filename</span><span class="p">)</span>
+        <span class="n">tar_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tar_dir</span><span class="p">,</span> <span class="n">origional_filename</span><span class="p">)</span>
         <span class="n">tar_file</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">tar_path</span><span class="p">)</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">tar_path</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tar_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">location</span> <span class="o">!=</span> <span class="n">origional_filename</span><span class="p">:</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 
     <span class="n">system_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">]</span>
@@ -365,7 +371,7 @@
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_filename</span><span class="p">):</span>
-            <span class="n">download_country_database</span><span class="p">()</span>
+            <span class="n">download_country_database</span><span class="p">(</span><span class="n">db_filename</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
                 <span class="n">stat</span><span class="p">(</span><span class="n">db_filename</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
@@ -818,7 +824,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'1.0.3',
+            VERSION:'1.0.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
