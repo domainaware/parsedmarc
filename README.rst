@@ -139,6 +139,39 @@ Very few recipients send forensic reports, and even those who do will often
 provide only the message headers, and not the message's content, for privacy
 reasons.
 
+Installation
+------------
+
+``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
+
+On Debian or Ubuntu systems, run:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python3-pip
+
+
+Python 3 installers for Windows and macOS can be found at https://www.python.org/downloads/
+
+To install or upgrade to the latest stable release of ``checkdmarc`` on macOS or Linux, run
+
+.. code-block:: bash
+
+    $ sudo -H pip3 install -U checkdmarc
+
+Or, install the latest development release directly from GitHub:
+
+.. code-block:: bash
+
+    $ sudo -H pip3 install -U git+https://github.com/domainaware/checkdmarc.git
+
+.. note::
+
+    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows, simply
+    substitute ``pip`` as an administrator in place of ``sudo pip3``, in the above commands.
+
+
+
 Documentation
 =============
 
