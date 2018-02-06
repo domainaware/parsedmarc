@@ -1,6 +1,7 @@
 1.0.5
 -----
 - Prefix public suffix and GeoIP2 database filenames with `.` 
+- Properly format errors list in CSV output
 
 1.0.3
 -----

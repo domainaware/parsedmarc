@@ -30,7 +30,7 @@ from requests import get
 import geoip2.database
 import geoip2.errors
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -506,7 +506,7 @@ def parsed_aggregate_report_to_csv(_input):
         report_id = report["report_metadata"]["report_id"]
         begin_date = report["report_metadata"]["begin_date"]
         end_date = report["report_metadata"]["end_date"]
-        errors = report["report_metadata"]["errors"]
+        errors = "|".join(report["report_metadata"]["errors"])
         domain = report["policy_published"]["domain"]
         adkim = report["policy_published"]["adkim"]
         aspf = report["policy_published"]["aspf"]
