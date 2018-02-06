@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- This example comes from
+
+https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F
+
+It is actually an out-of-date draft version of report the schema, but we
+should be able to parse it anyway -->
+
+<feedback>
+  <report_metadata>
+    <org_name>acme.com</org_name>
+    <email>noreply-dmarc-support@acme.com</email>
+    <extra_contact_info>http://acme.com/dmarc/support</extra_contact_info>
+    <report_id>9391651994964116463</report_id>
+    <date_range>
+      <begin>1335571200</begin>
+      <end>1335657599</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>example.com</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>none</p>
+    <sp>none</sp>
+    <pct>100</pct>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>72.150.241.94</source_ip>
+      <count>2</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>fail</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>example.com</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>example.com</domain>
+        <result>fail</result>
+        <human_result></human_result>
+      </dkim>
+      <spf>
+        <domain>example.com</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>

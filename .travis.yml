@@ -1,0 +1,26 @@
+language: python
+
+sudo: false
+
+python:
+  - '2.7'
+  - '3.4'
+  - '3.5'
+  - '3.6'
+
+# commands to install dependencies
+install:
+  - "pip install flake8 pytest-cov pytest coveralls"
+  - "pip install -r requirements.txt"
+
+# commands to run samples
+script:
+  - "flake8 checkdmarc.py"
+  - "flake8 samples.py"
+  - "flake8 samples.py"
+  - "flake8 setup.py"
+  - "cd docs"
+  - "make html"
+  - "cd .."
+  - "python samples.py"
+  - "python setup.py bdist_wheel"
