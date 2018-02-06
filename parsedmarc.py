@@ -30,7 +30,7 @@ from requests import get
 import geoip2.database
 import geoip2.errors
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
