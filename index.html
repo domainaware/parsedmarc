@@ -1,0 +1,459 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="parsedmarc 1.0.0 documentation" href="#"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="#" class="icon icon-home"> parsedmarc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a></li>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#cli-help">CLI help</a></li>
+<li><a class="reference internal" href="#sample-output">Sample output</a><ul>
+<li><a class="reference internal" href="#json">JSON</a></li>
+<li><a class="reference internal" href="#csv">CSV</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#what-about-forensic-dmarc-reports">What about forensic DMARC reports?</a></li>
+<li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
+<li><a class="reference internal" href="#module-parsedmarc">API</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">parsedmarc</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>Welcome to parsedmarc’s documentation!</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-parsedmarc-s-documentation">
+<h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
+<p><code class="docutils literal"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing aggregate DMARC reports.</p>
+</div>
+<div class="section" id="features">
+<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Parses draft and 1.0 standard aggregate reports</li>
+<li>Transparently handles gzip or zip compressed reports</li>
+<li>Consistent data structures</li>
+<li>Simple JSON or CSV output</li>
+<li>Python 2 and 3 support</li>
+</ul>
+</div>
+<div class="section" id="cli-help">
+<h1>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">FORMAT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
+                     <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                     <span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]</span>
+
+<span class="n">Parses</span> <span class="n">aggregate</span> <span class="n">DMARC</span> <span class="n">reports</span>
+
+<span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">of</span> <span class="n">aggregate</span> <span class="n">report</span> <span class="n">files</span>
+                        <span class="p">(</span><span class="n">compressed</span> <span class="ow">or</span> <span class="n">uncompressed</span><span class="p">)</span>
+
+<span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">-</span><span class="n">f</span> <span class="n">FORMAT</span><span class="p">,</span> <span class="o">--</span><span class="nb">format</span> <span class="n">FORMAT</span>
+                        <span class="n">specify</span> <span class="n">JSON</span> <span class="ow">or</span> <span class="n">CSV</span> <span class="n">output</span> <span class="nb">format</span>
+  <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
+                        <span class="n">output</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span> <span class="n">path</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">printing</span> <span class="n">to</span> <span class="n">the</span>
+                        <span class="n">screen</span>
+  <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameserver</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
+  <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
+                        <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
+                        <span class="p">(</span><span class="n">default</span> <span class="mf">6.0</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="sample-output">
+<h1>Sample output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h1>
+<p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
+report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
+report schema standardized in
+<a class="reference external" href="https://tools.ietf.org/html/rfc7489#appendix-C">RFC 7480 Appendix C</a>.
+This draft schema is still in wide use.</p>
+<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report schema.</p>
+<div class="section" id="json">
+<h2>JSON<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-json"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span> <span class="s2">&quot;draft&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;org_name&quot;</span><span class="p">:</span> <span class="s2">&quot;acme.com&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;org_email&quot;</span><span class="p">:</span> <span class="s2">&quot;noreply-dmarc-support@acme.com&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;org_extra_contact_info&quot;</span><span class="p">:</span> <span class="s2">&quot;http://acme.com/dmarc/support&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;report_id&quot;</span><span class="p">:</span> <span class="s2">&quot;9391651994964116463&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;begin_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-04-27 20:00:00&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;end_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-04-28 19:59:59&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;errors&quot;</span><span class="p">:</span> <span class="p">[]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;policy_published&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;adkim&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;aspf&quot;</span><span class="p">:</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;p&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;sp&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;pct&quot;</span><span class="p">:</span> <span class="s2">&quot;100&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;fo&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;records&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;ip_address&quot;</span><span class="p">:</span> <span class="s2">&quot;72.150.241.94&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;country&quot;</span><span class="p">:</span> <span class="s2">&quot;US&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span> <span class="s2">&quot;adsl-72-150-241-94.shv.bellsouth.net&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;base_domain&quot;</span><span class="p">:</span> <span class="s2">&quot;bellsouth.net&quot;</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;count&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="nt">&quot;policy_evaluated&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;disposition&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;dkim&quot;</span><span class="p">:</span> <span class="s2">&quot;fail&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;spf&quot;</span><span class="p">:</span> <span class="s2">&quot;pass&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;policy_override_reasons&quot;</span><span class="p">:</span> <span class="p">[]</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;identifiers&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;header_from&quot;</span><span class="p">:</span> <span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;envelope_from&quot;</span><span class="p">:</span> <span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;envelope_to&quot;</span><span class="p">:</span> <span class="kc">null</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;auth_results&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;dkim&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;selector&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;fail&quot;</span>
+          <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="nt">&quot;spf&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;scope&quot;</span><span class="p">:</span> <span class="s2">&quot;mfrom&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;pass&quot;</span>
+          <span class="p">}</span>
+        <span class="p">]</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="csv">
+<h2>CSV<a class="headerlink" href="#csv" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">dkim_alignment</span><span class="p">,</span><span class="n">spf_alignment</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
+<span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,[],</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150</span><span class="o">.</span><span class="mf">241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="k">pass</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="what-about-forensic-dmarc-reports">
+<h1>What about forensic DMARC reports?<a class="headerlink" href="#what-about-forensic-dmarc-reports" title="Permalink to this headline">¶</a></h1>
+<p>Forensic DMARC reports are emails with an attached email sample that failed a
+DMARC check. You can parse them with any email message parser, such as
+<a class="reference external" href="https://pypi.python.org/pypi/mail-parser/">mail-parser</a>.</p>
+<p>Very few recipients send forensic reports, and even those who do will only
+provide the message headers, and not the message’s content, for privacy
+reasons.</p>
+</div>
+<div class="section" id="bug-reports">
+<h1>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline">¶</a></h1>
+<p>Please report bugs on the GitHub issue tracker</p>
+<p><a class="reference external" href="https://github.com/domainaware/parsedmarc/issues">https://github.com/domainaware/parsedmarc/issues</a></p>
+</div>
+<div class="section" id="module-parsedmarc">
+<span id="api"></span><h1>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h1>
+<p>A Python module and CLI for parsing aggregate DMARC reports</p>
+<dl class="exception">
+<dt id="parsedmarc.InvalidAggregateReport">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">InvalidAggregateReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidAggregateReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidAggregateReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an invalid DMARC aggregate report is encountered</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parse_aggregate_report_file">
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em>_input</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a file at the given path, a file-like object. or bytes as a
+aggregate DMARC report</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>_input</strong> – A path to a file, a file like object, or bytes</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The parsed DMARC aggregate report</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parse_aggregate_report_xml">
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em>xml</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>xml</strong> (<em>str</em>) – A string of DMARC aggregate report XML</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The parsed aggregate DMARC report</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parsed_aggregate_report_to_csv">
+<code class="descclassname">parsedmarc.</code><code class="descname">parsed_aggregate_report_to_csv</code><span class="sig-paren">(</span><em>_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_report_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_report_to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
+headers</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_input</strong> – A parsed aggregate report or list of parsed aggregate reports</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed aggregate report data in flat CSV format, including headers</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Sean Whalen.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
