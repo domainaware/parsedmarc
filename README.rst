@@ -140,7 +140,7 @@ provide only the message headers, and not the message's content, for privacy
 reasons.
 
 Installation
-------------
+============
 
 ``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
 
@@ -153,7 +153,7 @@ On Debian or Ubuntu systems, run:
 
 Python 3 installers for Windows and macOS can be found at https://www.python.org/downloads/
 
-To install or upgrade to the latest stable release of ``checkdmarc`` on macOS or Linux, run
+To install or upgrade to the latest stable release of ``parsedmarc`` on macOS or Linux, run
 
 .. code-block:: bash
 
@@ -163,7 +163,7 @@ Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    $ sudo -H pip3 install -U git+https://github.com/domainaware/checkdmarc.git
+    $ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
