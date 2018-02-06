@@ -30,13 +30,13 @@ from requests import get
 import geoip2.database
 import geoip2.errors
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-#  Python 2 comparability hack
+# Python 2 comparability hack
 if version_info[0] >= 3:
     unicode = str
 
@@ -63,7 +63,7 @@ def _get_base_domain(domain):
         str: The base domain of the given domain
 
     """
-    psl_path = "public_suffix_list.dat"
+    psl_path = ".public_suffix_list.dat"
 
     def download_psl():
         fresh_psl = publicsuffix.fetch()
@@ -185,19 +185,25 @@ def _get_ip_address_country(ip_address):
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    db_filename = "GeoLite2-Country.mmdb"
+    db_filename = ".GeoLite2-Country.mmdb"
 
-    def download_country_database():
-        """Downloads the MaxMind Geolite2 Country database to the current
-        working directory"""
+    def download_country_database(location="GeoLite2-Country.mmdb"):
+        """Downloads the MaxMind Geolite2 Country database
+
+        Args:
+            location (str): Local location for the database file
+        """
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
+        origional_filename = "GeoLite2-Country.mmdb"
         tar_file = tarfile.open(fileobj=BytesIO(get(url).content), mode="r:gz")
         tar_dir = tar_file.getnames()[0]
-        tar_path = "{0}/{1}".format(tar_dir, db_filename)
+        tar_path = "{0}/{1}".format(tar_dir, origional_filename)
         tar_file.extract(tar_path)
         shutil.move(tar_path, ".")
         shutil.rmtree(tar_dir)
+        if location != origional_filename:
+            shutil.move("GeoLite2-Country.mmdb", location)
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
                     "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
@@ -210,7 +216,7 @@ def _get_ip_address_country(ip_address):
 
     if db_path == "":
         if not path.exists(db_filename):
-            download_country_database()
+            download_country_database(db_filename)
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 stat(db_filename).st_mtime)

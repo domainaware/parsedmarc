@@ -1,3 +1,7 @@
+1.0.5
+-----
+- Prefix public suffix and GeoIP2 database filenames with `.` 
+
 1.0.3
 -----
 - Fix documentation formatting
