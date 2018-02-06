@@ -15,12 +15,9 @@ install:
 
 # commands to run samples
 script:
-  - "flake8 checkdmarc.py"
-  - "flake8 samples.py"
-  - "flake8 samples.py"
-  - "flake8 setup.py"
+  - "flake8 *.py"
   - "cd docs"
   - "make html"
   - "cd .."
-  - "python samples.py"
+  - "python tests.py"
   - "python setup.py bdist_wheel"
