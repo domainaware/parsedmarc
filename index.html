@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.0.2 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.0.3 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 1.0.2 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 1.0.3 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.0.2
+                1.0.3
               </div>
             
           
@@ -90,7 +90,7 @@
             
               <!-- Local TOC -->
               <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a></li>
+<li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li><a class="reference internal" href="#sample-output">Sample output</a><ul>
@@ -103,6 +103,8 @@
 <li><a class="reference internal" href="#installation">Installation</a></li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
 </ul>
 </div>
             
@@ -170,9 +172,8 @@
 <h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
 <p><code class="docutils literal"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing aggregate DMARC reports.</p>
-</div>
 <div class="section" id="features">
-<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>Parses draft and 1.0 standard aggregate reports</li>
 <li>Transparently handles gzip or zip compressed reports</li>
@@ -182,7 +183,7 @@
 </ul>
 </div>
 <div class="section" id="cli-help">
-<h1>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h1>
+<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">FORMAT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
                      <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
                      <span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]</span>
@@ -210,7 +211,7 @@
 </div>
 </div>
 <div class="section" id="sample-output">
-<h1>Sample output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h1>
+<h2>Sample output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h2>
 <p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
 report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
 report schema standardized in
@@ -218,7 +219,7 @@ report schema standardized in
 This draft schema is still in wide use.</p>
 <p><code class="docutils literal"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report schema.</p>
 <div class="section" id="json">
-<h2>JSON<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h2>
+<h3>JSON<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-json"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span> <span class="s2">&quot;draft&quot;</span><span class="p">,</span>
   <span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -282,7 +283,7 @@ This draft schema is still in wide use.</p>
 </div>
 </div>
 <div class="section" id="csv">
-<h2>CSV<a class="headerlink" href="#csv" title="Permalink to this headline">¶</a></h2>
+<h3>CSV<a class="headerlink" href="#csv" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">dkim_alignment</span><span class="p">,</span><span class="n">spf_alignment</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
 <span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,[],</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150</span><span class="o">.</span><span class="mf">241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="k">pass</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
 </pre></div>
@@ -290,7 +291,7 @@ This draft schema is still in wide use.</p>
 </div>
 </div>
 <div class="section" id="what-about-forensic-dmarc-reports">
-<h1>What about forensic DMARC reports?<a class="headerlink" href="#what-about-forensic-dmarc-reports" title="Permalink to this headline">¶</a></h1>
+<h2>What about forensic DMARC reports?<a class="headerlink" href="#what-about-forensic-dmarc-reports" title="Permalink to this headline">¶</a></h2>
 <p>Forensic DMARC reports are emails with an attached email sample that failed a
 DMARC check. You can parse them with any email message parser, such as
 <a class="reference external" href="https://pypi.python.org/pypi/mail-parser/">mail-parser</a>.</p>
@@ -299,12 +300,12 @@ provide only the message headers, and not the message’s content, for privacy
 reasons.</p>
 </div>
 <div class="section" id="bug-reports">
-<h1>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline">¶</a></h1>
+<h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline">¶</a></h2>
 <p>Please report bugs on the GitHub issue tracker</p>
 <p><a class="reference external" href="https://github.com/domainaware/parsedmarc/issues">https://github.com/domainaware/parsedmarc/issues</a></p>
 </div>
 <div class="section" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal"><span class="pre">parsedmarc</span></code> works with Python 2 or 3, but Python 3 is preferred.</p>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
@@ -326,7 +327,7 @@ substitute <code class="docutils literal"><span class="pre">pip</span></code> as
 </div>
 </div>
 <div class="section" id="module-parsedmarc">
-<span id="api"></span><h1>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h1>
+<span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
 <p>A Python module and CLI for parsing aggregate DMARC reports</p>
 <dl class="exception">
 <dt id="parsedmarc.InvalidAggregateReport">
@@ -408,12 +409,13 @@ headers</p>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
 <li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
+</div>
 </div>
 
 
@@ -451,7 +453,7 @@ headers</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0.2',
+            VERSION:'1.0.3',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
