@@ -1,3 +1,7 @@
+1.1.0
+-----
+- Add `extract_xml()` and `human_timespamp_to_datetime` methods
+
 1.0.5
 -----
 - Prefix public suffix and GeoIP2 database filenames with `.` 
