@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.0.5 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.1.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 1.0.5 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 1.1.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.0.5
+                1.1.0
               </div>
             
           
@@ -336,6 +336,43 @@ substitute <code class="docutils literal"><span class="pre">pip</span></code> as
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.extract_xml">
+<code class="descclassname">parsedmarc.</code><code class="descname">extract_xml</code><span class="sig-paren">(</span><em>_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
+or bytes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_input</strong> – A path to a file, a file like object, or bytes</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The extracted XML</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.human_timestamp_to_datetime">
+<code class="descclassname">parsedmarc.</code><code class="descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em>human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal"><span class="pre">DateTime</span></code> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>human_timestamp</strong> (<em>str</em>) – A timestamp in <cite>YYYY-MM-DD HH:MM:SS`</cite> format</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DateTime</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.parse_aggregate_report_file">
 <code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em>_input</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
@@ -453,7 +490,7 @@ headers</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0.5',
+            VERSION:'1.1.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
