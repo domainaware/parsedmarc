@@ -5,6 +5,7 @@ xmltodict
 geoip2
 dnspython
 imapclient
+mail-parser
 dateparser
 flake8
 sphinx

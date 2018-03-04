@@ -93,7 +93,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dnspython', 'publicsuffix', 'xmltodict', 'geoip2',
-                      'dnspython', 'imapclient', 'dateparser'],
+                      'dnspython', 'imapclient', 'mail-parser', 'dateparser'],
 
     entry_points={
         'console_scripts': ['parsedmarc=parsedmarc:_main'],
