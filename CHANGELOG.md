@@ -1,3 +1,4 @@
+
 2.0.0
 -----
 ### New features
@@ -9,6 +10,11 @@
   `aggregate_reports` and `forensic_reports`
 - `-o`/`--output` option is now a path to an output directory, instead of an
   output file
+
+1.1.0
+-----
+- Add `extract_xml()` and `human_timespamp_to_datetime` methods
+
 
 1.0.5
 -----

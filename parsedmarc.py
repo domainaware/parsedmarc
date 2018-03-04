@@ -191,7 +191,7 @@ def _timestamp_to_human(timestamp):
     return _timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _human_timestamp_to_datetime(human_timestamp):
+def human_timestamp_to_datetime(human_timestamp):
     """
     Converts a human-readable timestamp into a Python ``DateTime`` object
 
@@ -479,17 +479,17 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                      "{0}".format(error.__str__()))
 
 
-def parse_aggregate_report_file(input_, nameservers=None, timeout=6.0):
-    """Parses a file at the given path, a file-like object. or bytes as a
-    aggregate DMARC report
+def extract_xml(input_):
+    """
+    Extracts xml from a zip or gzip file at the given path, file-like object,
+    or bytes.
 
     Args:
         input_: A path to a file, a file like object, or bytes
-        nameservers (list): A list of one or more nameservers to use
-        timeout (float): Sets the DNS timeout in seconds
 
     Returns:
-        OrderedDict: The parsed DMARC aggregate report
+        str: The extracted XML
+
     """
     if type(input_) == str or type(input_) == unicode:
         file_object = open(input_, "rb")
@@ -512,9 +512,27 @@ def parse_aggregate_report_file(input_, nameservers=None, timeout=6.0):
             raise InvalidAggregateReport("Not a valid zip, gzip, or xml file")
 
         file_object.close()
+
     except UnicodeDecodeError:
         raise InvalidAggregateReport("File objects must be opened in binary "
                                      "(rb) mode")
+
+    return xml
+
+
+def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
+    """Parses a file at the given path, a file-like object. or bytes as a
+    aggregate DMARC report
+
+    Args:
+        _input: A path to a file, a file like object, or bytes
+        nameservers (list): A list of one or more nameservers to use
+        timeout (float): Sets the DNS timeout in seconds
+
+    Returns:
+        OrderedDict: The parsed DMARC aggregate report
+    """
+    xml = extract_xml(_input)
 
     return parse_aggregate_report_xml(xml,
                                       nameservers=nameservers,
