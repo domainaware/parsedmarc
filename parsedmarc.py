@@ -97,7 +97,7 @@ def _get_base_domain(domain):
 
     def download_psl():
         fresh_psl = publicsuffix.fetch()
-        with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
+        with open(psl_path, "w") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl.read())
 
         return publicsuffix.PublicSuffixList(fresh_psl)
