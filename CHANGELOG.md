@@ -1,3 +1,8 @@
+2.0.1
+-----
+
+- Fix documentation
+- Remove Python 2 code
 
 2.0.0
 -----

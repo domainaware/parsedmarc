@@ -179,7 +179,7 @@ macOS or Linux, run
 
 .. code-block:: bash
 
-    $ sudo -H pip3 install -U checkdmarc
+    $ sudo -H pip3 install -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 

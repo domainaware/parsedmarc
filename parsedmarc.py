@@ -1,12 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """A Python module and CLI for parsing DMARC reports"""
 
-from __future__ import unicode_literals, print_function, absolute_import
-
 import logging
-from sys import version_info
 import os
 import json
 from datetime import datetime
@@ -41,15 +38,10 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-# Python 2 comparability hack
-if version_info[0] >= 3:
-    unicode = str
 
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
@@ -225,14 +217,14 @@ def _get_ip_address_country(ip_address):
         """
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
-        origional_filename = "GeoLite2-Country.mmdb"
+        original_filename = "GeoLite2-Country.mmdb"
         tar_file = tarfile.open(fileobj=BytesIO(get(url).content), mode="r:gz")
         tar_dir = tar_file.getnames()[0]
-        tar_path = "{0}/{1}".format(tar_dir, origional_filename)
+        tar_path = "{0}/{1}".format(tar_dir, original_filename)
         tar_file.extract(tar_path)
         shutil.move(tar_path, ".")
         shutil.rmtree(tar_dir)
-        if location != origional_filename:
+        if location != original_filename:
             shutil.move("GeoLite2-Country.mmdb", location)
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
@@ -491,7 +483,7 @@ def extract_xml(input_):
         str: The extracted XML
 
     """
-    if type(input_) == str or type(input_) == unicode:
+    if type(input_) == str:
         file_object = open(input_, "rb")
     elif type(input_) == bytes:
         file_object = BytesIO(input_)
@@ -966,7 +958,7 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     Returns:
         OrderedDict: The parsed DMARC report
     """
-    if type(input_) == str or type(input_) == unicode:
+    if type(input_) == str:
         file_object = open(input_, "rb")
     elif type(input_) == bytes:
         file_object = BytesIO(input_)
