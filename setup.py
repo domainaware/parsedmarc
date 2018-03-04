@@ -92,7 +92,8 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['dnspython', 'publicsuffix', 'xmltodict', 'geoip2'],
+    install_requires=['dnspython', 'publicsuffix', 'xmltodict', 'geoip2',
+                      'dnspython', 'imapclient', 'dateparser'],
 
     entry_points={
         'console_scripts': ['parsedmarc=parsedmarc:_main'],

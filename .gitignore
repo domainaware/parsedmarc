@@ -111,6 +111,8 @@ ENV/
 *.json
 *.csv
 *.xls*
+*.eml
+*.msg
 
 # LibreOffice lock files
 .~*

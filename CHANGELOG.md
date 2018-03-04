@@ -1,3 +1,15 @@
+2.0.0
+-----
+### New features
+- Parse forensic reports
+- Parse reports from IMAP inbox
+
+### Changes
+- Command line output is always a JSON object containing the lists
+  `aggregate_reports` and `forensic_reports`
+- `-o`/`--output` option is now a path to an output directory, instead of an
+  output file
+
 1.0.5
 -----
 - Prefix public suffix and GeoIP2 database filenames with `.` 

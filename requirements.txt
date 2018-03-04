@@ -3,6 +3,9 @@ requests
 publicsuffix
 xmltodict
 geoip2
+dnspython
+imapclient
+dateparser
 flake8
 sphinx
 sphinx_rtd_theme
