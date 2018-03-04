@@ -20,7 +20,6 @@ Features
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
 * Simple JSON and/or CSV output
-* Python 2 and 3 support
 
 CLI help
 ========

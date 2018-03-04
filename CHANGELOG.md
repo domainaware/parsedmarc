@@ -6,6 +6,7 @@
 - Parse reports from IMAP inbox
 
 ### Changes
+- Drop support for Python 2
 - Command line output is always a JSON object containing the lists
   `aggregate_reports` and `forensic_reports`
 - `-o`/`--output` option is now a path to an output directory, instead of an
