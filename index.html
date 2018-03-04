@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 1.1.0 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.0.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 1.1.0 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 2.0.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.1.0
+                2.0.0
               </div>
             
           
@@ -93,14 +93,17 @@
 <li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
-<li><a class="reference internal" href="#sample-output">Sample output</a><ul>
+<li><a class="reference internal" href="#sample-aggregate-report-output">Sample aggregate report output</a><ul>
 <li><a class="reference internal" href="#json">JSON</a></li>
 <li><a class="reference internal" href="#csv">CSV</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#what-about-forensic-dmarc-reports">What about forensic DMARC reports?</a></li>
+<li><a class="reference internal" href="#sample-forensic-report-output">Sample forensic report output</a></li>
 <li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
-<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
@@ -171,24 +174,26 @@
   <div class="section" id="welcome-to-parsedmarc-s-documentation">
 <h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
-<p><code class="docutils literal"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing aggregate DMARC reports.</p>
+<p><code class="docutils literal"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>Parses draft and 1.0 standard aggregate reports</li>
+<li>Parses forensic reports</li>
+<li>Can parse reports from an inbox over IMAP</li>
 <li>Transparently handles gzip or zip compressed reports</li>
 <li>Consistent data structures</li>
-<li>Simple JSON or CSV output</li>
-<li>Python 2 and 3 support</li>
+<li>Simple JSON and/or CSV output</li>
 </ul>
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">FORMAT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
-                     <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-                     <span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">USERNAME</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">T</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                  <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
-<span class="n">Parses</span> <span class="n">aggregate</span> <span class="n">DMARC</span> <span class="n">reports</span>
+<span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
 <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
   <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">of</span> <span class="n">aggregate</span> <span class="n">report</span> <span class="n">files</span>
@@ -196,28 +201,38 @@
 
 <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
   <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
-  <span class="o">-</span><span class="n">f</span> <span class="n">FORMAT</span><span class="p">,</span> <span class="o">--</span><span class="nb">format</span> <span class="n">FORMAT</span>
-                        <span class="n">specify</span> <span class="n">JSON</span> <span class="ow">or</span> <span class="n">CSV</span> <span class="n">output</span> <span class="nb">format</span>
   <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
-                        <span class="n">output</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span> <span class="n">path</span> <span class="n">rather</span> <span class="n">than</span> <span class="n">printing</span> <span class="n">to</span> <span class="n">the</span>
-                        <span class="n">screen</span>
-  <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameserver</span> <span class="n">NAMESERVER</span> <span class="p">[</span><span class="n">NAMESERVER</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
+  <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
                         <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
   <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
                         <span class="p">(</span><span class="n">default</span> <span class="mf">6.0</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
+  <span class="o">-</span><span class="n">U</span> <span class="n">USERNAME</span><span class="p">,</span> <span class="o">--</span><span class="n">username</span> <span class="n">USERNAME</span>
+                        <span class="n">IMAP</span> <span class="n">username</span>
+  <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
+                        <span class="n">IMAP</span> <span class="n">password</span>
+  <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
+                        <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
+                        <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
+  <span class="o">-</span><span class="n">i</span><span class="p">,</span> <span class="o">--</span><span class="n">idle</span>            <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
+                        <span class="n">arrive</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">inbox</span>
+  <span class="o">-</span><span class="n">T</span><span class="p">,</span> <span class="o">--</span><span class="n">test</span>            <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="sample-output">
-<h2>Sample output<a class="headerlink" href="#sample-output" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="sample-aggregate-report-output">
+<h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline">¶</a></h2>
 <p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
 report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
 report schema standardized in
 <a class="reference external" href="https://tools.ietf.org/html/rfc7489#appendix-C">RFC 7480 Appendix C</a>.
 This draft schema is still in wide use.</p>
-<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report schema.</p>
+<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report
+schema.</p>
 <div class="section" id="json">
 <h3>JSON<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-json"><div class="highlight"><pre><span></span><span class="p">{</span>
@@ -290,14 +305,10 @@ This draft schema is still in wide use.</p>
 </div>
 </div>
 </div>
-<div class="section" id="what-about-forensic-dmarc-reports">
-<h2>What about forensic DMARC reports?<a class="headerlink" href="#what-about-forensic-dmarc-reports" title="Permalink to this headline">¶</a></h2>
-<p>Forensic DMARC reports are emails with an attached email sample that failed a
-DMARC check. You can parse them with any email message parser, such as
-<a class="reference external" href="https://pypi.python.org/pypi/mail-parser/">mail-parser</a>.</p>
-<p>Very few recipients send forensic reports, and even those who do will often
-provide only the message headers, and not the message’s content, for privacy
-reasons.</p>
+<div class="section" id="sample-forensic-report-output">
+<h2>Sample forensic report output<a class="headerlink" href="#sample-forensic-report-output" title="Permalink to this headline">¶</a></h2>
+<p>I don’t have a sample I can share for privacy reasons. If you have a sample
+forensic report that you can share publicly, please contact me!</p>
 </div>
 <div class="section" id="bug-reports">
 <h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline">¶</a></h2>
@@ -311,8 +322,10 @@ reasons.</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
 </pre></div>
 </div>
-<p>Python 3 installers for Windows and macOS can be found at <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
-<p>To install or upgrade to the latest stable release of <code class="docutils literal"><span class="pre">parsedmarc</span></code> on macOS or Linux, run</p>
+<p>Python 3 installers for Windows and macOS can be found at
+<a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
+<p>To install or upgrade to the latest stable release of <code class="docutils literal"><span class="pre">parsedmarc</span></code> on
+macOS or Linux, run</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U checkdmarc
 </pre></div>
 </div>
@@ -323,32 +336,96 @@ reasons.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">On Windows, <code class="docutils literal"><span class="pre">pip3</span></code> is <code class="docutils literal"><span class="pre">pip</span></code>, even with Python 3. So on Windows, simply
-substitute <code class="docutils literal"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the above commands.</p>
+substitute <code class="docutils literal"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
+above commands.</p>
+</div>
+<div class="section" id="optional-dependencies">
+<h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this headline">¶</a></h3>
+<p>If you would like to be able to parse emails saved from Microsoft Outlook
+(i.e. OLE .msg files), install <code class="docutils literal"><span class="pre">msgconvert</span></code>:</p>
+<p>On Debian or Ubuntu systems, run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install libemail-outlook-message-perl
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
-<p>A Python module and CLI for parsing aggregate DMARC reports</p>
+<p>A Python module and CLI for parsing DMARC reports</p>
+<dl class="exception">
+<dt id="parsedmarc.IMAPError">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">IMAPError</code><a class="reference internal" href="_modules/parsedmarc.html#IMAPError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.IMAPError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an IMAP error occurs</p>
+</dd></dl>
+
 <dl class="exception">
 <dt id="parsedmarc.InvalidAggregateReport">
 <em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">InvalidAggregateReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidAggregateReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidAggregateReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC aggregate report is encountered</p>
 </dd></dl>
 
+<dl class="exception">
+<dt id="parsedmarc.InvalidDMARCReport">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">InvalidDMARCReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidDMARCReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidDMARCReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an invalid DMARC report is encountered</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="parsedmarc.InvalidForensicReport">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">InvalidForensicReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidForensicReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidForensicReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an invalid DMARC forensic report is encountered</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="parsedmarc.ParserError">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">ParserError</code><a class="reference internal" href="_modules/parsedmarc.html#ParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.ParserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised whenever the parser fails for some reason</p>
+</dd></dl>
+
 <dl class="function">
 <dt id="parsedmarc.extract_xml">
-<code class="descclassname">parsedmarc.</code><code class="descname">extract_xml</code><span class="sig-paren">(</span><em>_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">extract_xml</code><span class="sig-paren">(</span><em>input_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
 or bytes.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_input</strong> – A path to a file, a file like object, or bytes</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>input</strong> – A path to a file, a file like object, or bytes</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The extracted XML</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.get_dmarc_reports_from_inbox">
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches and parses DMARC reports from sn inbox</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>host</strong> – The mail server hostname or IP address</li>
+<li><strong>username</strong> – The mail server username</li>
+<li><strong>password</strong> – The mail server password</li>
+<li><strong>archive_folder</strong> – The folder to move processed mail to</li>
+<li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
+<li><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of DNS nameservers to query</li>
+<li><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Lists of <code class="docutils literal"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal"><span class="pre">forensic_reports</span></code></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -424,6 +501,88 @@ aggregate DMARC report</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.parse_forensic_report">
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>sample_headers_only</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal"><span class="pre">OrderedDict</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>feedback_report</strong> – A message’s feedback report as a string</li>
+<li><strong>sample</strong> – The RFC 822 headers or RFC 822 message sample</li>
+<li><strong>sample_headers_only</strong> (<em>bool</em>) – Set true if the sample is only headers</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An parsed report and sample</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parse_report_email">
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_email</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a DMARC report from an email</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input</strong> – An emailed DMARC report in RFC 822 format, as bytes or a string</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><code class="docutils literal"><span class="pre">report_type</span></code>: <code class="docutils literal"><span class="pre">aggregate</span></code> or <code class="docutils literal"><span class="pre">forensic</span></code></li>
+<li><code class="docutils literal"><span class="pre">report</span></code>: The parsed report</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parse_report_file">
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_file</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a DMARC aggregate or forensic file at the given path, a
+file-like object. or bytes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input</strong> – A path to a file, a file like object, or bytes</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The parsed DMARC report</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.parsed_aggregate_report_to_csv">
 <code class="descclassname">parsedmarc.</code><code class="descname">parsed_aggregate_report_to_csv</code><span class="sig-paren">(</span><em>_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_report_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_report_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
@@ -437,6 +596,51 @@ headers</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed aggregate report data in flat CSV format, including headers</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.save_output">
+<code class="descclassname">parsedmarc.</code><code class="descname">save_output</code><span class="sig-paren">(</span><em>results</em>, <em>output_directory='output'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save report data in the given directory</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>results</strong> (<em>OrderedDict</em>) – Parsing results</li>
+<li><strong>output_directory</strong> – The patch to the directory to save in</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.watch_inbox">
+<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
+to a callback function</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>host</strong> – The mail server hostname or IP address</li>
+<li><strong>username</strong> – The mail server username</li>
+<li><strong>password</strong> – The mail server password</li>
+<li><strong>callback</strong> – The callback function to receive the parsing results</li>
+<li><strong>archive_folder</strong> – The folder to move processed mail to</li>
+<li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
+<li><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</li>
+<li><strong>wait</strong> (<em>int</em>) – Number of seconds to wait for a IMAP IDLE response</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of DNS nameservers to query</li>
+<li><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -490,7 +694,7 @@ headers</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.1.0',
+            VERSION:'2.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
