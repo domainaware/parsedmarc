@@ -1226,7 +1226,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
             attachment_filename += ".zip"
         filename = attachment_filename
     else:
-        filename = "{0}.zip".format(date_string)
+        filename = "DMARC-{0}.zip".format(date_string)
 
     assert isinstance(mail_to, list)
 
