@@ -1086,6 +1086,8 @@ def get_dmarc_reports_from_inbox(host, user, password,
         raise IMAPError("Connection aborted")
     except TimeoutError:
         raise IMAPError("Connection timed out")
+    except ssl.SSLError as error:
+        raise IMAPError(error.__str__())
 
 
 def save_output(results, output_directory="output"):
@@ -1223,7 +1225,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
             attachment_filename += ".zip"
         filename = attachment_filename
     else:
-        filename = "{0}".format(date_string)
+        filename = "{0}.zip".format(date_string)
 
     assert isinstance(mail_to, list)
 
@@ -1232,7 +1234,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
     msg['To'] = COMMASPACE.join(mail_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
-    text = message or "Please see the attached zip file"
+    text = message or "Please see the attached zip file\n"
 
     msg.attach(MIMEText(text))
 
@@ -1270,6 +1272,8 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         raise SMTPError("Connection aborted")
     except TimeoutError:
         raise SMTPError("Connection timed out")
+    except ssl.SSLError as error:
+        raise SMTPError(error.__str__())
 
 
 def watch_inbox(host, username, password, callback, archive_folder="Archive",
@@ -1331,6 +1335,8 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
             raise IMAPError("Connection aborted")
         except TimeoutError:
             raise IMAPError("Connection timed out")
+        except ssl.SSLError as error:
+            raise IMAPError(error.__str__())
         except KeyboardInterrupt:
             break
 
