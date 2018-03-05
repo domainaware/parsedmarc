@@ -1,6 +1,10 @@
+2.1.0
+-----
+- Add `get_report_zip()` and `email_results()`
+- Add support for sending report emails via the command line
+
 2.0.1
 -----
-
 - Fix documentation
 - Remove Python 2 code
 

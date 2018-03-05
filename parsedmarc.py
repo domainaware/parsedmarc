@@ -12,7 +12,7 @@ from datetime import timedelta
 from io import BytesIO, StringIO
 from gzip import GzipFile
 import tarfile
-from zipfile import ZipFile
+import zipfile
 from csv import DictWriter
 import re
 from base64 import b64decode
@@ -24,6 +24,12 @@ import tempfile
 import subprocess
 import socket
 from time import sleep
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate
+import smtplib
+import ssl
 
 import publicsuffix
 import xmltodict
@@ -38,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.0.1"
+__version__ = "2.1.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -53,6 +59,10 @@ class ParserError(RuntimeError):
 
 class IMAPError(RuntimeError):
     """Raised when an IMAP error occurs"""
+
+
+class SMTPError(RuntimeError):
+    """Raised when a SMTP error occurs"""
 
 
 class InvalidDMARCReport(ParserError):
@@ -89,7 +99,7 @@ def _get_base_domain(domain):
 
     def download_psl():
         fresh_psl = publicsuffix.fetch()
-        with open(psl_path, "w") as fresh_psl_file:
+        with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl.read())
 
         return publicsuffix.PublicSuffixList(fresh_psl)
@@ -493,7 +503,7 @@ def extract_xml(input_):
         header = file_object.read(6)
         file_object.seek(0)
         if header.startswith(b"\x50\x4B\x03\x04"):
-            _zip = ZipFile(file_object)
+            _zip = zipfile.ZipFile(file_object)
             xml = _zip.open(_zip.namelist()[0]).read().decode()
         elif header.startswith(b"\x1F\x8B"):
             xml = GzipFile(fileobj=file_object).read().decode()
@@ -982,7 +992,7 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     return results
 
 
-def get_dmarc_reports_from_inbox(host, username, password,
+def get_dmarc_reports_from_inbox(host, user, password,
                                  archive_folder="Archive",
                                  delete=False, test=False,
                                  nameservers=None,
@@ -992,7 +1002,7 @@ def get_dmarc_reports_from_inbox(host, username, password,
 
     Args:
         host: The mail server hostname or IP address
-        username: The mail server username
+        user: The mail server user
         password: The mail server password
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1018,7 +1028,7 @@ def get_dmarc_reports_from_inbox(host, username, password,
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(username, password)
+        server.login(user, password)
         server.select_folder(b'INBOX')
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
@@ -1134,6 +1144,111 @@ def save_output(results, output_directory="output"):
             sample_file.write(sample)
 
 
+def get_report_zip(results):
+    """
+    Creates a zip file of parsed report output
+    
+    Args:
+        results (OrderedDict): The parsed results
+
+    Returns:
+        bytes: zip file bytes
+    """
+    def add_subdir(root_path, subdir):
+        subdir_path = os.path.join(root_path, subdir)
+        for subdir_root, subdir_dirs, subdir_files in os.walk(subdir_path):
+            for subdir_file in subdir_files:
+                subdir_file_path = os.path.join(root_path, subdir, subdir_file)
+                if os.path.isfile(subdir_file_path):
+                    relpath = os.path.relpath(subdir_root, subdir_file_path)
+                    subdir_arcname = os.path.join(relpath, subdir_file)
+                    zip_file.write(subdir_file_path, subdir_arcname)
+            for subdir in subdir_dirs:
+                add_subdir(subdir_path, subdir)
+
+    storage = BytesIO()
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        save_output(results, tmp_dir)
+        with zipfile.ZipFile(storage, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for root, dirs, files in os.walk(tmp_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if os.path.isfile(file_path):
+                        arcname = os.path.join(os.path.relpath(root, tmp_dir),
+                                               file)
+                        zip_file.write(file_path, arcname)
+                for directory in dirs:
+                    zip_file.write(directory)
+                    add_subdir(root, directory)
+    finally:
+        shutil.rmtree(tmp_dir)
+
+    return storage.getvalue()
+
+
+def email_results(results, host, mail_from, mail_to, user=None,
+                  password=None, subject=None, attachment_filename=None,
+                  message=None, ssl_context=None):
+    """
+    Emails parsing results as a zip file
+    
+    Args:
+        results (OrderedDict): Parsing results 
+        host: Mail server hostname or IP address
+        mail_from: The value of the message from header
+        mail_to : A list of addresses to mail to
+        user: An optional username
+        password: An optional password
+        subject: Overrides the default message subject
+        attachment_filename: Override the default attachment filename
+        message: Override the default plain text body
+        ssl_context: SSL context options
+        
+    Notes:
+        The server is required to support TLS for privacy reasons
+    """
+    date_string = datetime.utcnow().strftime("%Y-%m-%d")
+    if attachment_filename:
+        if not attachment_filename.lower().endswith(".zip"):
+            attachment_filename += ".zip"
+        filename = attachment_filename
+    else:
+        filename = "{0}".format(date_string)
+
+    assert isinstance(mail_to, list)
+
+    msg = MIMEMultipart()
+    msg['From'] = mail_from
+    msg['To'] = COMMASPACE.join(mail_to)
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
+    text = message or "Please see the attached zip file"
+
+    msg.attach(MIMEText(text))
+
+    zip_bytes = get_report_zip(results)
+    part = MIMEApplication(zip_bytes, Name=filename)
+
+    part['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
+    msg.attach(part)
+
+    try:
+        if ssl_context is None:
+            ssl_context = ssl.create_default_context()
+        server = smtplib.SMTP_SSL(host, context=ssl_context)
+        if user and password:
+            server.login(user, password)
+            server.sendmail(mail_from, mail_to, msg.as_string())
+    except smtplib.SMTPException as error:
+        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+        raise SMTPError(error)
+    except socket.gaierror:
+        raise SMTPError("DNS resolution failed")
+    except TimeoutError:
+        raise SMTPError("The connection timed out")
+
+
 def watch_inbox(host, username, password, callback, archive_folder="Archive",
                 delete=False, test=False, wait=30, nameservers=None,
                 dns_timeout=6.0):
@@ -1220,7 +1335,7 @@ def _main():
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
-    arg_parser.add_argument("-U", "--username", help="IMAP username")
+    arg_parser.add_argument("-u", "--user", help="IMAP user")
     arg_parser.add_argument("-p", "--password", help="IMAP password")
     arg_parser.add_argument("-a", "--archive-folder",
                             help="Specifies the IMAP folder to move "
@@ -1230,10 +1345,27 @@ def _main():
     arg_parser.add_argument("-d", "--delete",
                             help="Delete the reports after processing them",
                             action="store_true", default=False)
+    arg_parser.add_argument("-O", "--outgoing-host",
+                            help="Email the results using this host")
+    arg_parser.add_argument("-U", "--outgoing-user",
+                            help="Email the results using this user")
+    arg_parser.add_argument("-P", "--outgoing-password",
+                            help="Email the results using this password")
+    arg_parser.add_argument("-F", "--outgoing-from",
+                            help="Email the results using this from address")
+    arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
+                            help="Email the results to these addresses")
+    arg_parser.add_argument("-S", "--outgoing-subject",
+                            help="Email the results using this subject")
+    arg_parser.add_argument("-A", "--outgoing-attachment",
+                            help="Email the results using this filename")
+    arg_parser.add_argument("-M", "--outgoing-message",
+                            help="Email the results using this message")
+
     arg_parser.add_argument("-i", "--idle", action="store_true",
                             help="Use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
-    arg_parser.add_argument("-T", "--test",
+    arg_parser.add_argument("--test",
                             help="Do not move or delete IMAP messages",
                             action="store_true", default=False)
     arg_parser.add_argument("-v", "--version", action="version",
@@ -1270,7 +1402,7 @@ def _main():
 
             af = args.archive_folder
             reports = get_dmarc_reports_from_inbox(args.host,
-                                                   args.username,
+                                                   args.user,
                                                    args.password,
                                                    archive_folder=af,
                                                    delete=args.delete,
@@ -1290,6 +1422,21 @@ def _main():
         save_output(results, output_directory=args.output)
 
     print_results(results)
+
+    if args.outgoing_host:
+        if args.outgoing_from is None or args.outgoing_to is None:
+            logger.error("--outgoing-from and --outgoing-to must "
+                         "be provided if --outgoing-host is used")
+            exit(1)
+
+        try:
+            email_results(results, args.outgoing_host, args.outgoing_from,
+                          args.outgoing_to, user=args.outgoing_user,
+                          password=args.outgoing_password,
+                          subject=args.outgoing_subject)
+        except SMTPError as error:
+            logger.error("SMTP Error: {0}".format(error.__str__()))
+            exit(1)
 
     if args.host and args.idle:
         sleep(2)
