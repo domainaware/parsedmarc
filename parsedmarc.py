@@ -1179,8 +1179,10 @@ def get_report_zip(results):
                                                file)
                         zip_file.write(file_path, arcname)
                 for directory in dirs:
-                    zip_file.write(directory)
-                    add_subdir(root, directory)
+                    dir_path = os.path.join(root, directory)
+                    if os.path.isdir(dir_path):
+                        zip_file.write(dir_path, directory)
+                        add_subdir(root, directory)
     finally:
         shutil.rmtree(tmp_dir)
 
