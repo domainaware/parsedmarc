@@ -1195,9 +1195,9 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, user=None,
-                  password=None, subject=None, attachment_filename=None,
-                  message=None, ssl_context=None):
+def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
+                  use_ssl=False, user=None, password=None, subject=None,
+                  attachment_filename=None, message=None, ssl_context=None):
     """
     Emails parsing results as a zip file
     
@@ -1206,15 +1206,16 @@ def email_results(results, host, mail_from, mail_to, user=None,
         host: Mail server hostname or IP address
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
+        port (int): Port to use
+        starttls (bool): use STARTTLS
+        use_ssl (bool): Require an SSL connection from the start instead of
+        STARTTLS
         user: An optional username
         password: An optional password
         subject: Overrides the default message subject
         attachment_filename: Override the default attachment filename
         message: Override the default plain text body
         ssl_context: SSL context options
-        
-    Notes:
-        Server must support STARTTLS
     """
     date_string = datetime.utcnow().strftime("%Y-%m-%d")
     if attachment_filename:
@@ -1244,9 +1245,15 @@ def email_results(results, host, mail_from, mail_to, user=None,
     try:
         if ssl_context is None:
             ssl_context = ssl.create_default_context()
-        server = smtplib.SMTP(host)
-        server.ehlo()
-        server.starttls(context=ssl_context)
+        if use_ssl:
+            server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
+            server.helo()
+        else:
+            server = smtplib.SMTP(host, port=port)
+            server.ehlo()
+            if starttls:
+                server.starttls(context=ssl_context)
+                server.helo()
         if user and password:
             server.login(user, password)
         server.sendmail(mail_from, mail_to, msg.as_string())
