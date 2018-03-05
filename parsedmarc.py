@@ -1087,9 +1087,9 @@ def get_dmarc_reports_from_inbox(host, user, password,
     except TimeoutError:
         raise IMAPError("Connection timed out")
     except ssl.SSLError as error:
-        raise IMAPError(error.__str__())
+        raise IMAPError("SSL error: {0}".format(error.__str__()))
     except ssl.CertificateError as error:
-        raise IMAPError(error.__str__())
+        raise IMAPError("Certificate error: {0}".format(error.__str__()))
 
 
 def save_output(results, output_directory="output"):
@@ -1157,7 +1157,7 @@ def save_output(results, output_directory="output"):
 def get_report_zip(results):
     """
     Creates a zip file of parsed report output
-    
+
     Args:
         results (OrderedDict): The parsed results
 
@@ -1204,16 +1204,15 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
                   attachment_filename=None, message=None, ssl_context=None):
     """
     Emails parsing results as a zip file
-    
+
     Args:
-        results (OrderedDict): Parsing results 
+        results (OrderedDict): Parsing results
         host: Mail server hostname or IP address
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
         port (int): Port to use
         starttls (bool): use STARTTLS
-        use_ssl (bool): Require an SSL connection from the start instead of
-        STARTTLS
+        use_ssl (bool): Require an SSL connection from the start
         user: An optional username
         password: An optional password
         subject: Overrides the default message subject
@@ -1275,9 +1274,9 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
     except TimeoutError:
         raise SMTPError("Connection timed out")
     except ssl.SSLError as error:
-        raise SMTPError(error.__str__())
+        raise SMTPError("SSL error: {0}".format(error.__str__()))
     except ssl.CertificateError as error:
-        raise SMTPError(error.__str__())
+        raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
 
 def watch_inbox(host, username, password, callback, archive_folder="Archive",
@@ -1340,9 +1339,9 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
         except TimeoutError:
             raise IMAPError("Connection timed out")
         except ssl.SSLError as error:
-            raise IMAPError(error.__str__())
+            raise IMAPError("SSL error: {0}".format(error.__str__()))
         except ssl.CertificateError as error:
-            raise IMAPError(error.__str__())
+            raise IMAPError("Certificate error: {0}".format(error.__str__()))
         except KeyboardInterrupt:
             break
 
