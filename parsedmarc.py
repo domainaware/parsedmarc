@@ -1088,6 +1088,8 @@ def get_dmarc_reports_from_inbox(host, user, password,
         raise IMAPError("Connection timed out")
     except ssl.SSLError as error:
         raise IMAPError(error.__str__())
+    except ssl.CertificateError as error:
+        raise IMAPError(error.__str__())
 
 
 def save_output(results, output_directory="output"):
@@ -1274,6 +1276,8 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         raise SMTPError("Connection timed out")
     except ssl.SSLError as error:
         raise SMTPError(error.__str__())
+    except ssl.CertificateError as error:
+        raise SMTPError(error.__str__())
 
 
 def watch_inbox(host, username, password, callback, archive_folder="Archive",
@@ -1336,6 +1340,8 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
         except TimeoutError:
             raise IMAPError("Connection timed out")
         except ssl.SSLError as error:
+            raise IMAPError(error.__str__())
+        except ssl.CertificateError as error:
             raise IMAPError(error.__str__())
         except KeyboardInterrupt:
             break
