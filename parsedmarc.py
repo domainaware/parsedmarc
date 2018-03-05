@@ -1396,8 +1396,8 @@ def _main():
 
     if args.host:
         try:
-            if args.username is None or args.password is None:
-                logger.error("username and password must be specified if"
+            if args.user is None or args.password is None:
+                logger.error("user and password must be specified if"
                              "host is specified")
 
             af = args.archive_folder
