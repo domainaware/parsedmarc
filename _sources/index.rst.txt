@@ -20,6 +20,7 @@ Features
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
 * Simple JSON and/or CSV output
+* Optionally email the results
 
 CLI help
 ========
@@ -27,8 +28,12 @@ CLI help
 ::
 
     usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                      [-t TIMEOUT] [-H HOST] [-U USERNAME] [-p PASSWORD]
-                      [-a ARCHIVE_FOLDER] [-d] [-i] [-T] [-v]
+                      [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                      [-a ARCHIVE_FOLDER] [-d] [-O OUTGOING_HOST]
+                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                      [-F OUTGOING_FROM] [-T OUTGOING_TO [OUTGOING_TO ...]]
+                      [-S OUTGOING_SUBJECT] [-A OUTGOING_ATTACHMENT]
+                      [-M OUTGOING_MESSAGE] [-i] [--test] [-v]
                       [file_path [file_path ...]]
 
     Parses DMARC reports
@@ -47,17 +52,32 @@ CLI help
                             number of seconds to wait for an answer from DNS
                             (default 6.0)
       -H HOST, --host HOST  IMAP hostname or IP address
-      -U USERNAME, --username USERNAME
-                            IMAP username
+      -u USER, --user USER  IMAP user
       -p PASSWORD, --password PASSWORD
                             IMAP password
       -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
                             Specifies the IMAP folder to move messages to after
                             processing them (default: Archive)
       -d, --delete          Delete the reports after processing them
+      -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
+                            Email the results using this host
+      -U OUTGOING_USER, --outgoing-user OUTGOING_USER
+                            Email the results using this user
+      -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
+                            Email the results using this password
+      -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
+                            Email the results using this from address
+      -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
+                            Email the results to these addresses
+      -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
+                            Email the results using this subject
+      -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
+                            Email the results using this filename
+      -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
+                            Email the results using this message
       -i, --idle            Use an IMAP IDLE connection to process reports as they
                             arrive in the inbox
-      -T, --test            Do not move or delete IMAP messages
+      --test                Do not move or delete IMAP messages
       -v, --version         show program's version number and exit
 
 Sample aggregate report output

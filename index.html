@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.0.1 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.1.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 2.0.1 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 2.1.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                2.0.1
+                2.1.0
               </div>
             
           
@@ -184,13 +184,18 @@
 <li>Transparently handles gzip or zip compressed reports</li>
 <li>Consistent data structures</li>
 <li>Simple JSON and/or CSV output</li>
+<li>Optionally email the results</li>
 </ul>
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">USERNAME</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">T</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
                   <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
 <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
@@ -209,17 +214,32 @@
                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
                         <span class="p">(</span><span class="n">default</span> <span class="mf">6.0</span><span class="p">)</span>
   <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
-  <span class="o">-</span><span class="n">U</span> <span class="n">USERNAME</span><span class="p">,</span> <span class="o">--</span><span class="n">username</span> <span class="n">USERNAME</span>
-                        <span class="n">IMAP</span> <span class="n">username</span>
+  <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
   <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
                         <span class="n">IMAP</span> <span class="n">password</span>
   <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
                         <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
                         <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
   <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
+  <span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">host</span> <span class="n">OUTGOING_HOST</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">host</span>
+  <span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">user</span> <span class="n">OUTGOING_USER</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">user</span>
+  <span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">password</span> <span class="n">OUTGOING_PASSWORD</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">password</span>
+  <span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="kn">from</span> <span class="nn">OUTGOING_FROM</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="kn">from</span> <span class="nn">address</span>
+  <span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">to</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">to</span> <span class="n">these</span> <span class="n">addresses</span>
+  <span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">subject</span> <span class="n">OUTGOING_SUBJECT</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">subject</span>
+  <span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">attachment</span> <span class="n">OUTGOING_ATTACHMENT</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">filename</span>
+  <span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">message</span> <span class="n">OUTGOING_MESSAGE</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">message</span>
   <span class="o">-</span><span class="n">i</span><span class="p">,</span> <span class="o">--</span><span class="n">idle</span>            <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
                         <span class="n">arrive</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">inbox</span>
-  <span class="o">-</span><span class="n">T</span><span class="p">,</span> <span class="o">--</span><span class="n">test</span>            <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
+  <span class="o">--</span><span class="n">test</span>                <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
@@ -382,6 +402,41 @@ above commands.</p>
 <dd><p>Raised whenever the parser fails for some reason</p>
 </dd></dl>
 
+<dl class="exception">
+<dt id="parsedmarc.SMTPError">
+<em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">SMTPError</code><a class="reference internal" href="_modules/parsedmarc.html#SMTPError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.SMTPError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a SMTP error occurs</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.email_results">
+<code class="descclassname">parsedmarc.</code><code class="descname">email_results</code><span class="sig-paren">(</span><em>results</em>, <em>host</em>, <em>mail_from</em>, <em>mail_to</em>, <em>port=0</em>, <em>starttls=True</em>, <em>use_ssl=False</em>, <em>user=None</em>, <em>password=None</em>, <em>subject=None</em>, <em>attachment_filename=None</em>, <em>message=None</em>, <em>ssl_context=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Emails parsing results as a zip file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>results</strong> (<em>OrderedDict</em>) – Parsing results</li>
+<li><strong>host</strong> – Mail server hostname or IP address</li>
+<li><strong>mail_from</strong> – The value of the message from header</li>
+<li><strong>mail_to</strong> – A list of addresses to mail to</li>
+<li><strong>port</strong> (<em>int</em>) – Port to use</li>
+<li><strong>starttls</strong> (<em>bool</em>) – use STARTTLS</li>
+<li><strong>use_ssl</strong> (<em>bool</em>) – Require an SSL connection from the start</li>
+<li><strong>user</strong> – An optional username</li>
+<li><strong>password</strong> – An optional password</li>
+<li><strong>subject</strong> – Overrides the default message subject</li>
+<li><strong>attachment_filename</strong> – Override the default attachment filename</li>
+<li><strong>message</strong> – Override the default plain text body</li>
+<li><strong>ssl_context</strong> – SSL context options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="function">
 <dt id="parsedmarc.extract_xml">
 <code class="descclassname">parsedmarc.</code><code class="descname">extract_xml</code><span class="sig-paren">(</span><em>input_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
@@ -403,7 +458,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>user</em>, <em>password</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from sn inbox</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -411,7 +466,7 @@ or bytes.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>host</strong> – The mail server hostname or IP address</li>
-<li><strong>username</strong> – The mail server username</li>
+<li><strong>user</strong> – The mail server user</li>
 <li><strong>password</strong> – The mail server password</li>
 <li><strong>archive_folder</strong> – The folder to move processed mail to</li>
 <li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
@@ -426,6 +481,24 @@ or bytes.</p>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.get_report_zip">
+<code class="descclassname">parsedmarc.</code><code class="descname">get_report_zip</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a zip file of parsed report output</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>results</strong> (<em>OrderedDict</em>) – The parsed results</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">zip file bytes</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bytes</td>
 </tr>
 </tbody>
 </table>
@@ -694,7 +767,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.1',
+            VERSION:'2.1.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

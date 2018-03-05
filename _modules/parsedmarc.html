@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 2.0.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 2.1.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="parsedmarc 2.0.1 documentation" href="../index.html"/>
+    <link rel="top" title="parsedmarc 2.1.0 documentation" href="../index.html"/>
         <link rel="up" title="Module code" href="index.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                2.0.1
+                2.1.0
               </div>
             
           
@@ -167,7 +167,7 @@
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
 <span class="kn">from</span> <span class="nn">gzip</span> <span class="k">import</span> <span class="n">GzipFile</span>
 <span class="kn">import</span> <span class="nn">tarfile</span>
-<span class="kn">from</span> <span class="nn">zipfile</span> <span class="k">import</span> <span class="n">ZipFile</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
 <span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">DictWriter</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">base64</span> <span class="k">import</span> <span class="n">b64decode</span>
@@ -179,6 +179,12 @@
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">email.mime.application</span> <span class="k">import</span> <span class="n">MIMEApplication</span>
+<span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="k">import</span> <span class="n">MIMEMultipart</span>
+<span class="kn">from</span> <span class="nn">email.mime.text</span> <span class="k">import</span> <span class="n">MIMEText</span>
+<span class="kn">from</span> <span class="nn">email.utils</span> <span class="k">import</span> <span class="n">COMMASPACE</span><span class="p">,</span> <span class="n">formatdate</span>
+<span class="kn">import</span> <span class="nn">smtplib</span>
+<span class="kn">import</span> <span class="nn">ssl</span>
 
 <span class="kn">import</span> <span class="nn">publicsuffix</span>
 <span class="kn">import</span> <span class="nn">xmltodict</span>
@@ -193,7 +199,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;2.0.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;2.1.0&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -208,6 +214,10 @@
 
 <div class="viewcode-block" id="IMAPError"><a class="viewcode-back" href="../index.html#parsedmarc.IMAPError">[docs]</a><span class="k">class</span> <span class="nc">IMAPError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Raised when an IMAP error occurs&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="SMTPError"><a class="viewcode-back" href="../index.html#parsedmarc.SMTPError">[docs]</a><span class="k">class</span> <span class="nc">SMTPError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a SMTP error occurs&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
@@ -244,7 +254,7 @@
 
     <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
         <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fresh_psl_file</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fresh_psl_file</span><span class="p">:</span>
             <span class="n">fresh_psl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fresh_psl</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">fresh_psl</span><span class="p">)</span>
@@ -648,7 +658,7 @@
         <span class="n">header</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x50\x4B\x03\x04</span><span class="s2">&quot;</span><span class="p">):</span>
-            <span class="n">_zip</span> <span class="o">=</span> <span class="n">ZipFile</span><span class="p">(</span><span class="n">file_object</span><span class="p">)</span>
+            <span class="n">_zip</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file_object</span><span class="p">)</span>
             <span class="n">xml</span> <span class="o">=</span> <span class="n">_zip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">_zip</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
         <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1F\x8B</span><span class="s2">&quot;</span><span class="p">):</span>
             <span class="n">xml</span> <span class="o">=</span> <span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">file_object</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -1137,7 +1147,7 @@
     <span class="k">return</span> <span class="n">results</span></div>
 
 
-<div class="viewcode-block" id="get_dmarc_reports_from_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_inbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span>
+<div class="viewcode-block" id="get_dmarc_reports_from_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_inbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span>
                                  <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                                  <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1147,7 +1157,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        host: The mail server hostname or IP address</span>
-<span class="sd">        username: The mail server username</span>
+<span class="sd">        user: The mail server user</span>
 <span class="sd">        password: The mail server password</span>
 <span class="sd">        archive_folder: The folder to move processed mail to</span>
 <span class="sd">        delete (bool): Delete  messages after processing them</span>
@@ -1173,7 +1183,7 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;INBOX&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">):</span>
             <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
@@ -1223,8 +1233,18 @@
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection refused&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionResetError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection reset&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionAbortedError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection aborted&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;The connection timed out&quot;</span><span class="p">)</span></div>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection timed out&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;SSL error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+    <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../index.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">):</span>
@@ -1289,6 +1309,131 @@
             <span class="n">sample_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="get_report_zip"><a class="viewcode-back" href="../index.html#parsedmarc.get_report_zip">[docs]</a><span class="k">def</span> <span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a zip file of parsed report output</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        results (OrderedDict): The parsed results</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bytes: zip file bytes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">add_subdir</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">):</span>
+        <span class="n">subdir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">subdir_root</span><span class="p">,</span> <span class="n">subdir_dirs</span><span class="p">,</span> <span class="n">subdir_files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">subdir_path</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">subdir_file</span> <span class="ow">in</span> <span class="n">subdir_files</span><span class="p">:</span>
+                <span class="n">subdir_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">subdir_file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">subdir_file_path</span><span class="p">):</span>
+                    <span class="n">relpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">subdir_root</span><span class="p">,</span> <span class="n">subdir_file_path</span><span class="p">)</span>
+                    <span class="n">subdir_arcname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relpath</span><span class="p">,</span> <span class="n">subdir_file</span><span class="p">)</span>
+                    <span class="n">zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">subdir_file_path</span><span class="p">,</span> <span class="n">subdir_arcname</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">subdir_dirs</span><span class="p">:</span>
+                <span class="n">add_subdir</span><span class="p">(</span><span class="n">subdir_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
+
+    <span class="n">storage</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+    <span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">tmp_dir</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span><span class="p">)</span> <span class="k">as</span> <span class="n">zip_file</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                        <span class="n">arcname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">tmp_dir</span><span class="p">),</span>
+                                               <span class="n">file</span><span class="p">)</span>
+                        <span class="n">zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">arcname</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+                    <span class="n">dir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_path</span><span class="p">):</span>
+                        <span class="n">zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">dir_path</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+                        <span class="n">add_subdir</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">storage</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">starttls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                  <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">attachment_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Emails parsing results as a zip file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        results (OrderedDict): Parsing results</span>
+<span class="sd">        host: Mail server hostname or IP address</span>
+<span class="sd">        mail_from: The value of the message from header</span>
+<span class="sd">        mail_to : A list of addresses to mail to</span>
+<span class="sd">        port (int): Port to use</span>
+<span class="sd">        starttls (bool): use STARTTLS</span>
+<span class="sd">        use_ssl (bool): Require an SSL connection from the start</span>
+<span class="sd">        user: An optional username</span>
+<span class="sd">        password: An optional password</span>
+<span class="sd">        subject: Overrides the default message subject</span>
+<span class="sd">        attachment_filename: Override the default attachment filename</span>
+<span class="sd">        message: Override the default plain text body</span>
+<span class="sd">        ssl_context: SSL context options</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">date_string</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">attachment_filename</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">attachment_filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.zip&quot;</span><span class="p">):</span>
+            <span class="n">attachment_filename</span> <span class="o">+=</span> <span class="s2">&quot;.zip&quot;</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">attachment_filename</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;DMARC-</span><span class="si">{0}</span><span class="s2">.zip&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_string</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mail_to</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">MIMEMultipart</span><span class="p">()</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;From&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mail_from</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">COMMASPACE</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mail_to</span><span class="p">)</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;Date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">formatdate</span><span class="p">(</span><span class="n">localtime</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;Subject&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subject</span> <span class="ow">or</span> <span class="s2">&quot;DMARC results for </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_string</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">message</span> <span class="ow">or</span> <span class="s2">&quot;Please see the attached zip file</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="n">msg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">MIMEText</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+
+    <span class="n">zip_bytes</span> <span class="o">=</span> <span class="n">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="n">part</span> <span class="o">=</span> <span class="n">MIMEApplication</span><span class="p">(</span><span class="n">zip_bytes</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">part</span><span class="p">[</span><span class="s1">&#39;Content-Disposition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;attachment; filename=&quot;</span><span class="si">{0}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">msg</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ssl_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
+            <span class="n">server</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP_SSL</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">helo</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">server</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">starttls</span><span class="p">:</span>
+                <span class="n">server</span><span class="o">.</span><span class="n">starttls</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
+                <span class="n">server</span><span class="o">.</span><span class="n">helo</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">password</span><span class="p">:</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="n">server</span><span class="o">.</span><span class="n">sendmail</span><span class="p">(</span><span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">as_string</span><span class="p">())</span>
+    <span class="k">except</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTPException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Connection refused&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionResetError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Connection reset&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionAbortedError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Connection aborted&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Connection timed out&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;SSL error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+    <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+
+
 <div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                 <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
@@ -1340,8 +1485,18 @@
             <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection refused&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ConnectionResetError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection reset&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ConnectionAbortedError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection aborted&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;The connection timed out&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection timed out&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;SSL error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
         <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
             <span class="k">break</span>
 
@@ -1375,7 +1530,7 @@
                             <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
                             <span class="n">default</span><span class="o">=</span><span class="mf">6.0</span><span class="p">)</span>
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-H&quot;</span><span class="p">,</span> <span class="s2">&quot;--host&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IMAP hostname or IP address&quot;</span><span class="p">)</span>
-    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-U&quot;</span><span class="p">,</span> <span class="s2">&quot;--username&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IMAP username&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-u&quot;</span><span class="p">,</span> <span class="s2">&quot;--user&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IMAP user&quot;</span><span class="p">)</span>
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-p&quot;</span><span class="p">,</span> <span class="s2">&quot;--password&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IMAP password&quot;</span><span class="p">)</span>
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-a&quot;</span><span class="p">,</span> <span class="s2">&quot;--archive-folder&quot;</span><span class="p">,</span>
                             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specifies the IMAP folder to move &quot;</span>
@@ -1385,10 +1540,27 @@
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--delete&quot;</span><span class="p">,</span>
                             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delete the reports after processing them&quot;</span><span class="p">,</span>
                             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-O&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-host&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this host&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-U&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-user&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this user&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-P&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-password&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this password&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-F&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-from&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this from address&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-to&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results to these addresses&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-S&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-subject&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this subject&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-A&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-attachment&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this filename&quot;</span><span class="p">)</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-M&quot;</span><span class="p">,</span> <span class="s2">&quot;--outgoing-message&quot;</span><span class="p">,</span>
+                            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Email the results using this message&quot;</span><span class="p">)</span>
+
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="s2">&quot;--idle&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
                             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use an IMAP IDLE connection to process &quot;</span>
                                  <span class="s2">&quot;reports as they arrive in the inbox&quot;</span><span class="p">)</span>
-    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="s2">&quot;--test&quot;</span><span class="p">,</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--test&quot;</span><span class="p">,</span>
                             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not move or delete IMAP messages&quot;</span><span class="p">,</span>
                             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;--version&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;version&quot;</span><span class="p">,</span>
@@ -1419,13 +1591,13 @@
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">username</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">password</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;username and password must be specified if&quot;</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">password</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;user and password must be specified if&quot;</span>
                              <span class="s2">&quot;host is specified&quot;</span><span class="p">)</span>
 
             <span class="n">af</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">archive_folder</span>
             <span class="n">reports</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
-                                                   <span class="n">args</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+                                                   <span class="n">args</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
                                                    <span class="n">args</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
                                                    <span class="n">archive_folder</span><span class="o">=</span><span class="n">af</span><span class="p">,</span>
                                                    <span class="n">delete</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
@@ -1445,6 +1617,21 @@
         <span class="n">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
 
     <span class="n">print_results</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">outgoing_host</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">outgoing_from</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">outgoing_to</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;--outgoing-from and --outgoing-to must &quot;</span>
+                         <span class="s2">&quot;be provided if --outgoing-host is used&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">outgoing_host</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">outgoing_from</span><span class="p">,</span>
+                          <span class="n">args</span><span class="o">.</span><span class="n">outgoing_to</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">outgoing_user</span><span class="p">,</span>
+                          <span class="n">password</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">outgoing_password</span><span class="p">,</span>
+                          <span class="n">subject</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">outgoing_subject</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">SMTPError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;SMTP Error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">host</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">idle</span><span class="p">:</span>
         <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1498,7 +1685,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'2.0.1',
+            VERSION:'2.1.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
