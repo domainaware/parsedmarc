@@ -1249,7 +1249,7 @@ def email_results(results, host, mail_from, mail_to, user=None,
         server.starttls(context=ssl_context)
         if user and password:
             server.login(user, password)
-            server.sendmail(mail_from, mail_to, msg.as_string())
+        server.sendmail(mail_from, mail_to, msg.as_string())
     except smtplib.SMTPException as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
         raise SMTPError(error)
