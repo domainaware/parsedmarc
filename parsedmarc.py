@@ -1078,8 +1078,14 @@ def get_dmarc_reports_from_inbox(host, user, password,
         raise IMAPError(error)
     except socket.gaierror:
         raise IMAPError("DNS resolution failed")
+    except ConnectionRefusedError:
+        raise IMAPError("Connection refused")
+    except ConnectionResetError:
+        raise IMAPError("Connection reset")
+    except ConnectionAbortedError:
+        raise IMAPError("Connection aborted")
     except TimeoutError:
-        raise IMAPError("The connection timed out")
+        raise IMAPError("Connection timed out")
 
 
 def save_output(results, output_directory="output"):
@@ -1247,8 +1253,14 @@ def email_results(results, host, mail_from, mail_to, user=None,
         raise SMTPError(error)
     except socket.gaierror:
         raise SMTPError("DNS resolution failed")
+    except ConnectionRefusedError:
+        raise SMTPError("Connection refused")
+    except ConnectionResetError:
+        raise SMTPError("Connection reset")
+    except ConnectionAbortedError:
+        raise SMTPError("Connection aborted")
     except TimeoutError:
-        raise SMTPError("The connection timed out")
+        raise SMTPError("Connection timed out")
 
 
 def watch_inbox(host, username, password, callback, archive_folder="Archive",
@@ -1302,8 +1314,14 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
             raise IMAPError(error)
         except socket.gaierror:
             raise IMAPError("DNS resolution failed")
+        except ConnectionRefusedError:
+            raise IMAPError("Connection refused")
+        except ConnectionResetError:
+            raise IMAPError("Connection reset")
+        except ConnectionAbortedError:
+            raise IMAPError("Connection aborted")
         except TimeoutError:
-            raise IMAPError("The connection timed out")
+            raise IMAPError("Connection timed out")
         except KeyboardInterrupt:
             break
 
