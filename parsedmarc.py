@@ -1214,7 +1214,7 @@ def email_results(results, host, mail_from, mail_to, user=None,
         ssl_context: SSL context options
         
     Notes:
-        The server is required to support TLS for privacy reasons
+        Server must support STARTTLS
     """
     date_string = datetime.utcnow().strftime("%Y-%m-%d")
     if attachment_filename:
@@ -1244,7 +1244,9 @@ def email_results(results, host, mail_from, mail_to, user=None,
     try:
         if ssl_context is None:
             ssl_context = ssl.create_default_context()
-        server = smtplib.SMTP_SSL(host, context=ssl_context)
+        server = smtplib.SMTP(host)
+        server.ehlo()
+        server.starttls(context=ssl_context)
         if user and password:
             server.login(user, password)
             server.sendmail(mail_from, mail_to, msg.as_string())
