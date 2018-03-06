@@ -1,3 +1,11 @@
+2.1.2
+-----
+- Rename `parsed_dmarc_forensic_reports_to_csv()` to
+ `parsed_forensic_reports_to_csv()` to match other functions
+- Rename `parsed_aggregate_report_to_csv()` to
+ `parsed_aggregate_reports_to_csv()` to match other functions
+- Use local time when generating the default email subject
+
 2.1.1
 -----
 - Documentation fixes

@@ -16,7 +16,7 @@ class Test(unittest.TestCase):
             parsed_report = parsedmarc.parse_aggregate_report_file(sample_path)
             print(json.dumps(parsed_report, ensure_ascii=False, indent=2))
             print("\n")
-            print(parsedmarc.parsed_aggregate_report_to_csv(parsed_report))
+            print(parsedmarc.parsed_aggregate_reports_to_csv(parsed_report))
 
 
 if __name__ == "__main__":

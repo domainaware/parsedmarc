@@ -44,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.1.1"
+__version__ = "2.1.2"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -541,7 +541,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
                                       timeout=timeout)
 
 
-def parsed_aggregate_report_to_csv(reports):
+def parsed_aggregate_reports_to_csv(reports):
     """
     Converts one or more parsed aggregate reports to flat CSV format, including
     headers
@@ -798,7 +798,7 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             error.__str__()))
 
 
-def parsed_dmarc_forensic_reports_to_csv(reports):
+def parsed_forensic_reports_to_csv(reports):
     """
     Converts one or more parsed forensic reports to flat CSV format, including
     headers
@@ -1129,7 +1129,7 @@ def save_output(results, output_directory="output"):
 
     with open("{0}".format(os.path.join(output_directory, "aggregate.csv")),
               "w", newline="\n", encoding="utf-8") as agg_csv:
-        csv = parsed_aggregate_report_to_csv(aggregate_reports)
+        csv = parsed_aggregate_reports_to_csv(aggregate_reports)
         agg_csv.write(csv)
 
     with open("{0}".format(os.path.join(output_directory, "forensic.json")),
@@ -1139,7 +1139,7 @@ def save_output(results, output_directory="output"):
 
     with open("{0}".format(os.path.join(output_directory, "forensic.csv")),
               "w", newline="\n", encoding="utf-8") as for_csv:
-        csv = parsed_dmarc_forensic_reports_to_csv(forensic_reports)
+        csv = parsed_forensic_reports_to_csv(forensic_reports)
         for_csv.write(csv)
 
     samples_directory = os.path.join(output_directory, "samples")
@@ -1232,7 +1232,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         message: Override the default plain text body
         ssl_context: SSL context options
     """
-    date_string = datetime.utcnow().strftime("%Y-%m-%d")
+    date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):
             attachment_filename += ".zip"
