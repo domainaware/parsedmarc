@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.1.0 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.1.1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 2.1.0 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 2.1.1 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                2.1.0
+                2.1.1
               </div>
             
           
@@ -93,6 +93,7 @@
 <li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
+<li><a class="reference internal" href="#spf-and-dmarc-record-validation">SPF and DMARC record validation</a></li>
 <li><a class="reference internal" href="#sample-aggregate-report-output">Sample aggregate report output</a><ul>
 <li><a class="reference internal" href="#json">JSON</a></li>
 <li><a class="reference internal" href="#csv">CSV</a></li>
@@ -243,6 +244,11 @@
   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
+</div>
+<div class="section" id="spf-and-dmarc-record-validation">
+<h2>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline">¶</a></h2>
+<p>If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project, <a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
 </div>
 <div class="section" id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline">¶</a></h2>
@@ -423,7 +429,7 @@ above commands.</p>
 <li><strong>mail_to</strong> – A list of addresses to mail to</li>
 <li><strong>port</strong> (<em>int</em>) – Port to use</li>
 <li><strong>starttls</strong> (<em>bool</em>) – use STARTTLS</li>
-<li><strong>use_ssl</strong> (<em>bool</em>) – Require an SSL connection from the start</li>
+<li><strong>use_ssl</strong> (<em>bool</em>) – Require a SSL connection from the start</li>
 <li><strong>user</strong> – An optional username</li>
 <li><strong>password</strong> – An optional password</li>
 <li><strong>subject</strong> – Overrides the default message subject</li>
@@ -657,16 +663,35 @@ file-like object. or bytes</p>
 
 <dl class="function">
 <dt id="parsedmarc.parsed_aggregate_report_to_csv">
-<code class="descclassname">parsedmarc.</code><code class="descname">parsed_aggregate_report_to_csv</code><span class="sig-paren">(</span><em>_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_report_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_report_to_csv" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parsed_aggregate_report_to_csv</code><span class="sig-paren">(</span><em>reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_report_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_report_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
 headers</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_input</strong> – A parsed aggregate report or list of parsed aggregate reports</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reports</strong> – A parsed aggregate report or list of parsed aggregate reports</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed aggregate report data in flat CSV format, including headers</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parsed_dmarc_forensic_reports_to_csv">
+<code class="descclassname">parsedmarc.</code><code class="descname">parsed_dmarc_forensic_reports_to_csv</code><span class="sig-paren">(</span><em>reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_dmarc_forensic_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_dmarc_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts one or more parsed forensic reports to flat CSV format, including
+headers</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reports</strong> – A parsed forensic report or list of parsed forensic reports</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed forensic report data in flat CSV format, including headers</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
 </tr>
@@ -767,7 +792,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.1.0',
+            VERSION:'2.1.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
