@@ -44,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -541,13 +541,13 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
                                       timeout=timeout)
 
 
-def parsed_aggregate_report_to_csv(_input):
+def parsed_aggregate_report_to_csv(reports):
     """
     Converts one or more parsed aggregate reports to flat CSV format, including
     headers
 
     Args:
-        _input: A parsed aggregate report or list of parsed aggregate reports
+        reports: A parsed aggregate report or list of parsed aggregate reports
 
     Returns:
         str: Parsed aggregate report data in flat CSV format, including headers
@@ -566,10 +566,10 @@ def parsed_aggregate_report_to_csv(_input):
     writer = DictWriter(csv_file_object, fields)
     writer.writeheader()
 
-    if type(_input) == OrderedDict:
-        _input = [_input]
+    if type(reports) == OrderedDict:
+        reports = [reports]
 
-    for report in _input:
+    for report in reports:
         xml_schema = report["xml_schema"]
         org_name = report["report_metadata"]["org_name"]
         org_email = report["report_metadata"]["org_email"]
@@ -798,7 +798,17 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             error.__str__()))
 
 
-def parsed_dmarc_forensic_reports_to_csv(report):
+def parsed_dmarc_forensic_reports_to_csv(reports):
+    """
+    Converts one or more parsed forensic reports to flat CSV format, including
+    headers
+
+    Args:
+        reports: A parsed forensic report or list of parsed forensic reports
+
+    Returns:
+        str: Parsed forensic report data in flat CSV format, including headers
+        """
     fields = ["feedback_type", "user_agent", "version", "original_envelope_id",
               "original_mail_from", "original_rcpt_to", "arrival_date",
               "arrival_date_utc", "subject", "message_id",
@@ -807,19 +817,21 @@ def parsed_dmarc_forensic_reports_to_csv(report):
               "delivery_result", "auth_failure", "reported_domain",
               "authentication_mechanisms", "sample_headers_only"]
 
+    if type(reports) == OrderedDict:
+        reports = [reports]
     csv_file = StringIO()
     csv_writer = DictWriter(csv_file, fieldnames=fields)
     csv_writer.writeheader()
-    for row in report:
-        row = row.copy()
-        row["source_ip_address"] = row["source"]["ip_address"]
-        row["source_reverse_dns"] = row["source"]["reverse_dns"]
-        row["source_base_domain"] = row["source"]["base_domain"]
-        row["source_country"] = row["source"]["country"]
+    for report in reports:
+        row = report.copy()
+        row["source_ip_address"] = report["source"]["ip_address"]
+        row["source_reverse_dns"] = report["source"]["reverse_dns"]
+        row["source_base_domain"] = report["source"]["base_domain"]
+        row["source_country"] = report["source"]["country"]
         del row["source"]
-        row["subject"] = row["parsed_sample"]["subject"]
-        row["auth_failure"] = ",".join(row["auth_failure"])
-        authentication_mechanisms = row["authentication_mechanisms"]
+        row["subject"] = report["parsed_sample"]["subject"]
+        row["auth_failure"] = ",".join(report["auth_failure"])
+        authentication_mechanisms = report["authentication_mechanisms"]
         row["authentication_mechanisms"] = ",".join(
             authentication_mechanisms)
         del row["sample"]
@@ -1212,7 +1224,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         mail_to : A list of addresses to mail to
         port (int): Port to use
         starttls (bool): use STARTTLS
-        use_ssl (bool): Require an SSL connection from the start
+        use_ssl (bool): Require a SSL connection from the start
         user: An optional username
         password: An optional password
         subject: Overrides the default message subject

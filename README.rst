@@ -75,6 +75,12 @@ CLI help
       --test                Do not move or delete IMAP messages
       -v, --version         show program's version number and exit
 
+SPF and DMARC record validation
+===============================
+
+If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+
 Sample aggregate report output
 ==============================
 

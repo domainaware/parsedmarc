@@ -1,3 +1,7 @@
+2.1.1
+-----
+- Documentation fixes
+
 2.1.0
 -----
 - Add `get_report_zip()` and `email_results()`
