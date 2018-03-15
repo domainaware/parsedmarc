@@ -1047,7 +1047,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
         messages = server.search()
         for message_uid in messages:
             raw_msg = server.fetch(message_uid,
-                                   ["RFC822"])[message_uid]["RFC822"]
+                                   ["RFC822"])[message_uid][b"RFC822"]
             msg_content = raw_msg.decode("utf-8", errors="replace")
 
             try:
