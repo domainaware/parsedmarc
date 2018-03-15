@@ -1029,6 +1029,12 @@ def get_dmarc_reports_from_inbox(host, user, password,
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
     """
+
+    def chunks(l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
+
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
 
@@ -1075,13 +1081,14 @@ def get_dmarc_reports_from_inbox(host, user, password,
                 server.add_flags(processed_messages, [imapclient.DELETED])
                 server.expunge()
             else:
-                logging.warning("Moving ")
                 if len(aggregate_report_msg_uids) > 0:
-                    server.move(aggregate_report_msg_uids,
-                                aggregate_reports_folder)
+                    for chunk in chunks(aggregate_report_msg_uids, 100):
+                        server.move(chunk,
+                                    aggregate_reports_folder)
                 if len(forensic_report_msg_uids) > 0:
-                    server.move(forensic_report_msg_uids,
-                                forensic_reports_folder)
+                    for chunk in chunks(forensic_report_msg_uids, 100):
+                        server.move(chunk,
+                                    forensic_reports_folder)
 
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
