@@ -16,6 +16,7 @@ import zipfile
 from csv import DictWriter
 import re
 from base64 import b64decode
+import binascii
 import shutil
 from argparse import ArgumentParser
 from glob import glob
@@ -946,7 +947,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
 
             result = OrderedDict([("report_type", "forensic"),
                                   ("report", forensic_report)])
-
+            return result
         try:
             payload = b64decode(payload)
             if payload.startswith(MAGIC_ZIP) or \
@@ -958,7 +959,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
                                                                timeout=timeout)
                 result = OrderedDict([("report_type", "aggregate"),
                                       ("report", aggregate_report)])
-        except TypeError:
+        except (TypeError, binascii.Error):
             pass
 
     if result is None:
