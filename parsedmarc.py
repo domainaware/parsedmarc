@@ -176,7 +176,7 @@ def _timestamp_to_datetime(timestamp):
     Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object
 
     Args:
-        timestamp: The timestamp
+        timestamp (int): The timestamp
 
     Returns:
         DateTime: The converted timestamp as a Python ``DateTime`` object
@@ -275,7 +275,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     Returns reverse DNS and country information for the given IP address
 
     Args:
-        ip_address: The IP address to check
+        ip_address (str): The IP address to check
         nameservers (list): A list of one or more nameservers to use
         timeout (float): Sets the DNS timeout in seconds
 
@@ -652,8 +652,8 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
     Args:
-        feedback_report: A message's feedback report as a string
-        sample: The RFC 822 headers or RFC 822 message sample
+        feedback_report (str): A message's feedback report as a string
+        sample (str): The RFC 822 headers or RFC 822 message sample
         sample_headers_only (bool): Set true if the sample is only headers
         nameservers (list): A list of one or more nameservers to use
         timeout (float): Sets the DNS timeout in seconds
@@ -676,10 +676,10 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         """
         Converts a message subject to a string that is safe for a filename
         Args:
-            _subject: A message subject
+            _subject (str): A message subject
 
         Returns:
-            A string safe for a filename
+            str: A string safe for a filename
         """
         invalid_filename_chars = ['\\', '/', ':', '"', '*', '?', '|', '\n',
                                   '\r']
@@ -1312,6 +1312,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
     """
+    rf = reports_folder
     af = archive_folder
     ns = nameservers
     dt = dns_timeout
@@ -1319,7 +1320,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     server = imapclient.IMAPClient(host)
     server.login(username, password)
 
-    server.select_folder(reports_folder)
+    server.select_folder(rf)
 
     # Start IDLE mode
     server.idle()
@@ -1332,6 +1333,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                     if response[1] == b'RECENT' and response[0] > 0:
                         res = get_dmarc_reports_from_inbox(host, username,
                                                            password,
+                                                           reports_folder=rf,
                                                            archive_folder=af,
                                                            delete=delete,
                                                            test=test,
