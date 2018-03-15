@@ -1,3 +1,10 @@
+2.2.0
+-----
+- Detect aggregate report email attachments by file content rather than
+file extension
+- Add option to select the IMAP folder where reports are stored
+- Update CLI help
+
 2.1.2
 -----
 - Rename `parsed_dmarc_forensic_reports_to_csv()` to

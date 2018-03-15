@@ -44,13 +44,16 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.1.2"
+__version__ = "2.2.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
+
+MAGIC_ZIP = b"\x50\x4B\x03\x04"
+MAGIC_GZIP = b"\x1F\x8B"
+MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 
 
 class ParserError(RuntimeError):
@@ -219,7 +222,7 @@ def _get_ip_address_country(ip_address):
     """
     db_filename = ".GeoLite2-Country.mmdb"
 
-    def download_country_database(location="GeoLite2-Country.mmdb"):
+    def download_country_database(location=".GeoLite2-Country.mmdb"):
         """Downloads the MaxMind Geolite2 Country database
 
         Args:
@@ -232,10 +235,8 @@ def _get_ip_address_country(ip_address):
         tar_dir = tar_file.getnames()[0]
         tar_path = "{0}/{1}".format(tar_dir, original_filename)
         tar_file.extract(tar_path)
-        shutil.move(tar_path, ".")
+        shutil.move(tar_path, location)
         shutil.rmtree(tar_dir)
-        if location != original_filename:
-            shutil.move("GeoLite2-Country.mmdb", location)
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
                     "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
@@ -253,7 +254,6 @@ def _get_ip_address_country(ip_address):
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_filename).st_mtime)
             if db_age > timedelta(days=60):
-                shutil.rmtree(db_path)
                 download_country_database()
         db_path = db_filename
 
@@ -502,12 +502,12 @@ def extract_xml(input_):
     try:
         header = file_object.read(6)
         file_object.seek(0)
-        if header.startswith(b"\x50\x4B\x03\x04"):
+        if header.startswith(MAGIC_ZIP):
             _zip = zipfile.ZipFile(file_object)
             xml = _zip.open(_zip.namelist()[0]).read().decode()
-        elif header.startswith(b"\x1F\x8B"):
+        elif header.startswith(MAGIC_GZIP):
             xml = GzipFile(fileobj=file_object).read().decode()
-        elif header.startswith(b"\x3c\x3f\x78\x6d\x6c\x20"):
+        elif header.startswith(MAGIC_XML):
             xml = file_object.read().decode()
         else:
             file_object.close()
@@ -915,8 +915,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
     if type(input_) == bytes:
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
-        else:
-            input_ = input_.decode("utf-8", errors="replace")
+        input_ = input_.decode("utf-8", errors="replace")
     result = None
     msg = email.message_from_string(input_)
     subject = None
@@ -926,10 +925,6 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
     if "subject" in msg:
         subject = decode_header(msg["subject"])
     for part in msg.walk():
-        filename = part.get_filename()
-        if filename is None:
-            filename = ""
-        filename = filename.lower()
         content_type = part.get_content_type()
         payload = part.get_payload()
         if type(payload) == list:
@@ -952,7 +947,9 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             result = OrderedDict([("report_type", "forensic"),
                                   ("report", forensic_report)])
 
-        if filename.endswith(".gz") or filename.endswith(".zip"):
+        if payload.startswith(MAGIC_ZIP) or \
+                payload.startswith(MAGIC_GZIP) or \
+                payload.startswith(MAGIC_XML):
             ns = nameservers
             xml = b64decode(part.get_payload())
             aggregate_report = parse_aggregate_report_file(xml,
@@ -1005,6 +1002,7 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
 
 
 def get_dmarc_reports_from_inbox(host, user, password,
+                                 reports_folder="INBOX",
                                  archive_folder="Archive",
                                  delete=False, test=False,
                                  nameservers=None,
@@ -1016,6 +1014,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
         host: The mail server hostname or IP address
         user: The mail server user
         password: The mail server password
+        reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
@@ -1032,16 +1031,13 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
-    aggregate_reports_folder = bytes("{0}/Aggregate".format(archive_folder),
-                                     encoding="utf-8")
-    forensic_reports_folder = bytes("{0}/Forensic".format(archive_folder),
-                                    encoding="utf-8")
-    archive_folder = bytes(archive_folder, encoding="utf-8")
+    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
+    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
-        server.select_folder(b'INBOX')
+        server.select_folder(reports_folder)
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
         if not server.folder_exists(aggregate_reports_folder):
@@ -1051,7 +1047,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
         messages = server.search()
         for message_uid in messages:
             raw_msg = server.fetch(message_uid,
-                                   [b'RFC822'])[message_uid][b'RFC822']
+                                   ["RFC822"])[message_uid]["RFC822"]
             msg_content = raw_msg.decode("utf-8", errors="replace")
 
             try:
@@ -1291,9 +1287,9 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
 
-def watch_inbox(host, username, password, callback, archive_folder="Archive",
-                delete=False, test=False, wait=30, nameservers=None,
-                dns_timeout=6.0):
+def watch_inbox(host, username, password, callback, reports_folder="INBOX",
+                archive_folder="Archive", delete=False, test=False, wait=30,
+                nameservers=None, dns_timeout=6.0):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
@@ -1303,6 +1299,7 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
         username: The mail server username
         password: The mail server password
         callback: The callback function to receive the parsing results
+        reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
@@ -1317,7 +1314,7 @@ def watch_inbox(host, username, password, callback, archive_folder="Archive",
     server = imapclient.IMAPClient(host)
     server.login(username, password)
 
-    server.select_folder(b'INBOX')
+    server.select_folder(reports_folder)
 
     # Start IDLE mode
     server.idle()
@@ -1375,8 +1372,8 @@ def _main():
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
-                            help="one or more paths of aggregate report "
-                                 "files (compressed or uncompressed)")
+                            help="one or more paths to aggregate or forensic "
+                                 "report files or emails")
     arg_parser.add_argument("-o", "--output",
                             help="Write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
@@ -1389,10 +1386,13 @@ def _main():
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
     arg_parser.add_argument("-u", "--user", help="IMAP user")
     arg_parser.add_argument("-p", "--password", help="IMAP password")
+    arg_parser.add_argument("-r", "--report-folder", default="INBOX",
+                            help="The IMAP folder containing the reports\n"
+                                 "Default: INBOX")
     arg_parser.add_argument("-a", "--archive-folder",
                             help="Specifies the IMAP folder to move "
-                                 "messages to after processing them "
-                                 "(default: Archive)",
+                                 "messages to after processing them\n"
+                                 "Default: Archive",
                             default="Archive")
     arg_parser.add_argument("-d", "--delete",
                             help="Delete the reports after processing them",
@@ -1452,10 +1452,12 @@ def _main():
                 logger.error("user and password must be specified if"
                              "host is specified")
 
+            rf = args.reports_folder
             af = args.archive_folder
             reports = get_dmarc_reports_from_inbox(args.host,
                                                    args.user,
                                                    args.password,
+                                                   reports_folder=rf,
                                                    archive_folder=af,
                                                    delete=args.delete,
                                                    test=args.test)
