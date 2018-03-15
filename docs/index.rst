@@ -188,7 +188,7 @@ https://github.com/domainaware/parsedmarc/issues
 Installation
 ============
 
-``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
+``parsedmarc`` works with Python 3 only.
 
 On Debian or Ubuntu systems, run:
 

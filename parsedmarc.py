@@ -1075,6 +1075,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
                 server.add_flags(processed_messages, [imapclient.DELETED])
                 server.expunge()
             else:
+                logging.warning("Moving ")
                 if len(aggregate_report_msg_uids) > 0:
                     server.move(aggregate_report_msg_uids,
                                 aggregate_reports_folder)
@@ -1393,7 +1394,7 @@ def _main():
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
     arg_parser.add_argument("-u", "--user", help="IMAP user")
     arg_parser.add_argument("-p", "--password", help="IMAP password")
-    arg_parser.add_argument("-r", "--report-folder", default="INBOX",
+    arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
                             help="The IMAP folder containing the reports\n"
                                  "Default: INBOX")
     arg_parser.add_argument("-a", "--archive-folder",
