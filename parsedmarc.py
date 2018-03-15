@@ -947,16 +947,20 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             result = OrderedDict([("report_type", "forensic"),
                                   ("report", forensic_report)])
 
-        payload = b64decode(part.get_payload())
-        if payload.startswith(MAGIC_ZIP) or \
-                payload.startswith(MAGIC_GZIP) or \
-                payload.startswith(MAGIC_XML):
-            ns = nameservers
-            aggregate_report = parse_aggregate_report_file(payload,
-                                                           nameservers=ns,
-                                                           timeout=timeout)
-            result = OrderedDict([("report_type", "aggregate"),
-                                  ("report", aggregate_report)])
+        try:
+            payload = b64decode(payload)
+            if payload.startswith(MAGIC_ZIP) or \
+                    payload.startswith(MAGIC_GZIP) or \
+                    payload.startswith(MAGIC_XML):
+                ns = nameservers
+                aggregate_report = parse_aggregate_report_file(payload,
+                                                               nameservers=ns,
+                                                               timeout=timeout)
+                result = OrderedDict([("report_type", "aggregate"),
+                                      ("report", aggregate_report)])
+        except TypeError:
+            pass
+
     if result is None:
         error = 'Message with subject "{0}" is ' \
                 'not a valid DMARC report'.format(subject)
