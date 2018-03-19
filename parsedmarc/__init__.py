@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""A Python module and CLI for parsing DMARC reports"""
+"""A Python module for parsing DMARC reports"""
 
 import logging
 import os
@@ -18,13 +17,10 @@ import re
 from base64 import b64decode
 import binascii
 import shutil
-from argparse import ArgumentParser
-from glob import glob
 import email
 import tempfile
 import subprocess
 import socket
-from time import sleep
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -45,7 +41,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "2.2.0"
+__version__ = "3.0.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -130,6 +126,7 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
         domain (str): The domain or subdomain to query about
         record_type (str): The record type to query for
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -137,8 +134,9 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
     """
     resolver = dns.resolver.Resolver()
     timeout = float(timeout)
-    if nameservers:
-        resolver.nameservers = nameservers
+    if nameservers is None:
+        nameservers = ["8.8.8.8", "4.4.4.4"]
+    resolver.nameservers = nameservers
     resolver.timeout = timeout
     resolver.lifetime = timeout
     return list(map(
@@ -152,7 +150,8 @@ def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
 
     Args:
         ip_address (str): The IP address to resolve
-        nameservers (list): A list of nameservers to query
+        nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS query timeout in seconds
 
     Returns:
@@ -277,6 +276,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     Args:
         ip_address (str): The IP address to check
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -308,11 +308,14 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     Args:
         record (OrderedDict): The record to convert
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
         OrderedDict: The converted record
     """
+    if nameservers is None:
+        nameservers = ["8.8.8.8", "4.4.4.4"]
     record = record.copy()
     new_record = OrderedDict()
     new_record["source"] = _get_ip_address_info(record["row"]["source_ip"],
@@ -399,6 +402,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
     Args:
         xml (str): A string of DMARC aggregate report XML
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -412,7 +416,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
             schema = report["version"]
         new_report = OrderedDict([("xml_schema", schema)])
         new_report_metadata = OrderedDict()
-        new_report_metadata["org_name"] = report_metadata["org_name"]
+        org_name = _get_base_domain(report_metadata["org_name"])
+        new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
         if "extra_contact_info" in report_metadata:
@@ -530,6 +535,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
     Args:
         _input: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -656,6 +662,7 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         sample (str): The RFC 822 headers or RFC 822 message sample
         sample_headers_only (bool): Set true if the sample is only headers
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -977,6 +984,7 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     Args:
         input_: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -1317,7 +1325,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
         wait (int): Number of seconds to wait for a IMAP IDLE response
-        nameservers (list): A list of DNS nameservers to query
+        nameservers (list): A list of one or more nameservers to use
+        (8.8.8.8 and 4.4.4.4 by default)
         dns_timeout (float): Set the DNS query timeout
     """
     rf = reports_folder
@@ -1374,152 +1383,3 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     server.logout()
 
 
-def _main():
-    """Called when the module in executed"""
-    def print_results(results_):
-        """
-        Print results in human readable format
-
-        Args:
-            results_ (OrderedDict): Parsing results
-        """
-        print(json.dumps(results_, ensure_ascii=False, indent=2), "\n")
-
-    arg_parser = ArgumentParser(description="Parses DMARC reports")
-    arg_parser.add_argument("file_path", nargs="*",
-                            help="one or more paths to aggregate or forensic "
-                                 "report files or emails")
-    arg_parser.add_argument("-o", "--output",
-                            help="Write output files to the given directory")
-    arg_parser.add_argument("-n", "--nameservers", nargs="+",
-                            help="nameservers to query")
-    arg_parser.add_argument("-t", "--timeout",
-                            help="number of seconds to wait for an answer "
-                                 "from DNS (default 6.0)",
-                            type=float,
-                            default=6.0)
-    arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
-    arg_parser.add_argument("-u", "--user", help="IMAP user")
-    arg_parser.add_argument("-p", "--password", help="IMAP password")
-    arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
-                            help="The IMAP folder containing the reports\n"
-                                 "Default: INBOX")
-    arg_parser.add_argument("-a", "--archive-folder",
-                            help="Specifies the IMAP folder to move "
-                                 "messages to after processing them\n"
-                                 "Default: Archive",
-                            default="Archive")
-    arg_parser.add_argument("-d", "--delete",
-                            help="Delete the reports after processing them",
-                            action="store_true", default=False)
-    arg_parser.add_argument("-O", "--outgoing-host",
-                            help="Email the results using this host")
-    arg_parser.add_argument("-U", "--outgoing-user",
-                            help="Email the results using this user")
-    arg_parser.add_argument("-P", "--outgoing-password",
-                            help="Email the results using this password")
-    arg_parser.add_argument("-F", "--outgoing-from",
-                            help="Email the results using this from address")
-    arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
-                            help="Email the results to these addresses")
-    arg_parser.add_argument("-S", "--outgoing-subject",
-                            help="Email the results using this subject")
-    arg_parser.add_argument("-A", "--outgoing-attachment",
-                            help="Email the results using this filename")
-    arg_parser.add_argument("-M", "--outgoing-message",
-                            help="Email the results using this message")
-
-    arg_parser.add_argument("-i", "--idle", action="store_true",
-                            help="Use an IMAP IDLE connection to process "
-                                 "reports as they arrive in the inbox")
-    arg_parser.add_argument("--test",
-                            help="Do not move or delete IMAP messages",
-                            action="store_true", default=False)
-    arg_parser.add_argument("-v", "--version", action="version",
-                            version=__version__)
-
-    aggregate_reports = []
-    forensic_reports = []
-
-    args = arg_parser.parse_args()
-    file_paths = []
-    for file_path in args.file_path:
-        file_paths += glob(file_path)
-    file_paths = list(set(file_paths))
-
-    for file_path in file_paths:
-        try:
-            file_results = parse_report_file(file_path,
-                                             nameservers=args.nameservers,
-                                             timeout=args.timeout)
-            if file_results["report_type"] == "aggregate":
-                aggregate_reports.append(file_results["report"])
-            elif file_results["report_type"] == "forensic":
-                forensic_reports.append(file_results["report"])
-
-        except ParserError as error:
-            logger.error("Failed to parse {0} - {1}".format(file_path,
-                                                            error))
-
-    if args.host:
-        try:
-            if args.user is None or args.password is None:
-                logger.error("user and password must be specified if"
-                             "host is specified")
-
-            rf = args.reports_folder
-            af = args.archive_folder
-            reports = get_dmarc_reports_from_inbox(args.host,
-                                                   args.user,
-                                                   args.password,
-                                                   reports_folder=rf,
-                                                   archive_folder=af,
-                                                   delete=args.delete,
-                                                   test=args.test)
-
-            aggregate_reports += reports["aggregate_reports"]
-            forensic_reports += reports["forensic_reports"]
-
-        except IMAPError as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
-            exit(1)
-
-    results = OrderedDict([("aggregate_reports", aggregate_reports),
-                           ("forensic_reports", forensic_reports)])
-
-    if args.output:
-        save_output(results, output_directory=args.output)
-
-    print_results(results)
-
-    if args.outgoing_host:
-        if args.outgoing_from is None or args.outgoing_to is None:
-            logger.error("--outgoing-from and --outgoing-to must "
-                         "be provided if --outgoing-host is used")
-            exit(1)
-
-        try:
-            email_results(results, args.outgoing_host, args.outgoing_from,
-                          args.outgoing_to, user=args.outgoing_user,
-                          password=args.outgoing_password,
-                          subject=args.outgoing_subject)
-        except SMTPError as error:
-            logger.error("SMTP Error: {0}".format(error.__str__()))
-            exit(1)
-
-    if args.host and args.idle:
-        sleep(2)
-        logger.warning("The IMAP Connection is now in IDLE mode. "
-                       "Send yourself an email, or quit with ^c")
-        try:
-            watch_inbox(args.host, args.username, args.password, print_results,
-                        archive_folder=args.archive_folder, delete=args.delete,
-                        test=args.test, nameservers=args.nameservers,
-                        dns_timeout=args.timeout)
-        except IMAPError as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
-            exit(1)
-
-
-if __name__ == "__main__":
-    _main()
