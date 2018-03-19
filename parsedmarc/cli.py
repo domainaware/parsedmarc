@@ -53,12 +53,12 @@ def _main():
                             help="Delete the reports after processing them",
                             action="store_true", default=False)
 
-    arg_parser.add_argument("-E", "--elasticsearch-hosts", nargs="*",
+    arg_parser.add_argument("-E", "--elasticsearch-host", nargs="*",
                             help="A list of one or more Elasticsearch "
                                  "hostnames or URLs to use (Default "
                                  "localhost:9200)",
                             default=["localhost:9200"])
-    arg_parser.add_argument("-A", "--save-aggregate", action="store_true",
+    arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
                             help="Save aggregate reports to Elasticsearch")
     arg_parser.add_argument("--save-forensic", action="store_true",
@@ -100,7 +100,7 @@ def _main():
         exit(1)
 
     if args.save_aggregate or args.save_forensic:
-        elastic.set_hosts(args.elasticsearch_hosts)
+        elastic.set_hosts(args.elasticsearch_host)
         elastic.create_indexes()
 
     file_paths = []
