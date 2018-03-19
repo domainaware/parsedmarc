@@ -154,7 +154,7 @@ class ForensicReportDoc(DocType):
     sample = Object(ForensicSampleDoc)
 
 
-class ExistingReport(RuntimeError):
+class AlreadySaved(RuntimeError):
     """Raised when a report to be saved matches an existing report"""
 
 
@@ -186,7 +186,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
         aggregate_report (OrderedDict): A parsed forensic report
 
     Raises:
-        ExistingReport
+        AlreadySaved
 
     """
     metadata = aggregate_report["report_metadata"]
@@ -202,7 +202,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     search.query = org_name_query & report_id_query & domain_query
     existing = search.execute()
     if len(existing) > 0:
-        raise ExistingReport("A matching aggregate report already exists")
+        raise AlreadySaved("A matching aggregate report already exists")
 
     aggregate_report["begin_date"] = parsedmarc.human_timestamp_to_datetime(
         metadata["begin_date"])
@@ -267,7 +267,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
             forensic_report (OrderedDict): A parsed forensic report
 
         Raises:
-            ExistingReport
+            AlreadySaved
 
         """
     sample_date = forensic_report["parsed_sample"]["date"]
@@ -288,7 +288,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     existing = search.execute()
 
     if len(existing) > 0:
-        raise ExistingReport(" A matching forensic report already exists")
+        raise AlreadySaved(" A matching forensic report already exists")
 
     parsed_sample = forensic_report["parsed_sample"]
     sample = ForensicSampleDoc(

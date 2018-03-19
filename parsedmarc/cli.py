@@ -21,8 +21,20 @@ def _main():
 
         Args:
             results_ (OrderedDict): Parsing results
+            save_aggregate (bool): Save Aggregate reports to Elasticsearch
+            save_forensic (bool): Save forensic reports to Elasticsearch
         """
         print(json.dumps(results_, ensure_ascii=False, indent=2), "\n")
+
+        try:
+            if save_aggregate:
+                for report in results["aggregate_reports"]:
+                    elastic.save_aggregate_report_to_elasticsearch(report)
+            if save_forensic:
+                for report in results["forensic_reports"]:
+                    elastic.save_forensic_report_to_elasticsearch(report)
+        except elastic.AlreadySaved as exception:
+            logger.warning(exception.__str__())
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
