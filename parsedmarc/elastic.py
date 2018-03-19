@@ -291,7 +291,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     existing = search.execute()
 
     if len(existing) > 0:
-        raise AlreadySaved(" A matching forensic sample to {0} from {1} "
+        raise AlreadySaved("A matching forensic sample to {0} from {1} "
                            "with a subject of {2} and arrival date of {3} "
                            "already exists in "
                            "Elasticsearch".format(headers["to"],
