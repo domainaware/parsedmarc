@@ -187,7 +187,7 @@ def _main():
         logger.warning("The IMAP Connection is now in IDLE mode. "
                        "Quit with ^c")
         try:
-            watch_inbox(args.host, args.username, args.password, callback,
+            watch_inbox(args.host, args.user, args.password, callback,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,

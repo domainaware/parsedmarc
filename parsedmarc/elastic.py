@@ -202,7 +202,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     search.query = org_name_query & report_id_query & domain_query
     existing = search.execute()
     if len(existing) > 0:
-        raise AlreadySaved("A matching aggregate report already exists")
+        raise AlreadySaved("Aggregate report ID {0} from {1} about {2} "
+                           "already exists in Elasticsearch".format(report_id,
+                                                                    org_name,
+                                                                    domain))
 
     aggregate_report["begin_date"] = parsedmarc.human_timestamp_to_datetime(
         metadata["begin_date"])
@@ -277,8 +280,8 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
-    arrival_date = forensic_report["arrival_date_utc"]
-    arrival_date = parsedmarc.human_timestamp_to_datetime(arrival_date)
+    arrival_date_human = forensic_report["arrival_date_utc"]
+    arrival_date = parsedmarc.human_timestamp_to_datetime(arrival_date_human)
 
     search = forensic_index.search()
     to_query = {"match": {"sample.headers.to": headers["to"]}}
@@ -288,7 +291,14 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     existing = search.execute()
 
     if len(existing) > 0:
-        raise AlreadySaved(" A matching forensic report already exists")
+        raise AlreadySaved(" A matching forensic sample to {0} from {1} "
+                           "with a subject of {2} and arrival date of {3} "
+                           "already exists in "
+                           "Elasticsearch".format(headers["to"],
+                                                  headers["from"],
+                                                  headers["subject"],
+                                                  arrival_date_human
+                                                   ))
 
     parsed_sample = forensic_report["parsed_sample"]
     sample = ForensicSampleDoc(
