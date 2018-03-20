@@ -7,6 +7,8 @@ from argparse import ArgumentParser
 from glob import glob
 from time import sleep
 
+from elasticsearch.exceptions import ElasticsearchException
+
 from parsedmarc import *
 from parsedmarc import elastic
 
@@ -24,8 +26,11 @@ def _main():
             if args.save_forensic:
                 for report in reports_["forensic_reports"]:
                     elastic.save_forensic_report_to_elasticsearch(report)
-        except elastic.AlreadySaved as exception:
-            logger.warning(exception.__str__())
+        except elastic.AlreadySaved as error_:
+            logger.warning(error_.__str__())
+        except ElasticsearchException as error_:
+            logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+            exit(1)
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
@@ -103,8 +108,12 @@ def _main():
         exit(1)
 
     if args.save_aggregate or args.save_forensic:
-        elastic.set_hosts(args.elasticsearch_host)
-        elastic.create_indexes()
+        try:
+            elastic.set_hosts(args.elasticsearch_host)
+            elastic.create_indexes()
+        except ElasticsearchException as error:
+            logger.error("Elasticsearch Error: {0}".format(error.__str__()))
+            exit(1)
 
     file_paths = []
     for file_path in args.file_path:
