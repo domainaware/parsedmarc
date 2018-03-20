@@ -1,10 +1,14 @@
 3.0.0
 -----
+### New features
+- Add option to select the IMAP folder where reports are stored
+- Add options to send data to Elasticsearch
+
+### Changes 
 - Detect aggregate report email attachments by file content rather than
 file extension
 - In an aggregate report's `org_name` is a FQDN, the base is used
-- Add option to select the IMAP folder where reports are stored
-- Add options to send data to Elasticsearch
+- Normalize aggregate report IDs
 
 2.1.2
 -----

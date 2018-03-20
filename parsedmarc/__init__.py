@@ -424,6 +424,10 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
             extra = report_metadata["extra_contact_info"]
         new_report_metadata["org_extra_contact_info"] = extra
         new_report_metadata["report_id"] = report_metadata["report_id"]
+        report_id = new_report_metadata["report_id"]
+        report_id = report_id.replace("<",
+                                      "").replace(">", "").split("@")[0]
+        report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
         date_range["begin"] = _timestamp_to_human(date_range["begin"])
         date_range["end"] = _timestamp_to_human(date_range["end"])
