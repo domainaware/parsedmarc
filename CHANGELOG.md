@@ -4,7 +4,9 @@
 - Add option to select the IMAP folder where reports are stored
 - Add options to send data to Elasticsearch
 
-### Changes 
+### Changes
+- Use Google's public nameservers (`8.8.8.8` and `4.4.4.4`)
+by default
 - Detect aggregate report email attachments by file content rather than
 file extension
 - If an aggregate report's `org_name` is a FQDN, the base is used
