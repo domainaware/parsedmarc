@@ -15,26 +15,33 @@ __version__ = "3.0.0"
 
 def _main():
     """Called when the module in executed"""
-    def callback(results_, save_aggregate=False, save_forensic=False):
-        """
-       Prints results and optionally saves them to Elasticsearch
-
-        Args:
-            results_ (OrderedDict): Parsing results
-            save_aggregate (bool): Save Aggregate reports to Elasticsearch
-            save_forensic (bool): Save forensic reports to Elasticsearch
-        """
-        print(json.dumps(results_, ensure_ascii=False, indent=2), "\n")
-
+    def process_reports(reports_):
         try:
-            if save_aggregate:
-                for report in results["aggregate_reports"]:
+            if args.save_aggregate:
+                for report in reports_["aggregate_reports"]:
                     elastic.save_aggregate_report_to_elasticsearch(report)
-            if save_forensic:
-                for report in results["forensic_reports"]:
+            if args.save_forensic:
+                for report in reports_["forensic_reports"]:
                     elastic.save_forensic_report_to_elasticsearch(report)
+            print(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
         except elastic.AlreadySaved as exception:
             logger.warning(exception.__str__())
+
+    def idle_callback():
+        try:
+            reports_ = get_dmarc_reports_from_inbox(args.host,
+                                                    args.user,
+                                                    args.password,
+                                                    reports_folder=rf,
+                                                    archive_folder=af,
+                                                    delete=args.delete,
+                                                    test=args.test)
+
+            process_reports(reports_)
+
+        except IMAPError as exception:
+            print("IMAP Error: {0}".format(exception.__str__()))
+            exit(-1)
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
@@ -163,9 +170,7 @@ def _main():
     if args.output:
         save_output(results, output_directory=args.output)
 
-    callback(results,
-             save_aggregate=args.save_aggregate,
-             save_forensic=args.save_forensic)
+    process_reports(results)
 
     if args.outgoing_host:
         if args.outgoing_from is None or args.outgoing_to is None:
@@ -187,7 +192,7 @@ def _main():
         logger.warning("The IMAP Connection is now in IDLE mode. "
                        "Quit with ^c")
         try:
-            watch_inbox(args.host, args.user, args.password, callback,
+            watch_inbox(args.host, args.user, args.password, idle_callback,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,
