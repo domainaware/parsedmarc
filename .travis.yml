@@ -14,7 +14,7 @@ install:
 
 # commands to run samples
 script:
-  - "flake8 *.py"
+  - "flake8 *.py parsedmarc/*.py"
   - "cd docs"
   - "make html"
   - "cd .."

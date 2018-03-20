@@ -160,8 +160,8 @@ class AlreadySaved(RuntimeError):
 
 def set_hosts(hosts):
     """
-    Sets the Elasticsearch hosts to use 
-    
+    Sets the Elasticsearch hosts to use
+
     Args:
         hosts: A single hostname or URL, or list of hostnames or URLs
     """
@@ -300,7 +300,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
                                                   headers["from"],
                                                   headers["subject"],
                                                   arrival_date_human
-                                                   ))
+                                                  ))
 
     parsed_sample = forensic_report["parsed_sample"]
     sample = ForensicSampleDoc(

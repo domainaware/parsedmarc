@@ -1385,5 +1385,3 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     server.idle_done()
     logger.info("\nIDLE mode done")
     server.logout()
-
-

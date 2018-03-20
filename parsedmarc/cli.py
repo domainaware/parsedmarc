@@ -3,16 +3,18 @@
 
 """A CLI for parsing DMARC reports"""
 
+
 from argparse import ArgumentParser
 from glob import glob
 from time import sleep
+from collections import OrderedDict
+import json
 
 from elasticsearch.exceptions import ElasticsearchException
 
-from parsedmarc import *
-from parsedmarc import elastic
-
-__version__ = "3.0.0"
+from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
+    parse_report_file, elastic, save_output, watch_inbox, email_results, \
+    SMTPError, ParserError, __version__
 
 
 def _main():
