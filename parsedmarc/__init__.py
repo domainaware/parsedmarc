@@ -777,7 +777,7 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             parsed_sample["delivered_to"] = list(
                 map(lambda x: convert_address(x),
                     parsed_sample["delivered_to"])
-                    )
+            )
 
         if "attachments" not in parsed_sample:
             parsed_sample["attachments"] = []
