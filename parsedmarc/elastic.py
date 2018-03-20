@@ -189,6 +189,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
         AlreadySaved
 
     """
+    aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
@@ -273,6 +274,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
             AlreadySaved
 
         """
+    forensic_report = forensic_report.copy()
     sample_date = forensic_report["parsed_sample"]["date"]
     sample_date = parsedmarc.human_timestamp_to_datetime(sample_date)
     original_headers = forensic_report["parsed_sample"]["headers"]
