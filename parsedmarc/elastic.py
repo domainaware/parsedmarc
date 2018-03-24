@@ -43,6 +43,7 @@ class AggregateReportDoc(DocType):
 
     xml_schema = Text()
     org_name = Text()
+    org_email = Text()
     org_extra_contact_info = Text()
     report_id = Text()
     date_range = DateRange()
