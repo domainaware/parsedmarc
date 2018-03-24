@@ -25,9 +25,11 @@ def _main():
             if args.save_aggregate:
                 for report in reports_["aggregate_reports"]:
                     elastic.save_aggregate_report_to_elasticsearch(report)
+                    sleep(1)
             if args.save_forensic:
                 for report in reports_["forensic_reports"]:
                     elastic.save_forensic_report_to_elasticsearch(report)
+                    sleep(1)
         except elastic.AlreadySaved as error_:
             logger.warning(error_.__str__())
         except ElasticsearchException as error_:
