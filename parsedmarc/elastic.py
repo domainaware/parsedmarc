@@ -201,6 +201,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
 
     search = aggregate_index.search()
     search.query = org_name_query & report_id_query & domain_query
+    print(search.query)
     existing = search.execute()
     if len(existing) > 0:
         raise AlreadySaved("Aggregate report ID {0} from {1} about {2} "
