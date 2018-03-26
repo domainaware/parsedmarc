@@ -183,7 +183,7 @@ def create_indexes():
 def save_aggregate_report_to_elasticsearch(aggregate_report):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
-    
+
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
 
@@ -290,8 +290,10 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     to_query = {"match": {"sample.headers.to": headers["to"]}}
     from_query = {"match": {"sample.headers.from": headers["from"]}}
     subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
-    arrival_date_query = {"match": {"sample.headers.arrival_date": forensic_report["arrival_date_utc"]}}
-    search.query = Q(to_query) & Q(from_query) & Q(subject_query) & Q(arrival_date_query)
+    arrival_date_query = {"match": {"sample.headers.arrival_date": arrival_date
+                                    }}
+    q = Q(to_query) & Q(from_query) & Q(subject_query) & Q(arrival_date_query)
+    search.query = q
     existing = search.execute()
 
     if len(existing) > 0:
