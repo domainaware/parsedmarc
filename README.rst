@@ -16,6 +16,7 @@ Features
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
+* Optionally send the results to Elasticsearch, for use with premade Kibana dashboards
 
 CLI help
 ========
@@ -23,26 +24,28 @@ CLI help
 ::
 
     usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                      [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                      [-a ARCHIVE_FOLDER] [-d] [-O OUTGOING_HOST]
-                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                      [-F OUTGOING_FROM] [-T OUTGOING_TO [OUTGOING_TO ...]]
-                      [-S OUTGOING_SUBJECT] [-A OUTGOING_ATTACHMENT]
-                      [-M OUTGOING_MESSAGE] [-i] [--test] [-v]
-                      [file_path [file_path ...]]
+                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-i] [--test]
+                  [-v]
+                  [file_path [file_path ...]]
 
     Parses DMARC reports
 
     positional arguments:
-      file_path             one or more paths of aggregate report files
-                            (compressed or uncompressed)
+      file_path             one or more paths to aggregate or forensic report
+                            files or emails
 
     optional arguments:
       -h, --help            show this help message and exit
       -o OUTPUT, --output OUTPUT
                             Write output files to the given directory
       -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                            nameservers to query
+                            nameservers to query (Default 8.8.8.8 4.4.4.4)
       -t TIMEOUT, --timeout TIMEOUT
                             number of seconds to wait for an answer from DNS
                             (default 6.0)
@@ -50,10 +53,17 @@ CLI help
       -u USER, --user USER  IMAP user
       -p PASSWORD, --password PASSWORD
                             IMAP password
+      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
+                            The IMAP folder containing the reports Default: INBOX
       -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
                             Specifies the IMAP folder to move messages to after
-                            processing them (default: Archive)
+                            processing them Default: Archive
       -d, --delete          Delete the reports after processing them
+      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
+                            A list of one or more Elasticsearch hostnames or URLs
+                            to use (Default localhost:9200)
+      --save-aggregate      Save aggregate reports to Elasticsearch
+      --save-forensic       Save forensic reports to Elasticsearch
       -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
                             Email the results using this host
       -U OUTGOING_USER, --outgoing-user OUTGOING_USER
