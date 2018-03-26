@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 2.1.2 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.0.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 2.1.2 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 3.0.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                2.1.2
+                3.0.0
               </div>
             
           
@@ -186,31 +186,34 @@
 <li>Consistent data structures</li>
 <li>Simple JSON and/or CSV output</li>
 <li>Optionally email the results</li>
+<li>Optionally send the results to Elasticsearch, for use with premade Kibana dashboards</li>
 </ul>
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-                  <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
+              <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
+              <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+              <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
 <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
 <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
-  <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">of</span> <span class="n">aggregate</span> <span class="n">report</span> <span class="n">files</span>
-                        <span class="p">(</span><span class="n">compressed</span> <span class="ow">or</span> <span class="n">uncompressed</span><span class="p">)</span>
+  <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
+                        <span class="n">files</span> <span class="ow">or</span> <span class="n">emails</span>
 
 <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
   <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
   <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
                         <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
   <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
+                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">Default</span> <span class="mf">8.8</span><span class="o">.</span><span class="mf">8.8</span> <span class="mf">4.4</span><span class="o">.</span><span class="mf">4.4</span><span class="p">)</span>
   <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
                         <span class="p">(</span><span class="n">default</span> <span class="mf">6.0</span><span class="p">)</span>
@@ -218,10 +221,17 @@
   <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
   <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
                         <span class="n">IMAP</span> <span class="n">password</span>
+  <span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">reports</span><span class="o">-</span><span class="n">folder</span> <span class="n">REPORTS_FOLDER</span>
+                        <span class="n">The</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">Default</span><span class="p">:</span> <span class="n">INBOX</span>
   <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
                         <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
-                        <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
+                        <span class="n">processing</span> <span class="n">them</span> <span class="n">Default</span><span class="p">:</span> <span class="n">Archive</span>
   <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
+  <span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">host</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]</span>
+                        <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span>
+                        <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="n">Default</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span>      <span class="n">Save</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">Elasticsearch</span>
+  <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span>       <span class="n">Save</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">Elasticsearch</span>
   <span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">host</span> <span class="n">OUTGOING_HOST</span>
                         <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">host</span>
   <span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">user</span> <span class="n">OUTGOING_USER</span>
@@ -343,7 +353,7 @@ forensic report that you can share publicly, please contact me!</p>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> works with Python 2 or 3, but Python 3 is preferred.</p>
+<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
 </pre></div>
@@ -377,7 +387,7 @@ above commands.</p>
 </div>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
-<p>A Python module and CLI for parsing DMARC reports</p>
+<p>A Python module for parsing DMARC reports</p>
 <dl class="exception">
 <dt id="parsedmarc.IMAPError">
 <em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">IMAPError</code><a class="reference internal" href="_modules/parsedmarc.html#IMAPError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.IMAPError" title="Permalink to this definition">¶</a></dt>
@@ -464,7 +474,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>user</em>, <em>password</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>user</em>, <em>password</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from sn inbox</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -474,6 +484,7 @@ or bytes.</p>
 <li><strong>host</strong> – The mail server hostname or IP address</li>
 <li><strong>user</strong> – The mail server user</li>
 <li><strong>password</strong> – The mail server password</li>
+<li><strong>reports_folder</strong> – The IMAP folder where reports can be found</li>
 <li><strong>archive_folder</strong> – The folder to move processed mail to</li>
 <li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
 <li><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</li>
@@ -540,6 +551,7 @@ aggregate DMARC report</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>_input</strong> – A path to a file, a file like object, or bytes</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>and 4.4.4.4 by default</strong><strong>)</strong> (<em>(</em><em>8.8.8.8</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 </ul>
 </td>
@@ -565,6 +577,7 @@ aggregate DMARC report</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>xml</strong> (<em>str</em>) – A string of DMARC aggregate report XML</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>and 4.4.4.4 by default</strong><strong>)</strong> (<em>(</em><em>8.8.8.8</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 </ul>
 </td>
@@ -588,10 +601,11 @@ aggregate DMARC report</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>feedback_report</strong> – A message’s feedback report as a string</li>
-<li><strong>sample</strong> – The RFC 822 headers or RFC 822 message sample</li>
+<li><strong>feedback_report</strong> (<em>str</em>) – A message’s feedback report as a string</li>
+<li><strong>sample</strong> (<em>str</em>) – The RFC 822 headers or RFC 822 message sample</li>
 <li><strong>sample_headers_only</strong> (<em>bool</em>) – Set true if the sample is only headers</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>and 4.4.4.4 by default</strong><strong>)</strong> (<em>(</em><em>8.8.8.8</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 </ul>
 </td>
@@ -647,6 +661,7 @@ file-like object. or bytes</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>input</strong> – A path to a file, a file like object, or bytes</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>and 4.4.4.4 by default</strong><strong>)</strong> (<em>(</em><em>8.8.8.8</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 </ul>
 </td>
@@ -719,7 +734,7 @@ headers</p>
 
 <dl class="function">
 <dt id="parsedmarc.watch_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
 to a callback function</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -731,11 +746,13 @@ to a callback function</p>
 <li><strong>username</strong> – The mail server username</li>
 <li><strong>password</strong> – The mail server password</li>
 <li><strong>callback</strong> – The callback function to receive the parsing results</li>
+<li><strong>reports_folder</strong> – The IMAP folder where reports can be found</li>
 <li><strong>archive_folder</strong> – The folder to move processed mail to</li>
 <li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
 <li><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</li>
 <li><strong>wait</strong> (<em>int</em>) – Number of seconds to wait for a IMAP IDLE response</li>
-<li><strong>nameservers</strong> (<em>list</em>) – A list of DNS nameservers to query</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>and 4.4.4.4 by default</strong><strong>)</strong> (<em>(</em><em>8.8.8.8</em>) – </li>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</li>
 </ul>
 </td>
@@ -792,7 +809,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.1.2',
+            VERSION:'3.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
