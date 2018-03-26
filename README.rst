@@ -5,7 +5,7 @@ parsedmarc
 |Build Status|
 
 .. image:: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
-   :slt: A screenshot of DMARC summary charts in Kibana
+   :alt: A screenshot of DMARC summary charts in Kibana
    :align: center
    :scale: 50%
    :target: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png

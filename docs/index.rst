@@ -10,7 +10,7 @@ Welcome to parsedmarc's documentation!
 |Build Status|
 
 .. image:: /_static/screenshots/dmarc-summary-charts.png
-   :slt: A screenshot of DMARC summary charts in Kibana
+   :alt: A screenshot of DMARC summary charts in Kibana
    :scale: 50%
    :align: center
    :target: /_static/screenshots/dmarc-summary-charts.png
