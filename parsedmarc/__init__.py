@@ -427,7 +427,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
         report_id = new_report_metadata["report_id"]
         report_id = report_id.replace("<",
                                       "").replace(">", "").split("@")[0]
-        report_metadata["report_id"] = report_id
+        new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
         date_range["begin"] = _timestamp_to_human(date_range["begin"])
         date_range["end"] = _timestamp_to_human(date_range["end"])
@@ -1361,6 +1361,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                                                            nameservers=ns,
                                                            dns_timeout=dt)
                         callback(res)
+                        break
 
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
