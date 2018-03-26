@@ -18,23 +18,28 @@ from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
 
 
 def _main():
-    """Called when the module in executed"""
+    """Called when the module is executed"""
     def process_reports(reports_):
-        try:
-            print(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
-            if args.save_aggregate:
-                for report in reports_["aggregate_reports"]:
+        print(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
+        if args.save_aggregate:
+            for report in reports_["aggregate_reports"]:
+                try:
                     elastic.save_aggregate_report_to_elasticsearch(report)
-                    sleep(1)
-            if args.save_forensic:
-                for report in reports_["forensic_reports"]:
+                except elastic.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except ElasticsearchException as error_:
+                    logger.error("Elasticsearch Error: {0}".format(
+                        error_.__str__()))
+                    exit(1)
+        if args.save_forensic:
+            for report in reports_["forensic_reports"]:
+                try:
                     elastic.save_forensic_report_to_elasticsearch(report)
-                    sleep(1)
-        except elastic.AlreadySaved as error_:
-            logger.warning(error_.__str__())
-        except ElasticsearchException as error_:
-            logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
-            exit(1)
+                except elastic.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except ElasticsearchException as error_:
+                    logger.error("Elasticsearch Error: {0}".format(
+                        error_.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
@@ -92,7 +97,6 @@ def _main():
                             help="Email the results using this filename")
     arg_parser.add_argument("-M", "--outgoing-message",
                             help="Email the results using this message")
-
     arg_parser.add_argument("-i", "--idle", action="store_true",
                             help="Use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")

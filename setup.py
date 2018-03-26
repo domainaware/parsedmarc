@@ -7,7 +7,6 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
-from __future__ import absolute_import
 
 # Always prefer setuptools over distutils
 from setuptools import setup
@@ -93,7 +92,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dnspython', 'publicsuffix', 'xmltodict', 'geoip2',
                       'dnspython', 'imapclient', 'mail-parser', 'dateparser',
-                      'elasticsearch-dsl'
+                      'elasticsearch', 'elasticsearch-dsl'
                       ],
 
     entry_points={

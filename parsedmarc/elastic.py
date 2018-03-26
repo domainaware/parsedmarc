@@ -83,6 +83,7 @@ class AggregateReportDoc(DocType):
     def save(self, ** kwargs):
         self.passed_dmarc = False
         self.passed_dmarc = self.spf_aligned or self.dkim_aligned
+
         return super().save(** kwargs)
 
 
@@ -155,7 +156,7 @@ class ForensicReportDoc(DocType):
     sample = Object(ForensicSampleDoc)
 
 
-class AlreadySaved(RuntimeError):
+class AlreadySaved(ValueError):
     """Raised when a report to be saved matches an existing report"""
 
 
@@ -187,8 +188,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
         aggregate_report (OrderedDict): A parsed forensic report
 
     Raises:
-        AlreadySaved
-
+            AlreadySaved
     """
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
@@ -209,10 +209,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
                                                                     org_name,
                                                                     domain))
 
-    aggregate_report["begin_date"] = parsedmarc.human_timestamp_to_datetime(
-        metadata["begin_date"])
-    aggregate_report["end_date"] = parsedmarc.human_timestamp_to_datetime(
-        metadata["end_date"])
+    begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
+    end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
+    aggregate_report["begin_date"] = begin_date
+    aggregate_report["end_date"] = end_date
     date_range = (aggregate_report["begin_date"],
                   aggregate_report["end_date"])
     published_policy = PublishedPolicy(
@@ -290,7 +290,8 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     to_query = {"match": {"sample.headers.to": headers["to"]}}
     from_query = {"match": {"sample.headers.from": headers["from"]}}
     subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
-    search.query = Q(to_query) & Q(from_query) & Q(subject_query)
+    arrival_date_query = {"match": {"sample.headers.arrival_date": forensic_report["arrival_date_utc"]}}
+    search.query = Q(to_query) & Q(from_query) & Q(subject_query) & Q(arrival_date_query)
     existing = search.execute()
 
     if len(existing) > 0:
