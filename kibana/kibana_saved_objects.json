@@ -65,7 +65,7 @@
       "version": 1,
       "timeRestore": true,
       "timeTo": "now",
-      "timeFrom": "now-7d",
+      "timeFrom": "now-90d",
       "refreshInterval": {
         "display": "Off",
         "pause": false,
