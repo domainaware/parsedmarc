@@ -13,7 +13,7 @@ Welcome to parsedmarc's documentation!
    :alt: A screenshot of DMARC summary charts in Kibana
    :scale: 50 %
    :align: center
-   :target: /_static/screenshots/dmarc-summary-charts.png
+   :target: _static/screenshots/dmarc-summary-charts.png
 
 ``pasedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 
