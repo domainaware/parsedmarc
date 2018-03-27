@@ -41,7 +41,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -183,7 +183,7 @@ def _timestamp_to_datetime(timestamp):
     return datetime.fromtimestamp(int(timestamp))
 
 
-def _timestamp_to_human(timestamp):
+def timestamp_to_human(timestamp):
     """
     Converts a UNIX/DMARC timestamp to a human-readable string
 
@@ -429,8 +429,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                       "").replace(">", "").split("@")[0]
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
-        date_range["begin"] = _timestamp_to_human(date_range["begin"])
-        date_range["end"] = _timestamp_to_human(date_range["end"])
+        date_range["begin"] = timestamp_to_human(date_range["begin"])
+        date_range["end"] = timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
         errors = []
@@ -1361,7 +1361,6 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                                                            nameservers=ns,
                                                            dns_timeout=dt)
                         callback(res)
-                        break
 
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")

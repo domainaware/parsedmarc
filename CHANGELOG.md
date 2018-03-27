@@ -1,3 +1,7 @@
+3.2.0
+-----
+- Fix existing aggregate report error message
+
 3.1.0
 -----
 - Fix existing aggregate report query
