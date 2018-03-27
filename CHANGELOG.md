@@ -1,3 +1,8 @@
+3.2.1
+-----
+- Fix error saving to Elasticsearch
+
+
 3.2.0
 -----
 - Fix existing aggregate report error message

@@ -196,7 +196,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     domain = aggregate_report["policy_published"]["domain"]
     begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
     end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
-    end_date_human = parsedmarc.timestamp_to_human(end_date)
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
     date_range = (aggregate_report["begin_date"],
