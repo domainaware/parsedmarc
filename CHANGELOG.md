@@ -1,3 +1,8 @@
+3.1.0
+-----
+- Fix existing aggregate report query
+
+
 3.0.0
 -----
 ### New features

@@ -193,28 +193,26 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
-    report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
-
-    org_name_query = Q(dict(match=dict(org_name=org_name)))
-    report_id_query = Q(dict(match=dict(report_id=report_id)))
-    domain_query = Q(dict(match=dict(domain=domain)))
-
-    search = aggregate_index.search()
-    search.query = org_name_query & report_id_query & domain_query
-    existing = search.execute()
-    if len(existing) > 0:
-        raise AlreadySaved("Aggregate report ID {0} from {1} about {2} "
-                           "already exists in Elasticsearch".format(report_id,
-                                                                    org_name,
-                                                                    domain))
-
     begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
     end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
     date_range = (aggregate_report["begin_date"],
                   aggregate_report["end_date"])
+
+    org_name_query = Q(dict(match=dict(org_name=org_name)))
+    domain_query = Q(dict(match=dict(domain=domain)))
+    date_range_query = Q(dict(match=dict(date_range=end_date)))
+
+    search = aggregate_index.search()
+    search.query = org_name_query & domain_query & date_range_query
+    existing = search.execute()
+    if len(existing) > 0:
+        raise AlreadySaved("Aggregate report ID {0} from {1} about {2} "
+                           "already exists in Elasticsearch".format(report_id,
+                                                                    org_name,
+                                                                    domain))
     published_policy = PublishedPolicy(
         adkim=aggregate_report["policy_published"]["adkim"],
         aspf=aggregate_report["policy_published"]["aspf"],
