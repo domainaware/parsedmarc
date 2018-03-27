@@ -256,7 +256,7 @@ API
 parsedmarc.elastic
 ------------------
 
-.. automodule:: elastic
+.. automodule:: parsedmarc.elastic
    :members:
 
 .. toctree::
