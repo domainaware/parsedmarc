@@ -1361,6 +1361,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                                                            nameservers=ns,
                                                            dns_timeout=dt)
                         callback(res)
+                        break
 
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
