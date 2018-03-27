@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.2.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.3.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="parsedmarc 3.2.0 documentation" href="../index.html"/>
+    <link rel="top" title="parsedmarc 3.3.0 documentation" href="../index.html"/>
         <link rel="up" title="Module code" href="index.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                3.2.0
+                3.3.0
               </div>
             
           
@@ -196,7 +196,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.2.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.3.0&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -209,28 +209,28 @@
 
 
 <div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../index.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised whenever the parser fails for some reason&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised whenever the parser fails for some reason&quot;&quot;&quot;</span>
+</div>
 
 <div class="viewcode-block" id="IMAPError"><a class="viewcode-back" href="../index.html#parsedmarc.IMAPError">[docs]</a><span class="k">class</span> <span class="nc">IMAPError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an IMAP error occurs&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised when an IMAP error occurs&quot;&quot;&quot;</span>
+</div>
 
 <div class="viewcode-block" id="SMTPError"><a class="viewcode-back" href="../index.html#parsedmarc.SMTPError">[docs]</a><span class="k">class</span> <span class="nc">SMTPError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when a SMTP error occurs&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised when a SMTP error occurs&quot;&quot;&quot;</span>
+</div>
 
 <div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span>
+</div>
 
 <div class="viewcode-block" id="InvalidAggregateReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidAggregateReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidAggregateReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC aggregate report is encountered&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC aggregate report is encountered&quot;&quot;&quot;</span>
+</div>
 
 <div class="viewcode-block" id="InvalidForensicReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidForensicReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidForensicReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span></div>
-
+    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span>
+</div>
 
 <span class="k">def</span> <span class="nf">_get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -338,7 +338,7 @@
     <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">timestamp</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="timestamp_to_human"><a class="viewcode-back" href="../index.html#parsedmarc.timestamp_to_human">[docs]</a><span class="k">def</span> <span class="nf">timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a UNIX/DMARC timestamp to a human-readable string</span>
 
@@ -348,7 +348,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="human_timestamp_to_datetime"><a class="viewcode-back" href="../index.html#parsedmarc.human_timestamp_to_datetime">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
@@ -361,8 +361,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        DateTime: The converted timestamp</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
-
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+</div>
 
 <span class="k">def</span> <span class="nf">_get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -584,8 +584,8 @@
                                       <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_id</span>
         <span class="n">date_range</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;date_range&quot;</span><span class="p">]</span>
-        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span>
-        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
+        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span>
+        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
         <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
@@ -643,8 +643,8 @@
 
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Missing field: &quot;</span>
-                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
-
+                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+</div>
 
 <div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../index.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -684,8 +684,8 @@
         <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary &quot;</span>
                                      <span class="s2">&quot;(rb) mode&quot;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">xml</span></div>
-
+    <span class="k">return</span> <span class="n">xml</span>
+</div>
 
 <div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as a</span>
@@ -704,8 +704,8 @@
 
     <span class="k">return</span> <span class="n">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span>
                                       <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                      <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span></div>
-
+                                      <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+</div>
 
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -808,8 +808,8 @@
             <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
             <span class="n">csv_file_object</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-    <span class="k">return</span> <span class="n">csv_file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
-
+    <span class="k">return</span> <span class="n">csv_file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+</div>
 
 <div class="viewcode-block" id="parse_forensic_report"><a class="viewcode-back" href="../index.html#parsedmarc.parse_forensic_report">[docs]</a><span class="k">def</span> <span class="nf">parse_forensic_report</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">sample_headers_only</span><span class="p">,</span>
                           <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
@@ -962,8 +962,8 @@
 
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="s2">&quot;Missing value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
-
+            <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+</div>
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -1005,8 +1005,8 @@
         <span class="k">del</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span>
         <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">csv_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
-
+    <span class="k">return</span> <span class="n">csv_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+</div>
 
 <div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -1133,8 +1133,8 @@
                 <span class="s1">&#39;not a valid DMARC report&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">result</span></div>
-
+    <span class="k">return</span> <span class="n">result</span>
+</div>
 
 <div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
@@ -1170,8 +1170,8 @@
         <span class="k">except</span> <span class="n">InvalidDMARCReport</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="s2">&quot;Not a valid aggregate or forensic &quot;</span>
                                      <span class="s2">&quot;report&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">results</span></div>
-
+    <span class="k">return</span> <span class="n">results</span>
+</div>
 
 <div class="viewcode-block" id="get_dmarc_reports_from_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_inbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span>
                                  <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
@@ -1277,8 +1277,8 @@
     <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;SSL error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
     <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
-
+        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+</div>
 
 <div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../index.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -1339,8 +1339,8 @@
         <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.eml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">samples_directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sample_file</span><span class="p">:</span>
-            <span class="n">sample_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span></div>
-
+            <span class="n">sample_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+</div>
 
 <div class="viewcode-block" id="get_report_zip"><a class="viewcode-back" href="../index.html#parsedmarc.get_report_zip">[docs]</a><span class="k">def</span> <span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -1384,8 +1384,8 @@
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">storage</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
-
+    <span class="k">return</span> <span class="n">storage</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+</div>
 
 <div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">starttls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1464,8 +1464,8 @@
     <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;SSL error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
     <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
-
+        <span class="k">raise</span> <span class="n">SMTPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+</div>
 
 <div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                 <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
@@ -1516,6 +1516,7 @@
                                                            <span class="n">nameservers</span><span class="o">=</span><span class="n">ns</span><span class="p">,</span>
                                                            <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
                         <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                        <span class="k">break</span>
 
         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
@@ -1539,8 +1540,8 @@
 
     <span class="n">server</span><span class="o">.</span><span class="n">idle_done</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">IDLE mode done&quot;</span><span class="p">)</span>
-    <span class="n">server</span><span class="o">.</span><span class="n">logout</span><span class="p">()</span></div>
-</pre></div>
+    <span class="n">server</span><span class="o">.</span><span class="n">logout</span><span class="p">()</span>
+</pre></div></div>
 
            </div>
            <div class="articleComments">
@@ -1576,7 +1577,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.2.0',
+            VERSION:'3.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.2.0 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.3.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 3.2.0 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 3.3.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                3.2.0
+                3.3.0
               </div>
             
           
@@ -105,7 +105,10 @@
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-parsedmarc">API</a></li>
+<li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
+<li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 </li>
@@ -176,7 +179,7 @@
 <h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 643.0px; height: 369.5px;" /></a>
-<p><code class="docutils literal"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pasedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -192,7 +195,7 @@
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
               <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
               <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
               <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
@@ -268,11 +271,11 @@ report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
 report schema standardized in
 <a class="reference external" href="https://tools.ietf.org/html/rfc7489#appendix-C">RFC 7480 Appendix C</a>.
 This draft schema is still in wide use.</p>
-<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report
 schema.</p>
 <div class="section" id="json">
 <h3>JSON<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-json"><div class="highlight"><pre><span></span><span class="p">{</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span> <span class="s2">&quot;draft&quot;</span><span class="p">,</span>
   <span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
     <span class="nt">&quot;org_name&quot;</span><span class="p">:</span> <span class="s2">&quot;acme.com&quot;</span><span class="p">,</span>
@@ -336,7 +339,7 @@ schema.</p>
 </div>
 <div class="section" id="csv">
 <h3>CSV<a class="headerlink" href="#csv" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">dkim_alignment</span><span class="p">,</span><span class="n">spf_alignment</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">dkim_alignment</span><span class="p">,</span><span class="n">spf_alignment</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
 <span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150</span><span class="o">.</span><span class="mf">241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="k">pass</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
 </pre></div>
 </div>
@@ -354,34 +357,34 @@ forensic report that you can share publicly, please contact me!</p>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
-<p>To install or upgrade to the latest stable release of <code class="docutils literal"><span class="pre">parsedmarc</span></code> on
+<p>To install or upgrade to the latest stable release of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> on
 macOS or Linux, run</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">On Windows, <code class="docutils literal"><span class="pre">pip3</span></code> is <code class="docutils literal"><span class="pre">pip</span></code>, even with Python 3. So on Windows, simply
-substitute <code class="docutils literal"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
+<p class="last">On Windows, <code class="docutils literal notranslate"><span class="pre">pip3</span></code> is <code class="docutils literal notranslate"><span class="pre">pip</span></code>, even with Python 3. So on Windows, simply
+substitute <code class="docutils literal notranslate"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
 above commands.</p>
 </div>
 <div class="section" id="optional-dependencies">
 <h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this headline">¶</a></h3>
 <p>If you would like to be able to parse emails saved from Microsoft Outlook
-(i.e. OLE .msg files), install <code class="docutils literal"><span class="pre">msgconvert</span></code>:</p>
+(i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ sudo apt-get install libemail-outlook-message-perl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install libemail-outlook-message-perl
 </pre></div>
 </div>
 </div>
@@ -494,7 +497,7 @@ or bytes.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Lists of <code class="docutils literal"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal"><span class="pre">forensic_reports</span></code></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Lists of <code class="docutils literal notranslate"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal notranslate"><span class="pre">forensic_reports</span></code></p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
@@ -525,7 +528,7 @@ or bytes.</p>
 <dl class="function">
 <dt id="parsedmarc.human_timestamp_to_datetime">
 <code class="descclassname">parsedmarc.</code><code class="descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em>human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal"><span class="pre">DateTime</span></code> object</p>
+<dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -596,7 +599,7 @@ aggregate DMARC report</p>
 <dl class="function">
 <dt id="parsedmarc.parse_forensic_report">
 <code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>sample_headers_only</em>, <em>nameservers=None</em>, <em>timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal"><span class="pre">OrderedDict</span></code></p>
+<dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -637,8 +640,8 @@ aggregate DMARC report</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li><code class="docutils literal"><span class="pre">report_type</span></code>: <code class="docutils literal"><span class="pre">aggregate</span></code> or <code class="docutils literal"><span class="pre">forensic</span></code></li>
-<li><code class="docutils literal"><span class="pre">report</span></code>: The parsed report</li>
+<li><code class="docutils literal notranslate"><span class="pre">report_type</span></code>: <code class="docutils literal notranslate"><span class="pre">aggregate</span></code> or <code class="docutils literal notranslate"><span class="pre">forensic</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">report</span></code>: The parsed report</li>
 </ul>
 </p>
 </td>
@@ -734,24 +737,6 @@ headers</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="parsedmarc.timestamp_to_human">
-<code class="descclassname">parsedmarc.</code><code class="descname">timestamp_to_human</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timestamp</strong> – The timestamp</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp in <code class="docutils literal"><span class="pre">YYYY-MM-DD</span> <span class="pre">HH:MM:SS</span></code> format</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
 <dt id="parsedmarc.watch_inbox">
 <code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
@@ -780,7 +765,68 @@ to a callback function</p>
 </table>
 </dd></dl>
 
+<div class="section" id="module-parsedmarc.elastic">
+<span id="parsedmarc-elastic"></span><h3>parsedmarc.elastic<a class="headerlink" href="#module-parsedmarc.elastic" title="Permalink to this headline">¶</a></h3>
+<dl class="exception">
+<dt id="parsedmarc.elastic.AlreadySaved">
+<em class="property">exception </em><code class="descclassname">parsedmarc.elastic.</code><code class="descname">AlreadySaved</code><a class="reference internal" href="_modules/parsedmarc/elastic.html#AlreadySaved"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.AlreadySaved" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a report to be saved matches an existing report</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.elastic.create_indexes">
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">create_indexes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the required indexes</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>aggregate_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved" title="parsedmarc.elastic.AlreadySaved"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AlreadySaved</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>forensic_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved" title="parsedmarc.elastic.AlreadySaved"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AlreadySaved</span></code></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.elastic.set_hosts">
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">set_hosts</code><span class="sig-paren">(</span><em>hosts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the Elasticsearch hosts to use</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hosts</strong> – A single hostname or URL, or list of hostnames or URLs</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <div class="toctree-wrapper compound">
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -828,7 +874,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.2.0',
+            VERSION:'3.3.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
