@@ -174,6 +174,7 @@ def set_hosts(hosts):
 
 def create_indexes():
     """Creates the required indexes"""
+    aggregate_index.delete()
     if not aggregate_index.exists():
         aggregate_index.create()
     if not forensic_index.exists():
@@ -193,6 +194,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
+    report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
     begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
     end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
@@ -204,22 +206,25 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
                   aggregate_report["end_date"])
 
     org_name_query = Q(dict(match=dict(org_name=org_name)))
+    report_id_query = Q(dict(match=dict(report_id=report_id)))
     domain_query = Q(dict(match=dict(domain=domain)))
     begin_date_query = Q(dict(match=dict(date_range=begin_date)))
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
     search = aggregate_index.search()
-    search.query = org_name_query & domain_query & begin_date_query & \
-        end_date_query
+    search.query = org_name_query & report_id_query & domain_query & \
+        begin_date_query & end_date_query
 
     existing = search.execute()
     if len(existing) > 0:
-        raise AlreadySaved("An aggregate report from {0} about {1} with a "
-                           "date range of {2} UTC to {3} UTC already exists "
-                           "in Elasticsearch".format(org_name,
-                                                     domain,
-                                                     begin_date_human,
-                                                     end_date_human))
+        raise AlreadySaved("An aggregate report ID {0} from {1} about {2} "
+                           "with a date range of {3} UTC to {4} UTC already "
+                           "exists in "
+                           "Elasticsearch".format(report_id,
+                                                  org_name,
+                                                  domain,
+                                                  begin_date_human,
+                                                  end_date_human))
     published_policy = _PublishedPolicy(
         adkim=aggregate_report["policy_published"]["adkim"],
         aspf=aggregate_report["policy_published"]["aspf"],
