@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.1.0 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.2.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 3.1.0 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 3.2.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                3.1.0
+                3.2.0
               </div>
             
           
@@ -734,6 +734,24 @@ headers</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.timestamp_to_human">
+<code class="descclassname">parsedmarc.</code><code class="descname">timestamp_to_human</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timestamp</strong> – The timestamp</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp in <code class="docutils literal"><span class="pre">YYYY-MM-DD</span> <span class="pre">HH:MM:SS</span></code> format</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.watch_inbox">
 <code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
@@ -810,7 +828,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.1.0',
+            VERSION:'3.2.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
