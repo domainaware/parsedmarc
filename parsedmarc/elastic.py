@@ -196,6 +196,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     domain = aggregate_report["policy_published"]["domain"]
     begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
     end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
+    begin_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
@@ -213,10 +214,11 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
 
     existing = search.execute()
     if len(existing) > 0:
-        raise AlreadySaved("Aggregate report from {0} about {1} with end date "
-                           "{2} already exists in "
+        raise AlreadySaved("Aggregate report from {0} about {1} with date "
+                           "range of {2} UTC to {3} UTC already exists in "
                            "Elasticsearch".format(org_name,
                                                   domain,
+                                                  begin_date_human,
                                                   end_date_human))
     published_policy = PublishedPolicy(
         adkim=aggregate_report["policy_published"]["adkim"],

@@ -1,6 +1,6 @@
-3.2.1
+3.3.0
 -----
-- Fix error saving to Elasticsearch
+- Fix errors when saving to Elasticsearch
 
 
 3.2.0
