@@ -253,6 +253,12 @@ API
 .. automodule:: parsedmarc
    :members:
 
+parsedmarc.elastic
+------------------
+
+.. automodule:: elastic
+   :members:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
