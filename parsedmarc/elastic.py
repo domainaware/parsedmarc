@@ -211,7 +211,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     existing = search.execute()
     if len(existing) > 0:
         raise AlreadySaved("Aggregate report from {0} about {1} with end date "
-                           "(2) already exists in "
+                           "{2} already exists in "
                            "Elasticsearch".format(org_name,
                                                   domain,
                                                   end_date_human))
