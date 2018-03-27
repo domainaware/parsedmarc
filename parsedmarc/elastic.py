@@ -174,7 +174,6 @@ def set_hosts(hosts):
 
 def create_indexes():
     """Creates the required indexes"""
-    aggregate_index.delete()
     if not aggregate_index.exists():
         aggregate_index.create()
     if not forensic_index.exists():
