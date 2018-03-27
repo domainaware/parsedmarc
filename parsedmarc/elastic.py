@@ -204,10 +204,13 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
 
     org_name_query = Q(dict(match=dict(org_name=org_name)))
     domain_query = Q(dict(match=dict(domain=domain)))
-    date_range_query = Q(dict(match=dict(date_range=end_date)))
+    begin_date_query = Q(dict(match=dict(date_range=begin_date)))
+    end_date_query = Q(dict(match=dict(date_range=end_date)))
 
     search = aggregate_index.search()
-    search.query = org_name_query & domain_query & date_range_query
+    search.query = org_name_query & domain_query & begin_date_query & \
+        end_date_query
+
     existing = search.execute()
     if len(existing) > 0:
         raise AlreadySaved("Aggregate report from {0} about {1} with end date "
