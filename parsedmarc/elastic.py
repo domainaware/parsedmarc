@@ -11,12 +11,12 @@ aggregate_index = Index("dmarc_aggregate")
 forensic_index = Index("dmarc_forensic")
 
 
-class PolicyOverride(InnerDoc):
+class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
 
 
-class PublishedPolicy(InnerDoc):
+class _PublishedPolicy(InnerDoc):
     adkim = Text()
     aspf = Text()
     p = Text()
@@ -25,19 +25,19 @@ class PublishedPolicy(InnerDoc):
     fo = Integer()
 
 
-class DKIMResult(InnerDoc):
+class _DKIMResult(InnerDoc):
     domain = Text()
     selector = Text()
     result = Text()
 
 
-class SPFResult(InnerDoc):
+class _SPFResult(InnerDoc):
     domain = Text()
     scope = Text()
     results = Text()
 
 
-class AggregateReportDoc(DocType):
+class _AggregateReportDoc(DocType):
     class Meta:
         index = "dmarc_aggregate"
 
@@ -49,7 +49,7 @@ class AggregateReportDoc(DocType):
     date_range = DateRange()
     errors = Text()
     domain = Text()
-    published_policy = Object(PublishedPolicy)
+    published_policy = Object(_PublishedPolicy)
     source_ip_address = Ip()
     source_country = Text()
     source_reverse_dns = Text()
@@ -59,26 +59,26 @@ class AggregateReportDoc(DocType):
     dkim_aligned = Boolean()
     spf_aligned = Boolean()
     passed_dmarc = Boolean()
-    policy_overrides = Nested(PolicyOverride)
+    policy_overrides = Nested(_PolicyOverride)
     header_from = Text()
     envelope_from = Text()
     envelope_to = Text()
-    dkim_results = Nested(DKIMResult)
-    spf_results = Nested(SPFResult)
+    dkim_results = Nested(_DKIMResult)
+    spf_results = Nested(_SPFResult)
 
     def add_policy_override(self, type_, comment):
-        self.policy_overrides.append(PolicyOverride(type=type_,
-                                                    comment=comment))
+        self.policy_overrides.append(_PolicyOverride(type=type_,
+                                                     comment=comment))
 
     def add_dkim_result(self, domain, selector, result):
-        self.dkim_results.append(DKIMResult(domain=domain,
-                                            selector=selector,
-                                            result=result))
+        self.dkim_results.append(_DKIMResult(domain=domain,
+                                             selector=selector,
+                                             result=result))
 
     def add_spf_result(self, domain, scope, result):
-        self.spf_results.append(SPFResult(domain=domain,
-                                          scope=scope,
-                                          result=result))
+        self.spf_results.append(_SPFResult(domain=domain,
+                                           scope=scope,
+                                           result=result))
 
     def save(self, ** kwargs):
         self.passed_dmarc = False
@@ -87,53 +87,53 @@ class AggregateReportDoc(DocType):
         return super().save(** kwargs)
 
 
-class EmailAddressDoc(InnerDoc):
+class _EmailAddressDoc(InnerDoc):
     display_name = Text()
     address = Text()
 
 
-class EmailAttachmentDoc(DocType):
+class _EmailAttachmentDoc(DocType):
     filename = Text()
     content_type = Text()
 
 
-class ForensicSampleDoc(InnerDoc):
+class _ForensicSampleDoc(InnerDoc):
     raw = Text()
     headers = Object()
     headers_only = Boolean()
-    to = Nested(EmailAddressDoc)
+    to = Nested(_EmailAddressDoc)
     subject = Text()
     filename_safe_subject = Text()
-    _from = Object(EmailAddressDoc)
+    _from = Object(_EmailAddressDoc)
     date = Date()
-    reply_to = Nested(EmailAddressDoc)
-    cc = Nested(EmailAddressDoc)
-    bcc = Nested(EmailAddressDoc)
+    reply_to = Nested(_EmailAddressDoc)
+    cc = Nested(_EmailAddressDoc)
+    bcc = Nested(_EmailAddressDoc)
     body = Text()
-    attachments = Nested(EmailAttachmentDoc)
+    attachments = Nested(_EmailAttachmentDoc)
 
     def add_to(self, display_name, address):
-        self.to.append(EmailAddressDoc(display_name=display_name,
-                                       address=address))
+        self.to.append(_EmailAddressDoc(display_name=display_name,
+                                        address=address))
 
     def add_reply_to(self, display_name, address):
-        self.reply_to.append(EmailAddressDoc(display_name=display_name,
-                                             address=address))
+        self.reply_to.append(_EmailAddressDoc(display_name=display_name,
+                                              address=address))
 
     def add_cc(self, display_name, address):
-        self.cc.append(EmailAddressDoc(display_name=display_name,
-                                       address=address))
+        self.cc.append(_EmailAddressDoc(display_name=display_name,
+                                        address=address))
 
     def add_bcc(self, display_name, address):
-        self.bcc.append(EmailAddressDoc(display_name=display_name,
-                                        address=address))
+        self.bcc.append(_EmailAddressDoc(display_name=display_name,
+                                         address=address))
 
     def add_attachment(self, filename, content_type):
         self.attachments.append(filename=filename,
                                 content_type=content_type)
 
 
-class ForensicReportDoc(DocType):
+class _ForensicReportDoc(DocType):
     class Meta:
         index = "dmarc_forensic"
 
@@ -153,7 +153,7 @@ class ForensicReportDoc(DocType):
     source_auth_failures = Text()
     dkim_domain = Text()
     original_rcpt_to = Text()
-    sample = Object(ForensicSampleDoc)
+    sample = Object(_ForensicSampleDoc)
 
 
 class AlreadySaved(ValueError):
@@ -220,7 +220,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
                                                      domain,
                                                      begin_date_human,
                                                      end_date_human))
-    published_policy = PublishedPolicy(
+    published_policy = _PublishedPolicy(
         adkim=aggregate_report["policy_published"]["adkim"],
         aspf=aggregate_report["policy_published"]["aspf"],
         p=aggregate_report["policy_published"]["p"],
@@ -230,7 +230,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     )
 
     for record in aggregate_report["records"]:
-        agg_doc = AggregateReportDoc(
+        agg_doc = _AggregateReportDoc(
             xml_schemea=aggregate_report["xml_schema"],
             org_name=metadata["org_name"],
             org_email=metadata["org_email"],
@@ -312,7 +312,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
                                                   ))
 
     parsed_sample = forensic_report["parsed_sample"]
-    sample = ForensicSampleDoc(
+    sample = _ForensicSampleDoc(
         raw=forensic_report["sample"],
         headers=headers,
         headers_only=forensic_report["sample_headers_only"],
@@ -338,7 +338,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
         sample.add_attachment(filename=attachment["filename"],
                               content_type=attachment["mail_content_type"])
 
-    forensic_doc = ForensicReportDoc(
+    forensic_doc = _ForensicReportDoc(
         feedback_type=forensic_report["feedback_type"],
         user_agent=forensic_report["user_agent"],
         version=forensic_report["version"],
