@@ -1382,6 +1382,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         except KeyboardInterrupt:
             break
 
-    server.idle_done()
-    logger.info("\nIDLE mode done")
-    server.logout()
+    try:
+        server.idle_done()
+        server.logout()
+    except BrokenPipeError:
+        pass
