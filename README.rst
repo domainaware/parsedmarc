@@ -7,6 +7,8 @@ parsedmarc
 .. image:: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
    :alt: A screenshot of DMARC summary charts in Kibana
    :align: center
+   :width: 1286 px
+   :height: 379 px
    :scale: 50
    :target: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
 
