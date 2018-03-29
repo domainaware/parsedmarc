@@ -27,7 +27,7 @@ from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 import smtplib
 import ssl
-from threading import Timer
+import time
 
 import publicsuffix
 import xmltodict
@@ -1342,18 +1342,16 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     server.login(username, password)
 
     server.select_folder(rf)
-
-    def maintain_idle():
-        """Sends the IDLE command every 10 minutes to avoid being 
-        disconnected"""
-        server.idle()
-        timer = Timer(600, maintain_idle)
-        timer.start()
-
-    maintain_idle()
+    idle_start_time = time.monotonic()
+    server.idle()
 
     while True:
         try:
+            # Refresh the IDLE session every 10 minutes to keep connected
+            if time.monotonic() - idle_start_time > 10 * 60:
+                server.idle_done()
+                server.idle()
+                idle_start_time = time.monotonic()
             responses = server.idle_check(timeout=wait)
             if responses is not None:
                 for response in responses:
