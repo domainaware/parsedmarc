@@ -1,3 +1,10 @@
+3.4.0
+-----
+- Maintain IMAP IDLE state when watching the inbox
+- The `-i`/`--idle` CLI option is now `-w`/`--watch`
+- Improved Exception handling and documentation
+
+
 3.3.0
 -----
 - Fix errors when saving to Elasticsearch

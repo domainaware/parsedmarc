@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""A Python module for parsing DMARC reports"""
+"""A Python package for parsing DMARC reports"""
 
 import logging
 import os
@@ -156,7 +156,7 @@ def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
         timeout (float): Sets the DNS query timeout in seconds
 
     Returns:
-
+        str: The reverse DNS hostname (if any)
     """
     hostname = None
     try:

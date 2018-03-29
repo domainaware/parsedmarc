@@ -96,7 +96,7 @@ def _main():
                             help="Email the results using this filename")
     arg_parser.add_argument("-M", "--outgoing-message",
                             help="Email the results using this message")
-    arg_parser.add_argument("-i", "--idle", action="store_true",
+    arg_parser.add_argument("-w", "--watch", action="store_true",
                             help="Use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
     arg_parser.add_argument("--test",
@@ -187,8 +187,8 @@ def _main():
             logger.error("SMTP Error: {0}".format(error.__str__()))
             exit(1)
 
-    if args.host and args.idle:
-        logger.warning("The IMAP Connection is now in IDLE mode. "
+    if args.host and args.watch:
+        logger.warning("Watching for email\n"
                        "Quit with ^c")
         try:
             watch_inbox(args.host, args.user, args.password, process_reports,
