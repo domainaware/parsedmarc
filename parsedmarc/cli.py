@@ -6,7 +6,6 @@
 
 from argparse import ArgumentParser
 from glob import glob
-from time import sleep
 from collections import OrderedDict
 import json
 
@@ -189,7 +188,6 @@ def _main():
             exit(1)
 
     if args.host and args.idle:
-        sleep(2)
         logger.warning("The IMAP Connection is now in IDLE mode. "
                        "Quit with ^c")
         try:
