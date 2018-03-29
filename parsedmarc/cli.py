@@ -6,6 +6,7 @@
 
 from argparse import ArgumentParser
 from glob import glob
+import logging
 from collections import OrderedDict
 import json
 
@@ -19,7 +20,7 @@ from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
 def _main():
     """Called when the module is executed"""
     def process_reports(reports_):
-        print(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
+        logger.info(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -99,9 +100,13 @@ def _main():
     arg_parser.add_argument("-w", "--watch", action="store_true",
                             help="Use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
-    arg_parser.add_argument("--test",
+    arg_parser.add_argument("-t", "--test",
                             help="Do not move or delete IMAP messages",
                             action="store_true", default=False)
+    arg_parser.add_argument("-s", "--silent", action="store_true",
+                            help="Only print errors")
+    arg_parser.add_argument("-d", "--debug", action="store_true",
+                            help="Print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
                             version=__version__)
 
@@ -109,6 +114,12 @@ def _main():
     forensic_reports = []
 
     args = arg_parser.parse_args()
+
+    logger.setLevel(logger.setLevel(logging.INFO))
+    if args.silent:
+        logger.setLevel(logging.ERROR)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     if args.host is None and len(args.file_path) == 0:
         arg_parser.print_help()
@@ -188,8 +199,8 @@ def _main():
             exit(1)
 
     if args.host and args.watch:
-        logger.warning("Watching for email\n"
-                       "Quit with ^c")
+        logger.info("Watching for email\n"
+                    "Quit with ^c")
         try:
             watch_inbox(args.host, args.user, args.password, process_reports,
                         reports_folder=args.reports_folder,
