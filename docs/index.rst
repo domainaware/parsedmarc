@@ -489,7 +489,7 @@ setting to suit your needs.
 .. note::
 
     Always pass the ``--watch`` option to ``parsedmarc`` when running it as a
-    service.
+    service. Use ``--silent`` to only log errors.
 
 .. code-block:: ini
 
