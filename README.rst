@@ -32,21 +32,21 @@ CLI help
 ::
 
    usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                     [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                     [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                     [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                     [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                     [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
-                     [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                     [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                     [-v]
-                     [file_path [file_path ...]]
+                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                  [-s] [--debug] [-v]
+                  [file_path [file_path ...]]
 
-   Parses DMARC reports
+Parses DMARC reports
 
-   positional arguments:
-     file_path             one or more paths to aggregate or forensic report
-                           files or emails
+positional arguments:
+  file_path             one or more paths to aggregate or forensic report
+                        files or emails
 
    optional arguments:
      -h, --help            show this help message and exit
@@ -91,6 +91,8 @@ CLI help
      -w, --watch           Use an IMAP IDLE connection to process reports as they
                            arrive in the inbox
      --test                Do not move or delete IMAP messages
+     -s, --silent          Only print errors
+     --debug               Print debugging information
      -v, --version         show program's version number and exit
 
 SPF and DMARC record validation
