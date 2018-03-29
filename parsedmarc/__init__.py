@@ -1339,15 +1339,36 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     ns = nameservers
     dt = dns_timeout
     server = imapclient.IMAPClient(host)
-    server.login(username, password)
 
-    server.select_folder(rf)
-    idle_start_time = time.monotonic()
-    server.idle()
+    try:
+        server.login(username, password)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        server.idle()
+
+    except imapclient.exceptions.IMAPClientError as error:
+        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+        raise IMAPError(error)
+    except socket.gaierror:
+        raise IMAPError("DNS resolution failed")
+    except ConnectionRefusedError:
+        raise IMAPError("Connection refused")
+    except ConnectionResetError:
+        raise IMAPError("Connection reset")
+    except ConnectionAbortedError:
+        raise IMAPError("Connection aborted")
+    except TimeoutError:
+        raise IMAPError("Connection timed out")
+    except ssl.SSLError as error:
+        raise IMAPError("SSL error: {0}".format(error.__str__()))
+    except ssl.CertificateError as error:
+        raise IMAPError("Certificate error: {0}".format(error.__str__()))
+    except BrokenPipeError:
+        raise IMAPError("Broken pipe")
 
     while True:
         try:
-            # Refresh the IDLE session every 10 minutes to keep connected
+            # Refresh the IDLE session every 10 minutes to stay connected
             if time.monotonic() - idle_start_time > 10 * 60:
                 server.idle_done()
                 server.idle()
@@ -1383,6 +1404,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             raise IMAPError("SSL error: {0}".format(error.__str__()))
         except ssl.CertificateError as error:
             raise IMAPError("Certificate error: {0}".format(error.__str__()))
+        except BrokenPipeError:
+            raise IMAPError("Broken pipe")
         except KeyboardInterrupt:
             break
 
