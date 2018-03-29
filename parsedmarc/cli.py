@@ -100,7 +100,7 @@ def _main():
     arg_parser.add_argument("-w", "--watch", action="store_true",
                             help="Use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
-    arg_parser.add_argument("-t", "--test",
+    arg_parser.add_argument("--test",
                             help="Do not move or delete IMAP messages",
                             action="store_true", default=False)
     arg_parser.add_argument("-s", "--silent", action="store_true",
