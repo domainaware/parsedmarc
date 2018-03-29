@@ -115,7 +115,7 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    logger.setLevel(logger.setLevel(logging.INFO))
+    logger.setLevel(logging.INFO)
     if args.silent:
         logger.setLevel(logging.ERROR)
     if args.debug:
