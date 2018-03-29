@@ -105,7 +105,7 @@ def _main():
                             action="store_true", default=False)
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="Only print errors")
-    arg_parser.add_argument("-d", "--debug", action="store_true",
+    arg_parser.add_argument("--debug", action="store_true",
                             help="Print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
                             version=__version__)
