@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.3.0 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="parsedmarc 3.3.0 documentation" href="#"/> 
+    <link rel="top" title="parsedmarc 3.4.0 documentation" href="#"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                3.3.0
+                3.4.0
               </div>
             
           
@@ -103,6 +103,8 @@
 <li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
+<li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
+<li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
@@ -195,16 +197,16 @@
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
-              <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
-              <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-              <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">w</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                  <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
 <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
@@ -252,7 +254,7 @@
                         <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">filename</span>
   <span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">message</span> <span class="n">OUTGOING_MESSAGE</span>
                         <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">message</span>
-  <span class="o">-</span><span class="n">i</span><span class="p">,</span> <span class="o">--</span><span class="n">idle</span>            <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
+  <span class="o">-</span><span class="n">w</span><span class="p">,</span> <span class="o">--</span><span class="n">watch</span>           <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
                         <span class="n">arrive</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">inbox</span>
   <span class="o">--</span><span class="n">test</span>                <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
@@ -388,10 +390,202 @@ above commands.</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="elasticsearch-and-kibana">
+<h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
+<p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y openjdk-8-jre apt-transport-https
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
+<span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
+sudo apt-get update
+sudo apt-get install -y elasticsearch kibana
+sudo systemctl daemon-reload
+sudo systemctl <span class="nb">enable</span> elasticsearch.service
+sudo systemctl <span class="nb">enable</span> kibana.service
+sudo service start elasticsearch
+sudo service start kibana
+</pre></div>
+</div>
+<p>Without the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>, Kibana does not have any authentication
+mechanism of its own. You can use nginx as a reverse proxy that provides basic
+authentication.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y nginx apache2-utils
+</pre></div>
+</div>
+<p>Create a directory to store the certificates and keys:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir ~/ssl
+<span class="nb">cd</span> ~/ssl
+</pre></div>
+</div>
+<p>To create a self-signed certificate, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl req -x509 -nodes -days <span class="m">365</span> -newkey rsa:4096 -keyout kibana.key -out kibana.crt
+</pre></div>
+</div>
+<p>Or, to create a Certificate Signing Request (CSR) for a CA, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl req -newkey rsa:4096-nodes -keyout kibana.key -out kibana.csr
+</pre></div>
+</div>
+<p>Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
+domain name), which is the IP address or domain name that you will be hosting
+Kibana on. it is the most important field.</p>
+<p>If you generated a CSR, remove the CSR after you have your certs</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm -f kibana.csr
+</pre></div>
+</div>
+<p>Move the keys into place and secure them:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span>
+sudo mv ssl /etc/nginx
+sudo chown -R root:www-data /etc/nginx/ssl
+sudo chmod -R <span class="nv">u</span><span class="o">=</span>rX,g<span class="o">=</span>rX,o<span class="o">=</span> /etc/nginx/ssl
+</pre></div>
+</div>
+<p>Disable the default nginx configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo rm /etc/nginx/sites-enabled/default
+</pre></div>
+</div>
+<p>Create the Cuckoo web server configuration</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/nginx/sites-available/kibana
+</pre></div>
+</div>
+<div class="highlight-nginx notranslate"><div class="highlight"><pre><span></span><span class="k">server</span> <span class="p">{</span>
+    <span class="kn">listen</span> <span class="mi">443</span> <span class="s">ssl</span> <span class="s">http2</span><span class="p">;</span>
+    <span class="kn">ssl_certificate</span> <span class="s">/etc/nginx/ssl/kibana.crt</span><span class="p">;</span>
+    <span class="kn">ssl_certificate_key</span> <span class="s">/etc/nginx/ssl/kibana.key</span><span class="p">;</span>
+    <span class="kn">ssl_dhparam</span> <span class="s">/etc/nginx/ssl/dhparam.pem</span><span class="p">;</span>
+    <span class="kn">ssl_session_timeout</span> <span class="s">1d</span><span class="p">;</span>
+    <span class="kn">ssl_session_cache</span> <span class="s">shared:SSL:50m</span><span class="p">;</span>
+    <span class="kn">ssl_session_tickets</span> <span class="no">off</span><span class="p">;</span>
+
+    <span class="kn">ssl_protocols</span> <span class="s">TLSv1.2</span><span class="p">;</span>
+    <span class="kn">ssl_ciphers</span> <span class="s">&#39;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHAC</span>   <span class="s">ssl_prefer_server_ciphers</span> <span class="no">on</span><span class="p">;</span>
+
+    <span class="c1"># Uncomment this next line if you are using a signed, trusted cert</span>
+    <span class="c1">#add_header Strict-Transport-Security &quot;max-age=63072000; includeSubdomains; preload&quot;;</span>
+    <span class="kn">add_header</span> <span class="s">X-Frame-Options</span> <span class="s">SAMEORIGIN</span><span class="p">;</span>
+    <span class="kn">add_header</span> <span class="s">X-Content-Type-Options</span> <span class="s">nosniff</span><span class="p">;</span>
+    <span class="kn">auth_basic</span> <span class="s">&quot;Login</span> <span class="s">required&quot;</span><span class="p">;</span>
+    <span class="kn">auth_basic_user_file</span> <span class="s">/etc/nginx/htpasswd</span><span class="p">;</span>
+
+    <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+        <span class="kn">proxy_pass</span> <span class="s">http://127.0.0.1:5601</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$host</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
+        <span class="kn">proxy_set_header</span> <span class="s">X-Forwarded-For</span> <span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">server</span> <span class="p">{</span>
+    <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+    <span class="kn">return</span> <span class="mi">301</span> <span class="s">https://</span><span class="nv">$server_name$request_uri</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Enable the nginx configuration for Kibana:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo ln -s /etc/nginx/sites-available/kibana /etc/nginx/sites-enabled/kibana
+</pre></div>
+</div>
+<p>Add a user to basic authentication:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo htpasswd -c /etc/nginx/htpasswd exampleuser
+</pre></div>
+</div>
+<p>Where <code class="docutils literal notranslate"><span class="pre">exampleuser</span></code> is the name of the user you want to add.</p>
+<p>Secure the permissions of the httpasswd file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:www-data /etc/nginx/htpasswd
+sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/nginx/htpasswd
+</pre></div>
+</div>
+<p>Restart nginx:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service nginx restart
+</pre></div>
+</div>
+<p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
+it.</p>
+<p>Om the same system as Elasticsearch, pass <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> save the results in Elasticsearch.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> are separate options because
+you may not want to save forensic reports to your Elasticsearch instance,
+particularly if you are in a highly-regulated industry that handles
+sensitive data, such as healthcare or finance. If your legitimate outgoing
+email fails DMARC, it is possible that email may appear later in a
+forensic report.</p>
+<p>Forensic reports contain the original headers of an email that failed a
+DMARC check, and sometimes may also include the full message body,
+depending on the policy of the reporting organisation.</p>
+<p class="last">Most reporting organisations do not send forensic reports of any kind for
+privacy reasons. While aggregate DMARC reports are sent at least daily,
+it is normal to receive very few forensic reports.</p>
+</div>
+<p>When you first visit Kibana, it will prompt you to create an index pattern.
+Start by creating the index pattern <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> (without an <code class="docutils literal notranslate"><span class="pre">*</span></code>),
+and select <code class="docutils literal notranslate"><span class="pre">date_range</span></code> as the time field. Once the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code>
+index pattern <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> has been saved, create a <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code>
+index pattern, with <code class="docutils literal notranslate"><span class="pre">arrival_date</span></code> as the time field.</p>
+<a class="reference external image-reference" href="_static/screenshots/define-dmarc-aggregate.png"><img alt="A screenshot of defining the dmarc_aggregate index pattern" class="align-center" src="_images/define-dmarc-aggregate.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/dmarc-aggregate-time-field.png"><img alt="A screenshot of setting the time field for the dmarc_aggregate index pattern" class="align-center" src="_images/dmarc-aggregate-time-field.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/define-dmarc-forensic.png"><img alt="A screenshot of defining the dmarc_forensic index pattern" class="align-center" src="_images/define-dmarc-forensic.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/dmarc-forensic-time-field.png"><img alt="A screenshot of setting the time field for the dmarc_forensic index pattern" class="align-center" src="_images/dmarc-forensic-time-field.png" /></a>
+<p>Once the index patterns have been created, you can import the dashboards.</p>
+<p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json">kibana_saved_objects.json</a>.</p>
+<p>Import <code class="docutils literal notranslate"><span class="pre">kibana_saved_objects.json</span></code> the Saved Objects tab of the management
+page of Kibana.</p>
+<p>It will give you the option to overwrite existing saved dashboards or
+visualizations, which could be used to restore them if you or someone else
+breaks them, as there are no permissions/access controls in Kibana without
+the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
+<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
+<p>Kibana will then ask you to match the newly imported objects to your index
+patterns. Select <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code> for the set of forensic objects, and
+select <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> for the other saved objects, as shown below.</p>
+<a class="reference external image-reference" href="_static/screenshots/index-pattern-conflicts.png"><img alt="A screenshot showing how to resolve index pattern conflicts after importing saved objects" class="align-center" src="_images/index-pattern-conflicts.png" /></a>
+</div>
+<div class="section" id="running-parsedmarc-as-a-systemd-service">
+<h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this headline">¶</a></h3>
+<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as they
+arrive.</p>
+<p>Create the service configuration file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/systemd/system/parsedmarc.service
+</pre></div>
+</div>
+<p>Edit the command line options of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> in the service’s <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>
+setting to suit your needs.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Always pass the <code class="docutils literal notranslate"><span class="pre">--watch</span></code> option to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> when running it as a
+service.</p>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
+
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/parsedmarc --watch --save-aggregate -H &quot;outlook.office365.com&quot; -u &quot;dmarc@example.com&quot; -p &quot;FooBar!&quot; --save-aggregate</span>
+<span class="na">User</span><span class="o">=</span><span class="s">nobody</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">nobody</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
+
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</pre></div>
+</div>
+<p>Then, enable the service</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
+sudo systemctl <span class="nb">enable</span> parsedmarc.service
+sudo service parsedmarc restart
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must also run the above commands anytime you edit
+<code class="docutils literal notranslate"><span class="pre">parsedmarc.service</span></code>.</p>
+</div>
+</div>
 </div>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
-<p>A Python module for parsing DMARC reports</p>
+<p>A Python package for parsing DMARC reports</p>
 <dl class="exception">
 <dt id="parsedmarc.IMAPError">
 <em class="property">exception </em><code class="descclassname">parsedmarc.</code><code class="descname">IMAPError</code><a class="reference internal" href="_modules/parsedmarc.html#IMAPError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.IMAPError" title="Permalink to this definition">¶</a></dt>
@@ -874,7 +1068,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.3.0',
+            VERSION:'3.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

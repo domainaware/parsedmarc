@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 3.3.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 3.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="parsedmarc 3.3.0 documentation" href="../../index.html"/>
+    <link rel="top" title="parsedmarc 3.4.0 documentation" href="../../index.html"/>
         <link rel="up" title="parsedmarc" href="../parsedmarc.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                3.3.0
+                3.4.0
               </div>
             
           
@@ -350,6 +350,7 @@
     <span class="n">aggregate_report</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span>
     <span class="n">org_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
+    <span class="n">report_id</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
     <span class="n">domain</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
     <span class="n">begin_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
     <span class="n">end_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
@@ -361,22 +362,25 @@
                   <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
 
     <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
+    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
     <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">)))</span>
     <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
 
     <span class="n">search</span> <span class="o">=</span> <span class="n">aggregate_index</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
-    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> \
-        <span class="n">end_date_query</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span> <span class="o">&amp;</span> \
+        <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
 
     <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;An aggregate report from </span><span class="si">{0}</span><span class="s2"> about </span><span class="si">{1}</span><span class="s2"> with a &quot;</span>
-                           <span class="s2">&quot;date range of </span><span class="si">{2}</span><span class="s2"> UTC to </span><span class="si">{3}</span><span class="s2"> UTC already exists &quot;</span>
-                           <span class="s2">&quot;in Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">org_name</span><span class="p">,</span>
-                                                     <span class="n">domain</span><span class="p">,</span>
-                                                     <span class="n">begin_date_human</span><span class="p">,</span>
-                                                     <span class="n">end_date_human</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;An aggregate report ID </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> about </span><span class="si">{2}</span><span class="s2"> &quot;</span>
+                           <span class="s2">&quot;with a date range of </span><span class="si">{3}</span><span class="s2"> UTC to </span><span class="si">{4}</span><span class="s2"> UTC already &quot;</span>
+                           <span class="s2">&quot;exists in &quot;</span>
+                           <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">report_id</span><span class="p">,</span>
+                                                  <span class="n">org_name</span><span class="p">,</span>
+                                                  <span class="n">domain</span><span class="p">,</span>
+                                                  <span class="n">begin_date_human</span><span class="p">,</span>
+                                                  <span class="n">end_date_human</span><span class="p">))</span>
     <span class="n">published_policy</span> <span class="o">=</span> <span class="n">_PublishedPolicy</span><span class="p">(</span>
         <span class="n">adkim</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;adkim&quot;</span><span class="p">],</span>
         <span class="n">aspf</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;aspf&quot;</span><span class="p">],</span>
@@ -553,7 +557,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'3.3.0',
+            VERSION:'3.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
