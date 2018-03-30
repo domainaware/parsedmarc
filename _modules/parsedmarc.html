@@ -1359,9 +1359,9 @@
             <span class="k">for</span> <span class="n">subdir_file</span> <span class="ow">in</span> <span class="n">subdir_files</span><span class="p">:</span>
                 <span class="n">subdir_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">subdir_file</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">subdir_file_path</span><span class="p">):</span>
-                    <span class="n">relpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">subdir_root</span><span class="p">,</span> <span class="n">subdir_file_path</span><span class="p">)</span>
-                    <span class="n">subdir_arcname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relpath</span><span class="p">,</span> <span class="n">subdir_file</span><span class="p">)</span>
-                    <span class="n">zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">subdir_file_path</span><span class="p">,</span> <span class="n">subdir_arcname</span><span class="p">)</span>
+                    <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">subdir_root</span><span class="p">,</span> <span class="n">subdir_file_path</span><span class="p">)</span>
+                    <span class="n">subdir_arc_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rel_path</span><span class="p">,</span> <span class="n">subdir_file</span><span class="p">)</span>
+                    <span class="n">zip_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">subdir_file_path</span><span class="p">,</span> <span class="n">subdir_arc_name</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">subdir_dirs</span><span class="p">:</span>
                 <span class="n">add_subdir</span><span class="p">(</span><span class="n">subdir_path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
 
@@ -1525,6 +1525,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Refresh the IDLE session every 10 minutes to stay connected</span>
             <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">idle_start_time</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP: Refreshing IDLE session&quot;</span><span class="p">)</span>
                 <span class="n">server</span><span class="o">.</span><span class="n">idle_done</span><span class="p">()</span>
                 <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
                 <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
@@ -1566,6 +1567,7 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span><span class="o">.</span><span class="n">idle_done</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP: Sending DONE&quot;</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">logout</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">BrokenPipeError</span><span class="p">:</span>
         <span class="k">pass</span></div>
