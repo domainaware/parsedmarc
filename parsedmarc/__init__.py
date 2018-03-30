@@ -1204,9 +1204,9 @@ def get_report_zip(results):
             for subdir_file in subdir_files:
                 subdir_file_path = os.path.join(root_path, subdir, subdir_file)
                 if os.path.isfile(subdir_file_path):
-                    relpath = os.path.relpath(subdir_root, subdir_file_path)
-                    subdir_arcname = os.path.join(relpath, subdir_file)
-                    zip_file.write(subdir_file_path, subdir_arcname)
+                    rel_path = os.path.relpath(subdir_root, subdir_file_path)
+                    subdir_arc_name = os.path.join(rel_path, subdir_file)
+                    zip_file.write(subdir_file_path, subdir_arc_name)
             for subdir in subdir_dirs:
                 add_subdir(subdir_path, subdir)
 
@@ -1370,6 +1370,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         try:
             # Refresh the IDLE session every 10 minutes to stay connected
             if time.monotonic() - idle_start_time > 10 * 60:
+                logger.debug("IMAP: Refreshing IDLE session")
                 server.idle_done()
                 server.idle()
                 idle_start_time = time.monotonic()
@@ -1411,6 +1412,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     try:
         server.idle_done()
+        logger.debug("IMAP: Sending DONE")
         server.logout()
     except BrokenPipeError:
         pass
