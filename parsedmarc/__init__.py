@@ -42,7 +42,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.4.0"
+__version__ = "3.4.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1370,7 +1370,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         try:
             # Refresh the IDLE session every 10 minutes to stay connected
             if time.monotonic() - idle_start_time > 10 * 60:
-                logger.debug("IMAP: Refreshing IDLE session")
+                logger.info("IMAP: Refreshing IDLE session")
                 server.idle_done()
                 server.idle()
                 idle_start_time = time.monotonic()
@@ -1412,7 +1412,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     try:
         server.idle_done()
-        logger.debug("IMAP: Sending DONE")
+        logger.info("IMAP: Sending DONE")
         server.logout()
     except BrokenPipeError:
         pass

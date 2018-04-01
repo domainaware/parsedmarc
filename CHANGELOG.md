@@ -1,3 +1,8 @@
+3.4.1
+-----
+- Documentation fixes
+- Fix console output
+
 3.4.0
 -----
 - Maintain IMAP IDLE state when watching the inbox

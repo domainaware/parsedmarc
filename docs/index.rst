@@ -320,7 +320,7 @@ Disable the default nginx configuration:
 
     sudo rm /etc/nginx/sites-enabled/default
 
-Create the Cuckoo web server configuration
+Create the web server configuration
 
 .. code-block:: bash
 

@@ -20,7 +20,11 @@ from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
 def _main():
     """Called when the module is executed"""
     def process_reports(reports_):
-        logger.info(json.dumps(reports_, ensure_ascii=False, indent=2), "\n")
+        output_str = "{0}\n".format(json.dumps(reports_,
+                                               ensure_ascii=False,
+                                               indent=2))
+        if not args.silent:
+            print(output_str)
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -115,12 +119,11 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    logger.setLevel(logging.INFO)
-    if args.silent:
-        logger.setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.WARNING)
+    logger.setLevel(logging.WARNING)
     if args.debug:
-        logger.setLevel(logging.DEBUG)
-
+        logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
     if args.host is None and len(args.file_path) == 0:
         arg_parser.print_help()
         exit(1)
@@ -199,8 +202,7 @@ def _main():
             exit(1)
 
     if args.host and args.watch:
-        logger.info("Watching for email\n"
-                    "Quit with ^c")
+        logger.info("Watching for email - Quit with ^c")
         try:
             watch_inbox(args.host, args.user, args.password, process_reports,
                         reports_folder=args.reports_folder,

@@ -40,58 +40,58 @@ CLI help
                   [-s] [--debug] [-v]
                   [file_path [file_path ...]]
 
-Parses DMARC reports
+    Parses DMARC reports
 
-positional arguments:
-  file_path             one or more paths to aggregate or forensic report
-                        files or emails
+    positional arguments:
+      file_path             one or more paths to aggregate or forensic report
+                            files or emails
 
-   optional arguments:
-     -h, --help            show this help message and exit
-     -o OUTPUT, --output OUTPUT
-                           Write output files to the given directory
-     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query (Default 8.8.8.8 4.4.4.4)
-     -t TIMEOUT, --timeout TIMEOUT
-                           number of seconds to wait for an answer from DNS
-                           (default 6.0)
-     -H HOST, --host HOST  IMAP hostname or IP address
-     -u USER, --user USER  IMAP user
-     -p PASSWORD, --password PASSWORD
-                           IMAP password
-     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                           The IMAP folder containing the reports Default: INBOX
-     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                           Specifies the IMAP folder to move messages to after
-                           processing them Default: Archive
-     -d, --delete          Delete the reports after processing them
-     -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                           A list of one or more Elasticsearch hostnames or URLs
-                           to use (Default localhost:9200)
-     --save-aggregate      Save aggregate reports to Elasticsearch
-     --save-forensic       Save forensic reports to Elasticsearch
-     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                           Email the results using this host
-     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                           Email the results using this user
-     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                           Email the results using this password
-     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                           Email the results using this from address
-     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                           Email the results to these addresses
-     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                           Email the results using this subject
-     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                           Email the results using this filename
-     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                           Email the results using this message
-     -w, --watch           Use an IMAP IDLE connection to process reports as they
-                           arrive in the inbox
-     --test                Do not move or delete IMAP messages
-     -s, --silent          Only print errors
-     --debug               Print debugging information
-     -v, --version         show program's version number and exit
+       optional arguments:
+         -h, --help            show this help message and exit
+         -o OUTPUT, --output OUTPUT
+                               Write output files to the given directory
+         -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                               nameservers to query (Default 8.8.8.8 4.4.4.4)
+         -t TIMEOUT, --timeout TIMEOUT
+                               number of seconds to wait for an answer from DNS
+                               (default 6.0)
+         -H HOST, --host HOST  IMAP hostname or IP address
+         -u USER, --user USER  IMAP user
+         -p PASSWORD, --password PASSWORD
+                               IMAP password
+         -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
+                               The IMAP folder containing the reports Default: INBOX
+         -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
+                               Specifies the IMAP folder to move messages to after
+                               processing them Default: Archive
+         -d, --delete          Delete the reports after processing them
+         -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
+                               A list of one or more Elasticsearch hostnames or URLs
+                               to use (Default localhost:9200)
+         --save-aggregate      Save aggregate reports to Elasticsearch
+         --save-forensic       Save forensic reports to Elasticsearch
+         -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
+                               Email the results using this host
+         -U OUTGOING_USER, --outgoing-user OUTGOING_USER
+                               Email the results using this user
+         -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
+                               Email the results using this password
+         -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
+                               Email the results using this from address
+         -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
+                               Email the results to these addresses
+         -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
+                               Email the results using this subject
+         -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
+                               Email the results using this filename
+         -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
+                               Email the results using this message
+         -w, --watch           Use an IMAP IDLE connection to process reports as they
+                               arrive in the inbox
+         --test                Do not move or delete IMAP messages
+         -s, --silent          Only print errors
+         --debug               Print debugging information
+         -v, --version         show program's version number and exit
 
 SPF and DMARC record validation
 ===============================
@@ -190,13 +190,6 @@ Sample forensic report output
 
 I don't have a sample I can share for privacy reasons. If you have a sample
 forensic report that you can share publicly, please contact me!
-
-Bug reports
-===========
-
-Please report bugs on the GitHub issue tracker
-
-https://github.com/domainaware/parsedmarc/issues
 
 Installation
 ============

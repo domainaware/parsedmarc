@@ -15,6 +15,7 @@ install:
 # commands to run samples
 script:
   - "flake8 *.py parsedmarc/*.py"
+  - "rstcheck README.rst docs/index.rst"
   - "cd docs"
   - "make html"
   - "cd .."
