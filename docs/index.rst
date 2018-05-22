@@ -15,7 +15,7 @@ Welcome to parsedmarc's documentation!
    :align: center
    :target: _static/screenshots/dmarc-summary-charts.png
 
-``pasedmarc`` is a Python module and CLI utility for parsing DMARC reports.
+``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 
 Features
 ========
