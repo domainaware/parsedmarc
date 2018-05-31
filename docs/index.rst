@@ -498,7 +498,7 @@ setting to suit your needs.
     Documentation=https://domainaware.github.io/parsedmarc/
 
     [Service]
-    ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!" --save-aggregate
+    ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"
     Restart=always
     RestartSec=5m
 
@@ -515,7 +515,7 @@ Then, enable the service
 
 .. note::
 
-    You must also run the above commands anytime you edit
+    You must also run the above commands whenever you edit
     ``parsedmarc.service``.
 
 API
