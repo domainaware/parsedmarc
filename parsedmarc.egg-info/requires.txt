@@ -1,0 +1,10 @@
+dnspython
+publicsuffix
+xmltodict
+geoip2
+dnspython
+imapclient
+mail-parser
+dateparser
+elasticsearch
+elasticsearch-dsl

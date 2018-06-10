@@ -1,0 +1,11 @@
+README.rst
+setup.py
+parsedmarc/__init__.py
+parsedmarc/cli.py
+parsedmarc/elastic.py
+parsedmarc.egg-info/PKG-INFO
+parsedmarc.egg-info/SOURCES.txt
+parsedmarc.egg-info/dependency_links.txt
+parsedmarc.egg-info/entry_points.txt
+parsedmarc.egg-info/requires.txt
+parsedmarc.egg-info/top_level.txt
