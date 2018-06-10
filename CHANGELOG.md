@@ -1,3 +1,9 @@
+3.5.0
+-----
+- Fix installation from virtualenv
+- Fix documentation typos
+
+
 3.4.1
 -----
 - Documentation fixes
@@ -80,7 +86,7 @@ file extension
 
 1.0.5
 -----
-- Prefix public suffix and GeoIP2 database filenames with `.` 
+- Prefix public suffix and GeoIP2 database filenames with `.`
 - Properly format errors list in CSV output
 
 1.0.3

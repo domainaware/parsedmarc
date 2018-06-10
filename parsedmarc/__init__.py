@@ -42,7 +42,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.4.1"
+__version__ = "3.5.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

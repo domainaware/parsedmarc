@@ -14,8 +14,9 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-from parsedmarc import __version__
-from parsedmarc import __doc__ as description
+__version__ = "3.4.0"
+description = "A Python package and CLI for parsing aggregate and " \
+              "forensic DMARC reports"
 
 here = path.abspath(path.dirname(__file__))
 

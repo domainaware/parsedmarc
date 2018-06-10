@@ -10,7 +10,7 @@ parsedmarc
    :scale: 50
    :target: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
 
-``pasedmarc`` is a Python module and CLI utility for parsing DMARC reports.
+``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 
 Features
 ========
