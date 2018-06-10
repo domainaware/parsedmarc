@@ -127,7 +127,7 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
         domain (str): The domain or subdomain to query about
         record_type (str): The record type to query for
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -136,7 +136,9 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
     resolver = dns.resolver.Resolver()
     timeout = float(timeout)
     if nameservers is None:
-        nameservers = ["8.8.8.8", "4.4.4.4"]
+        nameservers = ["1.1.1.1", "1.0.0.1",
+                       "2606:4700:4700::1111", "2606:4700:4700::1001",
+                       ]
     resolver.nameservers = nameservers
     resolver.timeout = timeout
     resolver.lifetime = timeout
@@ -152,7 +154,7 @@ def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
     Args:
         ip_address (str): The IP address to resolve
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
 
     Returns:
@@ -277,7 +279,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     Args:
         ip_address (str): The IP address to check
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -309,7 +311,7 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     Args:
         record (OrderedDict): The record to convert
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -403,7 +405,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
     Args:
         xml (str): A string of DMARC aggregate report XML
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -540,7 +542,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
     Args:
         _input: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -667,7 +669,7 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         sample (str): The RFC 822 headers or RFC 822 message sample
         sample_headers_only (bool): Set true if the sample is only headers
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -989,7 +991,7 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     Args:
         input_: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -1331,7 +1333,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         test (bool): Do not move or delete messages after processing them
         wait (int): Number of seconds to wait for a IMAP IDLE response
         nameservers (list): A list of one or more nameservers to use
-        (8.8.8.8 and 4.4.4.4 by default)
+        (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Set the DNS query timeout
     """
     rf = reports_folder

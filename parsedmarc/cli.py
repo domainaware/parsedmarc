@@ -53,7 +53,7 @@ def _main():
                             help="Write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query "
-                                 "(Default 8.8.8.8 4.4.4.4)")
+                                 "(Default is Cloudflare's)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
                                  "from DNS (default 6.0)",

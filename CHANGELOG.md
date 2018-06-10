@@ -1,5 +1,6 @@
 3.5.0
 -----
+- Use Cloudflare's public DNS resolvers by default instead of Google's
 - Fix installation from virtualenv
 - Fix documentation typos
 
