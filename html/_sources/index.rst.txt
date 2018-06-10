@@ -56,7 +56,7 @@ CLI help
       -o OUTPUT, --output OUTPUT
                             Write output files to the given directory
       -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                            nameservers to query ((Default is Cloudflare's))
+                            nameservers to query ((Default is Cloudflare's)
       -t TIMEOUT, --timeout TIMEOUT
                             number of seconds to wait for an answer from DNS
                             (default 6.0)
