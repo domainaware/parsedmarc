@@ -1,3 +1,13 @@
+3.5.1
+-----
+
+- Fix dashboard message counts for source IP addresses visualizations
+- Improve dashboard loading times
+- Improve dashboard layout
+- Add country rankings to the dashboards
+- Fix crash when parsing report with empty <auth_results></auth_results>
+
+
 3.5.0
 -----
 - Use Cloudflare's public DNS resolvers by default instead of Google's

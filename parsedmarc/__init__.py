@@ -42,7 +42,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.5.0"
+__version__ = "3.5.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -351,7 +351,10 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
-    auth_results = record["auth_results"].copy()
+    if record["auth_results"] is not None:
+        auth_results = record["auth_results"].copy()
+    else:
+        auth_results = new_record["auth_results"].copy()
     if "dkim" in auth_results:
         if type(auth_results["dkim"]) != list:
             auth_results["dkim"] = [auth_results["dkim"]]
@@ -492,7 +495,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
     except KeyError as error:
         raise InvalidAggregateReport("Missing field: "
                                      "{0}".format(error.__str__()))
-
+    except AttributeError:
+        raise InvalidAggregateReport("Report missing required section")
 
 def extract_xml(input_):
     """
