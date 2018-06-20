@@ -4,6 +4,7 @@
 
 import logging
 import os
+import xml.parsers.expat as expat
 import json
 from datetime import datetime
 from collections import OrderedDict
@@ -42,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.5.1"
+__version__ = "3.6.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -492,11 +493,20 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
 
         return new_report
 
+    except expat.ExpatError as error:
+        raise InvalidAggregateReport("Invalid XML: "
+                                     "{0}".format(error.__str__()))
+
     except KeyError as error:
         raise InvalidAggregateReport("Missing field: "
                                      "{0}".format(error.__str__()))
     except AttributeError:
         raise InvalidAggregateReport("Report missing required section")
+
+    except Exception as error:
+        raise InvalidAggregateReport("Unexpected error: "
+                                     "{0}".format(error.__str__()))
+
 
 def extract_xml(input_):
     """
@@ -535,6 +545,9 @@ def extract_xml(input_):
     except UnicodeDecodeError:
         raise InvalidAggregateReport("File objects must be opened in binary "
                                      "(rb) mode")
+    except Exception as error:
+        raise InvalidAggregateReport("Invalid archive file: "
+                                     "{0}".format(error.__str__()))
 
     return xml
 
@@ -815,6 +828,10 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
     except KeyError as error:
         raise InvalidForensicReport("Missing value: {0}".format(
             error.__str__()))
+
+    except Exception as error:
+        raise InvalidForensicReport("Unexpected error: "
+                                    "{0}".format(error.__str__()))
 
 
 def parsed_forensic_reports_to_csv(reports):

@@ -1,3 +1,8 @@
+3.6.0
+-----
+
+- Much more robust error handling
+
 3.5.1
 -----
 
