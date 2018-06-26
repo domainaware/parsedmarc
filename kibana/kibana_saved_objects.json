@@ -60,7 +60,7 @@
       "title": "DMARC Summary",
       "hits": 0,
       "description": "",
-      "panelsJSON": "[{\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"gridData\":{\"h\":15,\"i\":\"4\",\"w\":48,\"x\":0,\"y\":13},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":16,\"x\":0,\"y\":41},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"8\",\"w\":16,\"x\":16,\"y\":41},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"8\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"9\",\"w\":16,\"x\":0,\"y\":0},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"9\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"10\",\"w\":15,\"x\":16,\"y\":0},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"10\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"11\",\"w\":17,\"x\":31,\"y\":0},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"panelIndex\":\"11\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"gridData\":{\"h\":30,\"i\":\"12\",\"w\":42,\"x\":3,\"y\":62},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"panelIndex\":\"12\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"13\",\"w\":16,\"x\":32,\"y\":41},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"panelIndex\":\"13\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"14\",\"w\":30,\"x\":3,\"y\":92},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"panelIndex\":\"14\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"15\",\"w\":48,\"x\":0,\"y\":28},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"panelIndex\":\"15\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{},\"gridData\":{\"h\":21,\"i\":\"16\",\"w\":12,\"x\":33,\"y\":92},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"16\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
+      "panelsJSON": "[{\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"gridData\":{\"h\":15,\"i\":\"4\",\"w\":48,\"x\":0,\"y\":13},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":16,\"x\":0,\"y\":41},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"8\",\"w\":16,\"x\":16,\"y\":41},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"8\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"9\",\"w\":16,\"x\":0,\"y\":0},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"9\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"10\",\"w\":15,\"x\":16,\"y\":0},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"10\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"11\",\"w\":17,\"x\":31,\"y\":0},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"panelIndex\":\"11\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"gridData\":{\"h\":30,\"i\":\"12\",\"w\":42,\"x\":3,\"y\":62},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"panelIndex\":\"12\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"13\",\"w\":16,\"x\":32,\"y\":41},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"panelIndex\":\"13\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"14\",\"w\":30,\"x\":3,\"y\":92},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"panelIndex\":\"14\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"15\",\"w\":48,\"x\":0,\"y\":28},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"panelIndex\":\"15\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{},\"gridData\":{\"h\":21,\"i\":\"16\",\"w\":12,\"x\":33,\"y\":92},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"16\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
       "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
       "version": 1,
       "timeRestore": true,
@@ -387,23 +387,6 @@
     }
   },
   {
-    "_id": "a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49",
-    "_type": "visualization",
-    "_source": {
-      "title": "Message Volume by Header From",
-      "visState": "{\"title\":\"Message Volume by Header From\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "620280a0-2886-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
@@ -427,6 +410,23 @@
       "title": "DMARC Passage Over Time",
       "visState": "{\"title\":\"DMARC Passage Over Time\",\"type\":\"line\",\"params\":{\"addLegend\":true,\"addTimeMarker\":false,\"addTooltip\":true,\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"labels\":{\"show\":true,\"truncate\":100},\"position\":\"bottom\",\"scale\":{\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{},\"type\":\"category\"}],\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"legendPosition\":\"right\",\"seriesParams\":[{\"data\":{\"id\":\"1\",\"label\":\"Messages\"},\"drawLinesBetweenPoints\":true,\"mode\":\"normal\",\"show\":\"true\",\"showCircles\":true,\"type\":\"line\",\"valueAxis\":\"ValueAxis-1\"}],\"times\":[],\"type\":\"line\",\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"labels\":{\"filter\":false,\"rotate\":0,\"show\":true,\"truncate\":100},\"name\":\"LeftAxis-1\",\"position\":\"left\",\"scale\":{\"mode\":\"normal\",\"type\":\"linear\"},\"show\":true,\"style\":{},\"title\":{\"text\":\"Messages\"},\"type\":\"value\"}]},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"date_range\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"passed_dmarc\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Passed DMARC\"}}]}",
       "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49",
+    "_type": "visualization",
+    "_source": {
+      "title": "Message Volume by Header From",
+      "visState": "{\"title\":\"Message Volume by Header From\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
