@@ -594,6 +594,11 @@ sudo service parsedmarc restart
 <h2>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Permalink to this headline">¶</a></h2>
 <p>The Kibana DMARC dashboards are a human-friendly way to understand the results
 from incoming DMARC reports.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The default dashboard is DMARC Summary. To switch between dashboards,
+click on the Dashboard link in the left side menu of Kibana.</p>
+</div>
 <div class="section" id="dmarc-summary">
 <h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this headline">¶</a></h3>
 <p>As the name suggests, this dashboard is the best place to start reviewing your
@@ -603,9 +608,9 @@ alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
 will filter for that value.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Messages failing DMARC should not be considered malicious just because they
-failed to pass DMARC; especially if you have just started collecting data.
-It may be a service that needs SPF and DKIM configured correctly.</p>
+<p class="last">Messages should not be considered malicious just because they failed to pass
+DMARC; especially if you have just started collecting data. It may be a
+legitimate service that needs SPF and DKIM configured correctly.</p>
 </div>
 <p>Start by filtering the results to only show failed DKIM alignment. While DMARC
 passes if a message passes SPF or DKIM alignment, only DKIM alignment remains

@@ -533,6 +533,12 @@ Using the Kibana dashboards
 The Kibana DMARC dashboards are a human-friendly way to understand the results
 from incoming DMARC reports.
 
+.. note::
+
+    The default dashboard is DMARC Summary. To switch between dashboards,
+    click on the Dashboard link in the left side menu of Kibana.
+
+
 DMARC Summary
 -------------
 
@@ -545,9 +551,9 @@ will filter for that value.
 
 .. note::
 
-    Messages failing DMARC should not be considered malicious just because they
-    failed to pass DMARC; especially if you have just started collecting data.
-    It may be a service that needs SPF and DKIM configured correctly.
+    Messages should not be considered malicious just because they failed to pass
+    DMARC; especially if you have just started collecting data. It may be a
+    legitimate service that needs SPF and DKIM configured correctly.
 
 Start by filtering the results to only show failed DKIM alignment. While DMARC
 passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
