@@ -669,8 +669,9 @@ What if a sender won't support DKIM/DMARC?
 
  .. warning ::
 
-     **Do not** alter the ``p`` **or**``sp`` values for  the TLD – **that
-     would leave you vulnerable to spoofing of any subdomain**.
+     Do not alter the ``p`` or ``sp`` values for DMARC record on the Top-Level
+     Domain (TLD) – that would leave you vulnerable to spoofing of any
+     subdomain.
 
 API
 ===
