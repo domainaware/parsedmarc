@@ -16,12 +16,15 @@ Welcome to parsedmarc's documentation!
    :target: _static/screenshots/dmarc-summary-charts.png
 
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
+When used with Elasticsearch and Kibana, it works as a self-hosted open source
+alternative to commercial DMARC report processing services such as Agari,
+Dmarcian, and OnDMARC.
 
 Features
 ========
 
-* Parses draft and 1.0 standard aggregate reports
-* Parses forensic reports
+* Parses draft and 1.0 standard aggregate/rua reports
+* Parses forensic/failure/ruf reports
 * Can parse reports from an inbox over IMAP
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
@@ -110,7 +113,8 @@ SPF and DMARC record validation
 ===============================
 
 If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
 
 Sample aggregate report output
 ==============================
@@ -526,6 +530,11 @@ Then, enable the service
     You must also run the above commands whenever you edit
     ``parsedmarc.service``.
 
+Use this command to check the status of the service:
+
+.. code-block:: bash
+
+    sudo service parsedmarc status
 
 Using the Kibana dashboards
 ===========================
@@ -577,11 +586,22 @@ such as an email marketing service, hover over it, and click on the plus (+)
 magnifying glass icon, to add a filter that only shows results for that sender.
 Now, look at the Message From Header table to the right. That shows you the
 domains that a sender is sending as, which might tell you which brand/business
-is using a particular service, you can contact them and have them set up DKIM.
+is using a particular service. With that information, you can contact them and
+have them set up DKIM.
+
+.. note::
+
+    If you have a lot of B2C customers, you may see a high volume of emails as
+    your domains coming from consumer email services, such as Google/Gmail and
+    Yahoo! This occurs when customers have mailbox rules in place that forward
+    emails from an old account to a new account, which is why DKIM
+    authentication is so important, as mentioned earlier. Similar patterns may
+    be observed with business customers who rebrand.
+
 
 Any other filters work the same way. Further down the dashboard, you can filter
 by source country or source IP address. You can also add your own custom
-temporary filters
+temporary filters by clicking on Add Filter at the upper right of the page.
 
 DMARC Failures
 --------------
@@ -603,6 +623,54 @@ samples of emails that have failed to pass DMARC.
     privacy leaks. Some recipients (notably Chinese webmail services) will only
     supply the headers of sample emails. Very few provide the entire email.
 
+
+DMARC Alignment Guide
+=====================
+
+DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
+against the same domain that the end user sees.
+
+A message passes a DMARC check by passing DKIM or SPF, **as long as the related
+indicators are also in alignment**.
+
++-----------------------+-----------------------+-----------------------+
+|                       | **DKIM**              | **SPF**               |
++-----------------------+-----------------------+-----------------------+
+| **Passing**           | The signature in the  | The mail server’s IP  |
+|                       | DKIM header is        | address is listed in  |
+|                       | validated using a     | the SPF record of the |
+|                       | public key that is    | domain in the SMTP    |
+|                       | published as a DNS    | envelope’s mail from  |
+|                       | record of the domain  | header                |
+|                       | name specified in the |                       |
+|                       | signature             |                       |
++-----------------------+-----------------------+-----------------------+
+| **Alignment**         | The signing domain    | The domain in the     |
+|                       | aligns with the       | SMTP envelope’s mail  |
+|                       | domain in the         | from header aligns    |
+|                       | message’s from header | with the domain in    |
+|                       |                       | the message’s from    |
+|                       |                       | header                |
++-----------------------+-----------------------+-----------------------+
+
+
+What if a sender won't support DKIM/DMARC?
+==========================================
+
+#. Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
+   authentication.
+#. Check if they can send through your email relays instead of theirs.
+#. Do they really need to spoof your domain? Why not use the display
+   name instead?
+#. Worst case, have that vendor send email as a specific subdomain of
+   your domain (e.g. ``noreply@marketing.example.com``), and then create
+   separate SPF and DMARC records on ``marketing.example.com``, and set
+   ``p=none`` in that DMARC record
+
+ .. warning ::
+
+     **Do not** alter the ``p`` **or**``sp`` values for  the TLD – **that
+     would leave you vulnerable to spoofing of any subdomain**.
 
 API
 ===
