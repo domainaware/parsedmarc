@@ -106,6 +106,8 @@
 <li><a class="reference internal" href="#dmarc-forensic-samples">DMARC Forensic Samples</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
+<li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
 <li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
 </ul>
@@ -181,12 +183,15 @@
 <h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 597.0px; height: 381.0px;" /></a>
-<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.</p>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
+When used with Elasticsearch and Kibana, it works as a self-hosted open source
+alternative to commercial DMARC report processing services such as Agari,
+Dmarcian, and OnDMARC.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>Parses draft and 1.0 standard aggregate reports</li>
-<li>Parses forensic reports</li>
+<li>Parses draft and 1.0 standard aggregate/rua reports</li>
+<li>Parses forensic/failure/ruf reports</li>
 <li>Can parse reports from an inbox over IMAP</li>
 <li>Transparently handles gzip or zip compressed reports</li>
 <li>Consistent data structures</li>
@@ -273,7 +278,8 @@ dashboards</li>
 <div class="section" id="spf-and-dmarc-record-validation">
 <h2>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline">¶</a></h2>
 <p>If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project, <a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
+check out the sister project,
+<a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
 </div>
 <div class="section" id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline">¶</a></h2>
@@ -588,6 +594,10 @@ sudo service parsedmarc restart
 <p class="last">You must also run the above commands whenever you edit
 <code class="docutils literal notranslate"><span class="pre">parsedmarc.service</span></code>.</p>
 </div>
+<p>Use this command to check the status of the service:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc status
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="using-the-kibana-dashboards">
@@ -631,10 +641,20 @@ such as an email marketing service, hover over it, and click on the plus (+)
 magnifying glass icon, to add a filter that only shows results for that sender.
 Now, look at the Message From Header table to the right. That shows you the
 domains that a sender is sending as, which might tell you which brand/business
-is using a particular service, you can contact them and have them set up DKIM.</p>
+is using a particular service. With that information, you can contact them and
+have them set up DKIM.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you have a lot of B2C customers, you may see a high volume of emails as
+your domains coming from consumer email services, such as Google/Gmail and
+Yahoo! This occurs when customers have mailbox rules in place that forward
+emails from an old account to a new account, which is why DKIM
+authentication is so important, as mentioned earlier. Similar patterns may
+be observed with business customers who rebrand.</p>
+</div>
 <p>Any other filters work the same way. Further down the dashboard, you can filter
 by source country or source IP address. You can also add your own custom
-temporary filters</p>
+temporary filters by clicking on Add Filter at the upper right of the page.</p>
 </div>
 <div class="section" id="dmarc-failures">
 <h3>DMARC Failures<a class="headerlink" href="#dmarc-failures" title="Permalink to this headline">¶</a></h3>
@@ -654,6 +674,75 @@ privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.</p>
 </div>
 </div>
+</div>
+<div class="section" id="dmarc-alignment-guide">
+<h2>DMARC Alignment Guide<a class="headerlink" href="#dmarc-alignment-guide" title="Permalink to this headline">¶</a></h2>
+<p>DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
+against the same domain that the end user sees.</p>
+<p>A message passes a DMARC check by passing DKIM or SPF, <strong>as long as the related
+indicators are also in alignment</strong>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>&#160;</td>
+<td><strong>DKIM</strong></td>
+<td><strong>SPF</strong></td>
+</tr>
+<tr class="row-even"><td><strong>Passing</strong></td>
+<td>The signature in the
+DKIM header is
+validated using a
+public key that is
+published as a DNS
+record of the domain
+name specified in the
+signature</td>
+<td>The mail server’s IP
+address is listed in
+the SPF record of the
+domain in the SMTP
+envelope’s mail from
+header</td>
+</tr>
+<tr class="row-odd"><td><strong>Alignment</strong></td>
+<td>The signing domain
+aligns with the
+domain in the
+message’s from header</td>
+<td>The domain in the
+SMTP envelope’s mail
+from header aligns
+with the domain in
+the message’s from
+header</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="what-if-a-sender-won-t-support-dkim-dmarc">
+<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-won-t-support-dkim-dmarc" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
+authentication.</li>
+<li>Check if they can send through your email relays instead of theirs.</li>
+<li>Do they really need to spoof your domain? Why not use the display
+name instead?</li>
+<li>Worst case, have that vendor send email as a specific subdomain of
+your domain (e.g. <code class="docutils literal notranslate"><span class="pre">noreply&#64;marketing.example.com</span></code>), and then create
+separate SPF and DMARC records on <code class="docutils literal notranslate"><span class="pre">marketing.example.com</span></code>, and set
+<code class="docutils literal notranslate"><span class="pre">p=none</span></code> in that DMARC record</li>
+</ol>
+<blockquote>
+<div><div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><strong>Do not</strong> alter the <code class="docutils literal notranslate"><span class="pre">p</span></code> <strong>or**``sp`` values for  the TLD – **that
+would leave you vulnerable to spoofing of any subdomain</strong>.</p>
+</div>
+</div></blockquote>
 </div>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
