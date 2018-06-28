@@ -33,7 +33,7 @@ Features
 Resources
 =========
 
-* Demystifying DMARC_
+* `Demystifying DMARC`_
 
 
 
