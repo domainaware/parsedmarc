@@ -536,8 +536,8 @@ from incoming DMARC reports.
 DMARC Summary
 -------------
 
- Start by using the DMARC summary dashboard. As the name suggests, this
- dashboard is the best place to start reviewing your aggregate DMARC data.
+As the name suggests, this dashboard is the best place to start reviewing your
+aggregate DMARC data.
 
 Across the top of the dashboard, three pie charts display the percentage of
 alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
