@@ -84,6 +84,7 @@
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#resources">Resources</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li><a class="reference internal" href="#spf-and-dmarc-record-validation">SPF and DMARC record validation</a></li>
 <li><a class="reference internal" href="#sample-aggregate-report-output">Sample aggregate report output</a><ul>
@@ -97,6 +98,12 @@
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
 <li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-the-kibana-dashboards">Using the Kibana dashboards</a><ul>
+<li><a class="reference internal" href="#dmarc-summary">DMARC Summary</a></li>
+<li><a class="reference internal" href="#dmarc-failures">DMARC Failures</a></li>
+<li><a class="reference internal" href="#dmarc-forensic-samples">DMARC Forensic Samples</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
@@ -185,7 +192,14 @@
 <li>Consistent data structures</li>
 <li>Simple JSON and/or CSV output</li>
 <li>Optionally email the results</li>
-<li>Optionally send the results to Elasticsearch, for use with premade Kibana dashboards</li>
+<li>Optionally send the results to Elasticsearch, for use with premade Kibana
+dashboards</li>
+</ul>
+</div>
+<div class="section" id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a></li>
 </ul>
 </div>
 <div class="section" id="cli-help">
@@ -573,6 +587,67 @@ sudo service parsedmarc restart
 <p class="first admonition-title">Note</p>
 <p class="last">You must also run the above commands whenever you edit
 <code class="docutils literal notranslate"><span class="pre">parsedmarc.service</span></code>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="using-the-kibana-dashboards">
+<h2>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Permalink to this headline">¶</a></h2>
+<p>The Kibana DMARC dashboards are a human-friendly way to understand the results
+from incoming DMARC reports.</p>
+<div class="section" id="dmarc-summary">
+<h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>Start by using the DMARC summary dashboard. As the name suggests, this
+dashboard is the best place to start reviewing your aggregate DMARC data.</div></blockquote>
+<p>Across the top of the dashboard, three pie charts display the percentage of
+alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
+will filter for that value.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Messages failing DMARC should not be considered malicious just because they
+failed to pass DMARC; especially if you have just started collecting data.
+In may be a service that needs SPF and DKIM configured correctly.</p>
+</div>
+<p>Start by filtering the results to only show failed DKIM alignment. While DMARC
+passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
+valid when a message is forwarded without changing the from address, which is
+often caused by a mailbox forwarding rule. This is because DKIM signatures are
+part of the message headers, whereas SPF relies on SMTP session headers.</p>
+<p>Underneath the pie charts. you can see graphs of DMARC passage and message
+disposition over time.</p>
+<p>Under the graphs you will find the most useful data tables on the dashboard. On
+the left, there is a list of organizations that are sending you DMARC reports.
+In the center, there is a list of sending servers grouped by the base domain
+in their reverse DNS. On the right, there is a list of email from domains,
+sorted by message volume.</p>
+<p>By hovering your mouse over a data table value and using the magnifying glass
+icons, you can filter on our filter out different values. Start by looking at
+the Message Sources by Reverse DNS table. Find a sender that you recognize,
+such as an email marketing service, hover over it, and click on the plus (+)
+magnifying glass icon, to add a filter that only shows results for that sender.
+Now, look at the Message From Header table to the right. That shows you the
+domains that a sender is sending as, which might tell you which brand/business
+is using a particular service, you can contact them and have them set up DKIM.</p>
+<p>Any other filters work the same way. Further down the dashboard, you can filter
+by source country or source IP address. You can also add your own custom
+temporary filters</p>
+</div>
+<div class="section" id="dmarc-failures">
+<h3>DMARC Failures<a class="headerlink" href="#dmarc-failures" title="Permalink to this headline">¶</a></h3>
+<p>The DMARC Failures dashboard contains data tables showing the details of
+misaligned SPF and DKIM results, which may be useful for identifying the
+specific application or service that is generating failing email messages.</p>
+</div>
+<div class="section" id="dmarc-forensic-samples">
+<h3>DMARC Forensic Samples<a class="headerlink" href="#dmarc-forensic-samples" title="Permalink to this headline">¶</a></h3>
+<p>The DMARC Forensic Samples dashboard contains information on DMARC forensic
+reports (also known as failure reports or ruf reports). These reports contain
+samples of emails that have failed to pass DMARC.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Most recipients do not send forensic/failure/ruf reports at all to avoid
+privacy leaks. Some recipients (notably Chinese webmail services) will only
+supply the headers of sample emails. Very few provide the entire email.</p>
 </div>
 </div>
 </div>
