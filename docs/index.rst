@@ -28,7 +28,7 @@ Features
 * Simple JSON and/or CSV output
 * Optionally email the results
 * Optionally send the results to Elasticsearch, for use with premade Kibana
-dashboards
+  dashboards
 
 Resources
 =========
@@ -578,7 +578,7 @@ by source country or source IP address. You can also add your own custom
 temporary filters
 
 DMARC Failures
--------------
+--------------
 
 The DMARC Failures dashboard contains data tables showing the details of
 misaligned SPF and DKIM results, which may be useful for identifying the
