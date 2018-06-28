@@ -547,7 +547,7 @@ will filter for that value.
 
     Messages failing DMARC should not be considered malicious just because they
     failed to pass DMARC; especially if you have just started collecting data.
-    In may be a service that needs SPF and DKIM configured correctly.
+    It may be a service that needs SPF and DKIM configured correctly.
 
 Start by filtering the results to only show failed DKIM alignment. While DMARC
 passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
