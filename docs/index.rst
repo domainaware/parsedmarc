@@ -596,7 +596,8 @@ have them set up DKIM.
     Yahoo! This occurs when customers have mailbox rules in place that forward
     emails from an old account to a new account, which is why DKIM
     authentication is so important, as mentioned earlier. Similar patterns may
-    be observed with business customers who rebrand.
+    be observed with businesses who send from reverse DNS addressees of
+    parent, subsidiary, and outdated brands.
 
 
 Any other filters work the same way. Further down the dashboard, you can filter
@@ -663,9 +664,9 @@ What if a sender won't support DKIM/DMARC?
 #. Do they really need to spoof your domain? Why not use the display
    name instead?
 #. Worst case, have that vendor send email as a specific subdomain of
-   your domain (e.g. ``noreply@marketing.example.com``), and then create
-   separate SPF and DMARC records on ``marketing.example.com``, and set
-   ``p=none`` in that DMARC record
+   your domain (e.g. ``noreply@news.example.com``), and then create
+   separate SPF and DMARC records on ``news.example.com``, and set
+   ``p=none`` in that DMARC record.
 
  .. warning ::
 
