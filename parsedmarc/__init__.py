@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.6.0"
+__version__ = "3.6.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -386,11 +386,15 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
         new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"].lower()
+        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+        if envelope_from is not None:
+            envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
 
     elif new_record["identifiers"]["envelope_from"] is None:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"].lower()
+        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+        if envelope_from is not None:
+            envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
 
     envelope_to = None
@@ -583,6 +587,10 @@ def parsed_aggregate_reports_to_csv(reports):
     Returns:
         str: Parsed aggregate report data in flat CSV format, including headers
     """
+
+    def to_str(obj):
+        return str(obj).lower()
+
     fields = ["xml_schema", "org_name", "org_email",
               "org_extra_contact_info", "report_id", "begin_date", "end_date",
               "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
@@ -656,9 +664,9 @@ def parsed_aggregate_reports_to_csv(reports):
                 if "selector" in dkim_result:
                     dkim_selectors.append(dkim_result["selector"])
                 dkim_results.append(dkim_result["result"])
-            row["dkim_domains"] = ",".join(dkim_domains)
-            row["dkim_selectors"] = ",".join(dkim_selectors)
-            row["dkim_results"] = ",".join(dkim_results)
+            row["dkim_domains"] = ",".join(map(to_str, dkim_domains))
+            row["dkim_selectors"] = ",".join(map(to_str, dkim_selectors))
+            row["dkim_results"] = ",".join(map(to_str, dkim_results))
             spf_domains = []
             spf_scopes = []
             spf_results = []
@@ -666,9 +674,9 @@ def parsed_aggregate_reports_to_csv(reports):
                 spf_domains.append(spf_result["domain"])
                 spf_scopes.append(spf_result["scope"])
                 spf_results.append(spf_result["result"])
-            row["spf_domains"] = ",".join(spf_domains)
-            row["spf_scopes"] = ",".join(spf_scopes)
-            row["spf_results"] = ",".join(spf_results)
+            row["spf_domains"] = ",".join(map(to_str, spf_domains))
+            row["spf_scopes"] = ",".join(map(to_str, spf_scopes))
+            row["spf_results"] = ",".join(map(to_str, dkim_results))
 
             writer.writerow(row)
             csv_file_object.flush()
