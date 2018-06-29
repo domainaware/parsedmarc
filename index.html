@@ -650,7 +650,8 @@ your domains coming from consumer email services, such as Google/Gmail and
 Yahoo! This occurs when customers have mailbox rules in place that forward
 emails from an old account to a new account, which is why DKIM
 authentication is so important, as mentioned earlier. Similar patterns may
-be observed with business customers who rebrand.</p>
+be observed with businesses who send from reverse DNS addressees of
+parent, subsidiary, and outdated brands.</p>
 </div>
 <p>Any other filters work the same way. Further down the dashboard, you can filter
 by source country or source IP address. You can also add your own custom
@@ -732,9 +733,9 @@ authentication.</li>
 <li>Do they really need to spoof your domain? Why not use the display
 name instead?</li>
 <li>Worst case, have that vendor send email as a specific subdomain of
-your domain (e.g. <code class="docutils literal notranslate"><span class="pre">noreply&#64;marketing.example.com</span></code>), and then create
-separate SPF and DMARC records on <code class="docutils literal notranslate"><span class="pre">marketing.example.com</span></code>, and set
-<code class="docutils literal notranslate"><span class="pre">p=none</span></code> in that DMARC record</li>
+your domain (e.g. <code class="docutils literal notranslate"><span class="pre">noreply&#64;news.example.com</span></code>), and then create
+separate SPF and DMARC records on <code class="docutils literal notranslate"><span class="pre">news.example.com</span></code>, and set
+<code class="docutils literal notranslate"><span class="pre">p=none</span></code> in that DMARC record.</li>
 </ol>
 <blockquote>
 <div><div class="admonition warning">
