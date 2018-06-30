@@ -16,18 +16,29 @@ Welcome to parsedmarc's documentation!
    :target: _static/screenshots/dmarc-summary-charts.png
 
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
+When used with Elasticsearch and Kibana, it works as a self-hosted open source
+alternative to commercial DMARC report processing services such as Agari,
+Dmarcian, and OnDMARC.
 
 Features
 ========
 
-* Parses draft and 1.0 standard aggregate reports
-* Parses forensic reports
+* Parses draft and 1.0 standard aggregate/rua reports
+* Parses forensic/failure/ruf reports
 * Can parse reports from an inbox over IMAP
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch, for use with premade Kibana dashboards
+* Optionally send the results to Elasticsearch, for use with premade Kibana
+  dashboards
+
+Resources
+=========
+
+* `Demystifying DMARC`_
+
+
 
 CLI help
 ========
@@ -102,7 +113,8 @@ SPF and DMARC record validation
 ===============================
 
 If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
 
 Sample aggregate report output
 ==============================
@@ -527,6 +539,150 @@ Then, enable the service
     You must also run the above commands whenever you edit
     ``parsedmarc.service``.
 
+Use this command to check the status of the service:
+
+.. code-block:: bash
+
+    sudo service parsedmarc status
+
+Using the Kibana dashboards
+===========================
+
+The Kibana DMARC dashboards are a human-friendly way to understand the results
+from incoming DMARC reports.
+
+.. note::
+
+    The default dashboard is DMARC Summary. To switch between dashboards,
+    click on the Dashboard link in the left side menu of Kibana.
+
+
+DMARC Summary
+-------------
+
+As the name suggests, this dashboard is the best place to start reviewing your
+aggregate DMARC data.
+
+Across the top of the dashboard, three pie charts display the percentage of
+alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
+will filter for that value.
+
+.. note::
+
+    Messages should not be considered malicious just because they failed to pass
+    DMARC; especially if you have just started collecting data. It may be a
+    legitimate service that needs SPF and DKIM configured correctly.
+
+Start by filtering the results to only show failed DKIM alignment. While DMARC
+passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
+valid when a message is forwarded without changing the from address, which is
+often caused by a mailbox forwarding rule. This is because DKIM signatures are
+part of the message headers, whereas SPF relies on SMTP session headers.
+
+Underneath the pie charts. you can see graphs of DMARC passage and message
+disposition over time.
+
+Under the graphs you will find the most useful data tables on the dashboard. On
+the left, there is a list of organizations that are sending you DMARC reports.
+In the center, there is a list of sending servers grouped by the base domain
+in their reverse DNS. On the right, there is a list of email from domains,
+sorted by message volume.
+
+By hovering your mouse over a data table value and using the magnifying glass
+icons, you can filter on our filter out different values. Start by looking at
+the Message Sources by Reverse DNS table. Find a sender that you recognize,
+such as an email marketing service, hover over it, and click on the plus (+)
+magnifying glass icon, to add a filter that only shows results for that sender.
+Now, look at the Message From Header table to the right. That shows you the
+domains that a sender is sending as, which might tell you which brand/business
+is using a particular service. With that information, you can contact them and
+have them set up DKIM.
+
+.. note::
+
+    If you have a lot of B2C customers, you may see a high volume of emails as
+    your domains coming from consumer email services, such as Google/Gmail and
+    Yahoo! This occurs when customers have mailbox rules in place that forward
+    emails from an old account to a new account, which is why DKIM
+    authentication is so important, as mentioned earlier. Similar patterns may
+    be observed with businesses who send from reverse DNS addressees of
+    parent, subsidiary, and outdated brands.
+
+
+Any other filters work the same way. Further down the dashboard, you can filter
+by source country or source IP address. You can also add your own custom
+temporary filters by clicking on Add Filter at the upper right of the page.
+
+DMARC Failures
+--------------
+
+The DMARC Failures dashboard contains data tables showing the details of
+misaligned SPF and DKIM results, which may be useful for identifying the
+specific application or service that is generating failing email messages.
+
+DMARC Forensic Samples
+----------------------
+
+The DMARC Forensic Samples dashboard contains information on DMARC forensic
+reports (also known as failure reports or ruf reports). These reports contain
+samples of emails that have failed to pass DMARC.
+
+.. note::
+
+    Most recipients do not send forensic/failure/ruf reports at all to avoid
+    privacy leaks. Some recipients (notably Chinese webmail services) will only
+    supply the headers of sample emails. Very few provide the entire email.
+
+
+DMARC Alignment Guide
+=====================
+
+DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
+against the same domain that the end user sees.
+
+A message passes a DMARC check by passing DKIM or SPF, **as long as the related
+indicators are also in alignment**.
+
++-----------------------+-----------------------+-----------------------+
+|                       | **DKIM**              | **SPF**               |
++-----------------------+-----------------------+-----------------------+
+| **Passing**           | The signature in the  | The mail server’s IP  |
+|                       | DKIM header is        | address is listed in  |
+|                       | validated using a     | the SPF record of the |
+|                       | public key that is    | domain in the SMTP    |
+|                       | published as a DNS    | envelope’s mail from  |
+|                       | record of the domain  | header                |
+|                       | name specified in the |                       |
+|                       | signature             |                       |
++-----------------------+-----------------------+-----------------------+
+| **Alignment**         | The signing domain    | The domain in the     |
+|                       | aligns with the       | SMTP envelope’s mail  |
+|                       | domain in the         | from header aligns    |
+|                       | message’s from header | with the domain in    |
+|                       |                       | the message’s from    |
+|                       |                       | header                |
++-----------------------+-----------------------+-----------------------+
+
+
+What if a sender won't support DKIM/DMARC?
+==========================================
+
+#. Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
+   authentication.
+#. Check if they can send through your email relays instead of theirs.
+#. Do they really need to spoof your domain? Why not use the display
+   name instead?
+#. Worst case, have that vendor send email as a specific subdomain of
+   your domain (e.g. ``noreply@news.example.com``), and then create
+   separate SPF and DMARC records on ``news.example.com``, and set
+   ``p=none`` in that DMARC record.
+
+ .. warning ::
+
+     Do not alter the ``p`` or ``sp`` values of the DMARC record on the
+     Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
+     your TLD and/or any subdomain.
+
 API
 ===
 
@@ -553,6 +709,8 @@ Indices and tables
 
 .. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
    :target: https://travis-ci.org/domainaware/parsedmarc
+
+.. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 
 .. _X-Pack: https://www.elastic.co/products/x-pack
 

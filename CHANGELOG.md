@@ -1,3 +1,8 @@
+3.6.1
+-----
+
+- Parse aggregate reports with missing SPF domain
+
 3.6.0
 -----
 

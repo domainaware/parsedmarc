@@ -11,18 +11,27 @@ parsedmarc
    :target: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
 
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
+When used with Elasticsearch and Kibana, it works as a self-hosted open source
+alternative to commercial DMARC report processing services such as Agari,
+Dmarcian, and OnDMARC.
 
 Features
 ========
 
-* Parses draft and 1.0 standard aggregate reports
-* Parses forensic reports
+* Parses draft and 1.0 standard aggregate/rua reports
+* Parses forensic/failure/ruf reports
 * Can parse reports from an inbox over IMAP
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch, for use with premade Kibana dashboards
+* Optionally send the results to Elasticsearch, for use with premade Kibana
+  dashboards
+
+Resources
+=========
+
+* `Demystifying DMARC`_
 
 CLI help
 ========
@@ -253,3 +262,5 @@ https://github.com/domainaware/parsedmarc/issues
 
 .. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
    :target: https://travis-ci.org/domainaware/parsedmarc
+
+.. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+ <report_metadata>
+  <org_name>veeam.com</org_name>
+  <email>noreply.it.dmarc@veeam.com</email>
+  <report_id>sonexushealth.com:1530233361</report_id>
+  <date_range>
+   <begin>1530133200</begin>
+   <end>1530219600</end>
+  </date_range>
+ </report_metadata>
+ <policy_published>
+  <domain>example.com</domain>
+  <adkim>r</adkim>
+  <aspf>r</aspf>
+  <p>none</p>
+  <sp>none</sp>
+  <pct>100</pct>
+ </policy_published>
+ <record>
+  <row>
+   <source_ip>199.230.200.36</source_ip>
+   <count>1</count>
+   <policy_evaluated>
+    <disposition>none</disposition>
+    <dkim>fail</dkim>
+    <spf>fail</spf>
+   </policy_evaluated>
+  </row>
+  <identifiers>
+   <header_from>example.com</header_from>
+  </identifiers>
+  <auth_results>
+   <spf>
+    <domain></domain>
+    <result>none</result>
+   </spf>
+  </auth_results>
+ </record>
+</feedback>
