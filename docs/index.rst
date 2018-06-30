@@ -398,17 +398,17 @@ Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
 .. warning::
 
     ``--save-aggregate`` and ``--save-forensic`` are separate options because
-    you may not want to save forensic reports to your Elasticsearch instance,
-    particularly if you are in a highly-regulated industry that handles
-    sensitive data, such as healthcare or finance. If your legitimate outgoing
-    email fails DMARC, it is possible that email may appear later in a
-    forensic report.
+    you may not want to save forensic reports (also known as failure reports)
+    to your Elasticsearch instance, particularly if you are in a
+    highly-regulated industry that handles sensitive data, such as healthcare
+    or finance. If your legitimate outgoing email fails DMARC, it is possible 
+    that email may appear later in a forensic report.
 
     Forensic reports contain the original headers of an email that failed a
     DMARC check, and sometimes may also include the full message body,
-    depending on the policy of the reporting organisation.
+    depending on the policy of the reporting organization.
 
-    Most reporting organisations do not send forensic reports of any kind for
+    Most reporting organizations do not send forensic reports of any kind for
     privacy reasons. While aggregate DMARC reports are sent at least daily,
     it is normal to receive very few forensic reports.
 
@@ -483,14 +483,6 @@ Create the service configuration file
 
     sudo nano /etc/systemd/system/parsedmarc.service
 
-Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
-setting to suit your needs.
-
-.. note::
-
-    Always pass the ``--watch`` option to ``parsedmarc`` when running it as a
-    service. Use ``--silent`` to only log errors.
-
 .. code-block:: ini
 
     [Unit]
@@ -504,6 +496,23 @@ setting to suit your needs.
 
     [Install]
     WantedBy=multi-user.target
+
+Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
+setting to suit your needs.
+
+.. note::
+
+    Always pass the ``--watch`` option to ``parsedmarc`` when running it as a
+    service. Use ``--silent`` to only log errors.
+
+.. warning::
+
+    As mentioned earlier, forensic/failure reports contain copies of emails
+    that failed DMARC, including emails that may be legitimate and contain
+    sensitive customer or business information. For privacy and/or regulatory
+    reasons, You may not want to use the ``--save-forensic`` flag included in
+    the example service configuration ``ExecStart`` setting, which would save
+    these samples to Elasticsearch.
 
 Then, enable the service
 
