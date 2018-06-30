@@ -1,32 +1,5 @@
 [
   {
-    "_id": "a41cfc70-2883-11e8-b8b2-15742da3055c",
-    "_type": "dashboard",
-    "_source": {
-      "title": "DMARC Failures",
-      "hits": 0,
-      "description": "",
-      "panelsJSON": "[{\"gridData\":{\"h\":21,\"i\":\"2\",\"w\":28,\"x\":20,\"y\":0},\"id\":\"1fad3f60-2881-11e8-b8b2-15742da3055c\",\"panelIndex\":\"2\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"3\",\"w\":48,\"x\":0,\"y\":21},\"id\":\"40e7a5b0-2883-11e8-b8b2-15742da3055c\",\"panelIndex\":\"3\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":2,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"4\",\"w\":20,\"x\":0,\"y\":0},\"id\":\"2ae719b0-2885-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-6.328125000000001],\"mapZoom\":2},\"gridData\":{\"h\":30,\"i\":\"5\",\"w\":40,\"x\":4,\"y\":42},\"id\":\"8b956350-2878-11e8-b8b2-15742da3055c\",\"panelIndex\":\"5\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"6\",\"w\":28,\"x\":4,\"y\":72},\"id\":\"02ea4170-667a-11e8-ac01-67e661d30f69\",\"panelIndex\":\"6\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":12,\"x\":32,\"y\":72},\"id\":\"8af79630-7336-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
-      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
-      "version": 1,
-      "timeRestore": true,
-      "timeTo": "now",
-      "timeFrom": "now-7d",
-      "refreshInterval": {
-        "display": "Off",
-        "pause": false,
-        "section": 0,
-        "value": 0
-      },
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "bbe4f890-295e-11e8-b8b2-15742da3055c",
     "_type": "dashboard",
     "_source": {
@@ -60,7 +33,7 @@
       "title": "DMARC Summary",
       "hits": 0,
       "description": "",
-      "panelsJSON": "[{\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"gridData\":{\"h\":15,\"i\":\"4\",\"w\":48,\"x\":0,\"y\":13},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":16,\"x\":0,\"y\":41},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"8\",\"w\":16,\"x\":16,\"y\":41},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"8\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"9\",\"w\":16,\"x\":0,\"y\":0},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"9\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"10\",\"w\":15,\"x\":16,\"y\":0},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"10\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"11\",\"w\":17,\"x\":31,\"y\":0},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"panelIndex\":\"11\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"gridData\":{\"h\":30,\"i\":\"12\",\"w\":42,\"x\":3,\"y\":62},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"panelIndex\":\"12\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"13\",\"w\":16,\"x\":32,\"y\":41},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"panelIndex\":\"13\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"14\",\"w\":30,\"x\":3,\"y\":92},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"panelIndex\":\"14\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"15\",\"w\":48,\"x\":0,\"y\":28},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"panelIndex\":\"15\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{},\"gridData\":{\"h\":21,\"i\":\"16\",\"w\":12,\"x\":33,\"y\":92},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"16\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
+      "panelsJSON": "[{\"panelIndex\":\"4\",\"gridData\":{\"x\":0,\"y\":13,\"w\":48,\"h\":15,\"i\":\"4\"},\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"7\",\"gridData\":{\"x\":0,\"y\":41,\"w\":16,\"h\":21,\"i\":\"7\"},\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"8\",\"gridData\":{\"x\":16,\"y\":41,\"w\":16,\"h\":21,\"i\":\"8\"},\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"9\",\"gridData\":{\"x\":0,\"y\":0,\"w\":16,\"h\":13,\"i\":\"9\"},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"10\",\"gridData\":{\"x\":16,\"y\":0,\"w\":15,\"h\":13,\"i\":\"10\"},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"11\",\"gridData\":{\"x\":31,\"y\":0,\"w\":17,\"h\":13,\"i\":\"11\"},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"12\",\"gridData\":{\"x\":0,\"y\":62,\"w\":36,\"h\":26,\"i\":\"12\"},\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"13\",\"gridData\":{\"x\":32,\"y\":41,\"w\":16,\"h\":21,\"i\":\"13\"},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"14\",\"gridData\":{\"x\":0,\"y\":88,\"w\":36,\"h\":21,\"i\":\"14\"},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"15\",\"gridData\":{\"x\":0,\"y\":28,\"w\":48,\"h\":13,\"i\":\"15\"},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"16\",\"gridData\":{\"x\":36,\"y\":62,\"w\":12,\"h\":26,\"i\":\"16\"},\"embeddableConfig\":{},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"17\",\"gridData\":{\"x\":0,\"y\":109,\"w\":36,\"h\":21,\"i\":\"17\"},\"version\":\"6.3.0\",\"type\":\"visualization\",\"id\":\"1fad3f60-2881-11e8-b8b2-15742da3055c\",\"embeddableConfig\":{}},{\"panelIndex\":\"18\",\"gridData\":{\"x\":0,\"y\":130,\"w\":36,\"h\":22,\"i\":\"18\"},\"version\":\"6.3.0\",\"type\":\"visualization\",\"id\":\"40e7a5b0-2883-11e8-b8b2-15742da3055c\",\"embeddableConfig\":{}}]",
       "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
       "version": 1,
       "timeRestore": true,
@@ -166,23 +139,6 @@
     }
   },
   {
-    "_id": "2ae719b0-2885-11e8-b8b2-15742da3055c",
-    "_type": "visualization",
-    "_source": {
-      "title": "DMARC Failure Sources by Reverse DNS",
-      "visState": "{\"title\":\"DMARC Failure Sources by Reverse DNS\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":100000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[{\"meta\":{\"index\":\"34fa53e0-28c1-11e8-b8b2-15742da3055c\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"passed_dmarc\",\"value\":false,\"params\":{\"query\":false,\"type\":\"phrase\"}},\"query\":{\"match\":{\"passed_dmarc\":{\"query\":false,\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "8b956350-2878-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
@@ -210,23 +166,6 @@
       "version": 1,
       "kibanaSavedObjectMeta": {
         "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "8af79630-7336-11e8-bfe4-d3427a6746f1",
-    "_type": "visualization",
-    "_source": {
-      "title": "DMARC Failure Source Countries",
-      "visState": "{\"title\":\"DMARC Failure Source Countries\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_country.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"unknown\",\"size\":500,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Country\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[{\"meta\":{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"passed_dmarc\",\"value\":\"false\",\"params\":{\"query\":false,\"type\":\"phrase\"}},\"query\":{\"match\":{\"passed_dmarc\":{\"query\":false,\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
       }
     },
     "_meta": {
@@ -268,23 +207,6 @@
     }
   },
   {
-    "_id": "02ea4170-667a-11e8-ac01-67e661d30f69",
-    "_type": "visualization",
-    "_source": {
-      "title": "Top 1000 DMARC Failure Source IP Addresses",
-      "visState": "{\"title\":\"Top 1000 DMARC Failure Source IP Addresses\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_ip_address.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"IP Address\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_reverse_dns.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Base Domain\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_country.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Country\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[{\"meta\":{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"passed_dmarc\",\"value\":\"false\",\"params\":{\"query\":false,\"type\":\"phrase\"}},\"query\":{\"match\":{\"passed_dmarc\":{\"query\":false,\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "def63400-295b-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
@@ -312,40 +234,6 @@
       "version": 1,
       "kibanaSavedObjectMeta": {
         "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "40e7a5b0-2883-11e8-b8b2-15742da3055c",
-    "_type": "visualization",
-    "_source": {
-      "title": "DKIM Alignment Failures",
-      "visState": "{\"title\":\"DKIM Alignment Failures\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"dkim_results.domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"DKIM Domain\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"dkim_results.result.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"DKIM Result\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[{\"meta\":{\"index\":\"a9ba2300-286b-11e8-b8b2-15742da3055c\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"dkim_aligned\",\"value\":false,\"params\":{\"query\":false,\"type\":\"phrase\"}},\"query\":{\"match\":{\"dkim_aligned\":{\"query\":false,\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
-    "_id": "1fad3f60-2881-11e8-b8b2-15742da3055c",
-    "_type": "visualization",
-    "_source": {
-      "title": "SPF Allignment Failures",
-      "visState": "{\"title\":\"SPF Allignment Failures\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"envelope_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"_term\",\"customLabel\":\"Envelope From\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"}}}}",
-      "description": "",
-      "version": 1,
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[{\"$state\":{\"store\":\"appState\"},\"meta\":{\"alias\":null,\"disabled\":false,\"index\":\"a9ba2300-286b-11e8-b8b2-15742da3055c\",\"key\":\"spf_aligned\",\"negate\":false,\"params\":{\"query\":false,\"type\":\"phrase\"},\"type\":\"phrase\",\"value\":false},\"query\":{\"match\":{\"spf_aligned\":{\"query\":false,\"type\":\"phrase\"}}}}],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
       }
     },
     "_meta": {
@@ -427,6 +315,40 @@
       "title": "Message Volume by Header From",
       "visState": "{\"title\":\"Message Volume by Header From\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}}]}",
       "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "1fad3f60-2881-11e8-b8b2-15742da3055c",
+    "_type": "visualization",
+    "_source": {
+      "title": "SPF Allignment Details",
+      "visState": "{\"title\":\"SPF Allignment Details\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"envelope_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"_term\",\"customLabel\":\"Envelope From\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"}}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"language\":\"lucene\",\"query\":\"\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "40e7a5b0-2883-11e8-b8b2-15742da3055c",
+    "_type": "visualization",
+    "_source": {
+      "title": "DKIM Alignment Details",
+      "visState": "{\"title\":\"DKIM Alignment Details\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"dkim_results.domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"DKIM Domain\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"dkim_results.result.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"DKIM Result\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}}",
       "description": "",
       "version": 1,
       "kibanaSavedObjectMeta": {
