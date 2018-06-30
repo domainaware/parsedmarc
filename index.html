@@ -102,7 +102,6 @@
 </li>
 <li><a class="reference internal" href="#using-the-kibana-dashboards">Using the Kibana dashboards</a><ul>
 <li><a class="reference internal" href="#dmarc-summary">DMARC Summary</a></li>
-<li><a class="reference internal" href="#dmarc-failures">DMARC Failures</a></li>
 <li><a class="reference internal" href="#dmarc-forensic-samples">DMARC Forensic Samples</a></li>
 </ul>
 </li>
@@ -519,15 +518,15 @@ it.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p><code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> are separate options because
-you may not want to save forensic reports to your Elasticsearch instance,
-particularly if you are in a highly-regulated industry that handles
-sensitive data, such as healthcare or finance. If your legitimate outgoing
-email fails DMARC, it is possible that email may appear later in a
-forensic report.</p>
+you may not want to save forensic reports (also known as failure reports)
+to your Elasticsearch instance, particularly if you are in a
+highly-regulated industry that handles sensitive data, such as healthcare
+or finance. If your legitimate outgoing email fails DMARC, it is possible
+that email may appear later in a forensic report.</p>
 <p>Forensic reports contain the original headers of an email that failed a
 DMARC check, and sometimes may also include the full message body,
-depending on the policy of the reporting organisation.</p>
-<p class="last">Most reporting organisations do not send forensic reports of any kind for
+depending on the policy of the reporting organization.</p>
+<p class="last">Most reporting organizations do not send forensic reports of any kind for
 privacy reasons. While aggregate DMARC reports are sent at least daily,
 it is normal to receive very few forensic reports.</p>
 </div>
@@ -563,13 +562,6 @@ arrive.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/systemd/system/parsedmarc.service
 </pre></div>
 </div>
-<p>Edit the command line options of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> in the service’s <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>
-setting to suit your needs.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Always pass the <code class="docutils literal notranslate"><span class="pre">--watch</span></code> option to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> when running it as a
-service. Use <code class="docutils literal notranslate"><span class="pre">--silent</span></code> to only log errors.</p>
-</div>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
 <span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
 <span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
@@ -582,6 +574,22 @@ service. Use <code class="docutils literal notranslate"><span class="pre">--sile
 <span class="k">[Install]</span>
 <span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
 </pre></div>
+</div>
+<p>Edit the command line options of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> in the service’s <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code>
+setting to suit your needs.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Always pass the <code class="docutils literal notranslate"><span class="pre">--watch</span></code> option to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> when running it as a
+service. Use <code class="docutils literal notranslate"><span class="pre">--silent</span></code> to only log errors.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">As mentioned earlier, forensic/failure reports contain copies of emails
+that failed DMARC, including emails that may be legitimate and contain
+sensitive customer or business information. For privacy and/or regulatory
+reasons, You may not want to use the <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> flag included in
+the example service configuration <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> setting, which would save
+these samples to Elasticsearch.</p>
 </div>
 <p>Then, enable the service</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
@@ -645,23 +653,21 @@ is using a particular service. With that information, you can contact them and
 have them set up DKIM.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">If you have a lot of B2C customers, you may see a high volume of emails as
+<blockquote>
+<div>If you have a lot of B2C customers, you may see a high volume of emails as
 your domains coming from consumer email services, such as Google/Gmail and
 Yahoo! This occurs when customers have mailbox rules in place that forward
 emails from an old account to a new account, which is why DKIM
 authentication is so important, as mentioned earlier. Similar patterns may
 be observed with businesses who send from reverse DNS addressees of
-parent, subsidiary, and outdated brands.</p>
+parent, subsidiary, and outdated brands.</div></blockquote>
+<p class="last">Further down the dashboard, you can filter by source country or source IP
+address.</p>
 </div>
-<p>Any other filters work the same way. Further down the dashboard, you can filter
-by source country or source IP address. You can also add your own custom
-temporary filters by clicking on Add Filter at the upper right of the page.</p>
-</div>
-<div class="section" id="dmarc-failures">
-<h3>DMARC Failures<a class="headerlink" href="#dmarc-failures" title="Permalink to this headline">¶</a></h3>
-<p>The DMARC Failures dashboard contains data tables showing the details of
-misaligned SPF and DKIM results, which may be useful for identifying the
-specific application or service that is generating failing email messages.</p>
+<p>Tables showing SPF and DKIM alignment details are located under the IP address
+table.</p>
+<p>Any other filters work the same way. You can also add your own custom temporary
+filters by clicking on Add Filter at the upper right of the page.</p>
 </div>
 <div class="section" id="dmarc-forensic-samples">
 <h3>DMARC Forensic Samples<a class="headerlink" href="#dmarc-forensic-samples" title="Permalink to this headline">¶</a></h3>
