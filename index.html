@@ -407,6 +407,10 @@ above commands.</p>
 <div class="section" id="elasticsearch-and-kibana">
 <h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Elasticsearch/Kibana 6+ is required</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y openjdk-8-jre apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
 <span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
@@ -587,7 +591,7 @@ service. Use <code class="docutils literal notranslate"><span class="pre">--sile
 <p class="last">As mentioned earlier, forensic/failure reports contain copies of emails
 that failed DMARC, including emails that may be legitimate and contain
 sensitive customer or business information. For privacy and/or regulatory
-reasons, You may not want to use the <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> flag included in
+reasons, you may not want to use the <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> flag included in
 the example service configuration <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> setting, which would save
 these samples to Elasticsearch.</p>
 </div>
@@ -666,6 +670,12 @@ address.</p>
 </div>
 <p>Tables showing SPF and DKIM alignment details are located under the IP address
 table.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Previously, the alignment tables were included in a separate dashboard
+called DMARC Alignment Failures. That dashboard has been consolidated into
+the DMARC Summary dashboard. To view failures only, use the pie chart.</p>
+</div>
 <p>Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.</p>
 </div>

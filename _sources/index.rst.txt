@@ -266,6 +266,10 @@ Elasticsearch and Kibana
 
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
+.. note::
+
+    Elasticsearch/Kibana 6+ is required
+
 .. code-block:: bash
 
     sudo apt-get install -y openjdk-8-jre apt-transport-https
@@ -522,7 +526,7 @@ setting to suit your needs.
     As mentioned earlier, forensic/failure reports contain copies of emails
     that failed DMARC, including emails that may be legitimate and contain
     sensitive customer or business information. For privacy and/or regulatory
-    reasons, You may not want to use the ``--save-forensic`` flag included in
+    reasons, you may not want to use the ``--save-forensic`` flag included in
     the example service configuration ``ExecStart`` setting, which would save
     these samples to Elasticsearch.
 
@@ -614,6 +618,12 @@ have them set up DKIM.
 
 Tables showing SPF and DKIM alignment details are located under the IP address
 table.
+
+.. note::
+
+    Previously, the alignment tables were included in a separate dashboard
+    called DMARC Alignment Failures. That dashboard has been consolidated into
+    the DMARC Summary dashboard. To view failures only, use the pie chart.
 
 Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.
