@@ -413,7 +413,7 @@ Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
     you may not want to save forensic reports (also known as failure reports)
     to your Elasticsearch instance, particularly if you are in a
     highly-regulated industry that handles sensitive data, such as healthcare
-    or finance. If your legitimate outgoing email fails DMARC, it is possible 
+    or finance. If your legitimate outgoing email fails DMARC, it is possible
     that email may appear later in a forensic report.
 
     Forensic reports contain the original headers of an email that failed a
@@ -609,16 +609,14 @@ have them set up DKIM.
     parent, subsidiary, and outdated brands.
 
 
-Any other filters work the same way. Further down the dashboard, you can filter
-by source country or source IP address. You can also add your own custom
-temporary filters by clicking on Add Filter at the upper right of the page.
+ Further down the dashboard, you can filter by source country or source IP
+ address.
 
-DMARC Failures
---------------
+Tables showing SPF and DKIM alignment details are located under the IP address
+table.
 
-The DMARC Failures dashboard contains data tables showing the details of
-misaligned SPF and DKIM results, which may be useful for identifying the
-specific application or service that is generating failing email messages.
+Any other filters work the same way. You can also add your own custom temporary
+filters by clicking on Add Filter at the upper right of the page.
 
 DMARC Forensic Samples
 ----------------------
