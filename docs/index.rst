@@ -603,14 +603,14 @@ is using a particular service. With that information, you can contact them and
 have them set up DKIM.
 
 .. note::
-
-   If you have a lot of B2C customers, you may see a high volume of emails as
-   your domains coming from consumer email services, such as Google/Gmail and
-   Yahoo! This occurs when customers have mailbox rules in place that forward
-   emails from an old account to a new account, which is why DKIM
-   authentication is so important, as mentioned earlier. Similar patterns may
-   be observed with businesses who send from reverse DNS addressees of
-   parent, subsidiary, and outdated brands.
+  
+    If you have a lot of B2C customers, you may see a high volume of emails as
+    your domains coming from consumer email services, such as Google/Gmail and
+    Yahoo! This occurs when customers have mailbox rules in place that forward
+    emails from an old account to a new account, which is why DKIM
+    authentication is so important, as mentioned earlier. Similar patterns may
+    be observed with businesses who send from reverse DNS addressees of
+    parent, subsidiary, and outdated brands.
 
 
 Further down the dashboard, you can filter by source country or source IP
