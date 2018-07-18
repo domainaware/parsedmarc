@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.0
+                3.7.1
               </div>
             
           
@@ -185,8 +185,8 @@
 
 
 <span class="k">class</span> <span class="nc">_AggregateReportDoc</span><span class="p">(</span><span class="n">DocType</span><span class="p">):</span>
-    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
+    <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
 
     <span class="n">xml_schema</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">org_name</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -281,8 +281,8 @@
 
 
 <span class="k">class</span> <span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">DocType</span><span class="p">):</span>
-    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
+    <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
 
     <span class="n">feedback_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">user_agent</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -545,7 +545,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'3.7.0',
+            VERSION:'3.7.1',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
