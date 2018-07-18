@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.6.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.7.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.6.0
+                3.7.0
               </div>
             
           
@@ -188,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.6.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.7.0&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -245,22 +245,23 @@
     <span class="n">psl_path</span> <span class="o">=</span> <span class="s2">&quot;.public_suffix_list.dat&quot;</span>
 
     <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
-        <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>
+        <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fresh_psl_file</span><span class="p">:</span>
-            <span class="n">fresh_psl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fresh_psl</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
-
-        <span class="k">return</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">fresh_psl</span><span class="p">)</span>
+            <span class="n">fresh_psl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fresh_psl</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">psl_path</span><span class="p">):</span>
-        <span class="n">psl</span> <span class="o">=</span> <span class="n">download_psl</span><span class="p">()</span>
+        <span class="n">download_psl</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">psl_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">psl_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">psl_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">):</span>
-            <span class="n">psl</span> <span class="o">=</span> <span class="n">download_psl</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">psl_file</span><span class="p">:</span>
-                <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">psl_file</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">download_psl</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to download an updated PSL - </span><span class="se">\</span>
+<span class="s2">                               </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">psl_file</span><span class="p">:</span>
+        <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">psl_file</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
 
@@ -531,11 +532,15 @@
         <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;envelope_from&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]:</span>
-        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">envelope_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">envelope_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">envelope_from</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope_from</span>
 
     <span class="k">elif</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">envelope_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">envelope_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">envelope_from</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope_from</span>
 
     <span class="n">envelope_to</span> <span class="o">=</span> <span class="kc">None</span>
@@ -728,6 +733,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Parsed aggregate report data in flat CSV format, including headers</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">to_str</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
     <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;xml_schema&quot;</span><span class="p">,</span> <span class="s2">&quot;org_name&quot;</span><span class="p">,</span> <span class="s2">&quot;org_email&quot;</span><span class="p">,</span>
               <span class="s2">&quot;org_extra_contact_info&quot;</span><span class="p">,</span> <span class="s2">&quot;report_id&quot;</span><span class="p">,</span> <span class="s2">&quot;begin_date&quot;</span><span class="p">,</span> <span class="s2">&quot;end_date&quot;</span><span class="p">,</span>
               <span class="s2">&quot;errors&quot;</span><span class="p">,</span> <span class="s2">&quot;domain&quot;</span><span class="p">,</span> <span class="s2">&quot;adkim&quot;</span><span class="p">,</span> <span class="s2">&quot;aspf&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;sp&quot;</span><span class="p">,</span> <span class="s2">&quot;pct&quot;</span><span class="p">,</span> <span class="s2">&quot;fo&quot;</span><span class="p">,</span>
@@ -801,9 +810,9 @@
                 <span class="k">if</span> <span class="s2">&quot;selector&quot;</span> <span class="ow">in</span> <span class="n">dkim_result</span><span class="p">:</span>
                     <span class="n">dkim_selectors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dkim_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">])</span>
                 <span class="n">dkim_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dkim_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_domains&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dkim_domains</span><span class="p">)</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_selectors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dkim_selectors</span><span class="p">)</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dkim_results</span><span class="p">)</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_domains&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_domains</span><span class="p">))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_selectors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_selectors</span><span class="p">))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_results</span><span class="p">))</span>
             <span class="n">spf_domains</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">spf_scopes</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">spf_results</span> <span class="o">=</span> <span class="p">[]</span>
@@ -811,9 +820,9 @@
                 <span class="n">spf_domains</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">])</span>
                 <span class="n">spf_scopes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;scope&quot;</span><span class="p">])</span>
                 <span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_domains&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spf_domains</span><span class="p">)</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_scopes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spf_scopes</span><span class="p">)</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">spf_results</span><span class="p">)</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_domains&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">spf_domains</span><span class="p">))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_scopes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">spf_scopes</span><span class="p">))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_results</span><span class="p">))</span>
 
             <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
             <span class="n">csv_file_object</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
@@ -1618,7 +1627,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.6.0',
+            VERSION:'3.7.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
