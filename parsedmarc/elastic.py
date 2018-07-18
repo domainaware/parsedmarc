@@ -38,8 +38,8 @@ class _SPFResult(InnerDoc):
 
 
 class _AggregateReportDoc(DocType):
-    class Meta:
-        index = "dmarc_aggregate"
+    class Index:
+        name = "dmarc_aggregate"
 
     xml_schema = Text()
     org_name = Text()
@@ -134,8 +134,8 @@ class _ForensicSampleDoc(InnerDoc):
 
 
 class _ForensicReportDoc(DocType):
-    class Meta:
-        index = "dmarc_forensic"
+    class Index:
+        name = "dmarc_forensic"
 
     feedback_type = Text()
     user_agent = Text()

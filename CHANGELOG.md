@@ -1,3 +1,9 @@
+3.7.1
+-----
+
+- Require `elasticsearch>=6.3.0,<7.0.0` and `elasticsearch-dsl>=6.2.1,<7.0.0`
+- Update for class changes in `elasticsearch-dsl` `6.2.0`
+
 3.7.0
 -----
 
