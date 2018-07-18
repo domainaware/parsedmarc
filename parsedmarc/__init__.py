@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.6.1"
+__version__ = "3.7.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -100,22 +100,23 @@ def _get_base_domain(domain):
     psl_path = ".public_suffix_list.dat"
 
     def download_psl():
-        fresh_psl = publicsuffix.fetch()
+        fresh_psl = publicsuffix.fetch().read()
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
-            fresh_psl_file.write(fresh_psl.read())
-
-        return publicsuffix.PublicSuffixList(fresh_psl)
+            fresh_psl_file.write(fresh_psl)
 
     if not os.path.exists(psl_path):
-        psl = download_psl()
+        download_psl()
     else:
         psl_age = datetime.now() - datetime.fromtimestamp(
             os.stat(psl_path).st_mtime)
         if psl_age > timedelta(hours=24):
-            psl = download_psl()
-        else:
-            with open(psl_path, encoding="utf-8") as psl_file:
-                psl = publicsuffix.PublicSuffixList(psl_file)
+            try:
+                download_psl()
+            except Exception as error:
+                logger.warning("Failed to download an updated PSL - \
+                               {0}".format(error))
+    with open(psl_path, encoding="utf-8") as psl_file:
+        psl = publicsuffix.PublicSuffixList(psl_file)
 
     return psl.get_public_suffix(domain)
 

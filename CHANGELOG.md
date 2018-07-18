@@ -1,3 +1,9 @@
+3.7.0
+-----
+
+- Fix bug where PSL would be called before it was downloaded if the PSL was 
+older than 24 Hours
+
 3.6.1
 -----
 
