@@ -6,5 +6,7 @@ rstcheck README.rst
 cd docs && make html && cp -r _build/html/* ../../parsedmarc-docs/
 cd ..
 rm -rf dist/ build/
-python setup.py bdist_wheel
-
+flake8 parsedmarc.py
+flake8 tests.py
+python3 setup.py sdist
+python3 setup.py bdist_wheel

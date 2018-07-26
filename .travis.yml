@@ -20,4 +20,5 @@ script:
   - "make html"
   - "cd .."
   - "python tests.py"
+  - "python setup.py sdist"
   - "python setup.py bdist_wheel"
