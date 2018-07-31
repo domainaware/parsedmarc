@@ -373,7 +373,7 @@ Create the web server configuration
 
     server {
         listen 80;
-        return 301 https://$server_name$request_uri;
+        return 301 https://$host$request_uri;
     }
 
 
