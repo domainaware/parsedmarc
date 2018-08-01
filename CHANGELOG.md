@@ -1,7 +1,13 @@
+3.7.2
+-----
+
+- Change uses uses of the `DocType` class to `Document`, to properly support `elasticsearch-dsl` `6.2.0` (this also fixes use in pypy)
+- Add documentation for installation under pypy
+
 3.7.1
 -----
 
-- Require `elasticsearch>=6.3.0,<7.0.0` and `elasticsearch-dsl>=6.2.1,<7.0.0`
+- Require `elasticsearch>=6.2.1,<7.0.0` and `elasticsearch-dsl>=6.2.1,<7.0.0`
 - Update for class changes in `elasticsearch-dsl` `6.2.0`
 
 3.7.0

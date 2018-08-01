@@ -234,6 +234,56 @@ Or, install the latest development release directly from GitHub:
     substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
     above commands.
 
+Installation using pypy3
+------------------------
+
+For the best possible processing speed, consider using `parsedmarc` inside a ``pypy3``
+virtualenv. First, `download the latest version of pypy3`_. Extract it to
+``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
+symlink:
+
+.. code-block:: bash
+
+    $ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+
+Install ``virtualenv`` on your system:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python3-pip
+    $ sudo -H pip3 install -U virtualenv
+
+Uninstall any instance of ``parsedmarc`` that you may have installed globally
+
+.. code-block:: bash
+
+    $ sudo -H pip3 uninstall -y parsedmarc
+
+Next, create a ``pypy3`` virtualenv for parsedmarc
+
+
+.. code-block:: bash
+
+    $ sudo mkdir /opt/venvs
+    $ cd /opt/venvs
+    $ sudo -H pip3 install -U virtualenv
+    $ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
+
+To upgrade ``parsedmarc`` inside the virtualenv, run:
+
+
+.. code-block:: bash
+
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+
+Or, install the latest development release directly from GitHub:
+
+.. code-block:: bash
+
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+
 Optional dependencies
 ---------------------
 
@@ -245,8 +295,6 @@ On Debian or Ubuntu systems, run:
 .. code-block:: bash
 
     $ sudo apt-get install libemail-outlook-message-perl
-
-
 
 Documentation
 =============
@@ -264,3 +312,5 @@ https://github.com/domainaware/parsedmarc/issues
    :target: https://travis-ci.org/domainaware/parsedmarc
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
+
+.. _download the latest version of pypy3: https://pypy.org/download.html#default-with-a-jit-compiler
