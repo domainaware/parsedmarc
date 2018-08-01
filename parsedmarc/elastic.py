@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import parsedmarc
 from elasticsearch_dsl.search import Q
-from elasticsearch_dsl import connections, Object, DocType, Index, Nested, \
+from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
 
 aggregate_index = Index("dmarc_aggregate")
@@ -37,7 +37,7 @@ class _SPFResult(InnerDoc):
     results = Text()
 
 
-class _AggregateReportDoc(DocType):
+class _AggregateReportDoc(Document):
     class Index:
         name = "dmarc_aggregate"
 
@@ -92,7 +92,7 @@ class _EmailAddressDoc(InnerDoc):
     address = Text()
 
 
-class _EmailAttachmentDoc(DocType):
+class _EmailAttachmentDoc(Document):
     filename = Text()
     content_type = Text()
 
@@ -133,7 +133,7 @@ class _ForensicSampleDoc(InnerDoc):
                                 content_type=content_type)
 
 
-class _ForensicReportDoc(DocType):
+class _ForensicReportDoc(Document):
     class Index:
         name = "dmarc_forensic"
 
