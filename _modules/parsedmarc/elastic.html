@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.1 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.1
+                3.7.2
               </div>
             
           
@@ -151,7 +151,7 @@
 
 <span class="kn">import</span> <span class="nn">parsedmarc</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl.search</span> <span class="k">import</span> <span class="n">Q</span>
-<span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">DocType</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
+<span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
     <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">DateRange</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span>
 
 <span class="n">aggregate_index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="s2">&quot;dmarc_aggregate&quot;</span><span class="p">)</span>
@@ -184,7 +184,7 @@
     <span class="n">results</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
-<span class="k">class</span> <span class="nc">_AggregateReportDoc</span><span class="p">(</span><span class="n">DocType</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_AggregateReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
     <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
 
@@ -239,7 +239,7 @@
     <span class="n">address</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
-<span class="k">class</span> <span class="nc">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">DocType</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
     <span class="n">filename</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">content_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
@@ -280,7 +280,7 @@
                                 <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">DocType</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
     <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
 
@@ -545,7 +545,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'3.7.1',
+            VERSION:'3.7.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

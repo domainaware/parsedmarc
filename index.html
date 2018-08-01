@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.7.1 documentation</title>
+  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.7.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.1
+                3.7.2
               </div>
             
           
@@ -95,6 +95,7 @@
 <li><a class="reference internal" href="#sample-forensic-report-output">Sample forensic report output</a></li>
 <li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
 <li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
 <li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
@@ -395,6 +396,42 @@ macOS or Linux, run</p>
 substitute <code class="docutils literal notranslate"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
 above commands.</p>
 </div>
+<div class="section" id="installation-using-pypy3">
+<h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline">¶</a></h3>
+<p>For the best possible processing speed, consider using <cite>parsedmarc</cite> inside a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code>
+virtualenv. First, <a class="reference external" href="https://pypy.org/download.html#default-with-a-jit-compiler">download the latest version of pypy3</a>. Extract it to
+<code class="docutils literal notranslate"><span class="pre">/opt/pypy3</span></code> (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">mkdir</span> <span class="pre">/opt</span></code> if <code class="docutils literal notranslate"><span class="pre">/opt</span></code> does not exist), then create a
+symlink:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+</pre></div>
+</div>
+<p>Install <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> on your system:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
+$ sudo -H pip3 install -U virtualenv
+</pre></div>
+</div>
+<p>Uninstall any instance of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> that you may have installed globally</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 uninstall -y parsedmarc
+</pre></div>
+</div>
+<p>Next, create a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code> virtualenv for parsedmarc</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo mkdir /opt/venvs
+$ <span class="nb">cd</span> /opt/venvs
+$ sudo -H pip3 install -U virtualenv
+$ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
+$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+$ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
+</pre></div>
+</div>
+<p>To upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+</pre></div>
+</div>
+<p>Or, install the latest development release directly from GitHub:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+</pre></div>
+</div>
+</div>
 <div class="section" id="optional-dependencies">
 <h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this headline">¶</a></h3>
 <p>If you would like to be able to parse emails saved from Microsoft Outlook
@@ -609,6 +646,15 @@ sudo service parsedmarc restart
 <p>Use this command to check the status of the service:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc status
 </pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<blockquote>
+<div>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</div></blockquote>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc restart
+</pre></div>
+</div>
 </div>
 </div>
 </div>
@@ -1244,7 +1290,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.7.1',
+            VERSION:'3.7.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
