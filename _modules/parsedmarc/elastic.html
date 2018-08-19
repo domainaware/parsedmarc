@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.2 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.3 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.2
+                3.7.3
               </div>
             
           
@@ -276,8 +276,8 @@
                                          <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">add_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                                <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                                <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">))</span>
 
 
 <span class="k">class</span> <span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
@@ -545,7 +545,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'3.7.2',
+            VERSION:'3.7.3',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
