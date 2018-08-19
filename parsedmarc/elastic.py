@@ -129,8 +129,8 @@ class _ForensicSampleDoc(InnerDoc):
                                          address=address))
 
     def add_attachment(self, filename, content_type):
-        self.attachments.append(filename=filename,
-                                content_type=content_type)
+        self.attachments.append(_EmailAttachmentDoc(filename=filename,
+                                content_type=content_type))
 
 
 class _ForensicReportDoc(Document):

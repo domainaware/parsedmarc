@@ -1,3 +1,8 @@
+3.7.3
+-----
+
+- Fix saving attachment from forensic sample to Elasticsearch
+
 3.7.2
 -----
 
