@@ -792,8 +792,12 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         else:
             parsed_sample["reply_to"] = []
 
-        parsed_sample["to"] = list(map(lambda x: convert_address(x),
-                                       parsed_sample["to"]))
+        if "to" in parsed_sample:
+            parsed_sample["to"] = list(map(lambda x: convert_address(x),
+                                           parsed_sample["to"]))
+        else:
+            parsed_sample["to"] = []
+
         if "cc" in parsed_sample:
             parsed_sample["cc"] = list(map(lambda x: convert_address(x),
                                            parsed_sample["cc"]))
