@@ -296,12 +296,14 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     arrival_date = parsedmarc.human_timestamp_to_datetime(arrival_date_human)
 
     search = forensic_index.search()
-    to_query = {"match": {"sample.headers.to": headers["to"]}}
     from_query = {"match": {"sample.headers.from": headers["from"]}}
     subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
     arrival_date_query = {"match": {"sample.headers.arrival_date": arrival_date
-                                    }}
-    q = Q(to_query) & Q(from_query) & Q(subject_query) & Q(arrival_date_query)
+                                }}
+    q = Q(from_query) & Q(subject_query) & Q(arrival_date_query)
+    if "to" in headers:
+        to_query = {"match": {"sample.headers.to": headers["to"]}}
+        q & Q(to_query)
     search.query = q
     existing = search.execute()
 
