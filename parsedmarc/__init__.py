@@ -1087,14 +1087,24 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}.Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}.Forensic".format(archive_folder)
+    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
+    forensic_reports_folder = "{0}Forensic".format(archive_folder)
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
+        try:
+            if not server.folder_exists(aggregate_reports_folder):
+                server.create_folder(aggregate_reports_folder)
+        except imapclient.exceptions.IMAPClientError:
+            #  Only replace / with . when . doesn't work
+            aggregate_reports_folder = aggregate_reports_folder.replace("/",
+                                                                        ".")
+            forensic_reports_folder = forensic_reports_folder.replace("/",
+                                                                      ".")
+
         if not server.folder_exists(aggregate_reports_folder):
             server.create_folder(aggregate_reports_folder)
         if not server.folder_exists(forensic_reports_folder):

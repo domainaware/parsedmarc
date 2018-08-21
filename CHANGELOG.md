@@ -1,8 +1,8 @@
 3.7.4
 -----
 
-- Use `.` instead of `/` as the IMAP folder hierarchy separator - fixes 
-dovecot support (#5)
+- Use `.` instead of `/` as the IMAP folder hierarchy separator when `/` 
+does not work - fixes dovecot support (#5)
 
 3.7.3
 -----
