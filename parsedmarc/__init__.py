@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.7.4"
+__version__ = "3.8.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -975,7 +975,14 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
         if type(payload) == list:
             payload = payload[0].__str__()
         if content_type == "message/feedback-report":
-            feedback_report = payload
+            try:
+                feedback_report = b64decode(payload).__str__()
+                feedback_report = feedback_report.lstrip("b'").rstrip("'")
+                feedback_report = feedback_report.replace("\\r", "\r")
+                feedback_report = feedback_report.replace("\\n", "\n")
+            except (ValueError, TypeError, binascii.Error):
+                feedback_report = payload
+
         elif content_type == "text/rfc822-headers":
             sample = payload
             sample_headers_only = True
@@ -1088,7 +1095,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}Forensic".format(archive_folder)
+    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)

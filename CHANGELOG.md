@@ -1,8 +1,9 @@
-3.7.4
+3.8.0
 -----
 
 - Use `.` instead of `/` as the IMAP folder hierarchy separator when `/` 
 does not work - fixes dovecot support (#5)
+- Fix parsing of base64-encoded forensic report data
 
 3.7.3
 -----
