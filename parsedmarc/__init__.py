@@ -1096,10 +1096,12 @@ def get_dmarc_reports_from_inbox(host, user, password,
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
         try:
+            # Test subfolder creation
             if not server.folder_exists(aggregate_reports_folder):
                 server.create_folder(aggregate_reports_folder)
         except imapclient.exceptions.IMAPClientError:
             #  Only replace / with . when . doesn't work
+            # This usually indicates a dovecot IMAP server
             aggregate_reports_folder = aggregate_reports_folder.replace("/",
                                                                         ".")
             forensic_reports_folder = forensic_reports_folder.replace("/",
