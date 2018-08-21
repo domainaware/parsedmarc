@@ -978,7 +978,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             try:
                 feedback_report = b64decode(payload).__str__()
                 feedback_report = feedback_report.lstrip("b'").rstrip("'")
-                feedback_report = feedback_report.replace("\\r", "\r")
+                feedback_report = feedback_report.replace("\\r", "")
                 feedback_report = feedback_report.replace("\\n", "\n")
             except (ValueError, TypeError, binascii.Error):
                 feedback_report = payload
