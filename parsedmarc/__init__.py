@@ -1003,7 +1003,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
                                                                timeout=timeout)
                 result = OrderedDict([("report_type", "aggregate"),
                                       ("report", aggregate_report)])
-        except (TypeError, binascii.Error):
+        except (TypeError, ValueError, binascii.Error):
             pass
 
     if result is None:
@@ -1087,19 +1087,19 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    aggregate_reports_folder = "{0}.Aggregate".format(archive_folder)
+    forensic_reports_folder = "{0}.Forensic".format(archive_folder)
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
-        server.select_folder(reports_folder)
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
         if not server.folder_exists(aggregate_reports_folder):
             server.create_folder(aggregate_reports_folder)
         if not server.folder_exists(forensic_reports_folder):
             server.create_folder(forensic_reports_folder)
+        server.select_folder(reports_folder)
         messages = server.search()
         for message_uid in messages:
             raw_msg = server.fetch(message_uid,

@@ -175,15 +175,8 @@ def _main():
             forensic_reports += reports["forensic_reports"]
 
         except IMAPError as error:
-            error = error.__str__()
-            if "ALREADYEXISTS" in error:
-                # Workaround for old versions of the dovecot mail server
-                # that do not respond correctly when we tested for an existing
-                # folder
-                pass
-            else:
-                logger.error("IMAP Error: {0}".format(error))
-                exit(1)
+            logger.error("IMAP Error: {0}".format(error.__str__()))
+            exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])

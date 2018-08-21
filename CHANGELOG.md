@@ -1,9 +1,9 @@
 3.7.4
 -----
 
-- Workaround older versions of the dovecot mail server not reporting existing 
-folders correctly (#5)
-'
+- Use `.` instead of `/` as the IMAP folder hierarchy separator - fixes 
+dovecot support (#5)
+
 3.7.3
 -----
 
