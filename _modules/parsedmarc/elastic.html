@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 3.7.3 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 3.8.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.3
+                3.8.0
               </div>
             
           
@@ -443,12 +443,13 @@
     <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
 
     <span class="n">search</span> <span class="o">=</span> <span class="n">forensic_index</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
-    <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]}}</span>
     <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]}}</span>
     <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]}}</span>
-    <span class="n">arrival_date_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span>
-                                    <span class="p">}}</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">to_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">from_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_date_query</span><span class="p">)</span>
+    <span class="n">arrival_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span><span class="p">}}</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">from_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_query</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]}}</span>
+        <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">to_query</span><span class="p">)</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>
     <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
@@ -545,7 +546,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'3.7.3',
+            VERSION:'3.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

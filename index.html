@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to parsedmarc’s documentation! &mdash; parsedmarc 3.7.3 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.8.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.7.3
+                3.8.0
               </div>
             
           
@@ -82,7 +82,7 @@
             
               <!-- Local TOC -->
               <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Welcome to parsedmarc’s documentation!</a><ul>
+<li><a class="reference internal" href="#">parsedmarc documentation - Open source DMARC report analyzer and visualizer</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
 <li><a class="reference internal" href="#resources">Resources</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
@@ -97,6 +97,7 @@
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
+<li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
 <li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
 </ul>
@@ -160,7 +161,7 @@
     
       <li><a href="#">Docs</a> &raquo;</li>
         
-      <li>Welcome to parsedmarc’s documentation!</li>
+      <li>parsedmarc documentation - Open source DMARC report analyzer and visualizer</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -179,8 +180,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-parsedmarc-s-documentation">
-<h1>Welcome to parsedmarc’s documentation!<a class="headerlink" href="#welcome-to-parsedmarc-s-documentation" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
+<h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 597.0px; height: 381.0px;" /></a>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
@@ -440,6 +441,12 @@ $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install libemail-outlook-message-perl
 </pre></div>
 </div>
+</div>
+<div class="section" id="testing-multiple-report-analyzers">
+<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this headline">¶</a></h3>
+<p>If you would like to test parsedmarc and another report processing solution
+at the same time, you can have up to two mailto URIs each in the rua and ruf
+tags tgs in your DMARC record, separated by commas.</p>
 </div>
 <div class="section" id="elasticsearch-and-kibana">
 <h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
@@ -1290,7 +1297,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.7.3',
+            VERSION:'3.8.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

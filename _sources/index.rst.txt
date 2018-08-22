@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-======================================
-Welcome to parsedmarc's documentation!
-======================================
+===========================================================================
+parsedmarc documentation - Open source DMARC report analyzer and visualizer
+===========================================================================
 
 |Build Status|
 
@@ -311,6 +311,14 @@ On Debian or Ubuntu systems, run:
 .. code-block:: bash
 
     $ sudo apt-get install libemail-outlook-message-perl
+
+
+Testing multiple report analyzers
+---------------------------------
+
+If you would like to test parsedmarc and another report processing solution
+at the same time, you can have up to two mailto URIs each in the rua and ruf
+tags tgs in your DMARC record, separated by commas.
 
 Elasticsearch and Kibana
 ------------------------
