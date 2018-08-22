@@ -298,9 +298,8 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     search = forensic_index.search()
     from_query = {"match": {"sample.headers.from": headers["from"]}}
     subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
-    arrival_date_query = {"match": {"sample.headers.arrival_date": arrival_date
-                                }}
-    q = Q(from_query) & Q(subject_query) & Q(arrival_date_query)
+    arrival_query = {"match": {"sample.headers.arrival_date": arrival_date}}
+    q = Q(from_query) & Q(subject_query) & Q(arrival_query)
     if "to" in headers:
         to_query = {"match": {"sample.headers.to": headers["to"]}}
         q & Q(to_query)
