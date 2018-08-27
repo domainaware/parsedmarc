@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.0"
+__version__ = "3.8.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -933,7 +933,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             with open(eml_path, "rb") as eml_file:
                 rfc822 = eml_file.read()
         except FileNotFoundError as e:
-            raise RuntimeError(
+            raise FileNotFoundError(
                 "Error running msgconvert. Please ensure it is installed\n"
                 "sudo apt install libemail-outlook-message-perl\n"
                 "https://github.com/mvz/email-outlook-message-perl\n\n"
@@ -1016,6 +1016,11 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
                                       ("report", aggregate_report)])
         except (TypeError, ValueError, binascii.Error):
             pass
+
+        except FileNotFoundError as e:
+            error = 'Unable to parse message with subject "{0}": {1}' .format(
+                subject, e)
+            raise InvalidDMARCReport(error)
 
     if result is None:
         error = 'Message with subject "{0}" is ' \

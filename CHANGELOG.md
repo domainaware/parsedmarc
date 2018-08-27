@@ -1,3 +1,8 @@
+3.8.1
+-----
+
+- Better handling of `.msg` files when `msgconvert` is not installed
+
 3.8.0
 -----
 
