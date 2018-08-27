@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.8.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.8.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.8.0
+                3.8.1
               </div>
             
           
@@ -188,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.8.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.8.1&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -1078,7 +1078,7 @@
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">eml_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">eml_file</span><span class="p">:</span>
                 <span class="n">rfc822</span> <span class="o">=</span> <span class="n">eml_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
                 <span class="s2">&quot;Error running msgconvert. Please ensure it is installed</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot;sudo apt install libemail-outlook-message-perl</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot;https://github.com/mvz/email-outlook-message-perl</span><span class="se">\n\n</span><span class="s2">&quot;</span>
@@ -1161,6 +1161,11 @@
                                       <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">aggregate_report</span><span class="p">)])</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">):</span>
             <span class="k">pass</span>
+
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Unable to parse message with subject &quot;</span><span class="si">{0}</span><span class="s1">&quot;: </span><span class="si">{1}</span><span class="s1">&#39;</span> <span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Message with subject &quot;</span><span class="si">{0}</span><span class="s1">&quot; is &#39;</span> \
@@ -1650,7 +1655,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.8.0',
+            VERSION:'3.8.1',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
