@@ -163,12 +163,14 @@ def _main():
 
             rf = args.reports_folder
             af = args.archive_folder
+            ns = args.nameservers
             reports = get_dmarc_reports_from_inbox(args.host,
                                                    args.user,
                                                    args.password,
                                                    reports_folder=rf,
                                                    archive_folder=af,
                                                    delete=args.delete,
+                                                   nameservers=ns,
                                                    test=args.test)
 
             aggregate_reports += reports["aggregate_reports"]

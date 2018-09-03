@@ -492,7 +492,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                                     timeout=timeout))
 
         else:
-            records.append(_parse_report_record(report["record"]))
+            records.append(_parse_report_record(report["record"]),
+                           nameservers=nameservers)
 
         new_report["records"] = records
 
