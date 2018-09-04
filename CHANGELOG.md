@@ -1,3 +1,9 @@
+3.8.2
+-----
+
+- Fix `nameservers` option (mikesiegel)
+- Move or delete invalid report emails in an IMAP inbox (closes issue #7)
+
 3.8.1
 -----
 

@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.1"
+__version__ = "3.8.2"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -492,8 +492,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                                     timeout=timeout))
 
         else:
-            records.append(_parse_report_record(report["record"]),
-                           nameservers=nameservers)
+            records.append(_parse_report_record(report["record"],
+                           nameservers=nameservers))
 
         new_report["records"] = records
 
@@ -1106,6 +1106,7 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_report_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
@@ -1128,6 +1129,8 @@ def get_dmarc_reports_from_inbox(host, user, password,
             server.create_folder(aggregate_reports_folder)
         if not server.folder_exists(forensic_reports_folder):
             server.create_folder(forensic_reports_folder)
+        if not server.folder_exists(invalid_reports_folder):
+            server.create_folder(invalid_reports_folder)
         server.select_folder(reports_folder)
         messages = server.search()
         for message_uid in messages:
@@ -1147,6 +1150,12 @@ def get_dmarc_reports_from_inbox(host, user, password,
                     forensic_report_msg_uids.append(message_uid)
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
+                if not test:
+                    if delete:
+                        server.add_flags([message_uid], [imapclient.DELETED])
+                        server.expunge()
+                    else:
+                        server.move([message_uid], invalid_reports_folder)
 
         if not test:
             if delete:
