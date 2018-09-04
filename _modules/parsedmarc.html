@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.8.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.8.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.8.1
+                3.8.2
               </div>
             
           
@@ -188,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.8.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.8.2&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -637,7 +637,8 @@
                                                     <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_report_record</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">]))</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_report_record</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">],</span>
+                           <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">))</span>
 
         <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">records</span>
 
@@ -1250,6 +1251,7 @@
     <span class="n">forensic_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Aggregate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
     <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1272,6 +1274,8 @@
             <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">):</span>
             <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">):</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">message_uid</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
@@ -1291,6 +1295,12 @@
                     <span class="n">forensic_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_uid</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">InvalidDMARCReport</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+                        <span class="n">server</span><span class="o">.</span><span class="n">add_flags</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="p">[</span><span class="n">imapclient</span><span class="o">.</span><span class="n">DELETED</span><span class="p">])</span>
+                        <span class="n">server</span><span class="o">.</span><span class="n">expunge</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">server</span><span class="o">.</span><span class="n">move</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="n">invalid_reports_folder</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
@@ -1655,7 +1665,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.8.1',
+            VERSION:'3.8.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
