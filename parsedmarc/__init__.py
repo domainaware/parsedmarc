@@ -1178,6 +1178,9 @@ def get_dmarc_reports_from_inbox(host, user, password,
             except InvalidDMARCReport as error:
                 print("found a bad email")
                 logger.warning(error.__str__())
+                server.add_flags(message_uid, [imapclient.DELETED])
+                server.expunge()
+                
 
         if not test:
             if delete:
@@ -1456,10 +1459,13 @@ def parse_inbox(host, user, password,
                     server.expunge()          
             except InvalidDMARCReport as error:
                 print("found a bad email")
-                logger.warning(error.__str__())
+                server.add_flags(message_uid, [imapclient.DELETED])
+                server.expunge()
+                server.logout()
+                return
 
 
-
+        server.logout()
         return "void"
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
@@ -1648,7 +1654,9 @@ def parse_watched_inbox(host, username, password, reports_folder="INBOX",
             if responses is not None:
                 for response in responses:
                     if response[1] == b'RECENT' and response[0] > 0:
-                        parse_inbox(host, username, password)                    
+                        print("email received.")
+                        parse_inbox(host, username, password)   
+                        print("waiting for some more emails...")                 
                         break
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
