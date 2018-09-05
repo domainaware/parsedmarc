@@ -1434,8 +1434,31 @@ def parse_inbox(host, user, password,
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
 
     try:
+        print("starting up...okay lets go")
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
+        print("authenticated login")
+        if not server.folder_exists(archive_folder):
+            server.create_folder(archive_folder)
+            print("i gave that server a folder, servers love folders")
+        try:
+            # Test subfolder creation
+            if not server.folder_exists(aggregate_reports_folder):
+                server.create_folder(aggregate_reports_folder)
+        except imapclient.exceptions.IMAPClientError:
+            #  Only replace / with . when . doesn't work
+            # This usually indicates a dovecot IMAP server
+            aggregate_reports_folder = aggregate_reports_folder.replace("/",
+                                                                        ".")
+            forensic_reports_folder = forensic_reports_folder.replace("/",
+                                                                      ".")
+
+        if not server.folder_exists(aggregate_reports_folder):
+            server.create_folder(aggregate_reports_folder)
+            print("i gave that server a folder, servers love folders")
+        if not server.folder_exists(forensic_reports_folder):
+            server.create_folder(forensic_reports_folder)
+            print("i gave that server a folder, servers love folders")
         server.select_folder(reports_folder)
         messages = server.search()
         for message_uid in messages:
