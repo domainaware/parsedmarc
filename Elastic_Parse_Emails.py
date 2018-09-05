@@ -3,12 +3,13 @@ import parsedmarc.elastic
 from glob import glob
 import json
 import parsedmarc
-import urllib2
+import urllib
 
 
-datFile = urllib2.urlopen("https://publicsuffix.org/list/public_suffix_list.dat")
+datFile = urllib.request.urlopen("https://publicsuffix.org/list/public_suffix_list.dat")
 with open('.public_suffix_list.dat','wb') as output:
-  output.write(datfile.read())
+  output.write(datFile.read())
+
 
 
   
