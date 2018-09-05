@@ -190,6 +190,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     Raises:
             AlreadySaved
     """
+    
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
@@ -203,7 +204,6 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     aggregate_report["end_date"] = end_date
     date_range = (aggregate_report["begin_date"],
                   aggregate_report["end_date"])
-
     org_name_query = Q(dict(match=dict(org_name=org_name)))
     report_id_query = Q(dict(match=dict(report_id=report_id)))
     domain_query = Q(dict(match=dict(domain=domain)))
@@ -213,64 +213,58 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     search = aggregate_index.search()
     search.query = org_name_query & report_id_query & domain_query & \
         begin_date_query & end_date_query
-
     existing = search.execute()
     if len(existing) > 0:
-        raise AlreadySaved("An aggregate report ID {0} from {1} about {2} "
-                           "with a date range of {3} UTC to {4} UTC already "
-                           "exists in "
-                           "Elasticsearch".format(report_id,
-                                                  org_name,
-                                                  domain,
-                                                  begin_date_human,
-                                                  end_date_human))
-    published_policy = _PublishedPolicy(
-        adkim=aggregate_report["policy_published"]["adkim"],
-        aspf=aggregate_report["policy_published"]["aspf"],
-        p=aggregate_report["policy_published"]["p"],
-        sp=aggregate_report["policy_published"]["sp"],
-        pct=aggregate_report["policy_published"]["pct"],
-        fo=aggregate_report["policy_published"]["fo"]
-    )
+        print("report already exists")
+    else:    
+        published_policy = _PublishedPolicy(
+            adkim=aggregate_report["policy_published"]["adkim"],
+         aspf=aggregate_report["policy_published"]["aspf"],
+            p=aggregate_report["policy_published"]["p"],
+            sp=aggregate_report["policy_published"]["sp"],
+            pct=aggregate_report["policy_published"]["pct"],
+         fo=aggregate_report["policy_published"]["fo"]
+         )
+    
 
-    for record in aggregate_report["records"]:
-        agg_doc = _AggregateReportDoc(
-            xml_schemea=aggregate_report["xml_schema"],
-            org_name=metadata["org_name"],
-            org_email=metadata["org_email"],
-            org_extra_contact_info=metadata["org_extra_contact_info"],
-            report_id=metadata["report_id"],
-            date_range=date_range,
-            errors=metadata["errors"],
-            domain=aggregate_report["policy_published"]["domain"],
-            published_policy=published_policy,
-            source_ip_address=record["source"]["ip_address"],
-            source_country=record["source"]["country"],
-            source_reverse_dns=record["source"]["reverse_dns"],
-            source_base_domain=record["source"]["base_domain"],
-            message_count=record["count"],
-            disposition=record["policy_evaluated"]["disposition"],
-            dkim_aligned=record["policy_evaluated"]["dkim"] == "pass",
-            spf_aligned=record["policy_evaluated"]["spf"] == "pass",
-            header_from=record["identifiers"]["header_from"],
-            envelope_from=record["identifiers"]["envelope_from"],
-            envelope_to=record["identifiers"]["envelope_to"]
-        )
+        for record in aggregate_report["records"]:
+            agg_doc = _AggregateReportDoc(
+                xml_schemea=aggregate_report["xml_schema"],
+                org_name=metadata["org_name"],
+                org_email=metadata["org_email"],
+                org_extra_contact_info=metadata["org_extra_contact_info"],
+                report_id=metadata["report_id"],
+                date_range=date_range,
+                errors=metadata["errors"],
+                domain=aggregate_report["policy_published"]["domain"],
+                published_policy=published_policy,
+                source_ip_address=record["source"]["ip_address"],
+                source_country=record["source"]["country"],
+                source_reverse_dns=record["source"]["reverse_dns"],
+                source_base_domain=record["source"]["base_domain"],
+                message_count=record["count"],
+                disposition=record["policy_evaluated"]["disposition"],
+                dkim_aligned=record["policy_evaluated"]["dkim"] == "pass",
+                spf_aligned=record["policy_evaluated"]["spf"] == "pass",
+                header_from=record["identifiers"]["header_from"],
+                envelope_from=record["identifiers"]["envelope_from"],
+                envelope_to=record["identifiers"]["envelope_to"]
+            )
 
-        for override in record["policy_evaluated"]["policy_override_reasons"]:
-            agg_doc.add_policy_override(type_=override["type"],
-                                        comment=override["comment"])
-
-        for dkim_result in record["auth_results"]["dkim"]:
-            agg_doc.add_dkim_result(domain=dkim_result["domain"],
+            for override in record["policy_evaluated"]["policy_override_reasons"]:
+                agg_doc.add_policy_override(type_=override["type"],
+                                            comment=override["comment"])
+        
+            for dkim_result in record["auth_results"]["dkim"]:
+                agg_doc.add_dkim_result(domain=dkim_result["domain"],
                                     selector=dkim_result["selector"],
                                     result=dkim_result["result"])
 
-        for spf_result in record["auth_results"]["spf"]:
-            agg_doc.add_spf_result(domain=spf_result["domain"],
+            for spf_result in record["auth_results"]["spf"]:
+                agg_doc.add_spf_result(domain=spf_result["domain"],
                                    scope=spf_result["scope"],
                                    result=spf_result["result"])
-        agg_doc.save()
+            agg_doc.save()
 
 
 def save_forensic_report_to_elasticsearch(forensic_report):
