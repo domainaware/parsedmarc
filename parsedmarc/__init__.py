@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.1"
+__version__ = "3.8.2"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -82,29 +82,22 @@ class InvalidForensicReport(InvalidDMARCReport):
 def _get_base_domain(domain):
     """
     Gets the base domain name for the given domain
-
     .. note::
         Results are based on a list of public domain suffixes at
         https://publicsuffix.org/list/public_suffix_list.dat.
-
         This file is saved to the current working directory,
         where it is used as a cache file for 24 hours.
-
     Args:
         domain (str): A domain or subdomain
-
     Returns:
         str: The base domain of the given domain
-
     """
-   
     psl_path = ".public_suffix_list.dat"
+
     def download_psl():
-        print(psl_path)
         fresh_psl = publicsuffix.fetch().read()
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
-        
 
     if not os.path.exists(psl_path):
         download_psl()
@@ -113,7 +106,6 @@ def _get_base_domain(domain):
             os.stat(psl_path).st_mtime)
         if psl_age > timedelta(hours=24):
             try:
-                print("3spooky5me")
                 download_psl()
             except Exception as error:
                 logger.warning("Failed to download an updated PSL - \
@@ -127,14 +119,12 @@ def _get_base_domain(domain):
 def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
     """
     Queries DNS
-
     Args:
         domain (str): The domain or subdomain to query about
         record_type (str): The record type to query for
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         list: A list of answers
     """
@@ -155,13 +145,11 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
 def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
     """
     Resolves an IP address to a hostname using a reverse DNS query
-
     Args:
         ip_address (str): The IP address to resolve
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
-
     Returns:
         str: The reverse DNS hostname (if any)
     """
@@ -181,10 +169,8 @@ def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
 def _timestamp_to_datetime(timestamp):
     """
     Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object
-
     Args:
         timestamp (int): The timestamp
-
     Returns:
         DateTime: The converted timestamp as a Python ``DateTime`` object
     """
@@ -194,10 +180,8 @@ def _timestamp_to_datetime(timestamp):
 def _timestamp_to_human(timestamp):
     """
     Converts a UNIX/DMARC timestamp to a human-readable string
-
     Args:
         timestamp: The timestamp
-
     Returns:
         str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
     """
@@ -207,10 +191,8 @@ def _timestamp_to_human(timestamp):
 def human_timestamp_to_datetime(human_timestamp):
     """
     Converts a human-readable timestamp into a Python ``DateTime`` object
-
     Args:
         human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
-
     Returns:
         DateTime: The converted timestamp
     """
@@ -221,10 +203,8 @@ def _get_ip_address_country(ip_address):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
     country associated with the given IPv4 or IPv6 address
-
     Args:
         ip_address (str): The IP address to query for
-
     Returns:
         str: And ISO country code associated with the given IP address
     """
@@ -232,7 +212,6 @@ def _get_ip_address_country(ip_address):
 
     def download_country_database(location=".GeoLite2-Country.mmdb"):
         """Downloads the MaxMind Geolite2 Country database
-
         Args:
             location (str): Local location for the database file
         """
@@ -280,16 +259,13 @@ def _get_ip_address_country(ip_address):
 def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     """
     Returns reverse DNS and country information for the given IP address
-
     Args:
         ip_address (str): The IP address to check
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: ``ip_address``, ``reverse_dns``
-
     """
     ip_address = ip_address.lower()
     info = OrderedDict()
@@ -312,13 +288,11 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
-
     Args:
         record (OrderedDict): The record to convert
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: The converted record
     """
@@ -413,35 +387,26 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
 
 def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
-
     Args:
         xml (str): A string of DMARC aggregate report XML
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: The parsed aggregate DMARC report
     """
-    print("parsing a report to xml")
     try:
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
         schema = "draft"
-        
         if "version" in report:
             schema = report["version"]
-        
         new_report = OrderedDict([("xml_schema", schema)])
-        
         new_report_metadata = OrderedDict()
-        
         org_name = _get_base_domain(report_metadata["org_name"])
-        
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
-        
         if "extra_contact_info" in report_metadata:
             extra = report_metadata["extra_contact_info"]
         new_report_metadata["org_extra_contact_info"] = extra
@@ -468,38 +433,33 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
         new_policy_published = OrderedDict()
         new_policy_published["domain"] = policy_published["domain"]
         adkim = "r"
-        
         if "adkim" in policy_published:
             if policy_published["adkim"] is not None:
                 adkim = policy_published["adkim"]
         new_policy_published["adkim"] = adkim
         aspf = "r"
-        
         if "aspf" in policy_published:
             if policy_published["aspf"] is not None:
                 aspf = policy_published["aspf"]
         new_policy_published["aspf"] = aspf
         new_policy_published["p"] = policy_published["p"]
         sp = new_policy_published["p"]
-       
         if "sp" in policy_published:
             if policy_published["sp"] is not None:
                 sp = report["policy_published"]["sp"]
         new_policy_published["sp"] = sp
         pct = "100"
-        
         if "pct" in policy_published:
             if policy_published["pct"] is not None:
                 pct = report["policy_published"]["pct"]
         new_policy_published["pct"] = pct
         fo = "0"
-        
         if "fo" in policy_published:
             if policy_published["fo"] is not None:
                 fo = report["policy_published"]["fo"]
         new_policy_published["fo"] = fo
         new_report["policy_published"] = new_policy_published
-        
+
         if type(report["record"]) == list:
             for record in report["record"]:
                 records.append(_parse_report_record(record,
@@ -507,7 +467,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                                     timeout=timeout))
 
         else:
-            records.append(_parse_report_record(report["record"]))
+            records.append(_parse_report_record(report["record"],
+                           nameservers=nameservers))
 
         new_report["records"] = records
 
@@ -532,13 +493,10 @@ def extract_xml(input_):
     """
     Extracts xml from a zip or gzip file at the given path, file-like object,
     or bytes.
-
     Args:
         input_: A path to a file, a file like object, or bytes
-
     Returns:
         str: The extracted XML
-
     """
     if type(input_) == str:
         file_object = open(input_, "rb")
@@ -575,17 +533,16 @@ def extract_xml(input_):
 def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
-
     Args:
         _input: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: The parsed DMARC aggregate report
     """
     xml = extract_xml(_input)
+
     return parse_aggregate_report_xml(xml,
                                       nameservers=nameservers,
                                       timeout=timeout)
@@ -595,10 +552,8 @@ def parsed_aggregate_reports_to_csv(reports):
     """
     Converts one or more parsed aggregate reports to flat CSV format, including
     headers
-
     Args:
         reports: A parsed aggregate report or list of parsed aggregate reports
-
     Returns:
         str: Parsed aggregate report data in flat CSV format, including headers
     """
@@ -703,7 +658,6 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
                           nameservers=None, timeout=6.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
-
     Args:
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
@@ -711,7 +665,6 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: An parsed report and sample
     """
@@ -731,7 +684,6 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         Converts a message subject to a string that is safe for a filename
         Args:
             _subject (str): A message subject
-
         Returns:
             str: A string safe for a filename
         """
@@ -865,10 +817,8 @@ def parsed_forensic_reports_to_csv(reports):
     """
     Converts one or more parsed forensic reports to flat CSV format, including
     headers
-
     Args:
         reports: A parsed forensic report or list of parsed forensic reports
-
     Returns:
         str: Parsed forensic report data in flat CSV format, including headers
         """
@@ -907,12 +857,10 @@ def parsed_forensic_reports_to_csv(reports):
 def parse_report_email(input_, nameservers=None, timeout=6.0):
     """
     Parses a DMARC report from an email
-
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
         nameservers (list): A list of one or more nameservers to use
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict:
         * ``report_type``: ``aggregate`` or ``forensic``
@@ -927,10 +875,8 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
         """
         Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
         standard RFC 822 format
-
         Args:
             msg_bytes (bytes): the content of the .msg file
-
         Returns:
             A RFC 822 string
         """
@@ -1047,13 +993,11 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
 def parse_report_file(input_, nameservers=None, timeout=6.0):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
-
     Args:
         input_: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-
     Returns:
         OrderedDict: The parsed DMARC report
     """
@@ -1072,7 +1016,6 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
                                ("report", report)])
     except InvalidAggregateReport:
         try:
-            print("are we failing here?")
             results = parse_report_email(content,
                                          nameservers=nameservers,
                                          timeout=timeout)
@@ -1090,7 +1033,6 @@ def get_dmarc_reports_from_inbox(host, user, password,
                                  dns_timeout=6.0):
     """
     Fetches and parses DMARC reports from sn inbox
-
     Args:
         host: The mail server hostname or IP address
         user: The mail server user
@@ -1101,19 +1043,14 @@ def get_dmarc_reports_from_inbox(host, user, password,
         test (bool): Do not move or delete messages after processing them
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
-
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
     """
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
-        print("here goes nothing chunks(1,n), l is V n is VV")
-        print(l)
-        print(range(0, len(l), n))
         for i in range(0, len(l), n):
             yield l[i:i + n]
-            print("oh cool that worked")
 
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
@@ -1124,15 +1061,13 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_report_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     try:
-        print("starting up...okay lets go")
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
-        print("authenticated login")
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
-            print("i gave that server a folder, servers love folders")
         try:
             # Test subfolder creation
             if not server.folder_exists(aggregate_reports_folder):
@@ -1147,40 +1082,35 @@ def get_dmarc_reports_from_inbox(host, user, password,
 
         if not server.folder_exists(aggregate_reports_folder):
             server.create_folder(aggregate_reports_folder)
-            print("i gave that server a folder, servers love folders")
         if not server.folder_exists(forensic_reports_folder):
             server.create_folder(forensic_reports_folder)
-            print("i gave that server a folder, servers love folders")
+        if not server.folder_exists(invalid_reports_folder):
+            server.create_folder(invalid_reports_folder)
         server.select_folder(reports_folder)
-        print("inside my folder")
         messages = server.search()
-        print("looking at some emails")
         for message_uid in messages:
             raw_msg = server.fetch(message_uid,
                                    ["RFC822"])[message_uid][b"RFC822"]
             msg_content = raw_msg.decode("utf-8", errors="replace")
 
             try:
-                print("looking at an email parsing it out")
                 parsed_email = parse_report_email(msg_content,
                                                   nameservers=nameservers,
                                                   timeout=dns_timeout)
                 if parsed_email["report_type"] == "aggregate":
-                    print("aggregating it")
                     aggregate_reports.append(parsed_email["report"])
                     aggregate_report_msg_uids.append(message_uid)
-                    print("aggregated")
                 elif parsed_email["report_type"] == "forensic":
-                    print("forensicing it")
                     forensic_reports.append(parsed_email["report"])
                     forensic_report_msg_uids.append(message_uid)
-                    print("forensiced")
             except InvalidDMARCReport as error:
-                print("found a bad email")
                 logger.warning(error.__str__())
-                server.add_flags(message_uid, [imapclient.DELETED])
-                server.expunge()
-                
+                if not test:
+                    if delete:
+                        server.add_flags([message_uid], [imapclient.DELETED])
+                        server.expunge()
+                    else:
+                        server.move([message_uid], invalid_reports_folder)
 
         if not test:
             if delete:
@@ -1189,30 +1119,18 @@ def get_dmarc_reports_from_inbox(host, user, password,
                 server.add_flags(processed_messages, [imapclient.DELETED])
                 server.expunge()
             else:
-                print("not deleting these emails, moveing them somewhere though")
                 if len(aggregate_report_msg_uids) > 0:
-                    print("we'll move some to aggregate folders")
-                    loopcount = 0
-                    print("lets count some chunks")
                     for chunk in chunks(aggregate_report_msg_uids, 100):
-                        print(loopcount)
-                        server.move(chunk, aggregate_reports_folder)
-                        loopcount+=1
-                    print("there were that many chunks ^^^")
+                        server.move(chunk,
+                                    aggregate_reports_folder)
                 if len(forensic_report_msg_uids) > 0:
-                    print("we'll move some to forensic folders")
-                    loopcount = 0
-                    print("lets count some chunks")
                     for chunk in chunks(forensic_report_msg_uids, 100):
-                        print(loopcount)
-                        server.move(chunk,forensic_reports_folder)
-                        loopcount+=1
-                    print("there were that many chunks ^^^") 
-                print("or....lets just not")
-        print("looked at all of the emails im making a report")
+                        server.move(chunk,
+                                    forensic_reports_folder)
+
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
-        print("here it is")
+
         return results
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
@@ -1236,7 +1154,6 @@ def get_dmarc_reports_from_inbox(host, user, password,
 def save_output(results, output_directory="output"):
     """
     Save report data in the given directory
-
     Args:
         results (OrderedDict): Parsing results
         output_directory: The patch to the directory to save in
@@ -1298,10 +1215,8 @@ def save_output(results, output_directory="output"):
 def get_report_zip(results):
     """
     Creates a zip file of parsed report output
-
     Args:
         results (OrderedDict): The parsed results
-
     Returns:
         bytes: zip file bytes
     """
@@ -1345,7 +1260,6 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
                   attachment_filename=None, message=None, ssl_context=None):
     """
     Emails parsing results as a zip file
-
     Args:
         results (OrderedDict): Parsing results
         host: Mail server hostname or IP address
@@ -1419,77 +1333,39 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
     except ssl.CertificateError as error:
         raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
-def parse_inbox(host, user, password,
-                                 reports_folder="INBOX",
-                                 archive_folder="Archive",
-                                 delete=True, test=False,
-                                 nameservers=None,
-                                 dns_timeout=6.0):
 
-    aggregate_reports = []
-    forensic_reports = []
-    aggregate_report_msg_uids = []
-    forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+def watch_inbox(host, username, password, callback, reports_folder="INBOX",
+                archive_folder="Archive", delete=False, test=False, wait=30,
+                nameservers=None, dns_timeout=6.0):
+    """
+    Use an IDLE IMAP connection to parse incoming emails, and pass the results
+    to a callback function
+    Args:
+        host: The mail server hostname or IP address
+        username: The mail server username
+        password: The mail server password
+        callback: The callback function to receive the parsing results
+        reports_folder: The IMAP folder where reports can be found
+        archive_folder: The folder to move processed mail to
+        delete (bool): Delete  messages after processing them
+        test (bool): Do not move or delete messages after processing them
+        wait (int): Number of seconds to wait for a IMAP IDLE response
+        nameservers (list): A list of one or more nameservers to use
+        (Cloudflare's public DNS resolvers by default)
+        dns_timeout (float): Set the DNS query timeout
+    """
+    rf = reports_folder
+    af = archive_folder
+    ns = nameservers
+    dt = dns_timeout
+    server = imapclient.IMAPClient(host)
 
     try:
-        print("starting up...okay lets go")
-        server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(user, password)
-        print("authenticated login")
-        if not server.folder_exists(archive_folder):
-            server.create_folder(archive_folder)
-            print("i gave that server a folder, servers love folders")
-        try:
-            # Test subfolder creation
-            if not server.folder_exists(aggregate_reports_folder):
-                server.create_folder(aggregate_reports_folder)
-        except imapclient.exceptions.IMAPClientError:
-            #  Only replace / with . when . doesn't work
-            # This usually indicates a dovecot IMAP server
-            aggregate_reports_folder = aggregate_reports_folder.replace("/",
-                                                                        ".")
-            forensic_reports_folder = forensic_reports_folder.replace("/",
-                                                                      ".")
+        server.login(username, password)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        server.idle()
 
-        if not server.folder_exists(aggregate_reports_folder):
-            server.create_folder(aggregate_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        if not server.folder_exists(forensic_reports_folder):
-            server.create_folder(forensic_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        server.select_folder(reports_folder)
-        messages = server.search()
-        for message_uid in messages:
-            raw_msg = server.fetch(message_uid,["RFC822"])[message_uid][b"RFC822"]            
-            msg_content = raw_msg.decode("utf-8", errors="replace")
-
-            try:
-                parsed_email = parse_report_email(msg_content, nameservers=nameservers,timeout=dns_timeout)
-                if parsed_email["report_type"] == "aggregate":
-                    print("saving aggregate to elastic")
-                    elastic.save_aggregate_report_to_elasticsearch(parsed_email["report"])
-                    server.copy(message_uid, aggregate_reports_folder)
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()   
-                elif parsed_email["report_type"] == "forensic":
-                    print("saving forensic to elsatic")
-                    forensic_reports.append(parsed_email["report"])
-                    elastic.save_forensic_report_to_elasticsearch((parsed_email["report"]))
-                    server.copy(message_uid, forensic_reports_folder) 
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()          
-            except InvalidDMARCReport as error:
-                print("found a bad email")
-                server.add_flags(message_uid, [imapclient.DELETED])
-                server.expunge()
-                server.logout()
-                return
-
-
-        server.logout()
-        return "void"
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
         raise IMAPError(error)
@@ -1507,7 +1383,59 @@ def parse_inbox(host, user, password,
         raise IMAPError("SSL error: {0}".format(error.__str__()))
     except ssl.CertificateError as error:
         raise IMAPError("Certificate error: {0}".format(error.__str__()))
+    except BrokenPipeError:
+        raise IMAPError("Broken pipe")
 
+    while True:
+        try:
+            # Refresh the IDLE session every 5 minutes to stay connected
+            if time.monotonic() - idle_start_time > 5 * 60:
+                logger.debug("IMAP: Refreshing IDLE session")
+                server.idle_done()
+                server.idle()
+                idle_start_time = time.monotonic()
+            responses = server.idle_check(timeout=wait)
+            if responses is not None:
+                for response in responses:
+                    if response[1] == b'RECENT' and response[0] > 0:
+                        res = get_dmarc_reports_from_inbox(host, username,
+                                                           password,
+                                                           reports_folder=rf,
+                                                           archive_folder=af,
+                                                           delete=delete,
+                                                           test=test,
+                                                           nameservers=ns,
+                                                           dns_timeout=dt)
+                        callback(res)
+                        break
+        except imapclient.exceptions.IMAPClientError as error:
+            error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+            raise IMAPError(error)
+        except socket.gaierror:
+            raise IMAPError("DNS resolution failed")
+        except ConnectionRefusedError:
+            raise IMAPError("Connection refused")
+        except ConnectionResetError:
+            raise IMAPError("Connection reset")
+        except ConnectionAbortedError:
+            raise IMAPError("Connection aborted")
+        except TimeoutError:
+            raise IMAPError("Connection timed out")
+        except ssl.SSLError as error:
+            raise IMAPError("SSL error: {0}".format(error.__str__()))
+        except ssl.CertificateError as error:
+            raise IMAPError("Certificate error: {0}".format(error.__str__()))
+        except BrokenPipeError:
+            raise IMAPError("Broken pipe")
+        except KeyboardInterrupt:
+            break
+
+    try:
+        server.idle_done()
+        logger.info("IMAP: Sending DONE")
+        server.logout()
+    except BrokenPipeError:
+        pass
 def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False, wait=30,
                 nameservers=None, dns_timeout=6.0):
