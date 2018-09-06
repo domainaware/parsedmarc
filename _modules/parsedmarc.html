@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.9.3 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.9.4 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.9.3
+                3.9.4
               </div>
             
           
@@ -188,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.9.3&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.9.4&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -1358,18 +1358,18 @@
                         <span class="n">delete_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">])</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">move_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="n">invalid_reports_folder</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
-                            <span class="n">processed_messages</span> <span class="o">=</span> <span class="n">aggregate_report_msg_uids</span> <span class="o">+</span> \
-                                                 <span class="n">forensic_report_msg_uids</span>
-                            <span class="n">delete_messages</span><span class="p">(</span><span class="n">processed_messages</span><span class="p">)</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                                <span class="n">move_messages</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">,</span>
-                                              <span class="n">aggregate_reports_folder</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                                <span class="n">move_messages</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">,</span>
-                                              <span class="n">forensic_reports_folder</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+                    <span class="n">processed_messages</span> <span class="o">=</span> <span class="n">aggregate_report_msg_uids</span> <span class="o">+</span> \
+                                         <span class="n">forensic_report_msg_uids</span>
+                    <span class="n">delete_messages</span><span class="p">(</span><span class="n">processed_messages</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">move_messages</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">,</span>
+                                      <span class="n">aggregate_reports_folder</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">move_messages</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">,</span>
+                                      <span class="n">forensic_reports_folder</span><span class="p">)</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">),</span>
                                <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">)])</span>
@@ -1722,7 +1722,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.9.3',
+            VERSION:'3.9.4',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
