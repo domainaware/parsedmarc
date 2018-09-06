@@ -203,7 +203,7 @@ forensic report that you can share publicly, please contact me!
 Installation
 ============
 | *this branch of parsedmarc works with Python 3.*
-| *Install python 3. *
+| *Install python 3.*
 | *Python 3 installers for Windows and macOS can be found at*
 | *https://www.python.org/downloads/*
 | *Set up enviornment varibales for Pip and Java*
