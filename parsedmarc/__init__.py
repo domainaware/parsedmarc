@@ -1490,9 +1490,9 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     while True:
         try:
-            # Refresh the IDLE session every 10 minutes to stay connected
-            if time.monotonic() - idle_start_time > 10 * 60:
-                logger.info("IMAP: Refreshing IDLE session")
+            # Refresh the IDLE session every 5 minutes to stay connected
+            if time.monotonic() - idle_start_time > 5 * 60:
+                logger.debug("IMAP: Refreshing IDLE session")
                 server.idle_done()
                 server.idle()
                 idle_start_time = time.monotonic()
