@@ -38,76 +38,19 @@ CLI help
 
 ::
 
-   usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [-v]
-                  [file_path [file_path ...]]
-
-    Parses DMARC reports
-
-    positional arguments:
-      file_path             one or more paths to aggregate or forensic report
-                            files or emails
+   usage: Elastic_Parse_Emails.py [-H HOST] [-u USER] [-p PASSWORD]           
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] (optional, defaults to localhost:9200)            
+    Parses DMARC reports and saves them in ElasticSearch
 
    optional arguments:
      -h, --help            show this help message and exit
-     -o OUTPUT, --output OUTPUT
-                           Write output files to the given directory
-     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query (Default 8.8.8.8 4.4.4.4)
-     -t TIMEOUT, --timeout TIMEOUT
-                           number of seconds to wait for an answer from DNS
-                           (default 6.0)
      -H HOST, --host HOST  IMAP hostname or IP address
      -u USER, --user USER  IMAP user
      -p PASSWORD, --password PASSWORD
                            IMAP password
-     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                           The IMAP folder containing the reports Default: INBOX
-     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                           Specifies the IMAP folder to move messages to after
-                           processing them Default: Archive
-     -d, --delete          Delete the reports after processing them
      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
                            A list of one or more Elasticsearch hostnames or URLs
                            to use (Default localhost:9200)
-     --save-aggregate      Save aggregate reports to Elasticsearch
-     --save-forensic       Save forensic reports to Elasticsearch
-     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                           Email the results using this host
-     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                           Email the results using this user
-     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                           Email the results using this password
-     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                           Email the results using this from address
-     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                           Email the results to these addresses
-     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                           Email the results using this subject
-     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                           Email the results using this filename
-     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                           Email the results using this message
-     -w, --watch           Use an IMAP IDLE connection to process reports as they
-                           arrive in the inbox
-     --test                Do not move or delete IMAP messages
-     -s, --silent          Only print errors
-     --debug               Print debugging information
-     -v, --version         show program's version number and exit
-
-SPF and DMARC record validation
-===============================
-
-If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
-
 Sample aggregate report output
 ==============================
 
@@ -202,13 +145,21 @@ forensic report that you can share publicly, please contact me!
 
 Installation
 ============
-| *this branch of parsedmarc works with Python 3.*
-| *Install python 3.*
 | *Python 3 installers for Windows and macOS can be found at*
 | *https://www.python.org/downloads/*
+
+|* isntall python 3*
+| *install a 64bit java jdk from oracle*
+| *Set up enviornment varibales for Pip and Java_home and %java_home%/bin* 
+| *unpack and run elastic search and Kibana (must use same version numbers)*
 | *Set up enviornment varibales for Pip and Java*
 | *pip install -U git+https://github.com/JayBuckley7/parsedmarc.git*
 
+Usage
+=============
+run in the folder you cloned the reoo:
+|*%folder_where_you_cloned_repo_into%/elastic_parse_emails.py -E "elasticIP:xxxx" -U "emailUserName" -P "EmailPassword" -H "EmailDomain.com"*
+|* you can replace -E with (-E "ip:port") that ElasticSearch is running on, by default it is localhost:9200*
 
 Documentation
 =============
