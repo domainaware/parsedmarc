@@ -337,25 +337,30 @@ def save_forensic_report_to_elasticsearch(forensic_report):
         sample.add_attachment(filename=attachment["filename"],
                               content_type=attachment["mail_content_type"])
 
-    forensic_doc = _ForensicReportDoc(
-        feedback_type=forensic_report["feedback_type"],
-        user_agent=forensic_report["user_agent"],
-        version=forensic_report["version"],
-        original_mail_from=forensic_report["original_mail_from"],
-        arrival_date=arrival_date,
-        domain=forensic_report["reported_domain"],
-        original_envelope_id=forensic_report["original_envelope_id"],
-        authentication_results=forensic_report["authentication_results"],
-        delivery_results=forensic_report["delivery_result"],
-        source_ip_address=forensic_report["source"]["ip_address"],
-        source_country=forensic_report["source"]["country"],
-        source_reverse_dns=forensic_report["source"]["reverse_dns"],
-        source_base_domain=forensic_report["source"]["base_domain"],
-        authentication_mechanisms=forensic_report["authentication_mechanisms"],
-        auth_failure=forensic_report["auth_failure"],
-        dkim_domain=forensic_report["dkim_domain"],
-        original_rcpt_to=forensic_report["original_rcpt_to"],
-        sample=sample
-    )
 
-    forensic_doc.save()
+    try:
+        forensic_doc = _ForensicReportDoc(
+            feedback_type=forensic_report["feedback_type"],
+            user_agent=forensic_report["user_agent"],
+            version=forensic_report["version"],
+            original_mail_from=forensic_report["original_mail_from"],
+            arrival_date=arrival_date,
+            domain=forensic_report["reported_domain"],
+            original_envelope_id=forensic_report["original_envelope_id"],
+            authentication_results=forensic_report["authentication_results"],
+            delivery_results=forensic_report["delivery_result"],
+            source_ip_address=forensic_report["source"]["ip_address"],
+            source_country=forensic_report["source"]["country"],
+            source_reverse_dns=forensic_report["source"]["reverse_dns"],
+            source_base_domain=forensic_report["source"]["base_domain"],
+            authentication_mechanisms=forensic_report["authentication_mechanisms"],
+            auth_failure=forensic_report["auth_failure"],
+            dkim_domain=forensic_report["dkim_domain"],
+            original_rcpt_to=forensic_report["original_rcpt_to"],
+            sample=sample
+        )
+
+        forensic_doc.save()
+    except:
+        print("bad forensic email found.")
+        pass
