@@ -1,3 +1,9 @@
+3.9.1
+-----
+
+- Use `COPY` and delete if an IMAP server does not support `MOVE` 
+(closes issue #9)
+
 3.9.0
 -----
 
@@ -5,7 +11,8 @@
 Gmail
 - Fix parsing of some forensic/failure/ruf reports
 - Include email subject in all warning messages
-- Fix example NGINX configuration in the installation documentation
+- Fix example NGINX configuration in the installation documentation 
+(closes issue #6)
 
 3.8.2
 -----

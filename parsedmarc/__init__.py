@@ -1083,6 +1083,23 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     return results
 
 
+def get_imap_capabilities(server):
+    """
+    Returns a list of an IMAP server's capabilities
+
+    Args:
+        server (imapclient.IMAPClient): An instance of imapclient.IMAPClient
+
+    Returns (list): A list of capabilities
+    """
+
+    capabilities = list(map(str, list(server.capabilities())))
+    for i in range(len(capabilities)):
+        capabilities[i] = str(capabilities[i]).replace("b'",
+                                                       "").replace("'",
+                                                                   "")
+    return capabilities
+
 def get_dmarc_reports_from_inbox(host, user, password,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
@@ -1126,6 +1143,28 @@ def get_dmarc_reports_from_inbox(host, user, password,
     try:
         server = imapclient.IMAPClient(host, use_uid=True)
         server.login(user, password)
+
+        server_capabilities = get_imap_capabilities(server)
+        logger.debug("IMAP server supports: {0}".format(server_capabilities))
+        move_supported = "MOVE" in server_capabilities
+
+        def delete_messages(msg_uids):
+            if type(msg_uids) == str:
+                msg_uids = [msg_uids]
+
+            server.add_flags(msg_uids, [imapclient.DELETED])
+            server.expunge()
+
+        def move_messages(msg_uids, folder):
+            if type(msg_uids) == str:
+                msg_uids = [msg_uids]
+            for chunk in chunks(msg_uids, 100):
+                if move_supported:
+                    server.move(chunk, folder)
+                else:
+                    server.copy(msg_uids, folder)
+                    delete_messages(msg_uids)
+
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
         try:
@@ -1167,26 +1206,21 @@ def get_dmarc_reports_from_inbox(host, user, password,
                 logger.warning(error.__str__())
                 if not test:
                     if delete:
-                        server.add_flags([message_uid], [imapclient.DELETED])
-                        server.expunge()
+                        delete_messages([message_uid])
                     else:
-                        server.move([message_uid], invalid_reports_folder)
-
-        if not test:
-            if delete:
-                processed_messages = aggregate_report_msg_uids + \
-                                     forensic_report_msg_uids
-                server.add_flags(processed_messages, [imapclient.DELETED])
-                server.expunge()
-            else:
-                if len(aggregate_report_msg_uids) > 0:
-                    for chunk in chunks(aggregate_report_msg_uids, 100):
-                        server.move(chunk,
-                                    aggregate_reports_folder)
-                if len(forensic_report_msg_uids) > 0:
-                    for chunk in chunks(forensic_report_msg_uids, 100):
-                        server.move(chunk,
-                                    forensic_reports_folder)
+                        move_messages([message_uid], invalid_reports_folder)
+                    if not test:
+                        if delete:
+                            processed_messages = aggregate_report_msg_uids + \
+                                                 forensic_report_msg_uids
+                            delete_messages(processed_messages)
+                        else:
+                            if len(aggregate_report_msg_uids) > 0:
+                                move_messages(aggregate_report_msg_uids,
+                                              aggregate_reports_folder)
+                            if len(forensic_report_msg_uids) > 0:
+                                move_messages(forensic_report_msg_uids,
+                                              forensic_reports_folder)
 
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
@@ -1427,6 +1461,10 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     try:
         server.login(username, password)
+        if "IDLE" not in get_imap_capabilities(server):
+            logger.error("Cannot watch inbox: IMAP server does not support "
+                         "the IDLE command")
+            exit(1)
         server.select_folder(rf)
         idle_start_time = time.monotonic()
         server.idle()
