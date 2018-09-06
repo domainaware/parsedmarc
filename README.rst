@@ -203,98 +203,12 @@ forensic report that you can share publicly, please contact me!
 Installation
 ============
 
-``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
-
-On Debian or Ubuntu systems, run:
-
-.. code-block:: bash
-
-    $ sudo apt-get install python3-pip
-
-
-Python 3 installers for Windows and macOS can be found at
-https://www.python.org/downloads/
-
-To install or upgrade to the latest stable release of ``parsedmarc`` on
-macOS or Linux, run
-
-.. code-block:: bash
-
-    $ sudo -H pip3 install -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
-
-.. code-block:: bash
-
-    $ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
-
-.. note::
-
-    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows, simply
-    substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
-    above commands.
-
-Installation using pypy3
-------------------------
-
-For the best possible processing speed, consider using `parsedmarc` inside a ``pypy3``
-virtualenv. First, `download the latest version of pypy3`_. Extract it to
-``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
-symlink:
-
-.. code-block:: bash
-
-    $ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
-
-Install ``virtualenv`` on your system:
-
-.. code-block:: bash
-
-    $ sudo apt-get install python3-pip
-    $ sudo -H pip3 install -U virtualenv
-
-Uninstall any instance of ``parsedmarc`` that you may have installed globally
-
-.. code-block:: bash
-
-    $ sudo -H pip3 uninstall -y parsedmarc
-
-Next, create a ``pypy3`` virtualenv for parsedmarc
-
-
-.. code-block:: bash
-
-    $ sudo mkdir /opt/venvs
-    $ cd /opt/venvs
-    $ sudo -H pip3 install -U virtualenv
-    $ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-    $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
-
-To upgrade ``parsedmarc`` inside the virtualenv, run:
-
-
-.. code-block:: bash
-
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
-
-.. code-block:: bash
-
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
-
-Optional dependencies
----------------------
-
-If you would like to be able to parse emails saved from Microsoft Outlook
-(i.e. OLE .msg files), install ``msgconvert``:
-
-On Debian or Ubuntu systems, run:
-
-.. code-block:: bash
-
-    $ sudo apt-get install libemail-outlook-message-perl
+``this branch of parsedmarc`` works with Python 3.
+   Install python 3. 
+   Python 3 installers for Windows and macOS can be found at
+      https://www.python.org/downloads/
+  Set up enviornment varibales for Pip and Java
+  pip install -U git+https://github.com/JayBuckley7/parsedmarc.git
 
 Documentation
 =============
