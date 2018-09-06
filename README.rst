@@ -202,13 +202,15 @@ forensic report that you can share publicly, please contact me!
 
 Installation
 ============
-
+<pre>
 this branch of parsedmarc works with Python 3.
 Install python 3. 
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
 Set up enviornment varibales for Pip and Java
 pip install -U git+https://github.com/JayBuckley7/parsedmarc.git
+</pre>
+
 
 Documentation
 =============
