@@ -157,9 +157,9 @@ Installation
 
 Usage
 =============
-|*run in the folder you cloned the repo:*
-|*%folder_where_you_cloned_repo_into%/elastic_parse_emails.py -E "elasticIP:xxxx" -U "emailUserName" -P "EmailPassword" -H "EmailDomain.com"*
-|* you can replace -E with (-E "ip:port") that ElasticSearch is running on, by default it is localhost:9200*
+| *run in the folder you cloned the repo:*
+| *./elastic_parse_emails.py -E "elasticIP:xxxx" -U "emailUserName" -P "EmailPassword" -H "EmailDomain.com"*
+| * you can replace -E with (-E "ip:port") that ElasticSearch is running on, by default it is localhost:9200*
 
 Documentation
 =============
