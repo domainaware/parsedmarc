@@ -1,3 +1,8 @@
+3.9.4
+-----
+
+- Fix moving/deleting emails
+
 3.9.3
 -----
 

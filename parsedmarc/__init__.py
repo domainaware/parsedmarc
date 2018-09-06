@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.3"
+__version__ = "3.9.4"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1213,18 +1213,18 @@ def get_dmarc_reports_from_inbox(host, user, password,
                         delete_messages([message_uid])
                     else:
                         move_messages([message_uid], invalid_reports_folder)
-                    if not test:
-                        if delete:
-                            processed_messages = aggregate_report_msg_uids + \
-                                                 forensic_report_msg_uids
-                            delete_messages(processed_messages)
-                        else:
-                            if len(aggregate_report_msg_uids) > 0:
-                                move_messages(aggregate_report_msg_uids,
-                                              aggregate_reports_folder)
-                            if len(forensic_report_msg_uids) > 0:
-                                move_messages(forensic_report_msg_uids,
-                                              forensic_reports_folder)
+            if not test:
+                if delete:
+                    processed_messages = aggregate_report_msg_uids + \
+                                         forensic_report_msg_uids
+                    delete_messages(processed_messages)
+                else:
+                    if len(aggregate_report_msg_uids) > 0:
+                        move_messages(aggregate_report_msg_uids,
+                                      aggregate_reports_folder)
+                    if len(forensic_report_msg_uids) > 0:
+                        move_messages(forensic_report_msg_uids,
+                                      forensic_reports_folder)
 
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
