@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.2"
+__version__ = "3.9.3"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -743,6 +743,9 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
                                                settings={"TO_TIMEZONE": "UTC"})
                 arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
                 parsed_report["arrival_date_utc"] = arrival_utc
+
+        if "arrival_date_utc" not in parsed_report:
+            raise InvalidForensicReport("Missing Arrival-Date")
 
         ip_address = parsed_report["source_ip"]
         parsed_report["source"] = _get_ip_address_info(ip_address,

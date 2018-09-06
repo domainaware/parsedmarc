@@ -1,5 +1,10 @@
+3.9.3
+-----
+
+- Fix crash when forensic recorts are missing `Arrival-Date`
+
 3.9.2
-------
+-----
 
 - Fix PEP 8 spacing
 - Update build script to fail when CI tests fail
