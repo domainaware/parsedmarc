@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.1"
+__version__ = "3.9.2"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1099,6 +1099,7 @@ def get_imap_capabilities(server):
                                                        "").replace("'",
                                                                    "")
     return capabilities
+
 
 def get_dmarc_reports_from_inbox(host, user, password,
                                  reports_folder="INBOX",

@@ -1,3 +1,9 @@
+3.9.2
+------
+
+- Fix PEP 8 spacing
+- Update build script to fail when CI tests fail
+
 3.9.1
 -----
 
