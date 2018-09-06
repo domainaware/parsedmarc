@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.2"
+__version__ = "3.8.1"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1419,94 +1419,6 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
     except ssl.CertificateError as error:
         raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
-def parse_inbox(host, user, password,
-                                 reports_folder="INBOX",
-                                 archive_folder="Archive",
-                                 delete=True, test=False,
-                                 nameservers=None,
-                                 dns_timeout=6.0):
-
-    aggregate_reports = []
-    forensic_reports = []
-    aggregate_report_msg_uids = []
-    forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
-
-    try:
-        print("starting up...okay lets go")
-        server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(user, password)
-        print("authenticated login")
-        if not server.folder_exists(archive_folder):
-            server.create_folder(archive_folder)
-            print("i gave that server a folder, servers love folders")
-        try:
-            # Test subfolder creation
-            if not server.folder_exists(aggregate_reports_folder):
-                server.create_folder(aggregate_reports_folder)
-        except imapclient.exceptions.IMAPClientError:
-            #  Only replace / with . when . doesn't work
-            # This usually indicates a dovecot IMAP server
-            aggregate_reports_folder = aggregate_reports_folder.replace("/",
-                                                                        ".")
-            forensic_reports_folder = forensic_reports_folder.replace("/",
-                                                                      ".")
-
-        if not server.folder_exists(aggregate_reports_folder):
-            server.create_folder(aggregate_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        if not server.folder_exists(forensic_reports_folder):
-            server.create_folder(forensic_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        server.select_folder(reports_folder)
-        messages = server.search()
-        for message_uid in messages:
-            raw_msg = server.fetch(message_uid,["RFC822"])[message_uid][b"RFC822"]            
-            msg_content = raw_msg.decode("utf-8", errors="replace")
-
-            try:
-                parsed_email = parse_report_email(msg_content, nameservers=nameservers,timeout=dns_timeout)
-                if parsed_email["report_type"] == "aggregate":
-                    print("saving aggregate to elastic")
-                    elastic.save_aggregate_report_to_elasticsearch(parsed_email["report"])
-                    server.copy(message_uid, aggregate_reports_folder)
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()   
-                elif parsed_email["report_type"] == "forensic":
-                    print("saving forensic to elsatic")
-                    forensic_reports.append(parsed_email["report"])
-                    elastic.save_forensic_report_to_elasticsearch((parsed_email["report"]))
-                    server.copy(message_uid, forensic_reports_folder) 
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()          
-            except InvalidDMARCReport as error:
-                print("found a bad email")
-                server.add_flags(message_uid, [imapclient.DELETED])
-                server.expunge()
-                server.logout()
-                return
-
-
-        server.logout()
-        return "void"
-    except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise IMAPError(error)
-    except socket.gaierror:
-        raise IMAPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise IMAPError("Connection refused")
-    except ConnectionResetError:
-        raise IMAPError("Connection reset")
-    except ConnectionAbortedError:
-        raise IMAPError("Connection aborted")
-    except TimeoutError:
-        raise IMAPError("Connection timed out")
-    except ssl.SSLError as error:
-        raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
-        raise IMAPError("Certificate error: {0}".format(error.__str__()))
 
 def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False, wait=30,
@@ -1610,6 +1522,98 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         server.logout()
     except BrokenPipeError:
         pass
+######################################################
+
+def parse_inbox(host, user, password,
+                                 reports_folder="INBOX",
+                                 archive_folder="Archive",
+                                 delete=True, test=False,
+                                 nameservers=None,
+                                 dns_timeout=6.0):
+
+    aggregate_reports = []
+    forensic_reports = []
+    aggregate_report_msg_uids = []
+    forensic_report_msg_uids = []
+    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
+    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+
+    try:
+        print("starting up...okay lets go")
+        server = imapclient.IMAPClient(host, use_uid=True)
+        server.login(user, password)
+        print("authenticated login")
+        if not server.folder_exists(archive_folder):
+            server.create_folder(archive_folder)
+            print("i gave that server a folder, servers love folders")
+        try:
+            # Test subfolder creation
+            if not server.folder_exists(aggregate_reports_folder):
+                server.create_folder(aggregate_reports_folder)
+        except imapclient.exceptions.IMAPClientError:
+            #  Only replace / with . when . doesn't work
+            # This usually indicates a dovecot IMAP server
+            aggregate_reports_folder = aggregate_reports_folder.replace("/",
+                                                                        ".")
+            forensic_reports_folder = forensic_reports_folder.replace("/",
+                                                                      ".")
+
+        if not server.folder_exists(aggregate_reports_folder):
+            server.create_folder(aggregate_reports_folder)
+            print("i gave that server a folder, servers love folders")
+        if not server.folder_exists(forensic_reports_folder):
+            server.create_folder(forensic_reports_folder)
+            print("i gave that server a folder, servers love folders")
+        server.select_folder(reports_folder)
+        messages = server.search()
+        for message_uid in messages:
+            raw_msg = server.fetch(message_uid,["RFC822"])[message_uid][b"RFC822"]            
+            msg_content = raw_msg.decode("utf-8", errors="replace")
+
+            try:
+                parsed_email = parse_report_email(msg_content, nameservers=nameservers,timeout=dns_timeout)
+                if parsed_email["report_type"] == "aggregate":
+                    print("saving aggregate to elastic")
+                    elastic.save_aggregate_report_to_elasticsearch(parsed_email["report"])
+                    server.copy(message_uid, aggregate_reports_folder)
+                    server.add_flags(message_uid, [imapclient.DELETED])
+                    server.expunge()   
+                elif parsed_email["report_type"] == "forensic":
+                    print("saving forensic to elsatic")
+                    forensic_reports.append(parsed_email["report"])
+                    elastic.save_forensic_report_to_elasticsearch((parsed_email["report"]))
+                    server.copy(message_uid, forensic_reports_folder) 
+                    server.add_flags(message_uid, [imapclient.DELETED])
+                    server.expunge()          
+            except InvalidDMARCReport as error:
+                print("found a bad email")
+                server.add_flags(message_uid, [imapclient.DELETED])
+                server.expunge()
+                server.logout()
+                return
+
+
+        server.logout()
+        return "void"
+    except imapclient.exceptions.IMAPClientError as error:
+        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+        raise IMAPError(error)
+    except socket.gaierror:
+        raise IMAPError("DNS resolution failed")
+    except ConnectionRefusedError:
+        raise IMAPError("Connection refused")
+    except ConnectionResetError:
+        raise IMAPError("Connection reset")
+    except ConnectionAbortedError:
+        raise IMAPError("Connection aborted")
+    except TimeoutError:
+        raise IMAPError("Connection timed out")
+    except ssl.SSLError as error:
+        raise IMAPError("SSL error: {0}".format(error.__str__()))
+    except ssl.CertificateError as error:
+        raise IMAPError("Certificate error: {0}".format(error.__str__()))
+
+
 
 def parse_watched_inbox(host, username, password, reports_folder="INBOX",
                 archive_folder="Archive", delete=True, test=False, wait=30,
