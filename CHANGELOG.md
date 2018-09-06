@@ -1,3 +1,12 @@
+3.9.0
+-----
+
+- Reduce IMAP `IDLE` refresh rate to 5 minutes to avoid session timeouts in 
+Gmail
+- Fix parsing of some forensic/failure/ruf reports
+- Include email subject in all warning messages
+- Fix example NGINX configuration in the installation documentation
+
 3.8.2
 -----
 

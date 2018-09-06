@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.2"
+__version__ = "3.9.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -981,7 +981,10 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             payload = payload[0].__str__()
         if content_type == "message/feedback-report":
             try:
-                feedback_report = b64decode(payload).__str__()
+                if "Feedback-Type" in payload:
+                    feedback_report = payload
+                else:
+                    feedback_report = b64decode(payload).__str__()
                 feedback_report = feedback_report.lstrip("b'").rstrip("'")
                 feedback_report = feedback_report.replace("\\r", "")
                 feedback_report = feedback_report.replace("\\n", "\n")
@@ -1017,6 +1020,18 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
                                       ("report", aggregate_report)])
         except (TypeError, ValueError, binascii.Error):
             pass
+
+        except InvalidAggregateReport as e:
+            error = 'Message with subject "{0}" ' \
+                    'is not a valid ' \
+                    'aggregate DMARC report: {1}'.format(subject, e)
+            raise InvalidAggregateReport(error)
+
+        except InvalidForensicReport as e:
+            error = 'Message with subject "{0}" ' \
+                    'is not a valid ' \
+                    'forensic DMARC report: {1}'.format(subject, e)
+            raise InvalidForensicReport(error)
 
         except FileNotFoundError as e:
             error = 'Unable to parse message with subject "{0}": {1}' .format(
