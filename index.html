@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.8.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.9.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.8.2
+                3.9.0
               </div>
             
           
@@ -97,6 +97,7 @@
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
+<li><a class="reference internal" href="#dns-performance">DNS performance</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
 <li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
@@ -442,6 +443,19 @@ $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 </pre></div>
 </div>
 </div>
+<div class="section" id="dns-performance">
+<h3>DNS performance<a class="headerlink" href="#dns-performance" title="Permalink to this headline">¶</a></h3>
+<p>You can often improve performance by providing one or more local nameservers
+to the CLI or function calls, as long as those nameservers return the same
+records as the public DNS.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>If you do not specify any nameservers, Cloudflare’s public nameservers are
+used by default, <strong>not the system’s default nameservers</strong>.</p>
+<p class="last">This is done to avoid a situation where records in a local nameserver do
+not match records in the public DNS.</p>
+</div>
+</div>
 <div class="section" id="testing-multiple-report-analyzers">
 <h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this headline">¶</a></h3>
 <p>If you would like to test parsedmarc and another report processing solution
@@ -453,7 +467,7 @@ tags tgs in your DMARC record, separated by commas.</p>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Elasticsearch/Kibana 6+ is required</p>
+<p class="last">Elasticsearch/Kibana 6 is required</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y openjdk-8-jre apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
@@ -512,13 +526,15 @@ sudo chmod -R <span class="nv">u</span><span class="o">=</span>rX,g<span class="
     <span class="kn">listen</span> <span class="mi">443</span> <span class="s">ssl</span> <span class="s">http2</span><span class="p">;</span>
     <span class="kn">ssl_certificate</span> <span class="s">/etc/nginx/ssl/kibana.crt</span><span class="p">;</span>
     <span class="kn">ssl_certificate_key</span> <span class="s">/etc/nginx/ssl/kibana.key</span><span class="p">;</span>
-    <span class="kn">ssl_dhparam</span> <span class="s">/etc/nginx/ssl/dhparam.pem</span><span class="p">;</span>
     <span class="kn">ssl_session_timeout</span> <span class="s">1d</span><span class="p">;</span>
     <span class="kn">ssl_session_cache</span> <span class="s">shared:SSL:50m</span><span class="p">;</span>
     <span class="kn">ssl_session_tickets</span> <span class="no">off</span><span class="p">;</span>
 
+
+    <span class="c1"># modern configuration. tweak to your needs.</span>
     <span class="kn">ssl_protocols</span> <span class="s">TLSv1.2</span><span class="p">;</span>
-    <span class="kn">ssl_ciphers</span> <span class="s">&#39;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHAC</span>   <span class="s">ssl_prefer_server_ciphers</span> <span class="no">on</span><span class="p">;</span>
+    <span class="kn">ssl_ciphers</span> <span class="s">&#39;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256&#39;</span><span class="p">;</span>
+    <span class="kn">ssl_prefer_server_ciphers</span> <span class="no">on</span><span class="p">;</span>
 
     <span class="c1"># Uncomment this next line if you are using a signed, trusted cert</span>
     <span class="c1">#add_header Strict-Transport-Security &quot;max-age=63072000; includeSubdomains; preload&quot;;</span>
@@ -1297,7 +1313,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.8.2',
+            VERSION:'3.9.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
