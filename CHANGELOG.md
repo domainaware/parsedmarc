@@ -1,3 +1,11 @@
+3.9.5
+-----
+
+- Refactor to use a shared IMAP connection for inbox watching and message 
+downloads
+
+- Gracefully recover from broken pipes in IMAP
+
 3.9.4
 -----
 

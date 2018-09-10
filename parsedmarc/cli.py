@@ -122,8 +122,8 @@ def _main():
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
     if args.debug:
-        logging.basicConfig(level=logging.INFO)
-        logger.setLevel(logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     if args.host is None and len(args.file_path) == 0:
         arg_parser.print_help()
         exit(1)

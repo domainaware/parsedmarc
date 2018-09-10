@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.4"
+__version__ = "3.9.5"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -1101,10 +1101,14 @@ def get_imap_capabilities(server):
         capabilities[i] = str(capabilities[i]).replace("b'",
                                                        "").replace("'",
                                                                    "")
+    logger.debug("IMAP server supports: {0}".format(capabilities))
+
     return capabilities
 
 
-def get_dmarc_reports_from_inbox(host, user, password,
+def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
+                                 connection=None,
+                                 move_supported=None,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
                                  delete=False, test=False,
@@ -1117,6 +1121,9 @@ def get_dmarc_reports_from_inbox(host, user, password,
         host: The mail server hostname or IP address
         user: The mail server user
         password: The mail server password
+        connection: An IMAPCLient connection to reuse
+        move_supported: Indicate if the IMAP server supports the MOVE command
+        (autodetect if None)
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1136,6 +1143,10 @@ def get_dmarc_reports_from_inbox(host, user, password,
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
 
+    if connection is None and (user is None or password is None):
+        raise ValueError("Must supply a connection, or a username and "
+                         "password")
+
     aggregate_reports = []
     forensic_reports = []
     aggregate_report_msg_uids = []
@@ -1145,12 +1156,15 @@ def get_dmarc_reports_from_inbox(host, user, password,
     invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     try:
-        server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(user, password)
+        if connection:
+            server = connection
+        else:
+            server = imapclient.IMAPClient(host, use_uid=True)
+            server.login(user, password)
 
-        server_capabilities = get_imap_capabilities(server)
-        logger.debug("IMAP server supports: {0}".format(server_capabilities))
-        move_supported = "MOVE" in server_capabilities
+        if move_supported is not None:
+            server_capabilities = get_imap_capabilities(server)
+            move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
             if type(msg_uids) == str:
@@ -1465,10 +1479,13 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     try:
         server.login(username, password)
-        if "IDLE" not in get_imap_capabilities(server):
+        imap_capabilities = get_imap_capabilities(server)
+        if "IDLE" not in imap_capabilities:
             logger.error("Cannot watch inbox: IMAP server does not support "
                          "the IDLE command")
             exit(1)
+
+        ms = "MOVE" in imap_capabilities
         server.select_folder(rf)
         idle_start_time = time.monotonic()
         server.idle()
@@ -1491,7 +1508,16 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     except ssl.CertificateError as error:
         raise IMAPError("Certificate error: {0}".format(error.__str__()))
     except BrokenPipeError:
-        raise IMAPError("Broken pipe")
+        logger.debug("IMAP error: Broken pipe")
+        logger.debug("Reconnecting watcher")
+        watch_inbox(host, username, password, callback,
+                    reports_folder=reports_folder,
+                    archive_folder=archive_folder,
+                    delete=delete,
+                    test=test,
+                    wait=wait,
+                    nameservers=nameservers,
+                    dns_timeout=dns_timeout)
 
     while True:
         try:
@@ -1505,8 +1531,9 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             if responses is not None:
                 for response in responses:
                     if response[1] == b'RECENT' and response[0] > 0:
-                        res = get_dmarc_reports_from_inbox(host, username,
-                                                           password,
+                        server.idle_done()
+                        res = get_dmarc_reports_from_inbox(connection=server,
+                                                           move_supported=ms,
                                                            reports_folder=rf,
                                                            archive_folder=af,
                                                            delete=delete,
@@ -1514,6 +1541,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                                                            nameservers=ns,
                                                            dns_timeout=dt)
                         callback(res)
+                        server.idle()
+                        idle_start_time = time.monotonic()
                         break
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
