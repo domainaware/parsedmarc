@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.9.4 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 3.9.5 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.9.4
+                3.9.5
               </div>
             
           
@@ -188,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.9.4&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.9.5&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -1246,10 +1246,14 @@
         <span class="n">capabilities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">capabilities</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">,</span>
                                                        <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span>
                                                                    <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP server supports: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">capabilities</span><span class="p">))</span>
+
     <span class="k">return</span> <span class="n">capabilities</span></div>
 
 
-<div class="viewcode-block" id="get_dmarc_reports_from_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_inbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span>
+<div class="viewcode-block" id="get_dmarc_reports_from_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_inbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">connection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">move_supported</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                                  <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                                  <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1262,6 +1266,9 @@
 <span class="sd">        host: The mail server hostname or IP address</span>
 <span class="sd">        user: The mail server user</span>
 <span class="sd">        password: The mail server password</span>
+<span class="sd">        connection: An IMAPCLient connection to reuse</span>
+<span class="sd">        move_supported: Indicate if the IMAP server supports the MOVE command</span>
+<span class="sd">        (autodetect if None)</span>
 <span class="sd">        reports_folder: The IMAP folder where reports can be found</span>
 <span class="sd">        archive_folder: The folder to move processed mail to</span>
 <span class="sd">        delete (bool): Delete  messages after processing them</span>
@@ -1281,6 +1288,10 @@
     <span class="k">if</span> <span class="n">delete</span> <span class="ow">and</span> <span class="n">test</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;delete and test options are mutually exclusive&quot;</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">connection</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">password</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must supply a connection, or a username and &quot;</span>
+                         <span class="s2">&quot;password&quot;</span><span class="p">)</span>
+
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1290,12 +1301,15 @@
     <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">connection</span><span class="p">:</span>
+            <span class="n">server</span> <span class="o">=</span> <span class="n">connection</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
 
-        <span class="n">server_capabilities</span> <span class="o">=</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP server supports: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">server_capabilities</span><span class="p">))</span>
-        <span class="n">move_supported</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">server_capabilities</span>
+        <span class="k">if</span> <span class="n">move_supported</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">server_capabilities</span> <span class="o">=</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
+            <span class="n">move_supported</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">server_capabilities</span>
 
         <span class="k">def</span> <span class="nf">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
@@ -1610,10 +1624,13 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s2">&quot;IDLE&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>
+        <span class="n">imap_capabilities</span> <span class="o">=</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;IDLE&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">imap_capabilities</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot watch inbox: IMAP server does not support &quot;</span>
                          <span class="s2">&quot;the IDLE command&quot;</span><span class="p">)</span>
             <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">imap_capabilities</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
         <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
         <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
@@ -1636,7 +1653,16 @@
     <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
     <span class="k">except</span> <span class="ne">BrokenPipeError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Broken pipe&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: Broken pipe&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
+        <span class="n">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span>
+                    <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
+                    <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
+                    <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
+                    <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
+                    <span class="n">wait</span><span class="o">=</span><span class="n">wait</span><span class="p">,</span>
+                    <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                    <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">)</span>
 
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1650,8 +1676,9 @@
             <span class="k">if</span> <span class="n">responses</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">responses</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;RECENT&#39;</span> <span class="ow">and</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span>
-                                                           <span class="n">password</span><span class="p">,</span>
+                        <span class="n">server</span><span class="o">.</span><span class="n">idle_done</span><span class="p">()</span>
+                        <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
+                                                           <span class="n">move_supported</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span>
                                                            <span class="n">reports_folder</span><span class="o">=</span><span class="n">rf</span><span class="p">,</span>
                                                            <span class="n">archive_folder</span><span class="o">=</span><span class="n">af</span><span class="p">,</span>
                                                            <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
@@ -1659,6 +1686,8 @@
                                                            <span class="n">nameservers</span><span class="o">=</span><span class="n">ns</span><span class="p">,</span>
                                                            <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
                         <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                        <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
+                        <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
                         <span class="k">break</span>
         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
@@ -1722,7 +1751,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.9.4',
+            VERSION:'3.9.5',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

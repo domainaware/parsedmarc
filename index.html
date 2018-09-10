@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.9.4 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.9.5 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.9.4
+                3.9.5
               </div>
             
           
@@ -919,7 +919,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>user</em>, <em>password</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host=None</em>, <em>user=None</em>, <em>password=None</em>, <em>connection=None</em>, <em>move_supported=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from sn inbox</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -929,6 +929,9 @@ or bytes.</p>
 <li><strong>host</strong> – The mail server hostname or IP address</li>
 <li><strong>user</strong> – The mail server user</li>
 <li><strong>password</strong> – The mail server password</li>
+<li><strong>connection</strong> – An IMAPCLient connection to reuse</li>
+<li><strong>move_supported</strong> – Indicate if the IMAP server supports the MOVE command</li>
+<li><strong>if None</strong><strong>)</strong> (<em>(</em><em>autodetect</em>) – </li>
 <li><strong>reports_folder</strong> – The IMAP folder where reports can be found</li>
 <li><strong>archive_folder</strong> – The folder to move processed mail to</li>
 <li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
@@ -1328,7 +1331,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.9.4',
+            VERSION:'3.9.5',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
