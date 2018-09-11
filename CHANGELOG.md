@@ -1,3 +1,8 @@
+3.9.6
+-----
+
+- Finish incomplete broken pipe fix
+
 3.9.5
 -----
 

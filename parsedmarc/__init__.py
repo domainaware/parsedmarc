@@ -1481,9 +1481,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         server.login(username, password)
         imap_capabilities = get_imap_capabilities(server)
         if "IDLE" not in imap_capabilities:
-            logger.error("Cannot watch inbox: IMAP server does not support "
-                         "the IDLE command")
-            exit(1)
+            raise IMAPError("Cannot watch inbox: IMAP server does not support "
+                            "the IDLE command")
 
         ms = "MOVE" in imap_capabilities
         server.select_folder(rf)
@@ -1562,13 +1561,21 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         except ssl.CertificateError as error:
             raise IMAPError("Certificate error: {0}".format(error.__str__()))
         except BrokenPipeError:
-            raise IMAPError("Broken pipe")
+            logger.debug("IMAP error: Broken pipe")
+            logger.debug("Reconnecting watcher")
+            watch_inbox(host, username, password, callback,
+                        reports_folder=reports_folder,
+                        archive_folder=archive_folder,
+                        delete=delete,
+                        test=test,
+                        wait=wait,
+                        nameservers=nameservers,
+                        dns_timeout=dns_timeout)
         except KeyboardInterrupt:
             break
 
     try:
         server.idle_done()
-        logger.info("IMAP: Sending DONE")
         server.logout()
     except BrokenPipeError:
         pass
