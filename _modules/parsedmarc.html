@@ -1626,9 +1626,8 @@
         <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
         <span class="n">imap_capabilities</span> <span class="o">=</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;IDLE&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">imap_capabilities</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot watch inbox: IMAP server does not support &quot;</span>
-                         <span class="s2">&quot;the IDLE command&quot;</span><span class="p">)</span>
-            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Cannot watch inbox: IMAP server does not support &quot;</span>
+                            <span class="s2">&quot;the IDLE command&quot;</span><span class="p">)</span>
 
         <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">imap_capabilities</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
@@ -1707,13 +1706,21 @@
         <span class="k">except</span> <span class="n">ssl</span><span class="o">.</span><span class="n">CertificateError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Certificate error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
         <span class="k">except</span> <span class="ne">BrokenPipeError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Broken pipe&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: Broken pipe&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
+            <span class="n">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span>
+                        <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
+                        <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
+                        <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
+                        <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
+                        <span class="n">wait</span><span class="o">=</span><span class="n">wait</span><span class="p">,</span>
+                        <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                        <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
             <span class="k">break</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span><span class="o">.</span><span class="n">idle_done</span><span class="p">()</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IMAP: Sending DONE&quot;</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">logout</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">BrokenPipeError</span><span class="p">:</span>
         <span class="k">pass</span></div>
