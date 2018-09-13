@@ -588,6 +588,7 @@ Create the service configuration file
     RestartSec=5m
 
     [Install]
+    After=elasticsearch.service
     WantedBy=multi-user.target
 
 Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
