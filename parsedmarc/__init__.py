@@ -25,7 +25,7 @@ import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
+from email.utils import formatdate
 import smtplib
 import ssl
 import time
@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.5"
+__version__ = "3.9.7"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -936,12 +936,11 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             eml_path = "sample.eml"
             with open(eml_path, "rb") as eml_file:
                 rfc822 = eml_file.read()
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise FileNotFoundError(
-                "Error running msgconvert. Please ensure it is installed\n"
+                "msgconvert not found. Please ensure it is installed\n"
                 "sudo apt install libemail-outlook-message-perl\n"
-                "https://github.com/mvz/email-outlook-message-perl\n\n"
-                "{0}".format(e))
+                "https://github.com/mvz/email-outlook-message-perl")
         finally:
             os.chdir(orig_dir)
             shutil.rmtree(tmp_dir)
@@ -1403,7 +1402,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
 
     msg = MIMEMultipart()
     msg['From'] = mail_from
-    msg['To'] = COMMASPACE.join(mail_to)
+    msg['To'] = ", ".join(mail_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
     text = message or "Please see the attached zip file\n"
@@ -1509,14 +1508,20 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     except BrokenPipeError:
         logger.debug("IMAP error: Broken pipe")
         logger.debug("Reconnecting watcher")
-        watch_inbox(host, username, password, callback,
-                    reports_folder=reports_folder,
-                    archive_folder=archive_folder,
-                    delete=delete,
-                    test=test,
-                    wait=wait,
-                    nameservers=nameservers,
-                    dns_timeout=dns_timeout)
+        server = imapclient.IMAPClient(host)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        ms = "MOVE" in get_imap_capabilities(server)
+        res = get_dmarc_reports_from_inbox(connection=server,
+                                           move_supported=ms,
+                                           reports_folder=rf,
+                                           archive_folder=af,
+                                           delete=delete,
+                                           test=test,
+                                           nameservers=ns,
+                                           dns_timeout=dt)
+        callback(res)
+        server.idle()
 
     while True:
         try:
@@ -1563,14 +1568,19 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         except BrokenPipeError:
             logger.debug("IMAP error: Broken pipe")
             logger.debug("Reconnecting watcher")
-            watch_inbox(host, username, password, callback,
-                        reports_folder=reports_folder,
-                        archive_folder=archive_folder,
-                        delete=delete,
-                        test=test,
-                        wait=wait,
-                        nameservers=nameservers,
-                        dns_timeout=dns_timeout)
+            server = imapclient.IMAPClient(host)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
+            callback(res)
+            server.idle()
         except KeyboardInterrupt:
             break
 

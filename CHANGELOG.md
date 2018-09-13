@@ -1,3 +1,8 @@
+3.9.7
+-----
+
+- Completely reset IMAP connection when a broken pipe is encountered
+
 3.9.6
 -----
 
