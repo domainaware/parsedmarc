@@ -629,7 +629,8 @@ arrive.</p>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
 <span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
 <span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
-<span class="na">After</span><span class="o">=</span><span class="s">elasticsearch.service</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span>
 
 <span class="k">[Service]</span>
 <span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H &quot;outlook.office365.com&quot; -u &quot;dmarc@example.com&quot; -p &quot;FooBar!&quot;</span>

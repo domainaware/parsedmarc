@@ -581,7 +581,8 @@ Create the service configuration file
     [Unit]
     Description=parsedmarc mailbox watcher
     Documentation=https://domainaware.github.io/parsedmarc/
-    After=elasticsearch.service
+    Wants=network-online.target
+    After=network.target network-online.target elasticsearch.service
 
     [Service]
     ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"
