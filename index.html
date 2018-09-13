@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.9.5 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 3.9.7 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.9.5
+                3.9.7
               </div>
             
           
@@ -629,6 +629,7 @@ arrive.</p>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
 <span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
 <span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
+<span class="na">After</span><span class="o">=</span><span class="s">elasticsearch.service</span>
 
 <span class="k">[Service]</span>
 <span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H &quot;outlook.office365.com&quot; -u &quot;dmarc@example.com&quot; -p &quot;FooBar!&quot;</span>
@@ -636,7 +637,6 @@ arrive.</p>
 <span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
 
 <span class="k">[Install]</span>
-<span class="na">After</span><span class="o">=</span><span class="s">elasticsearch.service</span>
 <span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
 </pre></div>
 </div>
@@ -1332,7 +1332,7 @@ to a callback function</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'3.9.5',
+            VERSION:'3.9.7',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

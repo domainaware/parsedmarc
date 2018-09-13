@@ -581,6 +581,7 @@ Create the service configuration file
     [Unit]
     Description=parsedmarc mailbox watcher
     Documentation=https://domainaware.github.io/parsedmarc/
+    After=elasticsearch.service
 
     [Service]
     ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"
@@ -588,7 +589,6 @@ Create the service configuration file
     RestartSec=5m
 
     [Install]
-    After=elasticsearch.service
     WantedBy=multi-user.target
 
 Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
