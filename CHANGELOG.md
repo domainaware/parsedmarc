@@ -1,3 +1,53 @@
+3.9.7
+-----
+
+- Completely reset IMAP connection when a broken pipe is encountered
+
+3.9.6
+-----
+
+- Finish incomplete broken pipe fix
+
+3.9.5
+-----
+
+- Refactor to use a shared IMAP connection for inbox watching and message 
+downloads
+
+- Gracefully recover from broken pipes in IMAP
+
+3.9.4
+-----
+
+- Fix moving/deleting emails
+
+3.9.3
+-----
+
+- Fix crash when forensic recorts are missing `Arrival-Date`
+
+3.9.2
+-----
+
+- Fix PEP 8 spacing
+- Update build script to fail when CI tests fail
+
+3.9.1
+-----
+
+- Use `COPY` and delete if an IMAP server does not support `MOVE` 
+(closes issue #9)
+
+3.9.0
+-----
+
+- Reduce IMAP `IDLE` refresh rate to 5 minutes to avoid session timeouts in 
+Gmail
+- Fix parsing of some forensic/failure/ruf reports
+- Include email subject in all warning messages
+- Fix example NGINX configuration in the installation documentation 
+(closes issue #6)
+
 3.8.2
 -----
 

@@ -313,6 +313,22 @@ On Debian or Ubuntu systems, run:
     $ sudo apt-get install libemail-outlook-message-perl
 
 
+DNS performance
+---------------
+
+You can often improve performance by providing one or more local nameservers
+to the CLI or function calls, as long as those nameservers return the same
+records as the public DNS.
+
+
+.. note::
+
+   If you do not specify any nameservers, Cloudflare's public nameservers are
+   used by default, **not the system's default nameservers**.
+
+   This is done to avoid a situation where records in a local nameserver do
+   not match records in the public DNS.
+
 Testing multiple report analyzers
 ---------------------------------
 
@@ -327,7 +343,7 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 .. note::
 
-    Elasticsearch/Kibana 6+ is required
+    Elasticsearch/Kibana 6 is required
 
 .. code-block:: bash
 
@@ -403,37 +419,39 @@ Create the web server configuration
 
 .. code-block:: nginx
 
-    server {
-        listen 443 ssl http2;
-        ssl_certificate /etc/nginx/ssl/kibana.crt;
-        ssl_certificate_key /etc/nginx/ssl/kibana.key;
-        ssl_dhparam /etc/nginx/ssl/dhparam.pem;
-        ssl_session_timeout 1d;
-        ssl_session_cache shared:SSL:50m;
-        ssl_session_tickets off;
+   server {
+       listen 443 ssl http2;
+       ssl_certificate /etc/nginx/ssl/kibana.crt;
+       ssl_certificate_key /etc/nginx/ssl/kibana.key;
+       ssl_session_timeout 1d;
+       ssl_session_cache shared:SSL:50m;
+       ssl_session_tickets off;
 
-        ssl_protocols TLSv1.2;
-        ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHAC   ssl_prefer_server_ciphers on;
 
-        # Uncomment this next line if you are using a signed, trusted cert
-        #add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
-        add_header X-Frame-Options SAMEORIGIN;
-        add_header X-Content-Type-Options nosniff;
-        auth_basic "Login required";
-        auth_basic_user_file /etc/nginx/htpasswd;
+       # modern configuration. tweak to your needs.
+       ssl_protocols TLSv1.2;
+       ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
+       ssl_prefer_server_ciphers on;
 
-        location / {
-            proxy_pass http://127.0.0.1:5601;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-    }
+       # Uncomment this next line if you are using a signed, trusted cert
+       #add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
+       add_header X-Frame-Options SAMEORIGIN;
+       add_header X-Content-Type-Options nosniff;
+       auth_basic "Login required";
+       auth_basic_user_file /etc/nginx/htpasswd;
 
-    server {
-        listen 80;
-        return 301 https://$host$request_uri;
-    }
+       location / {
+           proxy_pass http://127.0.0.1:5601;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       }
+   }
+
+   server {
+       listen 80;
+       return 301 https://$host$request_uri;
+   }
 
 
 Enable the nginx configuration for Kibana:
@@ -563,6 +581,8 @@ Create the service configuration file
     [Unit]
     Description=parsedmarc mailbox watcher
     Documentation=https://domainaware.github.io/parsedmarc/
+    Wants=network-online.target
+    After=network.target network-online.target elasticsearch.service
 
     [Service]
     ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"

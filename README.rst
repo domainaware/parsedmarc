@@ -38,19 +38,76 @@ CLI help
 
 ::
 
-   usage: Elastic_Parse_Emails.py [-H HOST] [-u USER] [-p PASSWORD]           
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] (optional, defaults to localhost:9200)            
-    Parses DMARC reports and saves them in ElasticSearch
+   usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                  [-s] [--debug] [-v]
+                  [file_path [file_path ...]]
+
+    Parses DMARC reports
+
+    positional arguments:
+      file_path             one or more paths to aggregate or forensic report
+                            files or emails
 
    optional arguments:
      -h, --help            show this help message and exit
+     -o OUTPUT, --output OUTPUT
+                           Write output files to the given directory
+     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                           nameservers to query (Default 8.8.8.8 4.4.4.4)
+     -t TIMEOUT, --timeout TIMEOUT
+                           number of seconds to wait for an answer from DNS
+                           (default 6.0)
      -H HOST, --host HOST  IMAP hostname or IP address
      -u USER, --user USER  IMAP user
      -p PASSWORD, --password PASSWORD
                            IMAP password
+     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
+                           The IMAP folder containing the reports Default: INBOX
+     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
+                           Specifies the IMAP folder to move messages to after
+                           processing them Default: Archive
+     -d, --delete          Delete the reports after processing them
      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
                            A list of one or more Elasticsearch hostnames or URLs
                            to use (Default localhost:9200)
+     --save-aggregate      Save aggregate reports to Elasticsearch
+     --save-forensic       Save forensic reports to Elasticsearch
+     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
+                           Email the results using this host
+     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
+                           Email the results using this user
+     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
+                           Email the results using this password
+     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
+                           Email the results using this from address
+     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
+                           Email the results to these addresses
+     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
+                           Email the results using this subject
+     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
+                           Email the results using this filename
+     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
+                           Email the results using this message
+     -w, --watch           Use an IMAP IDLE connection to process reports as they
+                           arrive in the inbox
+     --test                Do not move or delete IMAP messages
+     -s, --silent          Only print errors
+     --debug               Print debugging information
+     -v, --version         show program's version number and exit
+
+SPF and DMARC record validation
+===============================
+
+If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+
 Sample aggregate report output
 ==============================
 
@@ -145,21 +202,122 @@ forensic report that you can share publicly, please contact me!
 
 Installation
 ============
-| *Python 3 installers for Windows and macOS can be found at*
-| *https://www.python.org/downloads/*
 
-|* isntall python 3*
-| *install a 64bit java jdk from oracle*
-| *Set up enviornment varibales for Pip and Java_home and %java_home%/bin* 
-| *unpack and run elastic search and Kibana (must use same version numbers)*
-| *Set up enviornment varibales for Pip and Java*
-| *pip install -U git+https://github.com/JayBuckley7/parsedmarc.git*
+``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
 
-Usage
-=============
-| *run in the folder you cloned the repo:*
-| *./elastic_parse_emails.py -E "elasticIP:xxxx" -U "emailUserName" -P "EmailPassword" -H "EmailDomain.com"*
-| * you can replace -E with (-E "ip:port") that ElasticSearch is running on, by default it is localhost:9200*
+On Debian or Ubuntu systems, run:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python3-pip
+
+
+Python 3 installers for Windows and macOS can be found at
+https://www.python.org/downloads/
+
+To install or upgrade to the latest stable release of ``parsedmarc`` on
+macOS or Linux, run
+
+.. code-block:: bash
+
+    $ sudo -H pip3 install -U parsedmarc
+
+Or, install the latest development release directly from GitHub:
+
+.. code-block:: bash
+
+    $ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+
+.. note::
+
+    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows, simply
+    substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
+    above commands.
+
+Installation using pypy3
+------------------------
+
+For the best possible processing speed, consider using `parsedmarc` inside a ``pypy3``
+virtualenv. First, `download the latest version of pypy3`_. Extract it to
+``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
+symlink:
+
+.. code-block:: bash
+
+    $ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+
+Install ``virtualenv`` on your system:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python3-pip
+    $ sudo -H pip3 install -U virtualenv
+
+Uninstall any instance of ``parsedmarc`` that you may have installed globally
+
+.. code-block:: bash
+
+    $ sudo -H pip3 uninstall -y parsedmarc
+
+Next, create a ``pypy3`` virtualenv for parsedmarc
+
+
+.. code-block:: bash
+
+    $ sudo mkdir /opt/venvs
+    $ cd /opt/venvs
+    $ sudo -H pip3 install -U virtualenv
+    $ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
+
+To upgrade ``parsedmarc`` inside the virtualenv, run:
+
+
+.. code-block:: bash
+
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+
+Or, install the latest development release directly from GitHub:
+
+.. code-block:: bash
+
+    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+
+Optional dependencies
+---------------------
+
+If you would like to be able to parse emails saved from Microsoft Outlook
+(i.e. OLE .msg files), install ``msgconvert``:
+
+On Debian or Ubuntu systems, run:
+
+.. code-block:: bash
+
+    $ sudo apt-get install libemail-outlook-message-perl
+
+DNS performance
+---------------
+
+You can often improve performance by providing one or more local nameservers
+to the CLI or function calls, as long as those nameservers return the same
+records as the public DNS.
+
+
+.. note::
+
+   If you do not specify any nameservers, Cloudflare's public nameservers are
+   used by default, **not the system's default nameservers**.
+
+   This is done to avoid a situation where records in a local nameserver do
+   not match records in the public DNS.
+
+Testing multiple report analyzers
+---------------------------------
+
+If you would like to test parsedmarc and another report processing solution
+at the same time, you can have up to two mailto URIs each in the rua and ruf
+tags tgs in your DMARC record, separated by commas.
 
 Documentation
 =============

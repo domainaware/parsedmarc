@@ -25,7 +25,7 @@ import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import COMMASPACE, formatdate
+from email.utils import formatdate
 import smtplib
 import ssl
 import time
@@ -43,7 +43,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.8.1"
+__version__ = "3.9.7"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -97,14 +97,12 @@ def _get_base_domain(domain):
         str: The base domain of the given domain
 
     """
-   
     psl_path = ".public_suffix_list.dat"
+
     def download_psl():
-        print(psl_path)
         fresh_psl = publicsuffix.fetch().read()
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
-        
 
     if not os.path.exists(psl_path):
         download_psl()
@@ -113,7 +111,6 @@ def _get_base_domain(domain):
             os.stat(psl_path).st_mtime)
         if psl_age > timedelta(hours=24):
             try:
-                print("3spooky5me")
                 download_psl()
             except Exception as error:
                 logger.warning("Failed to download an updated PSL - \
@@ -423,25 +420,18 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
     Returns:
         OrderedDict: The parsed aggregate DMARC report
     """
-    print("parsing a report to xml")
     try:
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
         schema = "draft"
-        
         if "version" in report:
             schema = report["version"]
-        
         new_report = OrderedDict([("xml_schema", schema)])
-        
         new_report_metadata = OrderedDict()
-        
         org_name = _get_base_domain(report_metadata["org_name"])
-        
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
-        
         if "extra_contact_info" in report_metadata:
             extra = report_metadata["extra_contact_info"]
         new_report_metadata["org_extra_contact_info"] = extra
@@ -468,38 +458,33 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
         new_policy_published = OrderedDict()
         new_policy_published["domain"] = policy_published["domain"]
         adkim = "r"
-        
         if "adkim" in policy_published:
             if policy_published["adkim"] is not None:
                 adkim = policy_published["adkim"]
         new_policy_published["adkim"] = adkim
         aspf = "r"
-        
         if "aspf" in policy_published:
             if policy_published["aspf"] is not None:
                 aspf = policy_published["aspf"]
         new_policy_published["aspf"] = aspf
         new_policy_published["p"] = policy_published["p"]
         sp = new_policy_published["p"]
-       
         if "sp" in policy_published:
             if policy_published["sp"] is not None:
                 sp = report["policy_published"]["sp"]
         new_policy_published["sp"] = sp
         pct = "100"
-        
         if "pct" in policy_published:
             if policy_published["pct"] is not None:
                 pct = report["policy_published"]["pct"]
         new_policy_published["pct"] = pct
         fo = "0"
-        
         if "fo" in policy_published:
             if policy_published["fo"] is not None:
                 fo = report["policy_published"]["fo"]
         new_policy_published["fo"] = fo
         new_report["policy_published"] = new_policy_published
-        
+
         if type(report["record"]) == list:
             for record in report["record"]:
                 records.append(_parse_report_record(record,
@@ -507,7 +492,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
                                                     timeout=timeout))
 
         else:
-            records.append(_parse_report_record(report["record"]))
+            records.append(_parse_report_record(report["record"],
+                           nameservers=nameservers))
 
         new_report["records"] = records
 
@@ -586,6 +572,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
         OrderedDict: The parsed DMARC aggregate report
     """
     xml = extract_xml(_input)
+
     return parse_aggregate_report_xml(xml,
                                       nameservers=nameservers,
                                       timeout=timeout)
@@ -756,6 +743,9 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
                                                settings={"TO_TIMEZONE": "UTC"})
                 arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
                 parsed_report["arrival_date_utc"] = arrival_utc
+
+        if "arrival_date_utc" not in parsed_report:
+            raise InvalidForensicReport("Missing Arrival-Date")
 
         ip_address = parsed_report["source_ip"]
         parsed_report["source"] = _get_ip_address_info(ip_address,
@@ -946,12 +936,11 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             eml_path = "sample.eml"
             with open(eml_path, "rb") as eml_file:
                 rfc822 = eml_file.read()
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise FileNotFoundError(
-                "Error running msgconvert. Please ensure it is installed\n"
+                "msgconvert not found. Please ensure it is installed\n"
                 "sudo apt install libemail-outlook-message-perl\n"
-                "https://github.com/mvz/email-outlook-message-perl\n\n"
-                "{0}".format(e))
+                "https://github.com/mvz/email-outlook-message-perl")
         finally:
             os.chdir(orig_dir)
             shutil.rmtree(tmp_dir)
@@ -994,7 +983,10 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             payload = payload[0].__str__()
         if content_type == "message/feedback-report":
             try:
-                feedback_report = b64decode(payload).__str__()
+                if "Feedback-Type" in payload:
+                    feedback_report = payload
+                else:
+                    feedback_report = b64decode(payload).__str__()
                 feedback_report = feedback_report.lstrip("b'").rstrip("'")
                 feedback_report = feedback_report.replace("\\r", "")
                 feedback_report = feedback_report.replace("\\n", "\n")
@@ -1030,6 +1022,18 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
                                       ("report", aggregate_report)])
         except (TypeError, ValueError, binascii.Error):
             pass
+
+        except InvalidAggregateReport as e:
+            error = 'Message with subject "{0}" ' \
+                    'is not a valid ' \
+                    'aggregate DMARC report: {1}'.format(subject, e)
+            raise InvalidAggregateReport(error)
+
+        except InvalidForensicReport as e:
+            error = 'Message with subject "{0}" ' \
+                    'is not a valid ' \
+                    'forensic DMARC report: {1}'.format(subject, e)
+            raise InvalidForensicReport(error)
 
         except FileNotFoundError as e:
             error = 'Unable to parse message with subject "{0}": {1}' .format(
@@ -1072,7 +1076,6 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
                                ("report", report)])
     except InvalidAggregateReport:
         try:
-            print("are we failing here?")
             results = parse_report_email(content,
                                          nameservers=nameservers,
                                          timeout=timeout)
@@ -1082,7 +1085,29 @@ def parse_report_file(input_, nameservers=None, timeout=6.0):
     return results
 
 
-def get_dmarc_reports_from_inbox(host, user, password,
+def get_imap_capabilities(server):
+    """
+    Returns a list of an IMAP server's capabilities
+
+    Args:
+        server (imapclient.IMAPClient): An instance of imapclient.IMAPClient
+
+    Returns (list): A list of capabilities
+    """
+
+    capabilities = list(map(str, list(server.capabilities())))
+    for i in range(len(capabilities)):
+        capabilities[i] = str(capabilities[i]).replace("b'",
+                                                       "").replace("'",
+                                                                   "")
+    logger.debug("IMAP server supports: {0}".format(capabilities))
+
+    return capabilities
+
+
+def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
+                                 connection=None,
+                                 move_supported=None,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
                                  delete=False, test=False,
@@ -1095,6 +1120,9 @@ def get_dmarc_reports_from_inbox(host, user, password,
         host: The mail server hostname or IP address
         user: The mail server user
         password: The mail server password
+        connection: An IMAPCLient connection to reuse
+        move_supported: Indicate if the IMAP server supports the MOVE command
+        (autodetect if None)
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1108,15 +1136,15 @@ def get_dmarc_reports_from_inbox(host, user, password,
 
     def chunks(l, n):
         """Yield successive n-sized chunks from l."""
-        print("here goes nothing chunks(1,n), l is V n is VV")
-        print(l)
-        print(range(0, len(l), n))
         for i in range(0, len(l), n):
             yield l[i:i + n]
-            print("oh cool that worked")
 
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
+
+    if connection is None and (user is None or password is None):
+        raise ValueError("Must supply a connection, or a username and "
+                         "password")
 
     aggregate_reports = []
     forensic_reports = []
@@ -1124,15 +1152,38 @@ def get_dmarc_reports_from_inbox(host, user, password,
     forensic_report_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     try:
-        print("starting up...okay lets go")
-        server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(user, password)
-        print("authenticated login")
+        if connection:
+            server = connection
+        else:
+            server = imapclient.IMAPClient(host, use_uid=True)
+            server.login(user, password)
+
+        if move_supported is not None:
+            server_capabilities = get_imap_capabilities(server)
+            move_supported = "MOVE" in server_capabilities
+
+        def delete_messages(msg_uids):
+            if type(msg_uids) == str:
+                msg_uids = [msg_uids]
+
+            server.add_flags(msg_uids, [imapclient.DELETED])
+            server.expunge()
+
+        def move_messages(msg_uids, folder):
+            if type(msg_uids) == str:
+                msg_uids = [msg_uids]
+            for chunk in chunks(msg_uids, 100):
+                if move_supported:
+                    server.move(chunk, folder)
+                else:
+                    server.copy(msg_uids, folder)
+                    delete_messages(msg_uids)
+
         if not server.folder_exists(archive_folder):
             server.create_folder(archive_folder)
-            print("i gave that server a folder, servers love folders")
         try:
             # Test subfolder creation
             if not server.folder_exists(aggregate_reports_folder):
@@ -1147,72 +1198,50 @@ def get_dmarc_reports_from_inbox(host, user, password,
 
         if not server.folder_exists(aggregate_reports_folder):
             server.create_folder(aggregate_reports_folder)
-            print("i gave that server a folder, servers love folders")
         if not server.folder_exists(forensic_reports_folder):
             server.create_folder(forensic_reports_folder)
-            print("i gave that server a folder, servers love folders")
+        if not server.folder_exists(invalid_reports_folder):
+            server.create_folder(invalid_reports_folder)
         server.select_folder(reports_folder)
-        print("inside my folder")
         messages = server.search()
-        print("looking at some emails")
         for message_uid in messages:
             raw_msg = server.fetch(message_uid,
                                    ["RFC822"])[message_uid][b"RFC822"]
             msg_content = raw_msg.decode("utf-8", errors="replace")
 
             try:
-                print("looking at an email parsing it out")
                 parsed_email = parse_report_email(msg_content,
                                                   nameservers=nameservers,
                                                   timeout=dns_timeout)
                 if parsed_email["report_type"] == "aggregate":
-                    print("aggregating it")
                     aggregate_reports.append(parsed_email["report"])
                     aggregate_report_msg_uids.append(message_uid)
-                    print("aggregated")
                 elif parsed_email["report_type"] == "forensic":
-                    print("forensicing it")
                     forensic_reports.append(parsed_email["report"])
                     forensic_report_msg_uids.append(message_uid)
-                    print("forensiced")
             except InvalidDMARCReport as error:
-                print("found a bad email")
                 logger.warning(error.__str__())
-                server.add_flags(message_uid, [imapclient.DELETED])
-                server.expunge()
-                
+                if not test:
+                    if delete:
+                        delete_messages([message_uid])
+                    else:
+                        move_messages([message_uid], invalid_reports_folder)
+            if not test:
+                if delete:
+                    processed_messages = aggregate_report_msg_uids + \
+                                         forensic_report_msg_uids
+                    delete_messages(processed_messages)
+                else:
+                    if len(aggregate_report_msg_uids) > 0:
+                        move_messages(aggregate_report_msg_uids,
+                                      aggregate_reports_folder)
+                    if len(forensic_report_msg_uids) > 0:
+                        move_messages(forensic_report_msg_uids,
+                                      forensic_reports_folder)
 
-        if not test:
-            if delete:
-                processed_messages = aggregate_report_msg_uids + \
-                                     forensic_report_msg_uids
-                server.add_flags(processed_messages, [imapclient.DELETED])
-                server.expunge()
-            else:
-                print("not deleting these emails, moveing them somewhere though")
-                if len(aggregate_report_msg_uids) > 0:
-                    print("we'll move some to aggregate folders")
-                    loopcount = 0
-                    print("lets count some chunks")
-                    for chunk in chunks(aggregate_report_msg_uids, 100):
-                        print(loopcount)
-                        server.move(chunk, aggregate_reports_folder)
-                        loopcount+=1
-                    print("there were that many chunks ^^^")
-                if len(forensic_report_msg_uids) > 0:
-                    print("we'll move some to forensic folders")
-                    loopcount = 0
-                    print("lets count some chunks")
-                    for chunk in chunks(forensic_report_msg_uids, 100):
-                        print(loopcount)
-                        server.move(chunk,forensic_reports_folder)
-                        loopcount+=1
-                    print("there were that many chunks ^^^") 
-                print("or....lets just not")
-        print("looked at all of the emails im making a report")
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
-        print("here it is")
+
         return results
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
@@ -1373,7 +1402,7 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
 
     msg = MIMEMultipart()
     msg['From'] = mail_from
-    msg['To'] = COMMASPACE.join(mail_to)
+    msg['To'] = ", ".join(mail_to)
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
     text = message or "Please see the attached zip file\n"
@@ -1419,94 +1448,6 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
     except ssl.CertificateError as error:
         raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
-def parse_inbox(host, user, password,
-                                 reports_folder="INBOX",
-                                 archive_folder="Archive",
-                                 delete=True, test=False,
-                                 nameservers=None,
-                                 dns_timeout=6.0):
-
-    aggregate_reports = []
-    forensic_reports = []
-    aggregate_report_msg_uids = []
-    forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
-
-    try:
-        print("starting up...okay lets go")
-        server = imapclient.IMAPClient(host, use_uid=True)
-        server.login(user, password)
-        print("authenticated login")
-        if not server.folder_exists(archive_folder):
-            server.create_folder(archive_folder)
-            print("i gave that server a folder, servers love folders")
-        try:
-            # Test subfolder creation
-            if not server.folder_exists(aggregate_reports_folder):
-                server.create_folder(aggregate_reports_folder)
-        except imapclient.exceptions.IMAPClientError:
-            #  Only replace / with . when . doesn't work
-            # This usually indicates a dovecot IMAP server
-            aggregate_reports_folder = aggregate_reports_folder.replace("/",
-                                                                        ".")
-            forensic_reports_folder = forensic_reports_folder.replace("/",
-                                                                      ".")
-
-        if not server.folder_exists(aggregate_reports_folder):
-            server.create_folder(aggregate_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        if not server.folder_exists(forensic_reports_folder):
-            server.create_folder(forensic_reports_folder)
-            print("i gave that server a folder, servers love folders")
-        server.select_folder(reports_folder)
-        messages = server.search()
-        for message_uid in messages:
-            raw_msg = server.fetch(message_uid,["RFC822"])[message_uid][b"RFC822"]            
-            msg_content = raw_msg.decode("utf-8", errors="replace")
-
-            try:
-                parsed_email = parse_report_email(msg_content, nameservers=nameservers,timeout=dns_timeout)
-                if parsed_email["report_type"] == "aggregate":
-                    print("saving aggregate to elastic")
-                    elastic.save_aggregate_report_to_elasticsearch(parsed_email["report"])
-                    server.copy(message_uid, aggregate_reports_folder)
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()   
-                elif parsed_email["report_type"] == "forensic":
-                    print("saving forensic to elsatic")
-                    forensic_reports.append(parsed_email["report"])
-                    elastic.save_forensic_report_to_elasticsearch((parsed_email["report"]))
-                    server.copy(message_uid, forensic_reports_folder) 
-                    server.add_flags(message_uid, [imapclient.DELETED])
-                    server.expunge()          
-            except InvalidDMARCReport as error:
-                print("found a bad email")
-                server.add_flags(message_uid, [imapclient.DELETED])
-                server.expunge()
-                server.logout()
-                return
-
-
-        server.logout()
-        return "void"
-    except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise IMAPError(error)
-    except socket.gaierror:
-        raise IMAPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise IMAPError("Connection refused")
-    except ConnectionResetError:
-        raise IMAPError("Connection reset")
-    except ConnectionAbortedError:
-        raise IMAPError("Connection aborted")
-    except TimeoutError:
-        raise IMAPError("Connection timed out")
-    except ssl.SSLError as error:
-        raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
-        raise IMAPError("Certificate error: {0}".format(error.__str__()))
 
 def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False, wait=30,
@@ -1514,6 +1455,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
+
     Args:
         host: The mail server hostname or IP address
         username: The mail server username
@@ -1536,6 +1478,12 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
 
     try:
         server.login(username, password)
+        imap_capabilities = get_imap_capabilities(server)
+        if "IDLE" not in imap_capabilities:
+            raise IMAPError("Cannot watch inbox: IMAP server does not support "
+                            "the IDLE command")
+
+        ms = "MOVE" in imap_capabilities
         server.select_folder(rf)
         idle_start_time = time.monotonic()
         server.idle()
@@ -1558,13 +1506,28 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     except ssl.CertificateError as error:
         raise IMAPError("Certificate error: {0}".format(error.__str__()))
     except BrokenPipeError:
-        raise IMAPError("Broken pipe")
+        logger.debug("IMAP error: Broken pipe")
+        logger.debug("Reconnecting watcher")
+        server = imapclient.IMAPClient(host)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        ms = "MOVE" in get_imap_capabilities(server)
+        res = get_dmarc_reports_from_inbox(connection=server,
+                                           move_supported=ms,
+                                           reports_folder=rf,
+                                           archive_folder=af,
+                                           delete=delete,
+                                           test=test,
+                                           nameservers=ns,
+                                           dns_timeout=dt)
+        callback(res)
+        server.idle()
 
     while True:
         try:
-            # Refresh the IDLE session every 10 minutes to stay connected
-            if time.monotonic() - idle_start_time > 10 * 60:
-                logger.info("IMAP: Refreshing IDLE session")
+            # Refresh the IDLE session every 5 minutes to stay connected
+            if time.monotonic() - idle_start_time > 5 * 60:
+                logger.debug("IMAP: Refreshing IDLE session")
                 server.idle_done()
                 server.idle()
                 idle_start_time = time.monotonic()
@@ -1572,8 +1535,9 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             if responses is not None:
                 for response in responses:
                     if response[1] == b'RECENT' and response[0] > 0:
-                        res = get_dmarc_reports_from_inbox(host, username,
-                                                           password,
+                        server.idle_done()
+                        res = get_dmarc_reports_from_inbox(connection=server,
+                                                           move_supported=ms,
                                                            reports_folder=rf,
                                                            archive_folder=af,
                                                            delete=delete,
@@ -1581,6 +1545,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
                                                            nameservers=ns,
                                                            dns_timeout=dt)
                         callback(res)
+                        server.idle()
+                        idle_start_time = time.monotonic()
                         break
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
@@ -1600,112 +1566,26 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         except ssl.CertificateError as error:
             raise IMAPError("Certificate error: {0}".format(error.__str__()))
         except BrokenPipeError:
-            raise IMAPError("Broken pipe")
+            logger.debug("IMAP error: Broken pipe")
+            logger.debug("Reconnecting watcher")
+            server = imapclient.IMAPClient(host)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
+            callback(res)
+            server.idle()
         except KeyboardInterrupt:
             break
 
     try:
         server.idle_done()
-        logger.info("IMAP: Sending DONE")
-        server.logout()
-    except BrokenPipeError:
-        pass
-
-def parse_watched_inbox(host, username, password, reports_folder="INBOX",
-                archive_folder="Archive", delete=True, test=False, wait=30,
-                nameservers=None, dns_timeout=6.0):
-    """
-    Use an IDLE IMAP connection to parse incoming emails, and pass the results
-    to a callback function
-
-    Args:
-        host: The mail server hostname or IP address
-        username: The mail server username
-        password: The mail server password
-        callback: The callback function to receive the parsing results
-        reports_folder: The IMAP folder where reports can be found
-        archive_folder: The folder to move processed mail to
-        delete (bool): Delete  messages after processing them
-        test (bool): Do not move or delete messages after processing them
-        wait (int): Number of seconds to wait for a IMAP IDLE response
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        dns_timeout (float): Set the DNS query timeout
-    """
-    rf = reports_folder
-    af = archive_folder
-    ns = nameservers
-    dt = dns_timeout
-    server = imapclient.IMAPClient(host)
-    parse_inbox(host, username, password)
-
-    try:
-        server.login(username, password)
-        server.select_folder(rf)
-        idle_start_time = time.monotonic()
-        server.idle()
-
-    except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise IMAPError(error)
-    except socket.gaierror:
-        raise IMAPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise IMAPError("Connection refused")
-    except ConnectionResetError:
-        raise IMAPError("Connection reset")
-    except ConnectionAbortedError:
-        raise IMAPError("Connection aborted")
-    except TimeoutError:
-        raise IMAPError("Connection timed out")
-    except ssl.SSLError as error:
-        raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
-        raise IMAPError("Certificate error: {0}".format(error.__str__()))
-    except BrokenPipeError:
-        raise IMAPError("Broken pipe")
-
-    while True:
-        try:
-            # Refresh the IDLE session every 10 minutes to stay connected
-            if time.monotonic() - idle_start_time > 10 * 60:
-                logger.info("IMAP: Refreshing IDLE session")
-                server.idle_done()
-                server.idle()
-                idle_start_time = time.monotonic()
-            responses = server.idle_check(timeout=wait)
-            if responses is not None:
-                for response in responses:
-                    if response[1] == b'RECENT' and response[0] > 0:
-                        print("email received.")
-                        parse_inbox(host, username, password)   
-                        print("waiting for some more emails...")                 
-                        break
-        except imapclient.exceptions.IMAPClientError as error:
-            error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-            raise IMAPError(error)
-        except socket.gaierror:
-            raise IMAPError("DNS resolution failed")
-        except ConnectionRefusedError:
-            raise IMAPError("Connection refused")
-        except ConnectionResetError:
-            raise IMAPError("Connection reset")
-        except ConnectionAbortedError:
-            raise IMAPError("Connection aborted")
-        except TimeoutError:
-            raise IMAPError("Connection timed out")
-        except ssl.SSLError as error:
-            raise IMAPError("SSL error: {0}".format(error.__str__()))
-        except ssl.CertificateError as error:
-            raise IMAPError("Certificate error: {0}".format(error.__str__()))
-        except BrokenPipeError:
-            raise IMAPError("Broken pipe")
-        except KeyboardInterrupt:
-            break
-
-    try:
-        server.idle_done()
-        logger.info("IMAP: Sending DONE")
         server.logout()
     except BrokenPipeError:
         pass
