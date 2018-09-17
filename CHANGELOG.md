@@ -5,6 +5,7 @@
 Collector (HEC)
 - Use a browser-like `User-Agent` when downloading the Public Suffix List, to 
 avoid being blocked by security proxies
+- Reduce default DNS timeout to 0.5 seconds
 
 3.9.7
 -----

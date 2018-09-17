@@ -131,7 +131,7 @@ def _get_base_domain(domain):
     return psl.get_public_suffix(domain)
 
 
-def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
+def _query_dns(domain, record_type, nameservers=None, timeout=0.5):
     """
     Queries DNS
 
@@ -159,7 +159,7 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
         resolver.query(domain, record_type, tcp=True)))
 
 
-def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
+def _get_reverse_dns(ip_address, nameservers=None, timeout=0.5):
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
@@ -284,7 +284,7 @@ def _get_ip_address_country(ip_address):
     return country
 
 
-def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
+def _get_ip_address_info(ip_address, nameservers=None, timeout=0.5):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -315,7 +315,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     return info
 
 
-def _parse_report_record(record, nameservers=None, timeout=6.0):
+def _parse_report_record(record, nameservers=None, timeout=0.5):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -418,7 +418,7 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
+def parse_aggregate_report_xml(xml, nameservers=None, timeout=0.5):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -568,7 +568,7 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
+def parse_aggregate_report_file(_input, nameservers=None, timeout=0.5):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -697,7 +697,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          nameservers=None, timeout=6.0):
+                          nameservers=None, timeout=0.5):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -904,7 +904,7 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, timeout=6.0):
+def parse_report_email(input_, nameservers=None, timeout=0.5):
     """
     Parses a DMARC report from an email
 
@@ -1058,7 +1058,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
     return result
 
 
-def parse_report_file(input_, nameservers=None, timeout=6.0):
+def parse_report_file(input_, nameservers=None, timeout=0.5):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
