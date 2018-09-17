@@ -350,6 +350,12 @@ def _parse_report_record(record, nameservers=None, timeout=0.5):
     if "spf" in policy_evaluated:
         new_policy_evaluated["spf"] = policy_evaluated["spf"]
     reasons = []
+    spf_aligned = policy_evaluated["spf"] == "pass"
+    dkim_aligned = policy_evaluated["dkim"] == "pass"
+    dmarc_aligned = spf_aligned or dkim_aligned
+    new_record["alignment"]["spf"] = spf_aligned
+    new_record["alignment"]["dkim"] = dkim_aligned
+    new_record["alignment"]["dmarc"] = dmarc_aligned
     if "reason" in policy_evaluated:
         if type(policy_evaluated["reason"]) == list:
             reasons = policy_evaluated["reason"]
