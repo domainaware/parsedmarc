@@ -110,7 +110,7 @@ def _get_base_domain(domain):
             __version__
         )
         headers = {"User-Agent": user_agent}
-        fresh_psl = requests.get(url, headers=headers).content
+        fresh_psl = requests.get(url, headers=headers).text
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
 
