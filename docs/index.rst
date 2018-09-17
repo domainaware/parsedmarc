@@ -45,16 +45,17 @@ CLI help
 
 ::
 
-    usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [-v]
-                  [file_path [file_path ...]]
+    usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
+              [-H HOST] [-u USER] [-p PASSWORD] [-r REPORTS_FOLDER]
+              [-a ARCHIVE_FOLDER] [-d]
+              [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] [--hec HEC]
+              [--hec-key HEC_KEY] [--hec-index HEC_INDEX] [--save-aggregate]
+              [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
+              [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
+              [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+              [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+              [-s] [--debug] [-v]
+              [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -67,7 +68,7 @@ CLI help
       -o OUTPUT, --output OUTPUT
                             Write output files to the given directory
       -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                            nameservers to query ((Default is Cloudflare's)
+                            nameservers to query (Default is Cloudflare's)
       -t TIMEOUT, --timeout TIMEOUT
                             number of seconds to wait for an answer from DNS
                             (default 6.0)
@@ -83,9 +84,15 @@ CLI help
       -d, --delete          Delete the reports after processing them
       -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
                             A list of one or more Elasticsearch hostnames or URLs
-                            to use (Default localhost:9200)
-      --save-aggregate      Save aggregate reports to Elasticsearch
-      --save-forensic       Save forensic reports to Elasticsearch
+                            to use (e.g. localhost:9200)
+      --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
+      --hec-key HEC_KEY     The authorization key for a Splunk HTTP event
+                            collector (HEC)
+      --hec-index HEC_INDEX
+                            The index to use when sending events to the Splunk
+                            HTTP Events (Default: dmarc)
+      --save-aggregate      Save aggregate reports to search indexes
+      --save-forensic       Save forensic reports to search indexes
       -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
                             Email the results using this host
       -U OUTGOING_USER, --outgoing-user OUTGOING_USER
