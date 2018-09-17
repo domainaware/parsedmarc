@@ -13,9 +13,8 @@ import json
 from elasticsearch.exceptions import ElasticsearchException
 
 from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
-    parse_report_file, elastic, save_output, watch_inbox, email_results, \
-    SMTPError, ParserError, __version__
-
+    parse_report_file, elastic, splunk, save_output, watch_inbox, \
+    email_results, SMTPError, ParserError, __version__
 
 def _main():
     """Called when the module is executed"""
@@ -28,22 +27,38 @@ def _main():
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
-                    elastic.save_aggregate_report_to_elasticsearch(report)
+                    if args.elasticsearch_host:
+                        elastic.save_aggregate_report_to_elasticsearch(report)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
                     exit(1)
+            if args.hec:
+                try:
+                    aggregate_reports_ = reports_["aggregate_reports"]
+                    hec_client.save_aggregate_reports_to_splunk(
+                        aggregate_reports_)
+                except splunk.SplunkError as e:
+                    logger.error("Splunk HEC error: {0{".format(e.__str__()))
         if args.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
-                    elastic.save_forensic_report_to_elasticsearch(report)
+                    if args.elasticsearch_host:
+                        elastic.save_forensic_report_to_elasticsearch(report)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
+            if args.hec:
+                try:
+                    forensic_reports_ = reports_["forensic_reports"]
+                    hec_client.save_forensic_reports_to_splunk(
+                        forensic_reports_)
+                except splunk.SplunkError as e:
+                    logger.error("Splunk HEC error: {0{".format(e.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
@@ -76,15 +91,23 @@ def _main():
 
     arg_parser.add_argument("-E", "--elasticsearch-host", nargs="*",
                             help="A list of one or more Elasticsearch "
-                                 "hostnames or URLs to use (Default "
-                                 "localhost:9200)",
-                            default=["localhost:9200"])
+                                 "hostnames or URLs to use (e.g. "
+                                 "localhost:9200)")
+    arg_parser.add_argument("--hec", help="URL to a Splunk HTTP Event "
+                                          "Collector (HEC)")
+    arg_parser.add_argument("--hec-key", help="The authorization key for a "
+                                              "Splunk HTTP event collector "
+                                              "(HEC)")
+    arg_parser.add_argument("--hec-index", help="The index to use when "
+                                                "sending events to the "
+                                                "Splunk HTTP Events "
+                                                "(Default: dmarc)")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
-                            help="Save aggregate reports to Elasticsearch")
+                            help="Save aggregate reports to search indexes")
     arg_parser.add_argument("--save-forensic", action="store_true",
                             default=False,
-                            help="Save forensic reports to Elasticsearch")
+                            help="Save forensic reports to search indexes")
     arg_parser.add_argument("-O", "--outgoing-host",
                             help="Email the results using this host")
     arg_parser.add_argument("-U", "--outgoing-user",
@@ -129,11 +152,22 @@ def _main():
         exit(1)
 
     if args.save_aggregate or args.save_forensic:
+        if args.elasticsearch_host is None and args.hec is None:
+            args.elasticsearch_host = ["localhost:9200"]
         try:
-            elastic.set_hosts(args.elasticsearch_host)
-            elastic.create_indexes()
+            if args.elasticsearch_host:
+                elastic.set_hosts(args.elasticsearch_host)
+                elastic.create_indexes()
+            if args.hec:
+                hec_client = splunk.HECClient(args.hec, args.hec_token,
+                                              index=args.hec_index)
         except ElasticsearchException as error:
             logger.error("Elasticsearch Error: {0}".format(error.__str__()))
+            exit(1)
+
+    if args.hec:
+        if args.hec_key is None:
+            logger.error("HEC URL provided without HEC key")
             exit(1)
 
     file_paths = []

@@ -4,6 +4,7 @@
 
 import logging
 import os
+import platform
 import xml.parsers.expat as expat
 import json
 from datetime import datetime
@@ -30,6 +31,7 @@ import smtplib
 import ssl
 import time
 
+import requests
 import publicsuffix
 import xmltodict
 import dns.reversename
@@ -43,7 +45,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.7"
+__version__ = "4.0.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -100,7 +102,15 @@ def _get_base_domain(domain):
     psl_path = ".public_suffix_list.dat"
 
     def download_psl():
-        fresh_psl = publicsuffix.fetch().read()
+        url = "https://publicsuffix.org/list/public_suffix_list.dat"
+        # Use a browser-like user agent string to bypass some proxy blocks
+        user_agent = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+            platform.system(),
+            platform.release(),
+            __version__
+        )
+        headers = {"User-Agent": user_agent}
+        fresh_psl = requests.get(url, headers=headers).content
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
 

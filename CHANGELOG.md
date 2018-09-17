@@ -1,3 +1,11 @@
+4.0.0
+-----
+
+- Add support for sending DMARC reports to a Splunk HTTP Events 
+Collector (HEC)
+- Use a browser-like `User-Agent` when downloading the Public Suffix List, to 
+avoid being blocked by security proxies
+
 3.9.7
 -----
 
