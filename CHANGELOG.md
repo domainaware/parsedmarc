@@ -32,7 +32,7 @@ downloads
 3.9.3
 -----
 
-- Fix crash when forensic recorts are missing `Arrival-Date`
+- Fix crash when forensic reports are missing `Arrival-Date`
 
 3.9.2
 -----
