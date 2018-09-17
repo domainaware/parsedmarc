@@ -16,6 +16,7 @@ from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, splunk, save_output, watch_inbox, \
     email_results, SMTPError, ParserError, __version__
 
+
 def _main():
     """Called when the module is executed"""
     def process_reports(reports_):
