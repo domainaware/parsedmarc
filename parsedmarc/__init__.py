@@ -624,7 +624,7 @@ def parsed_aggregate_reports_to_csv(reports):
               "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
               "spf_domains", "spf_scopes", "spf_results"]
 
-    csv_file_object = StringIO()
+    csv_file_object = StringIO(newline="\n")
     writer = DictWriter(csv_file_object, fields)
     writer.writeheader()
 

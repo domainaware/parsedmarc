@@ -11,6 +11,7 @@ GeoIP DB to avoid being blocked by security proxies
 system path
 - Fix `SMTP AUTH extension not supported by server` error on some SMTP servers 
 (#12)
+- Always use `\n` as the newline when generating CSVs
 
 3.9.7
 -----
