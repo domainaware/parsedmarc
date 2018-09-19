@@ -161,6 +161,11 @@ JSON
             "base_domain": "bellsouth.net"
           },
           "count": 2,
+          "alignment": {
+            "spf": true,
+            "dkim": false,
+            "dmarc": true
+          },
           "policy_evaluated": {
             "disposition": "none",
             "dkim": "fail",
