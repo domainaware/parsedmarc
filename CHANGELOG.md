@@ -7,6 +7,8 @@ Collector (HEC)
 GeoIP DB to avoid being blocked by security proxies
 - Reduce default DNS timeout to 2.0 seconds
 - Add alignment booleans to JSON output
+- Fix `.msg` parsing CLI exception when `msgconvert` is not found in the 
+system path
 
 3.9.7
 -----

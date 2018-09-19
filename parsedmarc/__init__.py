@@ -958,10 +958,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
             with open(eml_path, "rb") as eml_file:
                 rfc822 = eml_file.read()
         except FileNotFoundError:
-            raise FileNotFoundError(
-                "msgconvert not found. Please ensure it is installed\n"
-                "sudo apt install libemail-outlook-message-perl\n"
-                "https://github.com/mvz/email-outlook-message-perl")
+            raise ParserError("msgconvert utility not found")
         finally:
             os.chdir(orig_dir)
             shutil.rmtree(tmp_dir)
