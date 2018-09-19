@@ -37,7 +37,6 @@ import xmltodict
 import dns.reversename
 import dns.resolver
 import dns.exception
-from requests import get
 import geoip2.database
 import geoip2.errors
 import imapclient
@@ -55,6 +54,13 @@ feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
+
+
+USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+            platform.system(),
+            platform.release(),
+            __version__
+        )
 
 
 class ParserError(RuntimeError):
@@ -104,12 +110,7 @@ def _get_base_domain(domain):
     def download_psl():
         url = "https://publicsuffix.org/list/public_suffix_list.dat"
         # Use a browser-like user agent string to bypass some proxy blocks
-        user_agent = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
-            platform.system(),
-            platform.release(),
-            __version__
-        )
-        headers = {"User-Agent": user_agent}
+        headers = {"User-Agent": USER_AGENT}
         fresh_psl = requests.get(url, headers=headers).text
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
@@ -131,7 +132,7 @@ def _get_base_domain(domain):
     return psl.get_public_suffix(domain)
 
 
-def _query_dns(domain, record_type, nameservers=None, timeout=0.5):
+def _query_dns(domain, record_type, nameservers=None, timeout=2.0):
     """
     Queries DNS
 
@@ -159,7 +160,7 @@ def _query_dns(domain, record_type, nameservers=None, timeout=0.5):
         resolver.query(domain, record_type, tcp=True)))
 
 
-def _get_reverse_dns(ip_address, nameservers=None, timeout=0.5):
+def _get_reverse_dns(ip_address, nameservers=None, timeout=2.0):
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
@@ -245,8 +246,11 @@ def _get_ip_address_country(ip_address):
         """
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
+        # Use a browser-like user agent string to bypass some proxy blocks
+        headers = {"User-Agent": USER_AGENT}
         original_filename = "GeoLite2-Country.mmdb"
-        tar_file = tarfile.open(fileobj=BytesIO(get(url).content), mode="r:gz")
+        tar_bytes = requests.get(url, headers=headers).content
+        tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
         tar_dir = tar_file.getnames()[0]
         tar_path = "{0}/{1}".format(tar_dir, original_filename)
         tar_file.extract(tar_path)
@@ -284,7 +288,7 @@ def _get_ip_address_country(ip_address):
     return country
 
 
-def _get_ip_address_info(ip_address, nameservers=None, timeout=0.5):
+def _get_ip_address_info(ip_address, nameservers=None, timeout=2.0):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -315,7 +319,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=0.5):
     return info
 
 
-def _parse_report_record(record, nameservers=None, timeout=0.5):
+def _parse_report_record(record, nameservers=None, timeout=2.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -425,7 +429,7 @@ def _parse_report_record(record, nameservers=None, timeout=0.5):
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=0.5):
+def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -575,7 +579,7 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, timeout=0.5):
+def parse_aggregate_report_file(_input, nameservers=None, timeout=2.0):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -704,7 +708,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          nameservers=None, timeout=0.5):
+                          nameservers=None, timeout=2.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -911,7 +915,7 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, timeout=0.5):
+def parse_report_email(input_, nameservers=None, timeout=2.0):
     """
     Parses a DMARC report from an email
 
@@ -1065,7 +1069,7 @@ def parse_report_email(input_, nameservers=None, timeout=0.5):
     return result
 
 
-def parse_report_file(input_, nameservers=None, timeout=0.5):
+def parse_report_file(input_, nameservers=None, timeout=2.0):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 

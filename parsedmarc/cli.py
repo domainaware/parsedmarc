@@ -72,7 +72,7 @@ def _main():
                                  "(Default is Cloudflare's)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (default 0.5)",
+                                 "from DNS (default 2.0)",
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")

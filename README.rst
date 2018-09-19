@@ -64,7 +64,7 @@ CLI help
                             nameservers to query (Default is Cloudflare's)
       -t TIMEOUT, --timeout TIMEOUT
                             number of seconds to wait for an answer from DNS
-                            (default 0.5)
+                            (default 2.0)
       -H HOST, --host HOST  IMAP hostname or IP address
       -u USER, --user USER  IMAP user
       -p PASSWORD, --password PASSWORD
