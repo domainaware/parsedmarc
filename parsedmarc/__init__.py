@@ -1438,9 +1438,11 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
             ssl_context = ssl.create_default_context()
         if use_ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
+            server.connect(host, port)
             server.helo()
         else:
             server = smtplib.SMTP(host, port=port)
+            server.connect(host, port)
             server.ehlo()
             if starttls:
                 server.starttls(context=ssl_context)

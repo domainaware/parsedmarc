@@ -9,6 +9,8 @@ GeoIP DB to avoid being blocked by security proxies
 - Add alignment booleans to JSON output
 - Fix `.msg` parsing CLI exception when `msgconvert` is not found in the 
 system path
+- Fix `SMTP AUTH extension not supported by server` error on some SMTP servers 
+(#12)
 
 3.9.7
 -----
