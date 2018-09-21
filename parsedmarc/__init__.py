@@ -1387,7 +1387,7 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
+def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
                   use_ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
