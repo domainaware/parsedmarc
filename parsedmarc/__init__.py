@@ -1590,6 +1590,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             logger.debug("IMAP error: Broken pipe")
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
+            server.login(username, password)
             server.select_folder(rf)
             idle_start_time = time.monotonic()
             res = get_dmarc_reports_from_inbox(connection=server,
