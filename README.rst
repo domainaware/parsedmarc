@@ -46,7 +46,8 @@ CLI help
               [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
               [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
               [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-              [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+              [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [--outgoing-ssl]
+              [--outgoing-tls] [--outgoing-port] [-w] [--test]
               [-s] [--debug] [-v]
               [file_path [file_path ...]]
 
@@ -102,6 +103,10 @@ CLI help
                             Email the results using this filename
       -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
                             Email the results using this message
+      -outgoing-ssl         SMTP use SSL
+      -outgoing-tls         SMTP use STARTTLS
+      -outgoing-port PORT_NUMBER
+                            Set port used for SMTP connection. Defaults to 25
       -w, --watch           Use an IMAP IDLE connection to process reports as they
                             arrive in the inbox
       --test                Do not move or delete IMAP messages
