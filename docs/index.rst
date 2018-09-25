@@ -90,7 +90,7 @@ CLI help
                             collector (HEC)
       --hec-index HEC_INDEX
                             The index to use when sending events to the Splunk
-                            HTTP Events (Default: dmarc)
+                            HTTP Events
       --save-aggregate      Save aggregate reports to search indexes
       --save-forensic       Save forensic reports to search indexes
       -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST

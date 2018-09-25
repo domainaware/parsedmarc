@@ -17,7 +17,7 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
-    def __init__(self, url, access_token,index="dmarc",
+    def __init__(self, url, access_token, index,
                  source="parsedmarc", verify=True):
         """
         Initializes the HECClient
@@ -50,18 +50,48 @@ class HECClient(object):
         Saves aggregate DMARC reports to Splunk
 
         Args:
-            aggregate_reports (list): A list of aggregate report dictionaries
+            aggregate_reports: A list of aggregate report dictionaries
             to save in Splunk
 
         """
         if type(aggregate_reports) == dict:
             aggregate_reports = [aggregate_reports]
 
+        data = self._common_data.copy()
         json_str = ""
         for report in aggregate_reports:
-            data = self._common_data.copy()
+            for record in report["records"]:
+                new_report = dict()
+                for metadata in report["report_metadata"]:
+                    new_report[metadata] = report["report_metadata"][metadata]
+                new_report["policy_published"] = report["policy_published"]
+                new_report["source_ip_address"] = record["source"][
+                    "ip_address"]
+                new_report["source_country"] = record["source"]["country"]
+                new_report["source_reverse_dns"] = record["source"][
+                    "reverse_dns"]
+                new_report["source_base_domain"] = record["source"][
+                    "base_domain"]
+                new_report["message_count"] = record["count"]
+                new_report["disposition"] = record["policy_evaluated"][
+                    "disposition"
+                ]
+                new_report["spf_aligned"] = record["alignment"]["spf"]
+                new_report["dkim_aligned"] = record["alignment"]["dkim"]
+                new_report["passed_dmarc"] = record["alignment"]["dmarc"]
+                new_report["header_from"] = record["identifiers"][
+                    "header_from"]
+                new_report["envelope_from"] = record["identifiers"][
+                    "envelope_from"]
+                if "dkim" in record["auth_results"]:
+                    new_report["dkim_results"] = record["auth_results"][
+                        "dkim"]
+                if "spf" in record["spf_results"]:
+                    new_report["spf_results"] = record["auth_results"][
+                        "spf"]
+
             data["sourcetype"] = "dmarc:aggregate"
-            data["event"] = report.copy()
+            data["event"] = new_report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
         try:
