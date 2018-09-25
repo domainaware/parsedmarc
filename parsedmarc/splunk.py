@@ -57,6 +57,9 @@ class HECClient(object):
         if type(aggregate_reports) == dict:
             aggregate_reports = [aggregate_reports]
 
+        if len(aggregate_reports) < 1:
+            return
+
         data = self._common_data.copy()
         json_str = ""
         for report in aggregate_reports:
@@ -101,20 +104,23 @@ class HECClient(object):
         if response["code"] != 0:
             raise SplunkError(response["text"])
 
-    def save_forensic_reports_to_splunk(self, aggregate_reports):
+    def save_forensic_reports_to_splunk(self, forensic_reports):
         """
         Saves forensic DMARC reports to Splunk
 
         Args:
-            aggregate_reports (list):  A list of forensic report dictionaries
+            forensic_reports (list):  A list of forensic report dictionaries
             to save in Splunk
 
         """
-        if type(aggregate_reports) == dict:
-            aggregate_reports = [aggregate_reports]
+        if type(forensic_reports) == dict:
+            forensic_reports = [forensic_reports]
+
+        if len(forensic_reports) < 1:
+            return
 
         json_str = ""
-        for report in aggregate_reports:
+        for report in forensic_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:forensic"
             data["event"] = report.copy()
