@@ -45,17 +45,17 @@ CLI help
 
 ::
 
-    usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
+   usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
               [-H HOST] [-u USER] [-p PASSWORD] [-r REPORTS_FOLDER]
               [-a ARCHIVE_FOLDER] [-d]
               [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] [--hec HEC]
-              [--hec-key HEC_KEY] [--hec-index HEC_INDEX] [--save-aggregate]
-              [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
-              [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
-              [--outgoing-SSL OUTGOING_SSL] [-F OUTGOING_FROM]
-              [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-              [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-              [-s] [--debug] [-v]
+              [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+              [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+              [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+              [--outgoing-port OUTGOING_PORT] [--outgoing-SSL OUTGOING_SSL]
+              [-F OUTGOING_FROM] [-T OUTGOING_TO [OUTGOING_TO ...]]
+              [-S OUTGOING_SUBJECT] [-A OUTGOING_ATTACHMENT]
+              [-M OUTGOING_MESSAGE] [-w] [--test] [-s] [--debug] [-v]
               [file_path [file_path ...]]
 
    Parses DMARC reports
@@ -87,7 +87,8 @@ CLI help
                            A list of one or more Elasticsearch hostnames or URLs
                            to use (e.g. localhost:9200)
      --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
-     --hec-key HEC_KEY     The authorization key for a Splunk HTTP event
+     --hec-token HEC_TOKEN
+                           The authorization token for a Splunk HTTP event
                            collector (HEC)
      --hec-index HEC_INDEX
                            The index to use when sending events to the Splunk
@@ -121,6 +122,7 @@ CLI help
      -s, --silent          Only print errors
      --debug               Print debugging information
      -v, --version         show program's version number and exit
+
 
 
 SPF and DMARC record validation
