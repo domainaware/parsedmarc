@@ -244,29 +244,29 @@ def _main():
                 port = 25
             if args.outgoing_ssl:
                 email_results(results, args.outgoing_host, args.outgoing_from,
-                    args.outgoing_to, user=args.outgoing_user,
-                    password=args.outgoing_password,
-                    subject=args.outgoing_subject,
-                    port=port,
-                    use_ssl=True,
-                    starttls=False)
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=True,
+                              starttls=False)
 
             elif args.outgoing_tls:
                 email_results(results, args.outgoing_host, args.outgoing_from,
-                    args.outgoing_to, user=args.outgoing_user,
-                    password=args.outgoing_password,
-                    subject=args.outgoing_subject,
-                    port=port,
-                    use_ssl=False,
-                    starttls=True)
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=False,
+                              starttls=True)
             else:
                 email_results(results, args.outgoing_host, args.outgoing_from,
-                    args.outgoing_to, user=args.outgoing_user,
-                    password=args.outgoing_password,
-                    subject=args.outgoing_subject,
-                    port=port,
-                    use_ssl=False,
-                    starttls=False)
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=False,
+                              starttls=False)
 
         except SMTPError as error:
             logger.error("SMTP Error: {0}".format(error.__str__()))
