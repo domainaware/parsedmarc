@@ -114,6 +114,12 @@ def _main():
                             help="Email the results using this user")
     arg_parser.add_argument("-P", "--outgoing-password",
                             help="Email the results using this password")
+    arg_parser.add_argument("--outgoing-port",
+                            help="Email the results using this port")
+    arg_parser.add_argument("--outgoing-SSL",
+                            help="Use SSL/TLS instead of STARTTLS (more "
+                                 "secure, and required by some providers, "
+                                 "like Gmail)")
     arg_parser.add_argument("-F", "--outgoing-from",
                             help="Email the results using this from address")
     arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
@@ -234,7 +240,8 @@ def _main():
 
         try:
             email_results(results, args.outgoing_host, args.outgoing_from,
-                          args.outgoing_to, user=args.outgoing_user,
+                          args.outgoing_to, use_ssl=args.outgoing_ssl,
+                          user=args.outgoing_user,
                           password=args.outgoing_password,
                           subject=args.outgoing_subject)
         except SMTPError as error:

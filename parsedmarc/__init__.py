@@ -237,6 +237,7 @@ def human_timestamp_to_timestamp(human_timestamp):
     """
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
+
 def _get_ip_address_country(ip_address):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
@@ -1399,7 +1400,7 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
+def email_results(results, host, mail_from, mail_to, port=0,
                   use_ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
@@ -1411,7 +1412,6 @@ def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
         port (int): Port to use
-        starttls (bool): use STARTTLS
         use_ssl (bool): Require a SSL connection from the start
         user: An optional username
         password: An optional password
@@ -1451,14 +1451,17 @@ def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
         if use_ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
-            server.helo()
+            server.ehlo_or_helo_if_needed()
         else:
             server = smtplib.SMTP(host, port=port)
             server.connect(host, port)
-            server.ehlo()
-            if starttls:
+            server.ehlo_or_helo_if_needed()
+            if server.has_extn("starttls"):
                 server.starttls(context=ssl_context)
-                server.helo()
+                server.ehlo()
+            else:
+                logger.warning("SMTP server does not support STARTTLS. "
+                               "Proceeding in plain text!")
         if user and password:
             server.login(user, password)
         server.sendmail(mail_from, mail_to, msg.as_string())

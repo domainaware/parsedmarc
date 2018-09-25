@@ -38,13 +38,14 @@ CLI help
 
 ::
 
-   usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
+  usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
               [-H HOST] [-u USER] [-p PASSWORD] [-r REPORTS_FOLDER]
               [-a ARCHIVE_FOLDER] [-d]
               [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] [--hec HEC]
               [--hec-key HEC_KEY] [--hec-index HEC_INDEX] [--save-aggregate]
               [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
-              [-P OUTGOING_PASSWORD] [-F OUTGOING_FROM]
+              [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
+              [--outgoing-SSL OUTGOING_SSL] [-F OUTGOING_FROM]
               [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
               [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
               [-s] [--debug] [-v]
@@ -92,6 +93,11 @@ CLI help
                             Email the results using this user
       -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
                             Email the results using this password
+      --outgoing-port OUTGOING_PORT
+                            Email the results using this port
+      --outgoing-SSL OUTGOING_SSL
+                            Use SSL/TLS instead of STARTTLS (more secure, and
+                            required by some providers, like Gmail)
       -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
                             Email the results using this from address
       -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
