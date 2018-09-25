@@ -59,7 +59,7 @@ def _main():
                     hec_client.save_forensic_reports_to_splunk(
                         forensic_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0{".format(e.__str__()))
+                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
