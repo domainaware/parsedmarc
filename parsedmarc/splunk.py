@@ -89,7 +89,7 @@ class HECClient(object):
                 if "dkim" in record["auth_results"]:
                     new_report["dkim_results"] = record["auth_results"][
                         "dkim"]
-                if "spf" in record["spf_results"]:
+                if "spf" in record["auth_results"]:
                     new_report["spf_results"] = record["auth_results"][
                         "spf"]
 
