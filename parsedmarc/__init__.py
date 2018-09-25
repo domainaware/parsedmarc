@@ -225,6 +225,18 @@ def human_timestamp_to_datetime(human_timestamp):
     return datetime.strptime(human_timestamp, "%Y-%m-%d %H:%M:%S")
 
 
+def human_timestamp_to_timestamp(human_timestamp):
+    """
+    Converts a human-readable timestamp into a into a UNIX timestamp
+
+    Args:
+        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+
+    Returns:
+        float: The converted timestamp
+    """
+    return human_timestamp_to_datetime(human_timestamp).timestamp()
+
 def _get_ip_address_country(ip_address):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the

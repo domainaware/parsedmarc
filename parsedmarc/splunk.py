@@ -17,7 +17,7 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
-    def __init__(self, url, access_token, index="dmarc",
+    def __init__(self, url, access_token,index="dmarc",
                  source="parsedmarc", verify=True):
         """
         Initializes the HECClient
@@ -60,7 +60,7 @@ class HECClient(object):
         json_str = ""
         for report in aggregate_reports:
             data = self._common_data.copy()
-            data["sourcetype"] = "dmarc_aggregate"
+            data["sourcetype"] = "dmarc:aggregate"
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
@@ -86,7 +86,7 @@ class HECClient(object):
         json_str = ""
         for report in aggregate_reports:
             data = self._common_data.copy()
-            data["sourcetype"] = "dmarc_forensic"
+            data["sourcetype"] = "dmarc:forensic"
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
