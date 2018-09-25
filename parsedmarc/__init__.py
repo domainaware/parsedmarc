@@ -1434,21 +1434,17 @@ def email_results(results, host, mail_from, mail_to, port=None, starttls=False,
     msg.attach(part)
 
     try:
-        print("Connect to "+host+" at port "+str(port))
         if ssl_context is None:
             ssl_context = ssl.create_default_context()
         if use_ssl:
-            print("DEBUG:SSL connect")
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
             server.ehlo()
         else:
-            print("DEBUG: PLAIN connect")
             server = smtplib.SMTP(host, port=port)
             server.connect(host, port)
             server.ehlo()
             if starttls:
-                print("DEBUG: Upgrade to TLS")
                 server.starttls()
                 server.ehlo()
         if user and password:
