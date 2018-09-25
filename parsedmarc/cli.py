@@ -42,7 +42,7 @@ def _main():
                     hec_client.save_aggregate_reports_to_splunk(
                         aggregate_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0{".format(e.__str__()))
+                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
         if args.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
