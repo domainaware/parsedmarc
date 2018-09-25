@@ -102,6 +102,11 @@ def _main():
     arg_parser.add_argument("--hec-index", help="The index to use when "
                                                 "sending events to the "
                                                 "Splunk HTTP Events")
+    arg_parser.add_argument("--hec-skip-certificate-verification",
+                            action="store_true",
+                            default=False,
+                            help="Skip certificate verification for Splunk "
+                                 "HEC")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
                             help="Save aggregate reports to search indexes")
@@ -173,8 +178,13 @@ def _main():
             logger.error("HEC token and HEC index are required when "
                          "using HEC URL")
             exit(1)
+
+        verify = True
+        if args.hec_skip_certificate_verification:
+            verify = False
         hec_client = splunk.HECClient(args.hec, args.hec_token,
-                                      args.hec_index)
+                                      args.hec_index,
+                                      verify=verify)
 
     file_paths = []
     for file_path in args.file_path:

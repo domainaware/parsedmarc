@@ -64,6 +64,20 @@ CLI help
               [-M OUTGOING_MESSAGE] [-w] [--test] [-s] [--debug] [-v]
               [file_path [file_path ...]]
 
+    usage: cli.py [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT]
+              [-H HOST] [-u USER] [-p PASSWORD] [-r REPORTS_FOLDER]
+              [-a ARCHIVE_FOLDER] [-d]
+              [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]] [--hec HEC]
+              [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+              [--hec-skip-certificate-verification] [--save-aggregate]
+              [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
+              [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
+              [--outgoing-SSL OUTGOING_SSL] [-F OUTGOING_FROM]
+              [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+              [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+              [-s] [--debug] [-v]
+              [file_path [file_path ...]]
+
     Parses DMARC reports
 
     positional arguments:
@@ -99,6 +113,8 @@ CLI help
       --hec-index HEC_INDEX
                             The index to use when sending events to the Splunk
                             HTTP Events
+      --hec-skip-certificate-verification
+                            Skip certificate verification for Splunk HEC
       --save-aggregate      Save aggregate reports to search indexes
       --save-forensic       Save forensic reports to search indexes
       -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
