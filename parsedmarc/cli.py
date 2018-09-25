@@ -165,8 +165,8 @@ def _main():
                 elastic.set_hosts(args.elasticsearch_host)
                 elastic.create_indexes()
             if args.hec:
-                if args.hec_token is None or args.hec_index is None:
-                    logger.error("HEC token and HEC index are required when "
+                if args.hec_key is None or args.hec_index is None:
+                    logger.error("HEC key and HEC index are required when "
                                  "using HEC URL")
                     exit(1)
                 hec_client = splunk.HECClient(args.hec, args.hec_token,
