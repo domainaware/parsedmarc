@@ -1399,7 +1399,7 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
+def email_results(results, host, mail_from, mail_to, port=None, starttls=False,
                   use_ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
@@ -1451,17 +1451,18 @@ def email_results(results, host, mail_from, mail_to, port=587, starttls=True,
         if use_ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
-            server.helo()
+            server.ehlo()
         else:
             server = smtplib.SMTP(host, port=port)
             server.connect(host, port)
             server.ehlo()
             if starttls:
-                server.starttls(context=ssl_context)
-                server.helo()
+                server.starttls()
+                server.ehlo()
         if user and password:
             server.login(user, password)
         server.sendmail(mail_from, mail_to, msg.as_string())
+        server.quit()
     except smtplib.SMTPException as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
         raise SMTPError(error)

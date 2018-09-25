@@ -114,6 +114,12 @@ def _main():
                             help="Email the results using this user")
     arg_parser.add_argument("-P", "--outgoing-password",
                             help="Email the results using this password")
+    arg_parser.add_argument("--outgoing-port",
+                            help="Server port to use")
+    arg_parser.add_argument("--outgoing-tls", action="store_true",
+                            help="Use STARTTLS")
+    arg_parser.add_argument("--outgoing-ssl", action="store_true",
+                            help="Use SSL")
     arg_parser.add_argument("-F", "--outgoing-from",
                             help="Email the results using this from address")
     arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
@@ -233,10 +239,38 @@ def _main():
             exit(1)
 
         try:
-            email_results(results, args.outgoing_host, args.outgoing_from,
-                          args.outgoing_to, user=args.outgoing_user,
-                          password=args.outgoing_password,
-                          subject=args.outgoing_subject)
+            if args.outgoing_port is None:
+                port = 25
+            elif args.outgoing_port != 25:
+                port = args.outgoing_port
+            else:
+                port = 25
+            if args.outgoing_ssl:
+                email_results(results, args.outgoing_host, args.outgoing_from,
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=True,
+                              starttls=False)
+
+            elif args.outgoing_tls:
+                email_results(results, args.outgoing_host, args.outgoing_from,
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=False,
+                              starttls=True)
+            else:
+                email_results(results, args.outgoing_host, args.outgoing_from,
+                              args.outgoing_to, user=args.outgoing_user,
+                              password=args.outgoing_password,
+                              subject=args.outgoing_subject,
+                              port=port,
+                              use_ssl=False,
+                              starttls=False)
+
         except SMTPError as error:
             logger.error("SMTP Error: {0}".format(error.__str__()))
             exit(1)
