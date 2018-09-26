@@ -646,12 +646,6 @@ Then, enable the service
     You must also run the above commands whenever you edit
     ``parsedmarc.service``.
 
-Use this command to check the status of the service:
-
-.. code-block:: bash
-
-    sudo service parsedmarc status
-
 .. warning::
 
     Always restart the service every time you upgrade to a new version of
@@ -660,6 +654,23 @@ Use this command to check the status of the service:
    .. code-block:: bash
 
        sudo service parsedmarc restart
+
+To check the status of the service, run:
+
+.. code-block:: bash
+
+    service parsedmarc status
+
+.. note::
+
+   In the event of a crash, systemd will restart the service after 10 minutes,
+   but the `service parsedmarc status` command will only show the logs for the
+   current process. To vew the logs for previous runs as well as the
+   current process (newest to oldest), run:
+
+   .. code-block:: bash
+
+       journalctl -u parsedmarc.service -r
 
 
 Using the Kibana dashboards
