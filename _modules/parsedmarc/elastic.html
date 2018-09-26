@@ -164,6 +164,7 @@
 
 
 <span class="k">class</span> <span class="nc">_PublishedPolicy</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">adkim</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">aspf</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -195,7 +196,6 @@
     <span class="n">report_id</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">date_range</span> <span class="o">=</span> <span class="n">DateRange</span><span class="p">()</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
-    <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">published_policy</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="n">_PublishedPolicy</span><span class="p">)</span>
     <span class="n">source_ip_address</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
     <span class="n">source_country</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -372,6 +372,7 @@
                                                   <span class="n">begin_date_human</span><span class="p">,</span>
                                                   <span class="n">end_date_human</span><span class="p">))</span>
     <span class="n">published_policy</span> <span class="o">=</span> <span class="n">_PublishedPolicy</span><span class="p">(</span>
+        <span class="n">domain</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
         <span class="n">adkim</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;adkim&quot;</span><span class="p">],</span>
         <span class="n">aspf</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;aspf&quot;</span><span class="p">],</span>
         <span class="n">p</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;p&quot;</span><span class="p">],</span>
@@ -389,7 +390,6 @@
             <span class="n">report_id</span><span class="o">=</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">],</span>
             <span class="n">date_range</span><span class="o">=</span><span class="n">date_range</span><span class="p">,</span>
             <span class="n">errors</span><span class="o">=</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">],</span>
-            <span class="n">domain</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
             <span class="n">published_policy</span><span class="o">=</span><span class="n">published_policy</span><span class="p">,</span>
             <span class="n">source_ip_address</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;ip_address&quot;</span><span class="p">],</span>
             <span class="n">source_country</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">],</span>
