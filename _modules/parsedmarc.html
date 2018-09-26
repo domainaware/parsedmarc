@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 3.9.7 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.0.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                3.9.7
+                4.0.0
               </div>
             
           
@@ -149,6 +149,7 @@
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">xml.parsers.expat</span> <span class="k">as</span> <span class="nn">expat</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
@@ -175,12 +176,12 @@
 <span class="kn">import</span> <span class="nn">ssl</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
+<span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">publicsuffix</span>
 <span class="kn">import</span> <span class="nn">xmltodict</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
 <span class="kn">import</span> <span class="nn">dns.resolver</span>
 <span class="kn">import</span> <span class="nn">dns.exception</span>
-<span class="kn">from</span> <span class="nn">requests</span> <span class="k">import</span> <span class="n">get</span>
 <span class="kn">import</span> <span class="nn">geoip2.database</span>
 <span class="kn">import</span> <span class="nn">geoip2.errors</span>
 <span class="kn">import</span> <span class="nn">imapclient</span>
@@ -188,7 +189,7 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;3.9.7&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;4.0.0&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
@@ -198,6 +199,13 @@
 <span class="n">MAGIC_ZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x50\x4B\x03\x04</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_GZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1F\x8B</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_XML</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3c\x3f\x78\x6d\x6c\x20</span><span class="s2">&quot;</span>
+
+
+<span class="n">USER_AGENT</span> <span class="o">=</span> <span class="s2">&quot;Mozilla/5.0 ((0 </span><span class="si">{1}</span><span class="s2">)) parsedmarc/</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
+            <span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
+            <span class="n">__version__</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../index.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
@@ -245,7 +253,10 @@
     <span class="n">psl_path</span> <span class="o">=</span> <span class="s2">&quot;.public_suffix_list.dat&quot;</span>
 
     <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
-        <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://publicsuffix.org/list/public_suffix_list.dat&quot;</span>
+        <span class="c1"># Use a browser-like user agent string to bypass some proxy blocks</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
+        <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fresh_psl_file</span><span class="p">:</span>
             <span class="n">fresh_psl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fresh_psl</span><span class="p">)</span>
 
@@ -266,7 +277,7 @@
     <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Queries DNS</span>
 
@@ -294,7 +305,7 @@
         <span class="n">resolver</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">tcp</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
 
 
-<span class="k">def</span> <span class="nf">_get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resolves an IP address to a hostname using a reverse DNS query</span>
 
@@ -359,6 +370,19 @@
     <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="human_timestamp_to_timestamp"><a class="viewcode-back" href="../index.html#parsedmarc.human_timestamp_to_timestamp">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a human-readable timestamp into a into a UNIX timestamp</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The converted timestamp</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span></div>
+
+
 <span class="k">def</span> <span class="nf">_get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Uses the MaxMind Geolite2 Country database to return the ISO code for the</span>
@@ -380,8 +404,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://geolite.maxmind.com/download/geoip/database/&quot;</span> \
               <span class="s2">&quot;GeoLite2-Country.tar.gz&quot;</span>
+        <span class="c1"># Use a browser-like user agent string to bypass some proxy blocks</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
         <span class="n">original_filename</span> <span class="o">=</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span>
-        <span class="n">tar_file</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r:gz&quot;</span><span class="p">)</span>
+        <span class="n">tar_bytes</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+        <span class="n">tar_file</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">tar_bytes</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r:gz&quot;</span><span class="p">)</span>
         <span class="n">tar_dir</span> <span class="o">=</span> <span class="n">tar_file</span><span class="o">.</span><span class="n">getnames</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">tar_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tar_dir</span><span class="p">,</span> <span class="n">original_filename</span><span class="p">)</span>
         <span class="n">tar_file</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">tar_path</span><span class="p">)</span>
@@ -419,7 +446,7 @@
     <span class="k">return</span> <span class="n">country</span>
 
 
-<span class="k">def</span> <span class="nf">_get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
 
@@ -450,7 +477,7 @@
     <span class="k">return</span> <span class="n">info</span>
 
 
-<span class="k">def</span> <span class="nf">_parse_report_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_parse_report_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a record from a DMARC aggregate report into a more consistent</span>
 <span class="sd">    format</span>
@@ -485,6 +512,13 @@
     <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
         <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
     <span class="n">reasons</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">spf_aligned</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span>
+    <span class="n">dkim_aligned</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span>
+    <span class="n">dmarc_aligned</span> <span class="o">=</span> <span class="n">spf_aligned</span> <span class="ow">or</span> <span class="n">dkim_aligned</span>
+    <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spf_aligned</span>
+    <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dkim_aligned</span>
+    <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dmarc_aligned</span>
     <span class="k">if</span> <span class="s2">&quot;reason&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;reason&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
             <span class="n">reasons</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;reason&quot;</span><span class="p">]</span>
@@ -553,7 +587,7 @@
     <span class="k">return</span> <span class="n">new_record</span>
 
 
-<div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
 
 <span class="sd">    Args:</span>
@@ -703,7 +737,7 @@
     <span class="k">return</span> <span class="n">xml</span></div>
 
 
-<div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as a</span>
 <span class="sd">    aggregate DMARC report</span>
 
@@ -748,7 +782,7 @@
               <span class="s2">&quot;envelope_to&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_domains&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_selectors&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_results&quot;</span><span class="p">,</span>
               <span class="s2">&quot;spf_domains&quot;</span><span class="p">,</span> <span class="s2">&quot;spf_scopes&quot;</span><span class="p">,</span> <span class="s2">&quot;spf_results&quot;</span><span class="p">]</span>
 
-    <span class="n">csv_file_object</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">csv_file_object</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span><span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">writer</span> <span class="o">=</span> <span class="n">DictWriter</span><span class="p">(</span><span class="n">csv_file_object</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
     <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
 
@@ -832,7 +866,7 @@
 
 
 <div class="viewcode-block" id="parse_forensic_report"><a class="viewcode-back" href="../index.html#parsedmarc.parse_forensic_report">[docs]</a><span class="k">def</span> <span class="nf">parse_forensic_report</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">sample_headers_only</span><span class="p">,</span>
-                          <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+                          <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a DMARC forensic report and sample to a ``OrderedDict``</span>
 
@@ -1039,7 +1073,7 @@
     <span class="k">return</span> <span class="n">csv_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parses a DMARC report from an email</span>
 
@@ -1082,10 +1116,7 @@
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">eml_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">eml_file</span><span class="p">:</span>
                 <span class="n">rfc822</span> <span class="o">=</span> <span class="n">eml_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
-                <span class="s2">&quot;msgconvert not found. Please ensure it is installed</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;sudo apt install libemail-outlook-message-perl</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;https://github.com/mvz/email-outlook-message-perl&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;msgconvert utility not found&quot;</span><span class="p">)</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">orig_dir</span><span class="p">)</span>
             <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">)</span>
@@ -1193,7 +1224,7 @@
     <span class="k">return</span> <span class="n">result</span></div>
 
 
-<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
 <span class="sd">    file-like object. or bytes</span>
 
@@ -1514,7 +1545,7 @@
     <span class="k">return</span> <span class="n">storage</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">starttls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                   <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">attachment_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -1526,7 +1557,6 @@
 <span class="sd">        mail_from: The value of the message from header</span>
 <span class="sd">        mail_to : A list of addresses to mail to</span>
 <span class="sd">        port (int): Port to use</span>
-<span class="sd">        starttls (bool): use STARTTLS</span>
 <span class="sd">        use_ssl (bool): Require a SSL connection from the start</span>
 <span class="sd">        user: An optional username</span>
 <span class="sd">        password: An optional password</span>
@@ -1565,13 +1595,18 @@
             <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP_SSL</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
-            <span class="n">server</span><span class="o">.</span><span class="n">helo</span><span class="p">()</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">ehlo_or_helo_if_needed</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
-            <span class="n">server</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">starttls</span><span class="p">:</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">ehlo_or_helo_if_needed</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">server</span><span class="o">.</span><span class="n">has_extn</span><span class="p">(</span><span class="s2">&quot;starttls&quot;</span><span class="p">):</span>
                 <span class="n">server</span><span class="o">.</span><span class="n">starttls</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
-                <span class="n">server</span><span class="o">.</span><span class="n">helo</span><span class="p">()</span>
+                <span class="n">server</span><span class="o">.</span><span class="n">ehlo</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;SMTP server does not support STARTTLS. &quot;</span>
+                               <span class="s2">&quot;Proceeding in plain text!&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">password</span><span class="p">:</span>
             <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">sendmail</span><span class="p">(</span><span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">as_string</span><span class="p">())</span>
@@ -1634,8 +1669,28 @@
         <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
 
     <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-        <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="c1"># Workaround for random Exchange/Office365 IMAP errors</span>
+        <span class="k">if</span> <span class="s2">&quot;Server Unavailable. 15&quot;</span> <span class="ow">in</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
+            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
+            <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+            <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
+                                               <span class="n">move_supported</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span>
+                                               <span class="n">reports_folder</span><span class="o">=</span><span class="n">rf</span><span class="p">,</span>
+                                               <span class="n">archive_folder</span><span class="o">=</span><span class="n">af</span><span class="p">,</span>
+                                               <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
+                                               <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
+                                               <span class="n">nameservers</span><span class="o">=</span><span class="n">ns</span><span class="p">,</span>
+                                               <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+            <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
@@ -1654,6 +1709,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: Broken pipe&quot;</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
         <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+        <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
         <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
         <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
@@ -1714,6 +1770,7 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: Broken pipe&quot;</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
             <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
@@ -1768,7 +1825,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'3.9.7',
+            VERSION:'4.0.0',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
