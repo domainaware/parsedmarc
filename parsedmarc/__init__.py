@@ -1524,8 +1524,28 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         server.idle()
 
     except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise IMAPError(error)
+        error = error.__str__().replace("b'", "").replace("'", "")
+        # Workaround for random Exchange/Office365 IMAP errors
+        if "Server Unavailable. 15" in error:
+            logger.debug("IMAP error: {0}".format(error))
+            logger.debug("Reconnecting watcher")
+            server = imapclient.IMAPClient(host)
+            server.login(username, password)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            ms = "MOVE" in get_imap_capabilities(server)
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
+            callback(res)
+            server.idle()
+        else:
+            raise IMAPError(error)
     except socket.gaierror:
         raise IMAPError("DNS resolution failed")
     except ConnectionRefusedError:

@@ -13,6 +13,7 @@ system path
 - Fall back to plain text SMTP if `--outgoing-ssl` is not used and `STARTTLS` 
 is not supported by the server
 - Always use `\n` as the newline when generating CSVs
+- Workaround for random Exchange/Office365 `Server Unavailable` IMAP errors
 
 3.9.7
 -----

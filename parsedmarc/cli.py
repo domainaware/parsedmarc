@@ -227,8 +227,7 @@ def _main():
             forensic_reports += reports["forensic_reports"]
 
         except IMAPError as error:
-            error_str = error.__str__().replace("b'", "").lstrip("'")
-            logger.error("IMAP Error: {0}".format(error_str))
+            logger.error("IMAP Error: {0}".format(error.__str__()))
             exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
@@ -264,8 +263,7 @@ def _main():
                         test=args.test, nameservers=args.nameservers,
                         dns_timeout=args.timeout)
         except IMAPError as error:
-            error_str = error.__str__().replace("b'", "").lstrip("'")
-            logger.error("IMAP Error: {0}".format(error_str))
+            logger.error("IMAP Error: {0}".format(error.__str__()))
             exit(1)
 
 
