@@ -13,8 +13,8 @@ import json
 from elasticsearch.exceptions import ElasticsearchException
 
 from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
-    parse_report_file, elastic, save_output, watch_inbox, email_results, \
-    SMTPError, ParserError, __version__
+    parse_report_file, elastic, splunk, save_output, watch_inbox, \
+    email_results, SMTPError, ParserError, __version__
 
 
 def _main():
@@ -28,22 +28,38 @@ def _main():
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
-                    elastic.save_aggregate_report_to_elasticsearch(report)
+                    if args.elasticsearch_host:
+                        elastic.save_aggregate_report_to_elasticsearch(report)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
                     exit(1)
+            if args.hec:
+                try:
+                    aggregate_reports_ = reports_["aggregate_reports"]
+                    hec_client.save_aggregate_reports_to_splunk(
+                        aggregate_reports_)
+                except splunk.SplunkError as e:
+                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
         if args.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
-                    elastic.save_forensic_report_to_elasticsearch(report)
+                    if args.elasticsearch_host:
+                        elastic.save_forensic_report_to_elasticsearch(report)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
+            if args.hec:
+                try:
+                    forensic_reports_ = reports_["forensic_reports"]
+                    hec_client.save_forensic_reports_to_splunk(
+                        forensic_reports_)
+                except splunk.SplunkError as e:
+                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("file_path", nargs="*",
@@ -56,7 +72,7 @@ def _main():
                                  "(Default is Cloudflare's)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (default 6.0)",
+                                 "from DNS (default 2.0)",
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
@@ -76,21 +92,39 @@ def _main():
 
     arg_parser.add_argument("-E", "--elasticsearch-host", nargs="*",
                             help="A list of one or more Elasticsearch "
-                                 "hostnames or URLs to use (Default "
-                                 "localhost:9200)",
-                            default=["localhost:9200"])
+                                 "hostnames or URLs to use (e.g. "
+                                 "localhost:9200)")
+    arg_parser.add_argument("--hec", help="URL to a Splunk HTTP Event "
+                                          "Collector (HEC)")
+    arg_parser.add_argument("--hec-token", help="The authorization token for "
+                                                "a Splunk "
+                                                "HTTP event collector (HEC)")
+    arg_parser.add_argument("--hec-index", help="The index to use when "
+                                                "sending events to the "
+                                                "Splunk HTTP Events")
+    arg_parser.add_argument("--hec-skip-certificate-verification",
+                            action="store_true",
+                            default=False,
+                            help="Skip certificate verification for Splunk "
+                                 "HEC")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
-                            help="Save aggregate reports to Elasticsearch")
+                            help="Save aggregate reports to search indexes")
     arg_parser.add_argument("--save-forensic", action="store_true",
                             default=False,
-                            help="Save forensic reports to Elasticsearch")
+                            help="Save forensic reports to search indexes")
     arg_parser.add_argument("-O", "--outgoing-host",
                             help="Email the results using this host")
     arg_parser.add_argument("-U", "--outgoing-user",
                             help="Email the results using this user")
     arg_parser.add_argument("-P", "--outgoing-password",
                             help="Email the results using this password")
+    arg_parser.add_argument("--outgoing-port",
+                            help="Email the results using this port")
+    arg_parser.add_argument("--outgoing-ssl",
+                            help="Use SSL/TLS instead of STARTTLS (more "
+                                 "secure, and required by some providers, "
+                                 "like Gmail)")
     arg_parser.add_argument("-F", "--outgoing-from",
                             help="Email the results using this from address")
     arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
@@ -129,12 +163,28 @@ def _main():
         exit(1)
 
     if args.save_aggregate or args.save_forensic:
+        if args.elasticsearch_host is None and args.hec is None:
+            args.elasticsearch_host = ["localhost:9200"]
         try:
-            elastic.set_hosts(args.elasticsearch_host)
-            elastic.create_indexes()
+            if args.elasticsearch_host:
+                elastic.set_hosts(args.elasticsearch_host)
+                elastic.create_indexes()
         except ElasticsearchException as error:
             logger.error("Elasticsearch Error: {0}".format(error.__str__()))
             exit(1)
+
+    if args.hec:
+        if args.hec_token is None or args.hec_index is None:
+            logger.error("HEC token and HEC index are required when "
+                         "using HEC URL")
+            exit(1)
+
+        verify = True
+        if args.hec_skip_certificate_verification:
+            verify = False
+        hec_client = splunk.HECClient(args.hec, args.hec_token,
+                                      args.hec_index,
+                                      verify=verify)
 
     file_paths = []
     for file_path in args.file_path:
@@ -196,7 +246,8 @@ def _main():
 
         try:
             email_results(results, args.outgoing_host, args.outgoing_from,
-                          args.outgoing_to, user=args.outgoing_user,
+                          args.outgoing_to, use_ssl=args.outgoing_ssl,
+                          user=args.outgoing_user,
                           password=args.outgoing_password,
                           subject=args.outgoing_subject)
         except SMTPError as error:

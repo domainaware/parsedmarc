@@ -4,6 +4,7 @@
 
 import logging
 import os
+import platform
 import xml.parsers.expat as expat
 import json
 from datetime import datetime
@@ -30,12 +31,12 @@ import smtplib
 import ssl
 import time
 
+import requests
 import publicsuffix
 import xmltodict
 import dns.reversename
 import dns.resolver
 import dns.exception
-from requests import get
 import geoip2.database
 import geoip2.errors
 import imapclient
@@ -43,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "3.9.7"
+__version__ = "4.0.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -53,6 +54,13 @@ feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
+
+
+USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+            platform.system(),
+            platform.release(),
+            __version__
+        )
 
 
 class ParserError(RuntimeError):
@@ -100,7 +108,10 @@ def _get_base_domain(domain):
     psl_path = ".public_suffix_list.dat"
 
     def download_psl():
-        fresh_psl = publicsuffix.fetch().read()
+        url = "https://publicsuffix.org/list/public_suffix_list.dat"
+        # Use a browser-like user agent string to bypass some proxy blocks
+        headers = {"User-Agent": USER_AGENT}
+        fresh_psl = requests.get(url, headers=headers).text
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
 
@@ -121,7 +132,7 @@ def _get_base_domain(domain):
     return psl.get_public_suffix(domain)
 
 
-def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
+def _query_dns(domain, record_type, nameservers=None, timeout=2.0):
     """
     Queries DNS
 
@@ -149,7 +160,7 @@ def _query_dns(domain, record_type, nameservers=None, timeout=6.0):
         resolver.query(domain, record_type, tcp=True)))
 
 
-def _get_reverse_dns(ip_address, nameservers=None, timeout=6.0):
+def _get_reverse_dns(ip_address, nameservers=None, timeout=2.0):
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
@@ -214,6 +225,19 @@ def human_timestamp_to_datetime(human_timestamp):
     return datetime.strptime(human_timestamp, "%Y-%m-%d %H:%M:%S")
 
 
+def human_timestamp_to_timestamp(human_timestamp):
+    """
+    Converts a human-readable timestamp into a into a UNIX timestamp
+
+    Args:
+        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+
+    Returns:
+        float: The converted timestamp
+    """
+    return human_timestamp_to_datetime(human_timestamp).timestamp()
+
+
 def _get_ip_address_country(ip_address):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
@@ -235,8 +259,11 @@ def _get_ip_address_country(ip_address):
         """
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
+        # Use a browser-like user agent string to bypass some proxy blocks
+        headers = {"User-Agent": USER_AGENT}
         original_filename = "GeoLite2-Country.mmdb"
-        tar_file = tarfile.open(fileobj=BytesIO(get(url).content), mode="r:gz")
+        tar_bytes = requests.get(url, headers=headers).content
+        tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
         tar_dir = tar_file.getnames()[0]
         tar_path = "{0}/{1}".format(tar_dir, original_filename)
         tar_file.extract(tar_path)
@@ -274,7 +301,7 @@ def _get_ip_address_country(ip_address):
     return country
 
 
-def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
+def _get_ip_address_info(ip_address, nameservers=None, timeout=2.0):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -305,7 +332,7 @@ def _get_ip_address_info(ip_address, nameservers=None, timeout=6.0):
     return info
 
 
-def _parse_report_record(record, nameservers=None, timeout=6.0):
+def _parse_report_record(record, nameservers=None, timeout=2.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -340,6 +367,13 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     if "spf" in policy_evaluated:
         new_policy_evaluated["spf"] = policy_evaluated["spf"]
     reasons = []
+    spf_aligned = policy_evaluated["spf"] == "pass"
+    dkim_aligned = policy_evaluated["dkim"] == "pass"
+    dmarc_aligned = spf_aligned or dkim_aligned
+    new_record["alignment"] = dict()
+    new_record["alignment"]["spf"] = spf_aligned
+    new_record["alignment"]["dkim"] = dkim_aligned
+    new_record["alignment"]["dmarc"] = dmarc_aligned
     if "reason" in policy_evaluated:
         if type(policy_evaluated["reason"]) == list:
             reasons = policy_evaluated["reason"]
@@ -408,7 +442,7 @@ def _parse_report_record(record, nameservers=None, timeout=6.0):
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=6.0):
+def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -558,7 +592,7 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, timeout=6.0):
+def parse_aggregate_report_file(_input, nameservers=None, timeout=2.0):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -603,7 +637,7 @@ def parsed_aggregate_reports_to_csv(reports):
               "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
               "spf_domains", "spf_scopes", "spf_results"]
 
-    csv_file_object = StringIO()
+    csv_file_object = StringIO(newline="\n")
     writer = DictWriter(csv_file_object, fields)
     writer.writeheader()
 
@@ -687,7 +721,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          nameservers=None, timeout=6.0):
+                          nameservers=None, timeout=2.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -894,7 +928,7 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, timeout=6.0):
+def parse_report_email(input_, nameservers=None, timeout=2.0):
     """
     Parses a DMARC report from an email
 
@@ -937,10 +971,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
             with open(eml_path, "rb") as eml_file:
                 rfc822 = eml_file.read()
         except FileNotFoundError:
-            raise FileNotFoundError(
-                "msgconvert not found. Please ensure it is installed\n"
-                "sudo apt install libemail-outlook-message-perl\n"
-                "https://github.com/mvz/email-outlook-message-perl")
+            raise ParserError("msgconvert utility not found")
         finally:
             os.chdir(orig_dir)
             shutil.rmtree(tmp_dir)
@@ -1048,7 +1079,7 @@ def parse_report_email(input_, nameservers=None, timeout=6.0):
     return result
 
 
-def parse_report_file(input_, nameservers=None, timeout=6.0):
+def parse_report_file(input_, nameservers=None, timeout=2.0):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -1369,7 +1400,7 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
+def email_results(results, host, mail_from, mail_to, port=0,
                   use_ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
@@ -1381,7 +1412,6 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
         port (int): Port to use
-        starttls (bool): use STARTTLS
         use_ssl (bool): Require a SSL connection from the start
         user: An optional username
         password: An optional password
@@ -1420,13 +1450,18 @@ def email_results(results, host, mail_from, mail_to, port=0, starttls=True,
             ssl_context = ssl.create_default_context()
         if use_ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
-            server.helo()
+            server.connect(host, port)
+            server.ehlo_or_helo_if_needed()
         else:
             server = smtplib.SMTP(host, port=port)
-            server.ehlo()
-            if starttls:
+            server.connect(host, port)
+            server.ehlo_or_helo_if_needed()
+            if server.has_extn("starttls"):
                 server.starttls(context=ssl_context)
-                server.helo()
+                server.ehlo()
+            else:
+                logger.warning("SMTP server does not support STARTTLS. "
+                               "Proceeding in plain text!")
         if user and password:
             server.login(user, password)
         server.sendmail(mail_from, mail_to, msg.as_string())
@@ -1489,8 +1524,28 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         server.idle()
 
     except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise IMAPError(error)
+        error = error.__str__().replace("b'", "").replace("'", "")
+        # Workaround for random Exchange/Office365 IMAP errors
+        if "Server Unavailable. 15" in error:
+            logger.debug("IMAP error: {0}".format(error))
+            logger.debug("Reconnecting watcher")
+            server = imapclient.IMAPClient(host)
+            server.login(username, password)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            ms = "MOVE" in get_imap_capabilities(server)
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
+            callback(res)
+            server.idle()
+        else:
+            raise IMAPError(error)
     except socket.gaierror:
         raise IMAPError("DNS resolution failed")
     except ConnectionRefusedError:
@@ -1509,6 +1564,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         logger.debug("IMAP error: Broken pipe")
         logger.debug("Reconnecting watcher")
         server = imapclient.IMAPClient(host)
+        server.login(username, password)
         server.select_folder(rf)
         idle_start_time = time.monotonic()
         ms = "MOVE" in get_imap_capabilities(server)
@@ -1569,6 +1625,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             logger.debug("IMAP error: Broken pipe")
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
+            server.login(username, password)
             server.select_folder(rf)
             idle_start_time = time.monotonic()
             res = get_dmarc_reports_from_inbox(connection=server,

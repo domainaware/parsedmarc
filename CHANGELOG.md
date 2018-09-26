@@ -1,3 +1,20 @@
+4.0.0
+-----
+
+- Add support for sending DMARC reports to a Splunk HTTP Events 
+Collector (HEC)
+- Use a browser-like `User-Agent` when downloading the Public Suffix List and 
+GeoIP DB to avoid being blocked by security proxies
+- Reduce default DNS timeout to 2.0 seconds
+- Add alignment booleans to JSON output
+- Fix `.msg` parsing CLI exception when `msgconvert` is not found in the 
+system path
+- Add `--outgoing-port` and  `--outgoing-ssl` options
+- Fall back to plain text SMTP if `--outgoing-ssl` is not used and `STARTTLS` 
+is not supported by the server
+- Always use `\n` as the newline when generating CSVs
+- Workaround for random Exchange/Office365 `Server Unavailable` IMAP errors
+
 3.9.7
 -----
 
@@ -24,7 +41,7 @@ downloads
 3.9.3
 -----
 
-- Fix crash when forensic recorts are missing `Arrival-Date`
+- Fix crash when forensic reports are missing `Arrival-Date`
 
 3.9.2
 -----
