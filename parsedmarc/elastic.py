@@ -17,6 +17,7 @@ class _PolicyOverride(InnerDoc):
 
 
 class _PublishedPolicy(InnerDoc):
+    domain = Text()
     adkim = Text()
     aspf = Text()
     p = Text()
@@ -48,7 +49,6 @@ class _AggregateReportDoc(Document):
     report_id = Text()
     date_range = DateRange()
     errors = Text()
-    domain = Text()
     published_policy = Object(_PublishedPolicy)
     source_ip_address = Ip()
     source_country = Text()
@@ -225,6 +225,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
                                                   begin_date_human,
                                                   end_date_human))
     published_policy = _PublishedPolicy(
+        domain=aggregate_report["policy_published"]["domain"],
         adkim=aggregate_report["policy_published"]["adkim"],
         aspf=aggregate_report["policy_published"]["aspf"],
         p=aggregate_report["policy_published"]["p"],
@@ -242,7 +243,6 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
             report_id=metadata["report_id"],
             date_range=date_range,
             errors=metadata["errors"],
-            domain=aggregate_report["policy_published"]["domain"],
             published_policy=published_policy,
             source_ip_address=record["source"]["ip_address"],
             source_country=record["source"]["country"],

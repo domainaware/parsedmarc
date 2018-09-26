@@ -1,3 +1,11 @@
+4.0.1
+-----
+
+- When saving aggregate reports in Elasticsearch store `domain` in 
+`published_policy`
+- Rename `policy_published` to `published_policy`when saving aggregate 
+reports to Splunk
+
 4.0.0
 -----
 
