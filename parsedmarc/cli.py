@@ -121,7 +121,7 @@ def _main():
                             help="Email the results using this password")
     arg_parser.add_argument("--outgoing-port",
                             help="Email the results using this port")
-    arg_parser.add_argument("--outgoing-SSL",
+    arg_parser.add_argument("--outgoing-ssl",
                             help="Use SSL/TLS instead of STARTTLS (more "
                                  "secure, and required by some providers, "
                                  "like Gmail)")
@@ -227,7 +227,8 @@ def _main():
             forensic_reports += reports["forensic_reports"]
 
         except IMAPError as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
+            error_str = error.__str__().replace("b'", "").lstrip("'")
+            logger.error("IMAP Error: {0}".format(error_str))
             exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
@@ -263,7 +264,8 @@ def _main():
                         test=args.test, nameservers=args.nameservers,
                         dns_timeout=args.timeout)
         except IMAPError as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
+            error_str = error.__str__().replace("b'", "").lstrip("'")
+            logger.error("IMAP Error: {0}".format(error_str))
             exit(1)
 
 

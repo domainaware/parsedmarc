@@ -106,7 +106,7 @@ CLI help
                            Email the results using this password
      --outgoing-port OUTGOING_PORT
                            Email the results using this port
-     --outgoing-SSL OUTGOING_SSL
+     --outgoing-ssl OUTGOING_SSL
                            Use SSL/TLS instead of STARTTLS (more secure, and
                            required by some providers, like Gmail)
      -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM

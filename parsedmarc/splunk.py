@@ -96,9 +96,8 @@ class HECClient(object):
             data["sourcetype"] = "dmarc:aggregate"
             data["event"] = new_report.copy()
             json_str += "{0}\n".format(json.dumps(data))
-
         try:
-            response = self.session.post(self.url, json=json_str).json()
+            response = self.session.post(self.url, data=json_str).json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
@@ -125,9 +124,8 @@ class HECClient(object):
             data["sourcetype"] = "dmarc:forensic"
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
-
         try:
-            response = self.session.post(self.url, json=json_str).json()
+            response = self.session.post(self.url, data=json_str).json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
