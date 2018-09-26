@@ -4,7 +4,7 @@ import json
 
 import requests
 
-from parsedmarc import __version__
+from parsedmarc import __version__, human_timestamp_to_timestamp
 
 
 class SplunkError(RuntimeError):
@@ -94,6 +94,8 @@ class HECClient(object):
                         "spf"]
 
             data["sourcetype"] = "dmarc:aggregate"
+            timestamp = human_timestamp_to_timestamp(new_report["begin_date"])
+            data["time"] = timestamp
             data["event"] = new_report.copy()
             json_str += "{0}\n".format(json.dumps(data))
         try:
@@ -122,6 +124,9 @@ class HECClient(object):
         for report in forensic_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:forensic"
+            timestamp = human_timestamp_to_timestamp(
+                report["arrival_date_utc"])
+            data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
         try:

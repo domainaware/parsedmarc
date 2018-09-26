@@ -1,3 +1,8 @@
+4.0.2
+-----
+
+- Use report timestamps for Splunk timestamps
+
 4.0.1
 -----
 
