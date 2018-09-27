@@ -1,3 +1,11 @@
+4.1.0
+-----
+
+- Add options for Elasticsearch prefixes and suffixes
+- If an aggregate report has the invalid `disposition` value `pass`, change
+it to `none`
+
+
 4.0.2
 -----
 

@@ -7,9 +7,6 @@ from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
 
-aggregate_index = Index("dmarc_aggregate")
-forensic_index = Index("dmarc_forensic")
-
 
 class _PolicyOverride(InnerDoc):
     type = Text()
@@ -172,20 +169,33 @@ def set_hosts(hosts):
     connections.create_connection(hosts=hosts, timeout=20)
 
 
-def create_indexes():
-    """Creates the required indexes"""
-    if not aggregate_index.exists():
-        aggregate_index.create()
-    if not forensic_index.exists():
-        forensic_index.create()
+def create_indexes(names=None, settings=None):
+    """
+    Create Elasticsearch indexes
+
+    Args:
+        names (list): A list of index names
+        ["dmarc_aggregate", "dmarc_forensic"] by default
+        settings (dict): Index settings
+
+    """
+    if names is None:
+        names = ["dmarc_aggregate", "dmarc_forensic"]
+    for name in names:
+        index = Index(name)
+        if not index.exists():
+            index.put_settings(settings)
+            index.create()
 
 
-def save_aggregate_report_to_elasticsearch(aggregate_report):
+def save_aggregate_report_to_elasticsearch(aggregate_report,
+                                           index="dmarc_aggregate"):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
+        index (str): The name of the index to save to
 
     Raises:
             AlreadySaved
@@ -210,7 +220,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
     begin_date_query = Q(dict(match=dict(date_range=begin_date)))
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
-    search = aggregate_index.search()
+    search = Index(index).search()
     search.query = org_name_query & report_id_query & domain_query & \
         begin_date_query & end_date_query
 
@@ -270,15 +280,19 @@ def save_aggregate_report_to_elasticsearch(aggregate_report):
             agg_doc.add_spf_result(domain=spf_result["domain"],
                                    scope=spf_result["scope"],
                                    result=spf_result["result"])
+
+        agg_doc.meta.index = index
         agg_doc.save()
 
 
-def save_forensic_report_to_elasticsearch(forensic_report):
+def save_forensic_report_to_elasticsearch(forensic_report,
+                                          index="dmarc_forensic"):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 
         Args:
             forensic_report (OrderedDict): A parsed forensic report
+            index (str): The name of the index to save to
 
         Raises:
             AlreadySaved
@@ -295,7 +309,7 @@ def save_forensic_report_to_elasticsearch(forensic_report):
     arrival_date_human = forensic_report["arrival_date_utc"]
     arrival_date = parsedmarc.human_timestamp_to_datetime(arrival_date_human)
 
-    search = forensic_index.search()
+    search = Index(index).search()
     from_query = {"match": {"sample.headers.from": headers["from"]}}
     subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
     arrival_query = {"match": {"sample.headers.arrival_date": arrival_date}}
@@ -364,4 +378,5 @@ def save_forensic_report_to_elasticsearch(forensic_report):
         sample=sample
     )
 
+    forensic_doc.meta.index = index
     forensic_doc.save()

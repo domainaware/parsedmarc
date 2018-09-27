@@ -29,7 +29,8 @@ def _main():
             for report in reports_["aggregate_reports"]:
                 try:
                     if args.elasticsearch_host:
-                        elastic.save_aggregate_report_to_elasticsearch(report)
+                        elastic.save_aggregate_report_to_elasticsearch(
+                            report, index=es_aggregate_index)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
@@ -47,7 +48,8 @@ def _main():
             for report in reports_["forensic_reports"]:
                 try:
                     if args.elasticsearch_host:
-                        elastic.save_forensic_report_to_elasticsearch(report)
+                        elastic.save_forensic_report_to_elasticsearch(
+                            report, index=es_forensic_index)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except ElasticsearchException as error_:
@@ -94,6 +96,14 @@ def _main():
                             help="A list of one or more Elasticsearch "
                                  "hostnames or URLs to use (e.g. "
                                  "localhost:9200)")
+    arg_parser.add_argument("--elasticsearch-index-prefix",
+                            help="Prefix to add in front of the "
+                                 "dmarc_aggregate and dmarc_forensic "
+                                 "Elasticsearch index names, joined by _")
+    arg_parser.add_argument("--elasticsearch-index-suffix",
+                            help="Append this suffix to the "
+                                 "dmarc_aggregate and dmarc_forensic "
+                                 "Elasticsearch index names, joined by _")
     arg_parser.add_argument("--hec", help="URL to a Splunk HTTP Event "
                                           "Collector (HEC)")
     arg_parser.add_argument("--hec-token", help="The authorization token for "
@@ -162,13 +172,26 @@ def _main():
         arg_parser.print_help()
         exit(1)
 
+    es_aggregate_index = "dmarc_aggregate"
+    es_forensic_index = "dmarc_forensic"
+
+    if args.elasticsearch_index_prefix:
+        prefix = args.elasticsearch_index_prefix
+        es_aggregate_index = "{0}_{1}".format(prefix, es_aggregate_index)
+        es_forensic_index = "{0}_{1}".format(prefix, es_forensic_index)
+
+    if args.elasticsearch_index_suffix:
+        suffix = args.elasticsearch_index_suffix
+        es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
+        es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
+
     if args.save_aggregate or args.save_forensic:
         if args.elasticsearch_host is None and args.hec is None:
             args.elasticsearch_host = ["localhost:9200"]
         try:
             if args.elasticsearch_host:
                 elastic.set_hosts(args.elasticsearch_host)
-                elastic.create_indexes()
+                elastic.create_indexes([es_aggregate_index, es_forensic_index])
         except ElasticsearchException as error:
             logger.error("Elasticsearch Error: {0}".format(error.__str__()))
             exit(1)

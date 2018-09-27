@@ -44,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.0.2"
+__version__ = "4.1.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -362,6 +362,8 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
                                         ])
     if "disposition" in policy_evaluated:
         new_policy_evaluated["disposition"] = policy_evaluated["disposition"]
+        if new_policy_evaluated["disposition"].strip().lower() == "pass":
+            new_policy_evaluated["disposition"] = "none"
     if "dkim" in policy_evaluated:
         new_policy_evaluated["dkim"] = policy_evaluated["dkim"]
     if "spf" in policy_evaluated:
