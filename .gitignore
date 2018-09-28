@@ -108,7 +108,6 @@ ENV/
 # I/O files
 
 output/
-*.xml
 *.zip
 *.gz
 *.csv
@@ -122,4 +121,3 @@ output/
 # Data files
 *.dat
 *.mmdb
-
