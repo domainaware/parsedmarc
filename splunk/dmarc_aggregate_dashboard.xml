@@ -69,8 +69,8 @@
       <chart>
         <search>
           <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by spf_aligned</query>
-          <earliest>-7d@h</earliest>
-          <latest>now</latest>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
         </search>
         <option name="charting.chart">pie</option>
         <option name="charting.drilldown">none</option>
@@ -152,8 +152,8 @@
       <chart>
         <search>
           <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by _time,passed_dmarc</query>
-          <earliest>-7d@h</earliest>
-          <latest>now</latest>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
         </search>
         <option name="charting.axisTitleX.text">Time</option>
         <option name="charting.axisTitleX.visibility">visible</option>
