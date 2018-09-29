@@ -187,9 +187,9 @@
 <p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a></p>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 597.0px; height: 381.0px;" /></a>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
-When used with Elasticsearch and Kibana, it works as a self-hosted open source
-alternative to commercial DMARC report processing services such as Agari,
-Dmarcian, and OnDMARC.</p>
+When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
+open source alternative to commercial DMARC report processing services such
+as Agari, Dmarcian, and OnDMARC.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -497,7 +497,7 @@ tags in your DMARC record, separated by commas.</p>
 <h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.1.1</p>
+<p class="last">Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.1.3</p>
 </div>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
@@ -655,7 +655,7 @@ select <code class="docutils literal notranslate"><span class="pre">dmarc_aggreg
 </div>
 <div class="section" id="splunk">
 <h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this headline">¶</a></h3>
-<p>Starting in version 4.1.1 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
+<p>Starting in version 4.1.3 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
 forensic DMARC data to a Splunk <a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC">HTTP Event collector (HEC)</a>. Simply use the
 following command line options, along with <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> or
 <code class="docutils literal notranslate"><span class="pre">save-forensic</span></code>:</p>
@@ -679,7 +679,7 @@ Copy and paste the contents of each file into a separate Splunk dashboard XML
 editor.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Change all occurrences of <code class="docutils literal notranslate"><span class="pre">&quot;index=email&quot;</span></code> in the XML to
+<p class="last">Change all occurrences of <code class="docutils literal notranslate"><span class="pre">index=&quot;email&quot;</span></code> in the XML to
 match your own index name</p>
 </div>
 </div>
