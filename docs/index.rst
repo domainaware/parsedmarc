@@ -631,7 +631,7 @@ editor.
 
 .. warning::
 
-   Change all occurrences of ``"index=email"` in the XML to
+   Change all occurrences of ``"index=email"`` in the XML to
    match your own index name
 
 Running parsedmarc as a systemd service
