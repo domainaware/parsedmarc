@@ -276,7 +276,7 @@ Or, install the latest development release directly from GitHub:
 
 .. note::
 
-    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows, simply
+    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows,
     substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
     above commands.
 
@@ -365,10 +365,15 @@ Testing multiple report analyzers
 
 If you would like to test parsedmarc and another report processing solution
 at the same time, you can have up to two mailto URIs each in the rua and ruf
-tags tgs in your DMARC record, separated by commas.
+tags in your DMARC record, separated by commas.
 
 Elasticsearch and Kibana
 ------------------------
+
+.. note::
+
+   Splunk is also supported starting with ``parsedmarc`` 4.1.1
+
 
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
@@ -594,6 +599,17 @@ select ``dmarc_aggregate`` for the other saved objects, as shown below.
    :alt: A screenshot showing how to resolve index pattern conflicts after importing saved objects
    :align: center
    :target: _static/screenshots/index-pattern-conflicts.png
+
+
+Splunk
+------
+
+Starting in version 4.1.1 ``parsedmarc`` supports sending aggregate and/or
+forensic DMARC data to a Splunk HTTP Events collector (HEC). Simply use the
+following command line options, along with ``--save-aggregate`` or
+``save-forensic``:
+
+
 
 Running parsedmarc as a systemd service
 ---------------------------------------

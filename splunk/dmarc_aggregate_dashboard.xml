@@ -107,7 +107,7 @@
       <title>Reporting organizations</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" | chart sum(message_count) by org_name | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by org_name | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>

@@ -108,10 +108,11 @@ def _main():
                                           "Collector (HEC)")
     arg_parser.add_argument("--hec-token", help="The authorization token for "
                                                 "a Splunk "
-                                                "HTTP event collector (HEC)")
+                                                "HTTP Event Collector (HEC)")
     arg_parser.add_argument("--hec-index", help="The index to use when "
                                                 "sending events to the "
-                                                "Splunk HTTP Events")
+                                                "Splunk HTTP Event Collector "
+                                                "(HEC)")
     arg_parser.add_argument("--hec-skip-certificate-verification",
                             action="store_true",
                             default=False,

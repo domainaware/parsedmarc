@@ -44,10 +44,10 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.0"
+__version__ = "4.1."
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 
@@ -1528,7 +1528,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().replace("b'", "").replace("'", "")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable. 15" in error:
+        if "Server Unavailable. 15" in error or "BAD" in error:
             logger.debug("IMAP error: {0}".format(error))
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
@@ -1553,7 +1553,23 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     except ConnectionRefusedError:
         raise IMAPError("Connection refused")
     except ConnectionResetError:
-        raise IMAPError("Connection reset")
+        logger.debug("IMAP error: Connection reset")
+        logger.debug("Reconnecting watcher")
+        server = imapclient.IMAPClient(host)
+        server.login(username, password)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        ms = "MOVE" in get_imap_capabilities(server)
+        res = get_dmarc_reports_from_inbox(connection=server,
+                                           move_supported=ms,
+                                           reports_folder=rf,
+                                           archive_folder=af,
+                                           delete=delete,
+                                           test=test,
+                                           nameservers=ns,
+                                           dns_timeout=dt)
+        callback(res)
+        server.idle()
     except ConnectionAbortedError:
         raise IMAPError("Connection aborted")
     except TimeoutError:
@@ -1614,7 +1630,21 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         except ConnectionRefusedError:
             raise IMAPError("Connection refused")
         except ConnectionResetError:
-            raise IMAPError("Connection reset")
+            logger.debug("IMAP error: Connection reset")
+            logger.debug("Reconnecting watcher")
+            server = imapclient.IMAPClient(host)
+            server.login(username, password)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            ms = "MOVE" in get_imap_capabilities(server)
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
         except ConnectionAbortedError:
             raise IMAPError("Connection aborted")
         except TimeoutError:
