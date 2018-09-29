@@ -604,7 +604,7 @@ Splunk
 ------
 
 Starting in version 4.1.1 ``parsedmarc`` supports sending aggregate and/or
-forensic DMARC data to a Splunk HTTP Events collector (HEC). Simply use the
+forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
 following command line options, along with ``--save-aggregate`` or
 ``save-forensic``:
 
@@ -895,5 +895,7 @@ Indices and tables
 .. _X-Pack: https://www.elastic.co/products/x-pack
 
 .. _kibana_saved_objects.json: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json
+
+.. _HTTP Event collector (HEC): http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
 
 .. _XML files: https://github.com/domainaware/parsedmarc/tree/master/splunk
