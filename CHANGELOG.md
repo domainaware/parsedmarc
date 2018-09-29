@@ -1,3 +1,8 @@
+4.1.3
+-----
+
+- Fix crash introduced in 4.1.0 when creating Elasticsearch indexes (Issue #15) 
+
 4.1.2
 -----
 
