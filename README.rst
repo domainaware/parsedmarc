@@ -48,84 +48,84 @@ CLI help
                     [--hec-skip-certificate-verification] [--save-aggregate]
                     [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
                     [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
-                    [--outgoing-ssl OUTGOING_SSL] [-F OUTG OING_FROM]
+                    [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
                     [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
                     [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
                     [-s] [--debug] [-v]
                     [file_path [file_path ...]]
 
-    Parses DMARC reports
+   Parses DMARC reports
 
-    positional arguments:
-      file_path             one or more paths to aggregate or forensic report
-                            files or emails
+   positional arguments:
+     file_path             one or more paths to aggregate or forensic report
+                           files or emails
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -o OUTPUT, --output OUTPUT
-                            Write output files to the given directory
-      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                            nameservers to query (Default is Cloudflare's)
-      -t TIMEOUT, --timeout TIMEOUT
-                            number of seconds to wait for an answer from DNS
-                            (default 2.0)
-      -H HOST, --host HOST  IMAP hostname or IP address
-      -u USER, --user USER  IMAP user
-      -p PASSWORD, --password PASSWORD
-                            IMAP password
-      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                            The IMAP folder containing the reports Default: INBOX
-      -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                            Specifies the IMAP folder to move messages to after
-                            processing them Default: Archive
-      -d, --delete          Delete the reports after processing them
-      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                            A list of one or more Elasticsearch hostnames or URLs
-                            to use (e.g. localhost:9200)
-      --elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX
-                            Prefix to add in front of the dmarc_aggregate and
-                            dmarc_forensic Elasticsearch index names, joined by _
-      --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
-                            Append this suffix to the dmarc_aggregate and
-                            dmarc_forensic Elasticsearch index names, joined by _
-      --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
-      --hec-token HEC_TOKEN
-                            The authorization token for a Splunk HTTP event
-                            collector (HEC)
-      --hec-index HEC_INDEX
-                            The index to use when sending events to the Splunk
-                            HTTP Events
-      --hec-skip-certificate-verification
-                            Skip certificate verification for Splunk HEC
-      --save-aggregate      Save aggregate reports to search indexes
-      --save-forensic       Save forensic reports to search indexes
-      -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                            Email the results using this host
-      -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                            Email the results using this user
-      -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                            Email the results using this password
-      --outgoing-port OUTGOING_PORT
-                            Email the results using this port
-      --outgoing-ssl OUTGOING_SSL
-                            Use SSL/TLS instead of STARTTLS (more secure, and
-                            required by some providers, like Gmail)
-      -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                            Email the results using this from address
-      -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                            Email the results to these addresses
-      -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                            Email the results using this subject
-      -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                            Email the results using this filename
-      -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                            Email the results using this message
-      -w, --watch           Use an IMAP IDLE connection to process reports as they
-                            arrive in the inbox
-      --test                Do not move or delete IMAP messages
-      -s, --silent          Only print errors
-      --debug               Print debugging information
-      -v, --version         show program's version number and exit
+   optional arguments:
+     -h, --help            show this help message and exit
+     -o OUTPUT, --output OUTPUT
+                           Write output files to the given directory
+     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                           nameservers to query (Default is Cloudflare's)
+     -t TIMEOUT, --timeout TIMEOUT
+                           number of seconds to wait for an answer from DNS
+                           (default 2.0)
+     -H HOST, --host HOST  IMAP hostname or IP address
+     -u USER, --user USER  IMAP user
+     -p PASSWORD, --password PASSWORD
+                           IMAP password
+     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
+                           The IMAP folder containing the reports Default: INBOX
+     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
+                           Specifies the IMAP folder to move messages to after
+                           processing them Default: Archive
+     -d, --delete          Delete the reports after processing them
+     -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
+                           A list of one or more Elasticsearch hostnames or URLs
+                           to use (e.g. localhost:9200)
+     --elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX
+                           Prefix to add in front of the dmarc_aggregate and
+                           dmarc_forensic Elasticsearch index names, joined by _
+     --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
+                           Append this suffix to the dmarc_aggregate and
+                           dmarc_forensic Elasticsearch index names, joined by _
+     --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
+     --hec-token HEC_TOKEN
+                           The authorization token for a Splunk HTTP Event
+                           Collector (HEC)
+     --hec-index HEC_INDEX
+                           The index to use when sending events to the Splunk
+                           HTTP Event Collector (HEC)
+     --hec-skip-certificate-verification
+                           Skip certificate verification for Splunk HEC
+     --save-aggregate      Save aggregate reports to search indexes
+     --save-forensic       Save forensic reports to search indexes
+     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
+                           Email the results using this host
+     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
+                           Email the results using this user
+     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
+                           Email the results using this password
+     --outgoing-port OUTGOING_PORT
+                           Email the results using this port
+     --outgoing-ssl OUTGOING_SSL
+                           Use SSL/TLS instead of STARTTLS (more secure, and
+                           required by some providers, like Gmail)
+     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
+                           Email the results using this from address
+     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
+                           Email the results to these addresses
+     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
+                           Email the results using this subject
+     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
+                           Email the results using this filename
+     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
+                           Email the results using this message
+     -w, --watch           Use an IMAP IDLE connection to process reports as they
+                           arrive in the inbox
+     --test                Do not move or delete IMAP messages
+     -s, --silent          Only print errors
+     --debug               Print debugging information
+     -v, --version         show program's version number and exit
 
 
 SPF and DMARC record validation
