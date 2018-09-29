@@ -16,9 +16,9 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
    :target: _static/screenshots/dmarc-summary-charts.png
 
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
-When used with Elasticsearch and Kibana, it works as a self-hosted open source
-alternative to commercial DMARC report processing services such as Agari,
-Dmarcian, and OnDMARC.
+When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
+open source alternative to commercial DMARC report processing services such
+as Agari, Dmarcian, and OnDMARC.
 
 Features
 ========
@@ -371,7 +371,7 @@ Elasticsearch and Kibana
 
 .. note::
 
-   Splunk is also supported starting with ``parsedmarc`` 4.1.1
+   Splunk is also supported starting with ``parsedmarc`` 4.1.3
 
 
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
@@ -603,7 +603,7 @@ select ``dmarc_aggregate`` for the other saved objects, as shown below.
 Splunk
 ------
 
-Starting in version 4.1.1 ``parsedmarc`` supports sending aggregate and/or
+Starting in version 4.1.3 ``parsedmarc`` supports sending aggregate and/or
 forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
 following command line options, along with ``--save-aggregate`` or
 ``save-forensic``:
@@ -631,7 +631,7 @@ editor.
 
 .. warning::
 
-   Change all occurrences of ``"index=email"`` in the XML to
+   Change all occurrences of ``index="email"`` in the XML to
    match your own index name
 
 Running parsedmarc as a systemd service
