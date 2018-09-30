@@ -25,8 +25,8 @@ Features
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch, for use with premade Kibana
-  dashboards
+* Optionally send the results to Elasticsearch and/or Splunk, for use with
+  premade dashboards
 
 Resources
 =========
