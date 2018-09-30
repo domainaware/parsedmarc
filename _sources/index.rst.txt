@@ -30,8 +30,8 @@ Features
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch, for use with premade Kibana
-  dashboards
+* Optionally send the results to Elasticsearch and/or Splunk, for use with
+  premade dashboards
 
 Resources
 =========
@@ -378,7 +378,7 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 .. note::
 
-    Elasticsearch/Kibana 6 is required
+    Elasticsearch and Kibana 6 or later are required
 
 .. code-block:: bash
 
@@ -605,8 +605,8 @@ Splunk
 
 Starting in version 4.1.3 ``parsedmarc`` supports sending aggregate and/or
 forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
-following command line options, along with ``--save-aggregate`` or
-``save-forensic``:
+following command line options, along with ``--save-aggregate`` and/or
+``--save-forensic``:
 
 
 ::
@@ -623,16 +623,28 @@ following command line options, along with ``--save-aggregate`` or
 
 .. note::
 
-   It is possible to save data in Elasticsearch and splunk at the same time
+   To maintain CLI backwards compatibility with previous versions of
+   ``parsedmarc``, if ``--save-aggregate`` and/or ``--save-forensic`` are used
+   without the ``--hec`` or ``-E`` options, ``-E localhost:9200`` is implied.
 
-The project repository contains `XML files`_ for premade Splunk dashboards.
+   It is possible to save data in Elasticsearch and Splunk at the same time by
+   supplying ``E`` and the HEC options, along with ``--save-aggregate`` and/or
+   ``--save-forensic``.
+
+The project repository contains `XML files`_ for premade Splunk dashboards for
+aggregate and forensic DMARC reports.
+
 Copy and paste the contents of each file into a separate Splunk dashboard XML
 editor.
 
 .. warning::
 
    Change all occurrences of ``index="email"`` in the XML to
-   match your own index name
+   match your own index name.
+
+The Splunk dashboards display the same content and layout as the Kibana
+dashboards, although the Kibana dashboards have slightly easier and more
+flexible filtering options.
 
 Running parsedmarc as a systemd service
 ---------------------------------------

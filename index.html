@@ -200,8 +200,8 @@ as Agari, Dmarcian, and OnDMARC.</p>
 <li>Consistent data structures</li>
 <li>Simple JSON and/or CSV output</li>
 <li>Optionally email the results</li>
-<li>Optionally send the results to Elasticsearch, for use with premade Kibana
-dashboards</li>
+<li>Optionally send the results to Elasticsearch and/or Splunk, for use with
+premade dashboards</li>
 </ul>
 </div>
 <div class="section" id="resources">
@@ -502,7 +502,7 @@ tags in your DMARC record, separated by commas.</p>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Elasticsearch/Kibana 6 is required</p>
+<p class="last">Elasticsearch and Kibana 6 or later are required</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y openjdk-8-jre apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
@@ -657,8 +657,8 @@ select <code class="docutils literal notranslate"><span class="pre">dmarc_aggreg
 <h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this headline">¶</a></h3>
 <p>Starting in version 4.1.3 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
 forensic DMARC data to a Splunk <a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC">HTTP Event collector (HEC)</a>. Simply use the
-following command line options, along with <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> or
-<code class="docutils literal notranslate"><span class="pre">save-forensic</span></code>:</p>
+following command line options, along with <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span>             <span class="n">URL</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
 <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span>
                       <span class="n">The</span> <span class="n">authorization</span> <span class="n">token</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span>
@@ -672,16 +672,25 @@ following command line options, along with <code class="docutils literal notrans
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">It is possible to save data in Elasticsearch and splunk at the same time</p>
+<p>To maintain CLI backwards compatibility with previous versions of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, if <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code> are used
+without the <code class="docutils literal notranslate"><span class="pre">--hec</span></code> or <code class="docutils literal notranslate"><span class="pre">-E</span></code> options, <code class="docutils literal notranslate"><span class="pre">-E</span> <span class="pre">localhost:9200</span></code> is implied.</p>
+<p class="last">It is possible to save data in Elasticsearch and Splunk at the same time by
+supplying <code class="docutils literal notranslate"><span class="pre">E</span></code> and the HEC options, along with <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code>.</p>
 </div>
-<p>The project repository contains <a class="reference external" href="https://github.com/domainaware/parsedmarc/tree/master/splunk">XML files</a> for premade Splunk dashboards.
-Copy and paste the contents of each file into a separate Splunk dashboard XML
+<p>The project repository contains <a class="reference external" href="https://github.com/domainaware/parsedmarc/tree/master/splunk">XML files</a> for premade Splunk dashboards for
+aggregate and forensic DMARC reports.</p>
+<p>Copy and paste the contents of each file into a separate Splunk dashboard XML
 editor.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Change all occurrences of <code class="docutils literal notranslate"><span class="pre">index=&quot;email&quot;</span></code> in the XML to
-match your own index name</p>
+match your own index name.</p>
 </div>
+<p>The Splunk dashboards display the same content and layout as the Kibana
+dashboards, although the Kibana dashboards have slightly easier and more
+flexible filtering options.</p>
 </div>
 <div class="section" id="running-parsedmarc-as-a-systemd-service">
 <h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this headline">¶</a></h3>
