@@ -1,3 +1,8 @@
+4.1.4
+-----
+
+- Change default logging level to `ERROR`
+
 4.1.3
 -----
 
@@ -12,7 +17,6 @@
 -----
 
 - Add splunk instructions
-- Change default logging level to `ERROR`
 - Reconnect reset IMAP connections when watching a folder
 
 4.1.0
