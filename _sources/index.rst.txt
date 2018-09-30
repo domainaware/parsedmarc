@@ -628,7 +628,7 @@ following command line options, along with ``--save-aggregate`` and/or
    without the ``--hec`` or ``-E`` options, ``-E localhost:9200`` is implied.
 
    It is possible to save data in Elasticsearch and Splunk at the same time by
-   supplying ``E`` and the HEC options, along with ``--save-aggregate`` and/or
+   supplying ``-E`` and the HEC options, along with ``--save-aggregate`` and/or
    ``--save-forensic``.
 
 The project repository contains `XML files`_ for premade Splunk dashboards for
