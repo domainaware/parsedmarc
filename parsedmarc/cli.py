@@ -294,7 +294,7 @@ def _main():
             ssl = False
         try:
             watch_inbox(args.host, args.user, args.password, process_reports,
-                        port=args.imsp_port, ssl=ssl,
+                        port=args.imap_port, ssl=ssl,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,

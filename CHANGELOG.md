@@ -1,3 +1,8 @@
+4.1.6
+-----
+
+- Fix typo in CLI parser
+
 4.1.5
 -----
 
