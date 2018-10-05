@@ -1202,13 +1202,15 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
-            server.add_flags(msg_uids, [imapclient.DELETED])
+            for chunk in chunks(msg_uids, 10):
+                server.add_flags(chunk, [imapclient.DELETED])
+
             server.expunge()
 
         def move_messages(msg_uids, folder):
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
-            for chunk in chunks(msg_uids, 100):
+            for chunk in chunks(msg_uids, 10):
                 if move_supported:
                     server.move(chunk, folder)
                 else:
