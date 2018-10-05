@@ -44,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.4"
+__version__ = "4.1.5"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -1238,8 +1238,19 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
         server.select_folder(reports_folder)
         messages = server.search()
         for message_uid in messages:
-            raw_msg = server.fetch(message_uid,
-                                   ["RFC822"])[message_uid][b"RFC822"]
+            try:
+                raw_msg = server.fetch(message_uid,
+                                       ["RFC822"])[message_uid][b"RFC822"]
+
+            except (ConnectionResetError, TimeoutError) as error:
+                logger.debug("IMAP error: {0}".format(error.__str__()))
+                logger.debug("Reconnecting to IMAP")
+                server = imapclient.IMAPClient(host, use_uid=True)
+                server.login(user, password)
+                server.select_folder(reports_folder)
+                raw_msg = server.fetch(message_uid,
+                                       ["RFC822"])[message_uid][b"RFC822"]
+
             msg_content = raw_msg.decode("utf-8", errors="replace")
 
             try:
@@ -1259,16 +1270,43 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                         delete_messages([message_uid])
                     else:
                         move_messages([message_uid], invalid_reports_folder)
-            if not test:
-                if delete:
-                    processed_messages = aggregate_report_msg_uids + \
-                                         forensic_report_msg_uids
+        if not test:
+            if delete:
+                processed_messages = aggregate_report_msg_uids + \
+                                     forensic_report_msg_uids
+                try:
                     delete_messages(processed_messages)
-                else:
-                    if len(aggregate_report_msg_uids) > 0:
+                except (ConnectionResetError, TimeoutError) as error:
+                    logger.debug("IMAP error: {0}".format(error.__str__()))
+                    logger.debug("Reconnecting to IMAP")
+                    server = imapclient.IMAPClient(host, use_uid=True)
+                    server.login(user, password)
+                    server.select_folder(reports_folder)
+                    delete_messages(processed_messages)
+            else:
+                if len(aggregate_report_msg_uids) > 0:
+                    try:
                         move_messages(aggregate_report_msg_uids,
                                       aggregate_reports_folder)
-                    if len(forensic_report_msg_uids) > 0:
+                    except (ConnectionResetError, TimeoutError) as error:
+                        logger.debug("IMAP error: {0}".format(error.__str__()))
+                        logger.debug("Reconnecting to IMAP")
+                        server = imapclient.IMAPClient(host, use_uid=True)
+                        server.login(user, password)
+                        server.select_folder(reports_folder)
+                        move_messages(aggregate_report_msg_uids,
+                                      aggregate_reports_folder)
+
+                if len(forensic_report_msg_uids) > 0:
+                    try:
+                        move_messages(forensic_report_msg_uids,
+                                      forensic_reports_folder)
+                    except (ConnectionResetError, TimeoutError) as error:
+                        logger.debug("IMAP error: {0}".format(error.__str__()))
+                        logger.debug("Reconnecting to IMAP")
+                        server = imapclient.IMAPClient(host, use_uid=True)
+                        server.login(user, password)
+                        server.select_folder(reports_folder)
                         move_messages(forensic_report_msg_uids,
                                       forensic_reports_folder)
 

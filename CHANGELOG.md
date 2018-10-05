@@ -1,3 +1,10 @@
+4.1.5
+-----
+
+- Only move or delete IMAP emails after they all have been parsed
+- Reconnect to IMAP if connection is broken during 
+`get_dmarc_reports_from_inbox()` 
+
 4.1.4
 -----
 
