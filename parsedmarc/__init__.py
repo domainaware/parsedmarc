@@ -1237,23 +1237,32 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
             server.create_folder(invalid_reports_folder)
         server.select_folder(reports_folder)
         messages = server.search()
-        for message_uid in messages:
+        logger.debug("Found {0} messages in IMAP folder".format(len(messages),
+                                                                reports_folder
+                                                                ))
+        for i in range(len(messages)):
+            message_uid = messages[i]
+            logger.debug("Processing Message {0} of {1): UID {2}".format(
+                i+1,
+                len(messages),
+                message_uid
+            ))
             try:
-                raw_msg = server.fetch(message_uid,
-                                       ["RFC822"])[message_uid][b"RFC822"]
+                try:
+                    raw_msg = server.fetch(message_uid,
+                                           ["RFC822"])[message_uid][b"RFC822"]
 
-            except (ConnectionResetError, TimeoutError) as error:
-                logger.debug("IMAP error: {0}".format(error.__str__()))
-                logger.debug("Reconnecting to IMAP")
-                server = imapclient.IMAPClient(host, use_uid=True)
-                server.login(user, password)
-                server.select_folder(reports_folder)
-                raw_msg = server.fetch(message_uid,
-                                       ["RFC822"])[message_uid][b"RFC822"]
+                except (ConnectionResetError, TimeoutError) as error:
+                    logger.debug("IMAP error: {0}".format(error.__str__()))
+                    logger.debug("Reconnecting to IMAP")
+                    server = imapclient.IMAPClient(host, use_uid=True)
+                    server.login(user, password)
+                    server.select_folder(reports_folder)
+                    raw_msg = server.fetch(message_uid,
+                                           ["RFC822"])[message_uid][b"RFC822"]
 
-            msg_content = raw_msg.decode("utf-8", errors="replace")
+                msg_content = raw_msg.decode("utf-8", errors="replace")
 
-            try:
                 parsed_email = parse_report_email(msg_content,
                                                   nameservers=nameservers,
                                                   timeout=dns_timeout)
@@ -1263,6 +1272,13 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
                     forensic_report_msg_uids.append(message_uid)
+
+            except imapclient.exceptions.IMAPClientError as error:
+                error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+                error = "IMAP error: Skipping message ID {0}: {1}".format(
+                    message_uid, error
+                )
+                logger.error("IMAP error: {0}".format(error))
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
                 if not test:
@@ -1270,6 +1286,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                         delete_messages([message_uid])
                     else:
                         move_messages([message_uid], invalid_reports_folder)
+
         if not test:
             if delete:
                 processed_messages = aggregate_report_msg_uids + \
