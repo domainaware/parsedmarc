@@ -1197,9 +1197,9 @@ def get_dmarc_reports_from_inbox(host=None,
         if connection:
             server = connection
         else:
-            server = imapclient.IMAPClient(host, 
-                                           port=port, 
-                                           ssl=ssl, 
+            server = imapclient.IMAPClient(host,
+                                           port=port,
+                                           ssl=ssl,
                                            use_uid=True)
             server.login(user, password)
 
