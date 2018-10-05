@@ -47,7 +47,8 @@ CLI help
 
   usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
                     [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                    [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                    [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
+                    [-a ARCHIVE_FOLDER] [-d]
                     [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
                     [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
                     [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
@@ -80,6 +81,9 @@ CLI help
      -u USER, --user USER  IMAP user
      -p PASSWORD, --password PASSWORD
                            IMAP password
+     --imap-port IMAP_PORT
+                           IMAP port
+     --imap-no-ssl         Do not use SSL when connecting to IMAP
      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
                            The IMAP folder containing the reports Default: INBOX
      -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
