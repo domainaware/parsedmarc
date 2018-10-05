@@ -1369,6 +1369,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                                 "'").rstrip(".")
                             e = "Error moving message UID {0}: " \
                                 "{1}".format(msg_uid, e)
+                            logger.error("IMAP Error: {0}".format(e))
                         except (ConnectionResetError, TimeoutError) as error:
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
