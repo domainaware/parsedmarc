@@ -1242,7 +1242,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                                                                 ))
         for i in range(len(messages)):
             message_uid = messages[i]
-            logger.debug("Processing Message {0} of {1): UID {2}".format(
+            logger.debug("Processing Message {0} of {1}: UID {2}".format(
                 i+1,
                 len(messages),
                 message_uid
