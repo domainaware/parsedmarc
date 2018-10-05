@@ -153,33 +153,6 @@
     }
   },
   {
-    "_id": "bbe4f890-295e-11e8-b8b2-15742da3055c",
-    "_type": "dashboard",
-    "_source": {
-      "title": "DMARC Forensic Samples",
-      "hits": 0,
-      "description": "",
-      "panelsJSON": "[{\"panelIndex\":\"1\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":29,\"i\":\"1\"},\"id\":\"def63400-295b-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"2\",\"gridData\":{\"x\":4,\"y\":59,\"w\":25,\"h\":21,\"i\":\"2\"},\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}},\"id\":\"316ef4e0-295e-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":4,\"y\":29,\"w\":40,\"h\":30,\"i\":\"3\"},\"embeddableConfig\":{\"mapCenter\":[27.059125784374068,-0.703125],\"mapZoom\":2},\"id\":\"a386df70-295e-11e8-b8b2-15742da3055c\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"panelIndex\":\"4\",\"gridData\":{\"x\":29,\"y\":59,\"w\":15,\"h\":21,\"i\":\"4\"},\"version\":\"6.3.0\",\"type\":\"visualization\",\"id\":\"ae61a330-7337-11e8-bfe4-d3427a6746f1\",\"embeddableConfig\":{}}]",
-      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
-      "version": 1,
-      "timeRestore": true,
-      "timeTo": "now",
-      "timeFrom": "now-90d",
-      "refreshInterval": {
-        "display": "Off",
-        "pause": false,
-        "section": 0,
-        "value": 0
-      },
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "def63400-295b-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
@@ -265,33 +238,6 @@
     }
   },
   {
-    "_id": "269ba470-2871-11e8-b8b2-15742da3055c",
-    "_type": "dashboard",
-    "_source": {
-      "title": "DMARC Summary",
-      "hits": 0,
-      "description": "",
-      "panelsJSON": "[{\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"gridData\":{\"h\":15,\"i\":\"4\",\"w\":48,\"x\":0,\"y\":13},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":16,\"x\":0,\"y\":41},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"8\",\"w\":16,\"x\":16,\"y\":41},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"8\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"9\",\"w\":16,\"x\":0,\"y\":0},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"9\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"10\",\"w\":15,\"x\":16,\"y\":0},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"10\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"11\",\"w\":17,\"x\":31,\"y\":0},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"panelIndex\":\"11\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"gridData\":{\"h\":26,\"i\":\"12\",\"w\":36,\"x\":0,\"y\":62},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"panelIndex\":\"12\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"13\",\"w\":16,\"x\":32,\"y\":41},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"panelIndex\":\"13\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":21,\"i\":\"14\",\"w\":48,\"x\":0,\"y\":88},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"panelIndex\":\"14\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"colors\":{\"none\":\"#629E51\",\"quarantine\":\"#E5AC0E\",\"reject\":\"#BF1B00\"}}},\"gridData\":{\"h\":13,\"i\":\"15\",\"w\":48,\"x\":0,\"y\":28},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"panelIndex\":\"15\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{},\"gridData\":{\"h\":26,\"i\":\"16\",\"w\":12,\"x\":36,\"y\":62},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"16\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":5,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":24,\"i\":\"17\",\"w\":48,\"x\":0,\"y\":109},\"id\":\"1fad3f60-2881-11e8-b8b2-15742da3055c\",\"panelIndex\":\"17\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":6,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":22,\"i\":\"18\",\"w\":48,\"x\":0,\"y\":133},\"id\":\"40e7a5b0-2883-11e8-b8b2-15742da3055c\",\"panelIndex\":\"18\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
-      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
-      "version": 1,
-      "timeRestore": true,
-      "timeTo": "now",
-      "timeFrom": "now-7d",
-      "refreshInterval": {
-        "display": "5 minutes",
-        "pause": false,
-        "section": 2,
-        "value": 300000
-      },
-      "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"query\":{\"language\":\"kuery\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
-      }
-    },
-    "_meta": {
-      "savedObjectVersion": 2
-    }
-  },
-  {
     "_id": "085eaa30-2870-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
@@ -326,11 +272,28 @@
     }
   },
   {
+    "_id": "a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49",
+    "_type": "visualization",
+    "_source": {
+      "title": "Message Volume by Header From",
+      "visState": "{\"title\":\"Message Volume by Header From\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
     "_id": "1fad3f60-2881-11e8-b8b2-15742da3055c",
     "_type": "visualization",
     "_source": {
-      "title": "SPF Allignment Details",
-      "visState": "{\"title\":\"SPF Allignment Details\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showMeticsAtAllLevels\":false,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"},\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"envelope_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"_term\",\"customLabel\":\"Envelope From\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"spf_results.result.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"SPF Result\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"spf_aligned\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"SPF Alligned\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Reverse DNS Base\"}}]}",
+      "title": "SPF Alignment Details",
+      "visState": "{\"title\":\"SPF Alignment Details\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showTotal\":false,\"sort\":{\"columnIndex\":3,\"direction\":\"desc\"},\"totalFunc\":\"sum\",\"showMetricsAtAllLevels\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"size\":2000,\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"customLabel\":\"Header From\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"envelope_from.keyword\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"_key\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"Missing\",\"customLabel\":\"Envelope From\"}},{\"id\":\"5\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"spf_results.result.keyword\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"customLabel\":\"SPF Result\"}},{\"id\":\"6\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"spf_aligned\",\"size\":5,\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"customLabel\":\"SPF Alligned\"}},{\"id\":\"4\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"source_base_domain.keyword\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":true,\"missingBucketLabel\":\"\",\"customLabel\":\"Reverse DNS Base\"}}]}",
       "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":5,\"direction\":\"desc\"}}}}",
       "description": "",
       "version": 1,
@@ -343,16 +306,49 @@
     }
   },
   {
-    "_id": "a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49",
-    "_type": "visualization",
+    "_id": "269ba470-2871-11e8-b8b2-15742da3055c",
+    "_type": "dashboard",
     "_source": {
-      "title": "Message Volume by Header From",
-      "visState": "{\"title\":\"Message Volume by Header From\",\"type\":\"table\",\"params\":{\"perPage\":10,\"showPartialRows\":false,\"showMeticsAtAllLevels\":false,\"sort\":{\"columnIndex\":null,\"direction\":null},\"showTotal\":false,\"totalFunc\":\"sum\"},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"sum\",\"schema\":\"metric\",\"params\":{\"field\":\"message_count\",\"customLabel\":\"Messages\"}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"header_from.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":1000000,\"order\":\"desc\",\"orderBy\":\"1\",\"customLabel\":\"Header From\"}}]}",
-      "uiStateJSON": "{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":null,\"direction\":null}}}}",
+      "title": "DMARC Summary",
+      "hits": 0,
       "description": "",
+      "panelsJSON": "[{\"embeddableConfig\":{\"vis\":{\"legendOpen\":true}},\"gridData\":{\"h\":15,\"i\":\"4\",\"w\":48,\"x\":0,\"y\":13},\"id\":\"085eaa30-2870-11e8-b8b2-15742da3055c\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"7\",\"w\":16,\"x\":0,\"y\":41},\"id\":\"620280a0-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"7\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"8\",\"w\":16,\"x\":16,\"y\":41},\"id\":\"d787a580-2886-11e8-b8b2-15742da3055c\",\"panelIndex\":\"8\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"9\",\"w\":16,\"x\":0,\"y\":0},\"id\":\"356caa70-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"9\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"10\",\"w\":15,\"x\":16,\"y\":0},\"id\":\"7e26fb80-28d1-11e8-b8b2-15742da3055c\",\"panelIndex\":\"10\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"gridData\":{\"h\":13,\"i\":\"11\",\"w\":17,\"x\":31,\"y\":0},\"id\":\"93b823e0-28cf-11e8-b8b2-15742da3055c\",\"panelIndex\":\"11\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[30.14512718337613,-0.703125],\"mapZoom\":2},\"gridData\":{\"h\":26,\"i\":\"12\",\"w\":36,\"x\":0,\"y\":62},\"id\":\"895f3a70-291d-11e8-b8b2-15742da3055c\",\"panelIndex\":\"12\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"13\",\"w\":16,\"x\":32,\"y\":41},\"id\":\"a69d0f40-2b02-11e8-8c8d-d3a0d2f2ba49\",\"panelIndex\":\"13\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":21,\"i\":\"14\",\"w\":48,\"x\":0,\"y\":88},\"id\":\"55930ba0-667f-11e8-ac01-67e661d30f69\",\"panelIndex\":\"14\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"colors\":{\"none\":\"#629E51\",\"quarantine\":\"#E5AC0E\",\"reject\":\"#BF1B00\"}}},\"gridData\":{\"h\":13,\"i\":\"15\",\"w\":48,\"x\":0,\"y\":28},\"id\":\"c9ee5ec0-67f9-11e8-ac01-67e661d30f69\",\"panelIndex\":\"15\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":26,\"i\":\"16\",\"w\":12,\"x\":36,\"y\":62},\"id\":\"f4444000-7333-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"16\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":5,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":24,\"i\":\"17\",\"w\":48,\"x\":0,\"y\":109},\"id\":\"1fad3f60-2881-11e8-b8b2-15742da3055c\",\"panelIndex\":\"17\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":6,\"direction\":\"desc\"}}}},\"gridData\":{\"h\":22,\"i\":\"18\",\"w\":48,\"x\":0,\"y\":133},\"id\":\"40e7a5b0-2883-11e8-b8b2-15742da3055c\",\"panelIndex\":\"18\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
       "version": 1,
+      "timeRestore": true,
+      "timeTo": "now",
+      "timeFrom": "now-7d",
+      "refreshInterval": {
+        "pause": false,
+        "value": 300000
+      },
       "kibanaSavedObjectMeta": {
-        "searchSourceJSON": "{\"index\":\"79544470-313a-11e8-a742-83431eb55d58\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+        "searchSourceJSON": "{\"query\":{\"language\":\"kuery\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    },
+    "_meta": {
+      "savedObjectVersion": 2
+    }
+  },
+  {
+    "_id": "bbe4f890-295e-11e8-b8b2-15742da3055c",
+    "_type": "dashboard",
+    "_source": {
+      "title": "DMARC Forensic Samples",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":29,\"i\":\"1\"},\"id\":\"def63400-295b-11e8-b8b2-15742da3055c\",\"panelIndex\":\"1\",\"type\":\"visualization\",\"version\":\"6.3.0\",\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":0,\"direction\":\"desc\"}}}}},{\"embeddableConfig\":{\"spy\":null,\"vis\":{\"params\":{\"sort\":{\"columnIndex\":4,\"direction\":\"desc\"}}}},\"gridData\":{\"x\":4,\"y\":59,\"w\":25,\"h\":21,\"i\":\"2\"},\"id\":\"316ef4e0-295e-11e8-b8b2-15742da3055c\",\"panelIndex\":\"2\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"mapCenter\":[27.059125784374068,-0.703125],\"mapZoom\":2},\"gridData\":{\"x\":4,\"y\":29,\"w\":40,\"h\":30,\"i\":\"3\"},\"id\":\"a386df70-295e-11e8-b8b2-15742da3055c\",\"panelIndex\":\"3\",\"type\":\"visualization\",\"version\":\"6.3.0\"},{\"embeddableConfig\":{\"vis\":{\"params\":{\"sort\":{\"columnIndex\":1,\"direction\":\"desc\"}}}},\"gridData\":{\"x\":29,\"y\":59,\"w\":15,\"h\":21,\"i\":\"4\"},\"id\":\"ae61a330-7337-11e8-bfe4-d3427a6746f1\",\"panelIndex\":\"4\",\"type\":\"visualization\",\"version\":\"6.3.0\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
+      "version": 1,
+      "timeRestore": true,
+      "timeTo": "now",
+      "timeFrom": "now-90d",
+      "refreshInterval": {
+        "pause": true,
+        "value": 0
+      },
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
       }
     },
     "_meta": {
