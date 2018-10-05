@@ -2,6 +2,7 @@
 -----
 
 - Only move or delete IMAP emails after they all have been parsed
+- Move/delete messages one at a time - do not exit on error
 - Reconnect to IMAP if connection is broken during 
 `get_dmarc_reports_from_inbox()` 
 
