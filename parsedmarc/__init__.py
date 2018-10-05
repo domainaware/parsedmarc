@@ -28,7 +28,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 import smtplib
-import ssl
+from ssl import SSLError, CertificateError, create_default_context
 import time
 
 import requests
@@ -1138,8 +1138,12 @@ def get_imap_capabilities(server):
     return capabilities
 
 
-def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
+def get_dmarc_reports_from_inbox(host=None,
+                                 user=None,
+                                 password=None,
                                  connection=None,
+                                 port=None,
+                                 ssl=True,
                                  move_supported=None,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
@@ -1154,6 +1158,8 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
         user: The mail server user
         password: The mail server password
         connection: An IMAPCLient connection to reuse
+        port: The mail server port
+        ssl (bool): Use SSL/TLS
         move_supported: Indicate if the IMAP server supports the MOVE command
         (autodetect if None)
         reports_folder: The IMAP folder where reports can be found
@@ -1191,7 +1197,10 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
         if connection:
             server = connection
         else:
-            server = imapclient.IMAPClient(host, use_uid=True)
+            server = imapclient.IMAPClient(host, 
+                                           port=port, 
+                                           ssl=ssl, 
+                                           use_uid=True)
             server.login(user, password)
 
         if move_supported is not None:
@@ -1258,7 +1267,10 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                 except (ConnectionResetError, TimeoutError) as error:
                     logger.debug("IMAP error: {0}".format(error.__str__()))
                     logger.debug("Reconnecting to IMAP")
-                    server = imapclient.IMAPClient(host, use_uid=True)
+                    server = imapclient.IMAPClient(host,
+                                                   port=port,
+                                                   ssl=ssl,
+                                                   use_uid=True)
                     server.login(user, password)
                     server.select_folder(reports_folder)
                     raw_msg = server.fetch(message_uid,
@@ -1315,7 +1327,10 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                     except (ConnectionResetError, TimeoutError) as e:
                         logger.debug("IMAP error: {0}".format(e.__str__()))
                         logger.debug("Reconnecting to IMAP")
-                        server = imapclient.IMAPClient(host, use_uid=True)
+                        server = imapclient.IMAPClient(host,
+                                                       port=port,
+                                                       ssl=ssl,
+                                                       use_uid=True)
                         server.login(user, password)
                         server.select_folder(reports_folder)
                         delete_messages([msg_uid])
@@ -1344,7 +1359,10 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
-                            server = imapclient.IMAPClient(host, use_uid=True)
+                            server = imapclient.IMAPClient(host,
+                                                           port=port,
+                                                           ssl=ssl,
+                                                           use_uid=True)
                             server.login(user, password)
                             server.select_folder(reports_folder)
                             move_messages([msg_uid],
@@ -1374,7 +1392,10 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
-                            server = imapclient.IMAPClient(host, use_uid=True)
+                            server = imapclient.IMAPClient(host,
+                                                           port=port,
+                                                           ssl=ssl,
+                                                           use_uid=True)
                             server.login(user, password)
                             server.select_folder(reports_folder)
                             move_messages([msg_uid],
@@ -1397,9 +1418,9 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
         raise IMAPError("Connection aborted")
     except TimeoutError:
         raise IMAPError("Connection timed out")
-    except ssl.SSLError as error:
+    except SSLError as error:
         raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
+    except CertificateError as error:
         raise IMAPError("Certificate error: {0}".format(error.__str__()))
 
 
@@ -1557,7 +1578,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
 
     try:
         if ssl_context is None:
-            ssl_context = ssl.create_default_context()
+            ssl_context = create_default_context()
         if use_ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
@@ -1588,15 +1609,16 @@ def email_results(results, host, mail_from, mail_to, port=0,
         raise SMTPError("Connection aborted")
     except TimeoutError:
         raise SMTPError("Connection timed out")
-    except ssl.SSLError as error:
+    except SSLError as error:
         raise SMTPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
+    except CertificateError as error:
         raise SMTPError("Certificate error: {0}".format(error.__str__()))
 
 
-def watch_inbox(host, username, password, callback, reports_folder="INBOX",
-                archive_folder="Archive", delete=False, test=False, wait=30,
-                nameservers=None, dns_timeout=6.0):
+def watch_inbox(host, username, password, callback, port=None, ssl=True,
+                reports_folder="INBOX", archive_folder="Archive",
+                delete=False, test=False, wait=30, nameservers=None,
+                dns_timeout=6.0):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
@@ -1606,6 +1628,8 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         username: The mail server username
         password: The mail server password
         callback: The callback function to receive the parsing results
+        port: The mail server port
+        ssl (bool): Use SSL/TLS
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1619,7 +1643,7 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
     af = archive_folder
     ns = nameservers
     dt = dns_timeout
-    server = imapclient.IMAPClient(host)
+    server = imapclient.IMAPClient(host, port=port, ssl=ssl, use_uid=True)
 
     try:
         server.login(username, password)
@@ -1682,9 +1706,9 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
         raise IMAPError("Connection aborted")
     except TimeoutError:
         raise IMAPError("Connection timed out")
-    except ssl.SSLError as error:
+    except SSLError as error:
         raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except ssl.CertificateError as error:
+    except CertificateError as error:
         raise IMAPError("Certificate error: {0}".format(error.__str__()))
     except BrokenPipeError:
         logger.debug("IMAP error: Broken pipe")
@@ -1757,9 +1781,9 @@ def watch_inbox(host, username, password, callback, reports_folder="INBOX",
             raise IMAPError("Connection aborted")
         except TimeoutError:
             raise IMAPError("Connection timed out")
-        except ssl.SSLError as error:
+        except SSLError as error:
             raise IMAPError("SSL error: {0}".format(error.__str__()))
-        except ssl.CertificateError as error:
+        except CertificateError as error:
             raise IMAPError("Certificate error: {0}".format(error.__str__()))
         except BrokenPipeError:
             logger.debug("IMAP error: Broken pipe")

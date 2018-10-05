@@ -80,6 +80,10 @@ def _main():
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
     arg_parser.add_argument("-u", "--user", help="IMAP user")
     arg_parser.add_argument("-p", "--password", help="IMAP password")
+    arg_parser.add_argument("--imap-port", default=None, help="IMAP port")
+    arg_parser.add_argument("--imap-no-ssl", action="store_true",
+                            default=False,
+                            help="Do not use SSL when connecting to IMAP")
     arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
                             help="The IMAP folder containing the reports\n"
                                  "Default: INBOX")
@@ -238,9 +242,14 @@ def _main():
             rf = args.reports_folder
             af = args.archive_folder
             ns = args.nameservers
-            reports = get_dmarc_reports_from_inbox(args.host,
-                                                   args.user,
-                                                   args.password,
+            ssl = True
+            if args.imap_no_ssl:
+                ssl = False
+            reports = get_dmarc_reports_from_inbox(host=args.host,
+                                                   port=args.imap_port,
+                                                   ssl=ssl,
+                                                   user=args.user,
+                                                   password=args.password,
                                                    reports_folder=rf,
                                                    archive_folder=af,
                                                    delete=args.delete,
@@ -280,8 +289,12 @@ def _main():
 
     if args.host and args.watch:
         logger.info("Watching for email - Quit with ^c")
+        ssl = True
+        if args.imap_no_ssl:
+            ssl = False
         try:
             watch_inbox(args.host, args.user, args.password, process_reports,
+                        port=args.imsp_port, ssl=ssl,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,
