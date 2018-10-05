@@ -1202,7 +1202,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
-            for chunk in chunks(msg_uids, 10):
+            for chunk in chunks(msg_uids, 100):
                 server.add_flags(chunk, [imapclient.DELETED])
 
             server.expunge()
@@ -1210,7 +1210,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
         def move_messages(msg_uids, folder):
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
-            for chunk in chunks(msg_uids, 10):
+            for chunk in chunks(msg_uids, 100):
                 if move_supported:
                     server.move(chunk, folder)
                 else:
@@ -1243,10 +1243,11 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
                                                                 reports_folder
                                                                 ))
         for i in range(len(messages)):
+            number_of_messages = len(messages)
             message_uid = messages[i]
-            logger.debug("Processing Message {0} of {1}: UID {2}".format(
+            logger.debug("Processing message {0} of {1}: UID {2}".format(
                 i+1,
-                len(messages),
+                number_of_messages,
                 message_uid
             ))
             try:
@@ -1277,7 +1278,7 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
 
             except imapclient.exceptions.IMAPClientError as error:
                 error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-                error = "IMAP error: Skipping message ID {0}: {1}".format(
+                error = "IMAP error: Skipping message UID {0}: {1}".format(
                     message_uid, error
                 )
                 logger.error("IMAP error: {0}".format(error))
@@ -1293,41 +1294,90 @@ def get_dmarc_reports_from_inbox(host=None, user=None, password=None,
             if delete:
                 processed_messages = aggregate_report_msg_uids + \
                                      forensic_report_msg_uids
-                try:
-                    delete_messages(processed_messages)
-                except (ConnectionResetError, TimeoutError) as error:
-                    logger.debug("IMAP error: {0}".format(error.__str__()))
-                    logger.debug("Reconnecting to IMAP")
-                    server = imapclient.IMAPClient(host, use_uid=True)
-                    server.login(user, password)
-                    server.select_folder(reports_folder)
-                    delete_messages(processed_messages)
+
+                number_of_msgs = len(processed_messages)
+                logger.debug("Deleting messages")
+                for i in range(number_of_msgs):
+                    msg_uid = processed_messages[i]
+                    logger.debug("Deleting message {0} of {1}: "
+                                 "UID {2}".format(i + 1,
+                                                  number_of_msgs,
+                                                  msg_uid))
+                    try:
+                        delete_messages([msg_uid])
+
+                    except imapclient.exceptions.IMAPClientError as e:
+                        e = e.__str__().lstrip("b'").rstrip(
+                            "'").rstrip(".")
+                        e = "IMAP error: Error deleting message UID {0}: " \
+                            "{1}".format(msg_uid, e)
+                        logger.error("IMAP error: {0}".format(e))
+                    except (ConnectionResetError, TimeoutError) as e:
+                        logger.debug("IMAP error: {0}".format(e.__str__()))
+                        logger.debug("Reconnecting to IMAP")
+                        server = imapclient.IMAPClient(host, use_uid=True)
+                        server.login(user, password)
+                        server.select_folder(reports_folder)
+                        delete_messages([msg_uid])
             else:
                 if len(aggregate_report_msg_uids) > 0:
-                    try:
-                        move_messages(aggregate_report_msg_uids,
-                                      aggregate_reports_folder)
-                    except (ConnectionResetError, TimeoutError) as error:
-                        logger.debug("IMAP error: {0}".format(error.__str__()))
-                        logger.debug("Reconnecting to IMAP")
-                        server = imapclient.IMAPClient(host, use_uid=True)
-                        server.login(user, password)
-                        server.select_folder(reports_folder)
-                        move_messages(aggregate_report_msg_uids,
-                                      aggregate_reports_folder)
+                    logger.debug("Moving aggregate report messages "
+                                 "from {0} to "
+                                 "{1}".format(reports_folder,
+                                              aggregate_reports_folder))
+                    number_of_msgs = len(aggregate_report_msg_uids)
+                    for i in range(number_of_msgs):
+                        msg_uid = aggregate_report_msg_uids[i]
+                        logger.debug("Moving message {0} of {1}: "
+                                     "UID {2}".format(i+1, number_of_msgs,
+                                                      msg_uid))
+                        try:
+                            move_messages([msg_uid],
+                                          aggregate_reports_folder)
+                        except imapclient.exceptions.IMAPClientError as e:
+                            e = e.__str__().lstrip("b'").rstrip(
+                                "'").rstrip(".")
+                            e = "Error moving message UID {0}: " \
+                                "{1}".format(msg_uid, e)
+                            logger.error("IMAP error: {0}".format(e))
+                        except (ConnectionResetError, TimeoutError) as error:
+                            logger.debug("IMAP error: {0}".format(
+                                error.__str__()))
+                            logger.debug("Reconnecting to IMAP")
+                            server = imapclient.IMAPClient(host, use_uid=True)
+                            server.login(user, password)
+                            server.select_folder(reports_folder)
+                            move_messages([msg_uid],
+                                          aggregate_reports_folder)
 
                 if len(forensic_report_msg_uids) > 0:
-                    try:
-                        move_messages(forensic_report_msg_uids,
-                                      forensic_reports_folder)
-                    except (ConnectionResetError, TimeoutError) as error:
-                        logger.debug("IMAP error: {0}".format(error.__str__()))
-                        logger.debug("Reconnecting to IMAP")
-                        server = imapclient.IMAPClient(host, use_uid=True)
-                        server.login(user, password)
-                        server.select_folder(reports_folder)
-                        move_messages(forensic_report_msg_uids,
-                                      forensic_reports_folder)
+                    logger.debug("Moving forensic report messages "
+                                 "from {0} to "
+                                 "{1}".format(reports_folder,
+                                              forensic_reports_folder))
+                    number_of_msgs = len(forensic_report_msg_uids)
+                    for i in range(number_of_msgs):
+                        msg_uid = forensic_report_msg_uids[i]
+                        logger.debug("Moving message {0} of {1}: "
+                                     "UID {2}".format(i + 1, number_of_msgs,
+                                                      msg_uid))
+                        try:
+                            move_messages([msg_uid],
+                                          forensic_reports_folder)
+                        except imapclient.exceptions.IMAPClientError as e:
+                            e = e.__str__().lstrip("b'").rstrip(
+                                "'").rstrip(".")
+                            e = "Error moving message UID {0}: " \
+                                "{1}".format(msg_uid, e)
+                        except (ConnectionResetError, TimeoutError) as error:
+                            logger.debug("IMAP error: {0}".format(
+                                error.__str__()))
+                            logger.debug("Reconnecting to IMAP")
+                            server = imapclient.IMAPClient(host, use_uid=True)
+                            server.login(user, password)
+                            server.select_folder(reports_folder)
+                            move_messages([msg_uid],
+                                          forensic_reports_folder)
 
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
