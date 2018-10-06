@@ -1,3 +1,8 @@
+4.1.7
+-----
+
+- Remove any invalid XML schema tags before parsing the XML (#18)
+
 4.1.6
 -----
 

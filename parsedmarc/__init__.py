@@ -44,12 +44,13 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.6"
+__version__ = "4.1.7"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
+xml_schema_regex = re.compile(r"\s*<xs:schema.*>", re.MULTILINE)
 
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
@@ -457,6 +458,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         OrderedDict: The parsed aggregate DMARC report
     """
     try:
+        # Remove invalid schema tags
+        xml = xml_schema_regex.sub("", xml)
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
         schema = "draft"

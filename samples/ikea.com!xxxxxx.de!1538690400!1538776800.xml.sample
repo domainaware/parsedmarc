@@ -1,0 +1,47 @@
+<?xml version="1.0"?> <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://dmarc.org/dmarc-xml/0.1">
+<feedback>
+  <report_metadata>
+    <org_name>ikea.com</org_name>
+    <email>double-bounce@ikea.com</email>
+    <report_id>aggr_report_2018_10_05_5bc7e9b4f3e8a</report_id>
+    <date_range>
+      <begin>1538690400</begin>
+      <end>1538776800</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>xxxxxx.de</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>none</p>
+    <sp>none</sp>
+    <pct>100</pct>
+    <fo>0</fo>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>234.234.234.234</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>fail</dkim>
+        <spf>fail</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>xxxxxx.de</header_from>
+      <envelope_from>xxxxxx.de</envelope_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>xxxxxx.de</domain>
+        <result>pass</result>
+      </dkim>
+      <spf>
+        <domain>mailrelay.com</domain>
+        <scope>helo</scope>
+        <result>none</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>
