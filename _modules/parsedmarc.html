@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.1.7 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.1.8 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.1.7
+                4.1.8
               </div>
             
           
@@ -189,13 +189,14 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;4.1.7&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;4.1.8&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
 
 <span class="n">feedback_report_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([\w\-]+): (.+)$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
-<span class="n">xml_schema_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*&lt;xs:schema.*&gt;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+<span class="n">xml_header_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^&lt;\?xml .*$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+<span class="n">xml_schema_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&lt;\/?xs:schema.&gt;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
 
 <span class="n">MAGIC_ZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x50\x4B\x03\x04</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_GZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1F\x8B</span><span class="s2">&quot;</span>
@@ -537,23 +538,28 @@
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;dkim&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="p">(</span><span class="s2">&quot;spf&quot;</span><span class="p">,</span> <span class="p">[])])</span>
     <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">auth_results</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">:</span>
+            <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">:</span>
+            <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">auth_results</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
-            <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]]</span>
-        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="s2">&quot;domain&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">new_result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;domain&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">])])</span>
-                <span class="k">if</span> <span class="s2">&quot;selector&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-                <span class="k">if</span> <span class="s2">&quot;result&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-                <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]]</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="s2">&quot;domain&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;domain&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">])])</span>
+            <span class="k">if</span> <span class="s2">&quot;selector&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;result&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+            <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
         <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]]</span>
     <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]:</span>
@@ -569,16 +575,19 @@
         <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;envelope_from&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]:</span>
-        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+        <span class="n">envelope_from</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">envelope_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">envelope_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">envelope_from</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope_from</span>
 
     <span class="k">elif</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">envelope_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">envelope_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">envelope_from</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope_from</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">envelope_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">envelope_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">envelope_from</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope_from</span>
 
     <span class="n">envelope_to</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s2">&quot;envelope_to&quot;</span> <span class="ow">in</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]:</span>
@@ -602,9 +611,20 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed aggregate DMARC report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+
     <span class="k">try</span><span class="p">:</span>
+        <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Replace XML header (sometimes they are invalid)</span>
+        <span class="n">xml</span> <span class="o">=</span> <span class="n">xml_header_regex</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">xml</span><span class="p">)</span>
+
         <span class="c1"># Remove invalid schema tags</span>
-        <span class="n">xml</span> <span class="o">=</span> <span class="n">xml_schema_regex</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">xml</span><span class="p">)</span>
+        <span class="n">xml</span> <span class="o">=</span> <span class="n">xml_schema_regex</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&lt;?xml version=&quot;1.0&quot;?&gt;&#39;</span><span class="p">,</span> <span class="n">xml</span><span class="p">)</span>
+
         <span class="n">report</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
         <span class="n">report_metadata</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="s2">&quot;draft&quot;</span>
@@ -612,7 +632,13 @@
             <span class="n">schema</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span>
         <span class="n">new_report</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;xml_schema&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="p">)])</span>
         <span class="n">new_report_metadata</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
-        <span class="n">org_name</span> <span class="o">=</span> <span class="n">_get_base_domain</span><span class="p">(</span><span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span>
+                    <span class="s2">&quot;email&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">org_name</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">org_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">org_name</span> <span class="o">=</span> <span class="n">_get_base_domain</span><span class="p">(</span><span class="n">org_name</span><span class="p">)</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">org_name</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="kc">None</span>
@@ -629,7 +655,6 @@
         <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
-        <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">]]</span>
@@ -671,13 +696,16 @@
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">]:</span>
-                <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_report_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span>
-                                                    <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                                    <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">))</span>
+                <span class="n">report_record</span> <span class="o">=</span> <span class="n">_parse_report_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span>
+                                                     <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                                                     <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_report_record</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">],</span>
-                           <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">))</span>
+            <span class="n">report_record</span> <span class="o">=</span> <span class="n">_parse_report_record</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">],</span>
+                                                 <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                                                 <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
 
         <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">records</span>
 
@@ -1994,7 +2022,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.1.7',
+              VERSION:'4.1.8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
