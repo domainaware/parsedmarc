@@ -393,23 +393,28 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
     if record["auth_results"] is not None:
         auth_results = record["auth_results"].copy()
+        if "spf" not in auth_results:
+            auth_results["spf"] = []
+        if "dkim" not in auth_results:
+            auth_results["dkim"] = []
     else:
         auth_results = new_record["auth_results"].copy()
-    if "dkim" in auth_results:
-        if type(auth_results["dkim"]) != list:
-            auth_results["dkim"] = [auth_results["dkim"]]
-        for result in auth_results["dkim"]:
-            if "domain" in result and result["domain"] is not None:
-                new_result = OrderedDict([("domain", result["domain"])])
-                if "selector" in result and result["selector"] is not None:
-                    new_result["selector"] = result["selector"]
-                else:
-                    new_result["selector"] = "none"
-                if "result" in result and result["result"] is not None:
-                    new_result["result"] = result["result"]
-                else:
-                    new_result["result"] = "none"
-                new_record["auth_results"]["dkim"].append(new_result)
+
+    if type(auth_results["dkim"]) != list:
+        auth_results["dkim"] = [auth_results["dkim"]]
+    for result in auth_results["dkim"]:
+        if "domain" in result and result["domain"] is not None:
+            new_result = OrderedDict([("domain", result["domain"])])
+            if "selector" in result and result["selector"] is not None:
+                new_result["selector"] = result["selector"]
+            else:
+                new_result["selector"] = "none"
+            if "result" in result and result["result"] is not None:
+                new_result["result"] = result["result"]
+            else:
+                new_result["result"] = "none"
+            new_record["auth_results"]["dkim"].append(new_result)
+
     if type(auth_results["spf"]) != list:
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
