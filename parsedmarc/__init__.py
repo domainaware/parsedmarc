@@ -44,13 +44,14 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.7"
+__version__ = "4.1.8"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
-xml_schema_regex = re.compile(r"\s*<xs:schema.*>", re.MULTILINE)
+xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
+xml_schema_regex = re.compile(r"<\/?xs:schema.>", re.MULTILINE)
 
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
@@ -424,16 +425,19 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
         new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+        envelope_from = None
+        if len(auth_results["spf"]) > 0:
+            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
         if envelope_from is not None:
             envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
 
     elif new_record["identifiers"]["envelope_from"] is None:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
-        if envelope_from is not None:
-            envelope_from = str(envelope_from).lower()
-        new_record["identifiers"]["envelope_from"] = envelope_from
+        if len(auth_results["spf"]) > 0:
+            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+            if envelope_from is not None:
+                envelope_from = str(envelope_from).lower()
+            new_record["identifiers"]["envelope_from"] = envelope_from
 
     envelope_to = None
     if "envelope_to" in new_record["identifiers"]:
@@ -457,9 +461,20 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
     Returns:
         OrderedDict: The parsed aggregate DMARC report
     """
+    errors = []
+
     try:
+        xmltodict.parse(xml)["feedback"]
+    except Exception as e:
+        errors.append(e.__str__())
+
+    try:
+        # Replace XML header (sometimes they are invalid)
+        xml = xml_header_regex.sub("", xml)
+
         # Remove invalid schema tags
-        xml = xml_schema_regex.sub("", xml)
+        xml = xml_schema_regex.sub('<?xml version="1.0"?>', xml)
+
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
         schema = "draft"
@@ -467,7 +482,13 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
             schema = report["version"]
         new_report = OrderedDict([("xml_schema", schema)])
         new_report_metadata = OrderedDict()
-        org_name = _get_base_domain(report_metadata["org_name"])
+        if report_metadata["org_name"] is None:
+            if report_metadata["email"] is not None:
+                report_metadata["org_name"] = report_metadata[
+                    "email"].split("@")[-1]
+        org_name = report_metadata["org_name"]
+        if org_name is not None:
+            org_name = _get_base_domain(org_name)
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
@@ -484,7 +505,6 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         date_range["end"] = _timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
-        errors = []
         if "error" in report["report_metadata"]:
             if type(report["report_metadata"]["error"]) != list:
                 errors = [report["report_metadata"]["error"]]
@@ -526,13 +546,16 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
 
         if type(report["record"]) == list:
             for record in report["record"]:
-                records.append(_parse_report_record(record,
-                                                    nameservers=nameservers,
-                                                    timeout=timeout))
+                report_record = _parse_report_record(record,
+                                                     nameservers=nameservers,
+                                                     timeout=timeout)
+                records.append(report_record)
 
         else:
-            records.append(_parse_report_record(report["record"],
-                           nameservers=nameservers))
+            report_record = _parse_report_record(report["record"],
+                                                 nameservers=nameservers,
+                                                 timeout=timeout)
+            records.append(report_record)
 
         new_report["records"] = records
 

@@ -1,3 +1,8 @@
+4.1.8
+-----
+
+- Be more forgiving of weird XML
+
 4.1.7
 -----
 
