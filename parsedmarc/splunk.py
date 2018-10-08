@@ -93,11 +93,12 @@ class HECClient(object):
                     new_report["spf_results"] = record["auth_results"][
                         "spf"]
 
-            data["sourcetype"] = "dmarc:aggregate"
-            timestamp = human_timestamp_to_timestamp(new_report["begin_date"])
-            data["time"] = timestamp
-            data["event"] = new_report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+                data["sourcetype"] = "dmarc:aggregate"
+                timestamp = human_timestamp_to_timestamp(
+                    new_report["begin_date"])
+                data["time"] = timestamp
+                data["event"] = new_report.copy()
+                json_str += "{0}\n".format(json.dumps(data))
         try:
             response = self.session.post(self.url, data=json_str).json()
         except Exception as e:

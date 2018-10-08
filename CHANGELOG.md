@@ -1,3 +1,8 @@
+4.2.0
+------
+
+- Save each aggregate report record as a separate Splunk event
+
 4.1.9
 -----
 
