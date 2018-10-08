@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.1.8 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.1.9 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.1.8
+                4.1.9
               </div>
             
           
@@ -1166,7 +1166,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_forensic_report">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>sample_headers_only</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>sample_headers_only</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1176,13 +1176,14 @@ aggregate DMARC report</p>
 <li><strong>feedback_report</strong> (<em>str</em>) – A message’s feedback report as a string</li>
 <li><strong>sample</strong> (<em>str</em>) – The RFC 822 headers or RFC 822 message sample</li>
 <li><strong>sample_headers_only</strong> (<em>bool</em>) – Set true if the sample is only headers</li>
+<li><strong>msg_date</strong> (<em>str</em>) – The message’s date header</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An parsed report and sample</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A parsed report and sample</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
@@ -1467,7 +1468,7 @@ to a callback function</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.1.8',
+              VERSION:'4.1.9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
