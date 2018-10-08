@@ -1,7 +1,8 @@
 4.1.9
 -----
 
-- Workaround for forensic/ruf reports that are missing `Arrival-Date`
+- Workaround for forensic/ruf reports that are missing `Arrival-Date` and/or 
+`Reported-Domain`
 
 4.1.8
 -----

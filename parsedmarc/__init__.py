@@ -856,7 +856,11 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
                 if "date_utc" in received:
                     received["date_utc"] = received["date_utc"].replace("T",
                                                                         " ")
-        parsed_sample["from"] = convert_address(parsed_sample["from"][0])
+        msg_from = convert_address(parsed_sample["from"][0])
+        parsed_sample["from"] = msg_from
+        if "reported_domain" not in parsed_report:
+            domain = msg_from["address"].split("@")[-1].lower()
+            parsed_report["reported_domain"] = domain
 
         if "reply_to" in parsed_sample:
             parsed_sample["reply_to"] = list(map(lambda x: convert_address(x),
