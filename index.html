@@ -512,7 +512,7 @@ tags in your DMARC record, separated by commas.</p>
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
 <span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
 sudo apt-get update
-sudo apt-get install -y elasticsearch kibana
+sudo apt-get install -y default-jre-headless elasticsearch kibana
 sudo systemctl daemon-reload
 sudo systemctl <span class="nb">enable</span> elasticsearch.service
 sudo systemctl <span class="nb">enable</span> kibana.service
