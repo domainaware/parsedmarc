@@ -1,3 +1,8 @@
+4.1.9
+-----
+
+- Workaround for forensic/ruf reports that are missing `Arrival-Date`
+
 4.1.8
 -----
 

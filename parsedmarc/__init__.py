@@ -44,7 +44,7 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.8"
+__version__ = "4.1.9"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -754,7 +754,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          nameservers=None, timeout=2.0):
+                          msg_date, nameservers=None, timeout=2.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -762,12 +762,13 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
         sample_headers_only (bool): Set true if the sample is only headers
+        msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
-        OrderedDict: An parsed report and sample
+        OrderedDict: A parsed report and sample
     """
 
     def convert_address(original_address):
@@ -805,14 +806,14 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         for report_value in report_values:
             key = report_value[0].lower().replace("-", "_")
             parsed_report[key] = report_value[1]
-            if key == "arrival_date":
-                arrival_utc = dateparser.parse(parsed_report["arrival_date"],
-                                               settings={"TO_TIMEZONE": "UTC"})
-                arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
-                parsed_report["arrival_date_utc"] = arrival_utc
 
-        if "arrival_date_utc" not in parsed_report:
-            raise InvalidForensicReport("Missing Arrival-Date")
+        if "arrival_date" not in parsed_report:
+            parsed_report["arrival_date"] = msg_date
+
+        arrival_utc = dateparser.parse(parsed_report["arrival_date"],
+                                       settings={"TO_TIMEZONE": "UTC"})
+        arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
+        parsed_report["arrival_date_utc"] = arrival_utc
 
         ip_address = parsed_report["source_ip"]
         parsed_report["source"] = _get_ip_address_info(ip_address,
@@ -1040,6 +1041,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
     sample = None
     if "subject" in msg:
         subject = decode_header(msg["subject"])
+    date = decode_header(msg["date"])
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
@@ -1067,6 +1069,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
             forensic_report = parse_forensic_report(feedback_report,
                                                     sample,
                                                     sample_headers_only,
+                                                    date,
                                                     nameservers=nameservers,
                                                     timeout=timeout)
 
