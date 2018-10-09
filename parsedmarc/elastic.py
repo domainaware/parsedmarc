@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from collections import OrderedDict
 
 import parsedmarc
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 class _PolicyOverride(InnerDoc):
@@ -179,6 +183,7 @@ def create_indexes(names=None, settings=None):
         settings (dict): Index settings
 
     """
+    logger.debug("Creating elasticsearch indexes")
     if names is None:
         names = ["dmarc_aggregate", "dmarc_forensic"]
     for name in names:
@@ -201,6 +206,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     Raises:
             AlreadySaved
     """
+    logger.debug("Saving aggregate report to Elasticsearch")
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
@@ -299,6 +305,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
             AlreadySaved
 
         """
+    logger.debug("Saving forensic report to Elasticsearch")
     forensic_report = forensic_report.copy()
     sample_date = forensic_report["parsed_sample"]["date"]
     sample_date = parsedmarc.human_timestamp_to_datetime(sample_date)

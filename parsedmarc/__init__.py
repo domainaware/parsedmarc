@@ -1587,6 +1587,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
         message: Override the default plain text body
         ssl_context: SSL context options
     """
+    logging.debug("Emailing report to: {0}".format(",".join(mail_to)))
     date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):
