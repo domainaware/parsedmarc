@@ -47,7 +47,7 @@ import mailparser
 __version__ = "4.2.0"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
@@ -1249,10 +1249,8 @@ def get_dmarc_reports_from_inbox(host=None,
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
-            for chunk in chunks(msg_uids, 100):
-                server.add_flags(chunk, [imapclient.DELETED])
-
-            server.expunge()
+            server.delete_messages(msg_uids, silent=True)
+            server.expunge(msg_uids)
 
         def move_messages(msg_uids, folder):
             if type(msg_uids) == str:

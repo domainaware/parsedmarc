@@ -83,7 +83,7 @@ def _main():
     arg_parser.add_argument("--imap-port", default=None, help="IMAP port")
     arg_parser.add_argument("--imap-no-ssl", action="store_true",
                             default=False,
-                            help="Do not use SSL when connecting to IMAP")
+                            help="Do not use SSL/TLS when connecting to IMAP")
     arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
                             help="The IMAP folder containing the reports\n"
                                  "Default: INBOX")
@@ -157,7 +157,7 @@ def _main():
                             help="Do not move or delete IMAP messages",
                             action="store_true", default=False)
     arg_parser.add_argument("-s", "--silent", action="store_true",
-                            help="Only print errors")
+                            help="Only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",
                             help="Print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
@@ -168,8 +168,12 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    logging.basicConfig(level=logging.ERROR)
-    logger.setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.INFO)
+    logger.setLevel(logging.INFO)
+
+    if args.silent:
+        logging.basicConfig(level=logging.WARNING)
+        logger.setLevel(logging.WARNING)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)

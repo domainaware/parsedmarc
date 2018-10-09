@@ -2,6 +2,10 @@
 ------
 
 - Save each aggregate report record as a separate Splunk event
+- Fix IAMP delete action
+- Suppress Splunk SSL validation warnings
+- Change default logging level to `INFO`
+
 
 4.1.9
 -----

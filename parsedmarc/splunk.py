@@ -1,10 +1,13 @@
 from urllib.parse import urlparse
 import socket
 import json
+import urllib3
 
 import requests
 
 from parsedmarc import __version__, human_timestamp_to_timestamp
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class SplunkError(RuntimeError):
@@ -136,3 +139,6 @@ class HECClient(object):
             raise SplunkError(e.__str__())
         if response["code"] != 0:
             raise SplunkError(response["text"])
+
+
+
