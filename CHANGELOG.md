@@ -1,3 +1,23 @@
+4.2.0
+------
+
+- Save each aggregate report record as a separate Splunk event
+- Fix IAMP delete action
+- Suppress Splunk SSL validation warnings
+- Change default logging level to `WARNING`
+
+
+4.1.9
+-----
+
+- Workaround for forensic/ruf reports that are missing `Arrival-Date` and/or 
+`Reported-Domain`
+
+4.1.8
+-----
+
+- Be more forgiving of weird XML
+
 4.1.7
 -----
 

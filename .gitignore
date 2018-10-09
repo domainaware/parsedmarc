@@ -106,7 +106,6 @@ ENV/
 .idea/
 
 # I/O files
-
 output/
 *.zip
 *.gz
@@ -121,3 +120,6 @@ output/
 # Data files
 *.dat
 *.mmdb
+
+# Temp files
+tmp/

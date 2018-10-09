@@ -44,13 +44,14 @@ import imapclient.exceptions
 import dateparser
 import mailparser
 
-__version__ = "4.1.7"
+__version__ = "4.2.0"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.WARNING)
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
-xml_schema_regex = re.compile(r"\s*<xs:schema.*>", re.MULTILINE)
+xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
+xml_schema_regex = re.compile(r"<\/?xs:schema.>", re.MULTILINE)
 
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
@@ -392,23 +393,28 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
     if record["auth_results"] is not None:
         auth_results = record["auth_results"].copy()
+        if "spf" not in auth_results:
+            auth_results["spf"] = []
+        if "dkim" not in auth_results:
+            auth_results["dkim"] = []
     else:
         auth_results = new_record["auth_results"].copy()
-    if "dkim" in auth_results:
-        if type(auth_results["dkim"]) != list:
-            auth_results["dkim"] = [auth_results["dkim"]]
-        for result in auth_results["dkim"]:
-            if "domain" in result and result["domain"] is not None:
-                new_result = OrderedDict([("domain", result["domain"])])
-                if "selector" in result and result["selector"] is not None:
-                    new_result["selector"] = result["selector"]
-                else:
-                    new_result["selector"] = "none"
-                if "result" in result and result["result"] is not None:
-                    new_result["result"] = result["result"]
-                else:
-                    new_result["result"] = "none"
-                new_record["auth_results"]["dkim"].append(new_result)
+
+    if type(auth_results["dkim"]) != list:
+        auth_results["dkim"] = [auth_results["dkim"]]
+    for result in auth_results["dkim"]:
+        if "domain" in result and result["domain"] is not None:
+            new_result = OrderedDict([("domain", result["domain"])])
+            if "selector" in result and result["selector"] is not None:
+                new_result["selector"] = result["selector"]
+            else:
+                new_result["selector"] = "none"
+            if "result" in result and result["result"] is not None:
+                new_result["result"] = result["result"]
+            else:
+                new_result["result"] = "none"
+            new_record["auth_results"]["dkim"].append(new_result)
+
     if type(auth_results["spf"]) != list:
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
@@ -424,16 +430,19 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
         new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+        envelope_from = None
+        if len(auth_results["spf"]) > 0:
+            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
         if envelope_from is not None:
             envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
 
     elif new_record["identifiers"]["envelope_from"] is None:
-        envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
-        if envelope_from is not None:
-            envelope_from = str(envelope_from).lower()
-        new_record["identifiers"]["envelope_from"] = envelope_from
+        if len(auth_results["spf"]) > 0:
+            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+            if envelope_from is not None:
+                envelope_from = str(envelope_from).lower()
+            new_record["identifiers"]["envelope_from"] = envelope_from
 
     envelope_to = None
     if "envelope_to" in new_record["identifiers"]:
@@ -457,9 +466,20 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
     Returns:
         OrderedDict: The parsed aggregate DMARC report
     """
+    errors = []
+
     try:
+        xmltodict.parse(xml)["feedback"]
+    except Exception as e:
+        errors.append(e.__str__())
+
+    try:
+        # Replace XML header (sometimes they are invalid)
+        xml = xml_header_regex.sub("", xml)
+
         # Remove invalid schema tags
-        xml = xml_schema_regex.sub("", xml)
+        xml = xml_schema_regex.sub('<?xml version="1.0"?>', xml)
+
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
         schema = "draft"
@@ -467,7 +487,13 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
             schema = report["version"]
         new_report = OrderedDict([("xml_schema", schema)])
         new_report_metadata = OrderedDict()
-        org_name = _get_base_domain(report_metadata["org_name"])
+        if report_metadata["org_name"] is None:
+            if report_metadata["email"] is not None:
+                report_metadata["org_name"] = report_metadata[
+                    "email"].split("@")[-1]
+        org_name = report_metadata["org_name"]
+        if org_name is not None:
+            org_name = _get_base_domain(org_name)
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
@@ -484,7 +510,6 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         date_range["end"] = _timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
-        errors = []
         if "error" in report["report_metadata"]:
             if type(report["report_metadata"]["error"]) != list:
                 errors = [report["report_metadata"]["error"]]
@@ -526,13 +551,16 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
 
         if type(report["record"]) == list:
             for record in report["record"]:
-                records.append(_parse_report_record(record,
-                                                    nameservers=nameservers,
-                                                    timeout=timeout))
+                report_record = _parse_report_record(record,
+                                                     nameservers=nameservers,
+                                                     timeout=timeout)
+                records.append(report_record)
 
         else:
-            records.append(_parse_report_record(report["record"],
-                           nameservers=nameservers))
+            report_record = _parse_report_record(report["record"],
+                                                 nameservers=nameservers,
+                                                 timeout=timeout)
+            records.append(report_record)
 
         new_report["records"] = records
 
@@ -726,7 +754,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          nameservers=None, timeout=2.0):
+                          msg_date, nameservers=None, timeout=2.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -734,12 +762,13 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
         sample_headers_only (bool): Set true if the sample is only headers
+        msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
-        OrderedDict: An parsed report and sample
+        OrderedDict: A parsed report and sample
     """
 
     def convert_address(original_address):
@@ -777,14 +806,14 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         for report_value in report_values:
             key = report_value[0].lower().replace("-", "_")
             parsed_report[key] = report_value[1]
-            if key == "arrival_date":
-                arrival_utc = dateparser.parse(parsed_report["arrival_date"],
-                                               settings={"TO_TIMEZONE": "UTC"})
-                arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
-                parsed_report["arrival_date_utc"] = arrival_utc
 
-        if "arrival_date_utc" not in parsed_report:
-            raise InvalidForensicReport("Missing Arrival-Date")
+        if "arrival_date" not in parsed_report:
+            parsed_report["arrival_date"] = msg_date
+
+        arrival_utc = dateparser.parse(parsed_report["arrival_date"],
+                                       settings={"TO_TIMEZONE": "UTC"})
+        arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
+        parsed_report["arrival_date_utc"] = arrival_utc
 
         ip_address = parsed_report["source_ip"]
         parsed_report["source"] = _get_ip_address_info(ip_address,
@@ -827,7 +856,11 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
                 if "date_utc" in received:
                     received["date_utc"] = received["date_utc"].replace("T",
                                                                         " ")
-        parsed_sample["from"] = convert_address(parsed_sample["from"][0])
+        msg_from = convert_address(parsed_sample["from"][0])
+        parsed_sample["from"] = msg_from
+        if "reported_domain" not in parsed_report:
+            domain = msg_from["address"].split("@")[-1].lower()
+            parsed_report["reported_domain"] = domain
 
         if "reply_to" in parsed_sample:
             parsed_sample["reply_to"] = list(map(lambda x: convert_address(x),
@@ -1012,6 +1045,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
     sample = None
     if "subject" in msg:
         subject = decode_header(msg["subject"])
+    date = decode_header(msg["date"])
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
@@ -1039,6 +1073,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
             forensic_report = parse_forensic_report(feedback_report,
                                                     sample,
                                                     sample_headers_only,
+                                                    date,
                                                     nameservers=nameservers,
                                                     timeout=timeout)
 
@@ -1214,10 +1249,8 @@ def get_dmarc_reports_from_inbox(host=None,
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
-            for chunk in chunks(msg_uids, 100):
-                server.add_flags(chunk, [imapclient.DELETED])
-
-            server.expunge()
+            server.delete_messages(msg_uids, silent=True)
+            server.expunge(msg_uids)
 
         def move_messages(msg_uids, folder):
             if type(msg_uids) == str:

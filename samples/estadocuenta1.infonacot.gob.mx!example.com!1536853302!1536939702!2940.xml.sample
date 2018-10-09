@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<feedback>
+	<report_metadata>
+		<report_id>2940</report_id>
+		<org_name>XYZ Corporation</org_name>
+		<email>admin@estadocuenta1.infonacot.gob.mx</email>
+		<extra_contact_info>http://estadocuenta1.infonacot.gob.mx</extra_contact_info>
+		<date_range>
+			<begin>1536853302</begin>
+			<end>1536939702</end>
+		</date_range>
+	</report_metadata>
+	<policy_published>
+		<domain>example.com</domain>
+		<p>none</p>
+	</policy_published>
+	<record>
+		<row>
+			<source_ip>148.243.137.254</source_ip>
+			<count>1</count>
+			<policy_evaluated>
+				<disposition>none</disposition>
+				<dkim>fail</dkim>
+				<spf>fail</spf>
+			</policy_evaluated>
+		</row>
+		<identifiers>
+			<envelope_to>estadocuenta1.infonacot.gob.mx</envelope_to>
+			<header_from>example.com</header_from>
+		</identifiers>
+		<auth_results>
+		</auth_results>
+	</record>
+</feedback>

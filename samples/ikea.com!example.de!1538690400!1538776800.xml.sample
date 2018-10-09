@@ -10,7 +10,7 @@
     </date_range>
   </report_metadata>
   <policy_published>
-    <domain>xxxxxx.de</domain>
+    <domain>example.de</domain>
     <adkim>r</adkim>
     <aspf>r</aspf>
     <p>none</p>
@@ -29,12 +29,12 @@
       </policy_evaluated>
     </row>
     <identifiers>
-      <header_from>xxxxxx.de</header_from>
-      <envelope_from>xxxxxx.de</envelope_from>
+      <header_from>example.de</header_from>
+      <envelope_from>example.de</envelope_from>
     </identifiers>
     <auth_results>
       <dkim>
-        <domain>xxxxxx.de</domain>
+        <domain>example.de</domain>
         <result>pass</result>
       </dkim>
       <spf>
