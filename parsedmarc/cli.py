@@ -168,12 +168,9 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO)
-    logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.WARNING)
+    logger.setLevel(logging.WARNING)
 
-    if args.silent:
-        logging.basicConfig(level=logging.WARNING)
-        logger.setLevel(logging.WARNING)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
