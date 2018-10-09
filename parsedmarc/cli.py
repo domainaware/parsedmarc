@@ -13,9 +13,8 @@ import json
 from elasticsearch.exceptions import ElasticsearchException
 
 from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
-    parse_report_file, elastic, splunk, save_output, watch_inbox, \
+    parse_report_file, elastic, kafkaclient, splunk, save_output, watch_inbox, \
     email_results, SMTPError, ParserError, __version__
-
 
 def _main():
     """Called when the module is executed"""
@@ -25,6 +24,12 @@ def _main():
                                                indent=2))
         if not args.silent:
             print(output_str)
+        if args.kafka_hosts:
+            try:
+              kafkaClient = kafkaclient.KafkaClient(args.kafka_hosts)
+              # dont do this
+            except Exception as error:
+              logger.error("Kafka Error: {0}".format(error.__str__()))
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -37,6 +42,14 @@ def _main():
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
                     exit(1)
+                try:
+                     if args.kafka_hosts:
+                         kafkaClient.save_aggregate_reports_to_kafka(
+                         report, kafka_aggregate_topic)
+                         # dont do this catch specific exceptions
+                except Exception as error_:
+                     logger.error("Kafka Error: {0}".format(
+                         error_.__str__()))
             if args.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -55,6 +68,14 @@ def _main():
                 except ElasticsearchException as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
+                try:
+                       if args.kafka_hosts:
+                           kafkaClient.save_forensic_reports_to_kafka(
+                           report, kafka_forensic_topics)
+                           # dont do this
+                except Exception as error_:
+                       logger.error("Kafka Error: {0}".format(
+                           error_.__str__()))
             if args.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -122,6 +143,12 @@ def _main():
                             default=False,
                             help="Skip certificate verification for Splunk "
                                  "HEC")
+    arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
+                            help="A list of one or more Kafka hostnames or URLs")
+    arg_parser.add_argument("--kafka-aggregate-topic",
+                            help="The Kafka topic to publish aggregate reports to.")
+    arg_parser.add_argument("--kafka-forensic_topic",
+                            help="The Kafka topic to publish forensic reports to.")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
                             help="Save aggregate reports to search indexes")
@@ -191,7 +218,7 @@ def _main():
         es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
 
     if args.save_aggregate or args.save_forensic:
-        if args.elasticsearch_host is None and args.hec is None:
+        if args.elasticsearch_host is None and args.hec  and args.kafka_hosts is None:
             args.elasticsearch_host = ["localhost:9200"]
         try:
             if args.elasticsearch_host:
@@ -213,6 +240,15 @@ def _main():
         hec_client = splunk.HECClient(args.hec, args.hec_token,
                                       args.hec_index,
                                       verify=verify)
+
+    kafka_aggregate_topic = "dmarc_aggrregate"
+    kafka_forensic_topic = "dmarc_forensic"
+
+    if args.kafka_aggregate_topic:
+      kafka_aggregate_topic = args.kafka_aggregate_topic
+
+    if args.kafka_forensic_topic:
+      kafka_forensic_topic = args.kafka_forensic_topic
 
     file_paths = []
     for file_path in args.file_path:
