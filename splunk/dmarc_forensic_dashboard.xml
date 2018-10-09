@@ -38,7 +38,7 @@
       <title>Forensic samples</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | fillnull value="none" | stats count by _time,parsed_sample.headers.From,parsed_sample.headers.To,parsed_sample.headers.Reply-To,parsed_sample.headers.Subject | sort -_time</query>
+          <query>index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | fillnull value="none" | stats count by arrival_date_utc,parsed_sample.headers.From,parsed_sample.headers.To,parsed_sample.headers.Reply-To,parsed_sample.headers.Subject | sort -arrival_date_utc</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
