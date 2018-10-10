@@ -16,3 +16,4 @@ sphinx_rtd_theme
 collective.checkdocs
 wheel
 rstcheck
+kafka-python
