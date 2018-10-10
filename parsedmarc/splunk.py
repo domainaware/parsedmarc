@@ -10,7 +10,7 @@ from parsedmarc import __version__, human_timestamp_to_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("parsedmarc")
 
 
 class SplunkError(RuntimeError):

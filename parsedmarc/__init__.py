@@ -46,8 +46,7 @@ import mailparser
 
 __version__ = "4.2.0"
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger = logging.getLogger("parsedmarc")
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
