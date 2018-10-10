@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.1.9 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.2.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.1.9
+                4.2.0
               </div>
             
           
@@ -189,10 +189,9 @@
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;4.1.9&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;4.2.0&quot;</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 
 <span class="n">feedback_report_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([\w\-]+): (.+)$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
 <span class="n">xml_header_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^&lt;\?xml .*$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
@@ -271,8 +270,8 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">download_psl</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Failed to download an updated PSL - </span><span class="se">\</span>
-<span class="s2">                               </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Failed to download an updated PSL </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">psl_file</span><span class="p">:</span>
         <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffix</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">psl_file</span><span class="p">)</span>
 
@@ -712,18 +711,18 @@
         <span class="k">return</span> <span class="n">new_report</span>
 
     <span class="k">except</span> <span class="n">expat</span><span class="o">.</span><span class="n">ExpatError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Invalid XML: &quot;</span>
-                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid XML: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Missing field: &quot;</span>
-                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span>
+            <span class="s2">&quot;Missing field: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Report missing required section&quot;</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Unexpected error: &quot;</span>
-                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span>
+            <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../index.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
@@ -764,8 +763,8 @@
         <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary &quot;</span>
                                      <span class="s2">&quot;(rb) mode&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Invalid archive file: &quot;</span>
-                                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid archive file: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">return</span> <span class="n">xml</span></div>
 
@@ -1064,8 +1063,8 @@
             <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="s2">&quot;Unexpected error: &quot;</span>
-                                    <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+        <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span>
+            <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
@@ -1394,10 +1393,8 @@
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
                 <span class="n">msg_uids</span> <span class="o">=</span> <span class="p">[</span><span class="n">msg_uids</span><span class="p">]</span>
 
-            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="mi">100</span><span class="p">):</span>
-                <span class="n">server</span><span class="o">.</span><span class="n">add_flags</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="p">[</span><span class="n">imapclient</span><span class="o">.</span><span class="n">DELETED</span><span class="p">])</span>
-
-            <span class="n">server</span><span class="o">.</span><span class="n">expunge</span><span class="p">()</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">expunge</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">move_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="n">folder</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
@@ -1410,11 +1407,14 @@
                     <span class="n">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating IMAP folder: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">))</span>
             <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Test subfolder creation</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">):</span>
                 <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Creating IMAP folder: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">))</span>
         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span><span class="p">:</span>
             <span class="c1">#  Only replace / with . when . doesn&#39;t work</span>
             <span class="c1"># This usually indicates a dovecot IMAP server</span>
@@ -1422,18 +1422,19 @@
                                                                         <span class="s2">&quot;.&quot;</span><span class="p">)</span>
             <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="n">forensic_reports_folder</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span>
                                                                       <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="n">subfolders</span> <span class="o">=</span> <span class="p">[</span><span class="n">aggregate_reports_folder</span><span class="p">,</span>
+                      <span class="n">forensic_reports_folder</span><span class="p">,</span>
+                      <span class="n">invalid_reports_folder</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">):</span>
-            <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">):</span>
-            <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">):</span>
-            <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">subfolder</span> <span class="ow">in</span> <span class="n">subfolders</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">subfolder</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Creating IMAP folder: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subfolder</span><span class="p">))</span>
+                <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">subfolder</span><span class="p">)</span>
         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> messages in IMAP folder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">),</span>
-                                                                <span class="n">reports_folder</span>
-                                                                <span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> messages in IMAP folder </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">),</span> <span class="n">reports_folder</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)):</span>
             <span class="n">number_of_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
             <span class="n">message_uid</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -1474,16 +1475,20 @@
             <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
                 <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;IMAP error: Skipping message UID </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">message_uid</span><span class="p">,</span> <span class="n">error</span>
-                <span class="p">)</span>
+                    <span class="n">message_uid</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
             <span class="k">except</span> <span class="n">InvalidDMARCReport</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="s2">&quot;Deleting message UID </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message_uid</span><span class="p">))</span>
                         <span class="n">delete_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">])</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">move_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="n">invalid_reports_folder</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="s2">&quot;Moving message UID </span><span class="si">{0}</span><span class="s2"> to {1)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">message_uid</span><span class="p">,</span> <span class="n">invalid_reports_folder</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
@@ -1491,21 +1496,19 @@
                                      <span class="n">forensic_report_msg_uids</span>
 
                 <span class="n">number_of_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_messages</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Deleting messages&quot;</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_msgs</span><span class="p">):</span>
                     <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">processed_messages</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Deleting message </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2">: &quot;</span>
-                                 <span class="s2">&quot;UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                                                  <span class="n">number_of_msgs</span><span class="p">,</span>
-                                                  <span class="n">msg_uid</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;Deleting message </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2">: UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">number_of_msgs</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">))</span>
                     <span class="k">try</span><span class="p">:</span>
                         <span class="n">delete_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">])</span>
 
                     <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="n">e</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span>
                             <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-                        <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;IMAP error: Error deleting message UID </span><span class="si">{0}</span><span class="s2">: &quot;</span> \
-                            <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Error deleting message UID&quot;</span>
+                        <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">: &quot;</span> <span class="s2">&quot;</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
                     <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
@@ -1519,24 +1522,25 @@
                         <span class="n">delete_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Moving aggregate report messages &quot;</span>
-                                 <span class="s2">&quot;from </span><span class="si">{0}</span><span class="s2"> to &quot;</span>
-                                 <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span>
-                                              <span class="n">aggregate_reports_folder</span><span class="p">))</span>
+                    <span class="n">log_message</span> <span class="o">=</span> <span class="s2">&quot;Moving aggregate report messages from&quot;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">log_message</span><span class="p">,</span> <span class="n">reports_folder</span><span class="p">,</span>
+                            <span class="n">aggregate_reports_folder</span><span class="p">))</span>
                     <span class="n">number_of_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregate_report_msg_uids</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_msgs</span><span class="p">):</span>
                         <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">aggregate_report_msg_uids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Moving message </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2">: &quot;</span>
-                                     <span class="s2">&quot;UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_msgs</span><span class="p">,</span>
-                                                      <span class="n">msg_uid</span><span class="p">))</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="s2">&quot;Moving message </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2">: UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_msgs</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">))</span>
                         <span class="k">try</span><span class="p">:</span>
                             <span class="n">move_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">],</span>
                                           <span class="n">aggregate_reports_folder</span><span class="p">)</span>
                         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                             <span class="n">e</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span>
                                 <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-                            <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: &quot;</span> \
-                                <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID&quot;</span>
+                            <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">: </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
                         <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1552,24 +1556,26 @@
                                           <span class="n">aggregate_reports_folder</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Moving forensic report messages &quot;</span>
-                                 <span class="s2">&quot;from </span><span class="si">{0}</span><span class="s2"> to &quot;</span>
-                                 <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span>
-                                              <span class="n">forensic_reports_folder</span><span class="p">))</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving forensic report messages from&quot;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> to </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span>
+                                                <span class="n">reports_folder</span><span class="p">,</span>
+                                                <span class="n">forensic_reports_folder</span><span class="p">))</span>
                     <span class="n">number_of_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_msgs</span><span class="p">):</span>
                         <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">forensic_report_msg_uids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Moving message </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2">: &quot;</span>
-                                     <span class="s2">&quot;UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">number_of_msgs</span><span class="p">,</span>
-                                                      <span class="n">msg_uid</span><span class="p">))</span>
+                        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving message&quot;</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> of </span><span class="si">{2}</span><span class="s2">: UID </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">message</span><span class="p">,</span>
+                            <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">number_of_msgs</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">))</span>
                         <span class="k">try</span><span class="p">:</span>
                             <span class="n">move_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">],</span>
                                           <span class="n">forensic_reports_folder</span><span class="p">)</span>
                         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                             <span class="n">e</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span>
                                 <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-                            <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: &quot;</span> \
-                                <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                            <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP Error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
                         <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1734,6 +1740,7 @@
 <span class="sd">        message: Override the default plain text body</span>
 <span class="sd">        ssl_context: SSL context options</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Emailing report to: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mail_to</span><span class="p">)))</span>
     <span class="n">date_string</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">attachment_filename</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">attachment_filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.zip&quot;</span><span class="p">):</span>
@@ -2029,7 +2036,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.1.9',
+              VERSION:'4.2.0',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -45,22 +45,22 @@ CLI help
 
 ::
 
-  usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                    [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                    [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
-                    [-a ARCHIVE_FOLDER] [-d]
-                    [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                    [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                    [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                    [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                    [--hec-skip-certificate-verification] [--save-aggregate]
-                    [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
-                    [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
-                    [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                    [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                    [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                    [-s] [--debug] [-v]
-                    [file_path [file_path ...]]
+ usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                   [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                   [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
+                   [-a ARCHIVE_FOLDER] [-d]
+                   [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                   [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
+                   [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                   [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                   [--hec-skip-certificate-verification] [--save-aggregate]
+                   [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
+                   [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
+                   [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                   [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                   [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                   [-s] [--debug] [-v]
+                   [file_path [file_path ...]]
 
    Parses DMARC reports
 
@@ -83,7 +83,7 @@ CLI help
                            IMAP password
      --imap-port IMAP_PORT
                            IMAP port
-     --imap-no-ssl         Do not use SSL when connecting to IMAP
+     --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
                            The IMAP folder containing the reports Default: INBOX
      -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
@@ -134,7 +134,7 @@ CLI help
      -w, --watch           Use an IMAP IDLE connection to process reports as they
                            arrive in the inbox
      --test                Do not move or delete IMAP messages
-     -s, --silent          Only print errors
+     -s, --silent          Only print errors and warnings
      --debug               Print debugging information
      -v, --version         show program's version number and exit
 
@@ -543,6 +543,12 @@ Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
     Most reporting organizations do not send forensic reports of any kind for
     privacy reasons. While aggregate DMARC reports are sent at least daily,
     it is normal to receive very few forensic reports.
+
+   An alternative approach is to still collect forensic/failure/ruf reports
+   in your DMARC inbox, but run ``parsedmarc --save-forensic`` manually on a
+   separate IMAP folder (using the  ``-r`` option), after you have manually
+   moved known samples you want to save to that folder (e.g. malicious
+   samples non-sensitive legitimate samples).
 
 
 When you first visit Kibana, it will prompt you to create an index pattern.

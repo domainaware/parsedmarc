@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 4.1.9 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 4.2.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.1.9
+                4.2.0
               </div>
             
           
@@ -147,12 +147,15 @@
   <h1>Source code for parsedmarc.elastic</h1><div class="highlight"><pre>
 <span></span><span class="c1"># -*- coding: utf-8 -*-</span>
 
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 
 <span class="kn">import</span> <span class="nn">parsedmarc</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl.search</span> <span class="k">import</span> <span class="n">Q</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
     <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">DateRange</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -331,6 +334,7 @@
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: {0{&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
                 <span class="n">index</span><span class="o">.</span><span class="n">put_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
             <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span></div>
@@ -348,6 +352,7 @@
 <span class="sd">    Raises:</span>
 <span class="sd">            AlreadySaved</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to Elasticsearch&quot;</span><span class="p">)</span>
     <span class="n">aggregate_report</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span>
     <span class="n">org_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
@@ -446,6 +451,7 @@
 <span class="sd">            AlreadySaved</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving forensic report to Elasticsearch&quot;</span><span class="p">)</span>
     <span class="n">forensic_report</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">sample_date</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span>
     <span class="n">sample_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">sample_date</span><span class="p">)</span>
@@ -564,7 +570,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.1.9',
+              VERSION:'4.2.0',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
