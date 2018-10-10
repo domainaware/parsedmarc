@@ -16,6 +16,9 @@ from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, splunk, save_output, watch_inbox, \
     email_results, SMTPError, ParserError, __version__
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

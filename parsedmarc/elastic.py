@@ -9,7 +9,6 @@ from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class _PolicyOverride(InnerDoc):

@@ -1246,6 +1246,7 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
+            logger.debug("Deleting messages")
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
@@ -1284,9 +1285,8 @@ def get_dmarc_reports_from_inbox(host=None,
             server.create_folder(invalid_reports_folder)
         server.select_folder(reports_folder)
         messages = server.search()
-        logger.debug("Found {0} messages in IMAP folder".format(len(messages),
-                                                                reports_folder
-                                                                ))
+        logger.debug("Found {0} messages in IMAP folder "
+                     "{1}".format(len(messages), reports_folder))
         for i in range(len(messages)):
             number_of_messages = len(messages)
             message_uid = messages[i]
