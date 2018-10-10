@@ -61,6 +61,7 @@ class HECClient(object):
             to save in Splunk
 
         """
+        logger.debug("Saving aggregate reports to Splunk")
         if type(aggregate_reports) == dict:
             aggregate_reports = [aggregate_reports]
 
@@ -122,6 +123,7 @@ class HECClient(object):
             to save in Splunk
 
         """
+        logger.debug("Saving forensic reports to Splunk")
         if type(forensic_reports) == dict:
             forensic_reports = [forensic_reports]
 
