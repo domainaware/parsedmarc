@@ -76,7 +76,7 @@ CLI help
                             IMAP password
       --imap-port IMAP_PORT
                             IMAP port
-      --imap-no-ssl         Do not use SSL when connecting to IMAP
+      --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
       -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
                             The IMAP folder containing the reports Default: INBOX
       -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
@@ -127,7 +127,7 @@ CLI help
       -w, --watch           Use an IMAP IDLE connection to process reports as they
                             arrive in the inbox
       --test                Do not move or delete IMAP messages
-      -s, --silent          Only print errors
+      -s, --silent          Only print errors and warnings
       --debug               Print debugging information
       -v, --version         show program's version number and exit
 

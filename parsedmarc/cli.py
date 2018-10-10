@@ -16,6 +16,8 @@ from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, kafkaclient, splunk, save_output, \
     watch_inbox, email_results, SMTPError, ParserError, __version__
 
+logger = logging.getLogger("parsedmarc")
+
 
 def _main():
     """Called when the module is executed"""
@@ -53,8 +55,9 @@ def _main():
             if args.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
-                    hec_client.save_aggregate_reports_to_splunk(
-                        aggregate_reports_)
+                    if len(aggregate_reports_) > 0:
+                        hec_client.save_aggregate_reports_to_splunk(
+                            aggregate_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
         if args.save_forensic:
@@ -79,8 +82,9 @@ def _main():
             if args.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
-                    hec_client.save_forensic_reports_to_splunk(
-                        forensic_reports_)
+                    if len(forensic_reports_) > 0:
+                        hec_client.save_forensic_reports_to_splunk(
+                            forensic_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
 
@@ -104,7 +108,7 @@ def _main():
     arg_parser.add_argument("--imap-port", default=None, help="IMAP port")
     arg_parser.add_argument("--imap-no-ssl", action="store_true",
                             default=False,
-                            help="Do not use SSL when connecting to IMAP")
+                            help="Do not use SSL/TLS when connecting to IMAP")
     arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
                             help="The IMAP folder containing the reports\n"
                                  "Default: INBOX")
@@ -187,7 +191,7 @@ def _main():
                             help="Do not move or delete IMAP messages",
                             action="store_true", default=False)
     arg_parser.add_argument("-s", "--silent", action="store_true",
-                            help="Only print errors")
+                            help="Only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",
                             help="Print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
@@ -198,8 +202,9 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    logging.basicConfig(level=logging.ERROR)
-    logger.setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.WARNING)
+    logger.setLevel(logging.WARNING)
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)

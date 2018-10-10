@@ -2,6 +2,10 @@
 ------
 
 - Save each aggregate report record as a separate Splunk event
+- Fix IMAP delete action (issue # 20)
+- Suppress Splunk SSL validation warnings
+- Change default logging level to `WARNING`
+
 
 4.1.9
 -----
