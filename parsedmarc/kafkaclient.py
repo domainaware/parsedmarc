@@ -11,7 +11,8 @@ class KafkaClient(object):
   def __init__(self, kafka_hosts):
       """ Right now lets just do one host"""
       self.host = kafka_hosts
-      self.producer = KafkaProducer(bootstrap_servers=kafka_hosts, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+      self.producer = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                                    bootstrap_servers=kafka_hosts)
 
   def save_aggregate_reports_to_kafka(self, aggregate_reports, aggregate_topic):
         """
@@ -28,9 +29,10 @@ class KafkaClient(object):
         if len(aggregate_reports) < 1:
             return
 
-        for report in aggregate_reports:
-            self.producer.send(aggregate_topic, report)
-            self.producer.flush()
+        print("Report is {}".format(aggregate_reports))
+        print("Report type is  {}".format(type(aggregate_reports)))
+        self.producer.send(aggregate_topic, aggregate_reports)
+        self.producer.flush()
 
 
   def save_forensic_reports_to_kafka(self, forensic_reports, forensic_topic):
@@ -49,5 +51,5 @@ class KafkaClient(object):
                 return
 
             for report in forensic_reports:
-                self.producer.send(forensic_topic, report)
+                self.producer.send(forensic_topic, json.dumps(report))
                 self.producer.flush()
