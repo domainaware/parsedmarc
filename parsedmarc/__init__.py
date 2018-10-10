@@ -125,8 +125,8 @@ def _get_base_domain(domain):
             try:
                 download_psl()
             except Exception as error:
-                logger.warning("Failed to download an updated PSL - \
-                               {0}".format(error))
+                logger.warning(
+                    "Failed to download an updated PSL {0}".format(error))
     with open(psl_path, encoding="utf-8") as psl_file:
         psl = publicsuffix.PublicSuffixList(psl_file)
 
@@ -566,18 +566,18 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         return new_report
 
     except expat.ExpatError as error:
-        raise InvalidAggregateReport("Invalid XML: "
-                                     "{0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Invalid XML: {0}".format(error.__str__()))
 
     except KeyError as error:
-        raise InvalidAggregateReport("Missing field: "
-                                     "{0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Missing field: {0}".format(error.__str__()))
     except AttributeError:
         raise InvalidAggregateReport("Report missing required section")
 
     except Exception as error:
-        raise InvalidAggregateReport("Unexpected error: "
-                                     "{0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Unexpected error: {0}".format(error.__str__()))
 
 
 def extract_xml(input_):
@@ -618,8 +618,8 @@ def extract_xml(input_):
         raise InvalidAggregateReport("File objects must be opened in binary "
                                      "(rb) mode")
     except Exception as error:
-        raise InvalidAggregateReport("Invalid archive file: "
-                                     "{0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Invalid archive file: {0}".format(error.__str__()))
 
     return xml
 
@@ -918,8 +918,8 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             error.__str__()))
 
     except Exception as error:
-        raise InvalidForensicReport("Unexpected error: "
-                                    "{0}".format(error.__str__()))
+        raise InvalidForensicReport(
+            "Unexpected error: {0}".format(error.__str__()))
 
 
 def parsed_forensic_reports_to_csv(reports):
@@ -1262,11 +1262,14 @@ def get_dmarc_reports_from_inbox(host=None,
                     delete_messages(msg_uids)
 
         if not server.folder_exists(archive_folder):
+            logger.debug("Creating IMAP folder: {0}".format(archive_folder))
             server.create_folder(archive_folder)
         try:
             # Test subfolder creation
             if not server.folder_exists(aggregate_reports_folder):
                 server.create_folder(aggregate_reports_folder)
+                logger.debug(
+                    "Creating IMAP folder: {0}".format(archive_folder))
         except imapclient.exceptions.IMAPClientError:
             #  Only replace / with . when . doesn't work
             # This usually indicates a dovecot IMAP server
@@ -1274,17 +1277,19 @@ def get_dmarc_reports_from_inbox(host=None,
                                                                         ".")
             forensic_reports_folder = forensic_reports_folder.replace("/",
                                                                       ".")
+        subfolders = [aggregate_reports_folder,
+                      forensic_reports_folder,
+                      invalid_reports_folder]
 
-        if not server.folder_exists(aggregate_reports_folder):
-            server.create_folder(aggregate_reports_folder)
-        if not server.folder_exists(forensic_reports_folder):
-            server.create_folder(forensic_reports_folder)
-        if not server.folder_exists(invalid_reports_folder):
-            server.create_folder(invalid_reports_folder)
+        for subfolder in subfolders:
+            if not server.folder_exists(subfolder):
+                logger.debug(
+                    "Creating IMAP folder: {0}".format(subfolder))
+                server.create_folder(subfolder)
         server.select_folder(reports_folder)
         messages = server.search()
-        logger.debug("Found {0} messages in IMAP folder "
-                     "{1}".format(len(messages), reports_folder))
+        logger.debug("Found {0} messages in IMAP folder {1}".format(
+            len(messages), reports_folder))
         for i in range(len(messages)):
             number_of_messages = len(messages)
             message_uid = messages[i]
@@ -1325,16 +1330,20 @@ def get_dmarc_reports_from_inbox(host=None,
             except imapclient.exceptions.IMAPClientError as error:
                 error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
                 error = "IMAP error: Skipping message UID {0}: {1}".format(
-                    message_uid, error
-                )
+                    message_uid, error)
                 logger.error("IMAP error: {0}".format(error))
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
                 if not test:
                     if delete:
+                        logger.debug(
+                            "Deleting message UID {0}".format(message_uid))
                         delete_messages([message_uid])
                     else:
                         move_messages([message_uid], invalid_reports_folder)
+                        logger.debug(
+                            "Moving message UID {0} to {1)".format(
+                                message_uid, invalid_reports_folder))
 
         if not test:
             if delete:
@@ -1344,18 +1353,17 @@ def get_dmarc_reports_from_inbox(host=None,
                 number_of_msgs = len(processed_messages)
                 for i in range(number_of_msgs):
                     msg_uid = processed_messages[i]
-                    logger.debug("Deleting message {0} of {1}: "
-                                 "UID {2}".format(i + 1,
-                                                  number_of_msgs,
-                                                  msg_uid))
+                    logger.debug(
+                        "Deleting message {0} of {1}: UID {2}".format(
+                            i + 1, number_of_msgs, msg_uid))
                     try:
                         delete_messages([msg_uid])
 
                     except imapclient.exceptions.IMAPClientError as e:
                         e = e.__str__().lstrip("b'").rstrip(
                             "'").rstrip(".")
-                        e = "IMAP error: Error deleting message UID {0}: " \
-                            "{1}".format(msg_uid, e)
+                        message = "Error deleting message UID"
+                        e = "{0} {1}: " "{2}".format(message, msg_uid, e)
                         logger.error("IMAP error: {0}".format(e))
                     except (ConnectionResetError, TimeoutError) as e:
                         logger.debug("IMAP error: {0}".format(e.__str__()))
@@ -1369,24 +1377,25 @@ def get_dmarc_reports_from_inbox(host=None,
                         delete_messages([msg_uid])
             else:
                 if len(aggregate_report_msg_uids) > 0:
-                    logger.debug("Moving aggregate report messages "
-                                 "from {0} to "
-                                 "{1}".format(reports_folder,
-                                              aggregate_reports_folder))
+                    log_message = "Moving aggregate report messages from"
+                    logger.debug(
+                        "{0} {1} to {1}".format(
+                            log_message, reports_folder,
+                            aggregate_reports_folder))
                     number_of_msgs = len(aggregate_report_msg_uids)
                     for i in range(number_of_msgs):
                         msg_uid = aggregate_report_msg_uids[i]
-                        logger.debug("Moving message {0} of {1}: "
-                                     "UID {2}".format(i+1, number_of_msgs,
-                                                      msg_uid))
+                        logger.debug(
+                            "Moving message {0} of {1}: UID {2}".format(
+                                i+1, number_of_msgs, msg_uid))
                         try:
                             move_messages([msg_uid],
                                           aggregate_reports_folder)
                         except imapclient.exceptions.IMAPClientError as e:
                             e = e.__str__().lstrip("b'").rstrip(
                                 "'").rstrip(".")
-                            e = "Error moving message UID {0}: " \
-                                "{1}".format(msg_uid, e)
+                            message = "Error moving message UID"
+                            e = "{0} {1}: {2}".format(message, msg_uid, e)
                             logger.error("IMAP error: {0}".format(e))
                         except (ConnectionResetError, TimeoutError) as error:
                             logger.debug("IMAP error: {0}".format(
@@ -1402,24 +1411,26 @@ def get_dmarc_reports_from_inbox(host=None,
                                           aggregate_reports_folder)
 
                 if len(forensic_report_msg_uids) > 0:
-                    logger.debug("Moving forensic report messages "
-                                 "from {0} to "
-                                 "{1}".format(reports_folder,
-                                              forensic_reports_folder))
+                    message = "Moving forensic report messages from"
+                    logger.debug(
+                        "{0} {1} to {2}".format(message,
+                                                reports_folder,
+                                                forensic_reports_folder))
                     number_of_msgs = len(forensic_report_msg_uids)
                     for i in range(number_of_msgs):
                         msg_uid = forensic_report_msg_uids[i]
-                        logger.debug("Moving message {0} of {1}: "
-                                     "UID {2}".format(i + 1, number_of_msgs,
-                                                      msg_uid))
+                        message = "Moving message"
+                        logger.debug("{0} {1} of {2}: UID {2}".format(
+                            message,
+                            i + 1, number_of_msgs, msg_uid))
                         try:
                             move_messages([msg_uid],
                                           forensic_reports_folder)
                         except imapclient.exceptions.IMAPClientError as e:
                             e = e.__str__().lstrip("b'").rstrip(
                                 "'").rstrip(".")
-                            e = "Error moving message UID {0}: " \
-                                "{1}".format(msg_uid, e)
+                            e = "Error moving message UID {0}: {1}".format(
+                                msg_uid, e)
                             logger.error("IMAP Error: {0}".format(e))
                         except (ConnectionResetError, TimeoutError) as error:
                             logger.debug("IMAP error: {0}".format(
