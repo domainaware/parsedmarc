@@ -12,7 +12,7 @@ import json
 
 from elasticsearch.exceptions import ElasticsearchException
 
-from parsedmarc import logger, IMAPError, get_dmarc_reports_from_inbox, \
+from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, kafkaclient, splunk, save_output, \
     watch_inbox, email_results, SMTPError, ParserError, __version__
 
