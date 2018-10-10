@@ -1245,7 +1245,6 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
-            logger.debug("Deleting messages")
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
