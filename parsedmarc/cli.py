@@ -42,8 +42,9 @@ def _main():
             if args.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
-                    hec_client.save_aggregate_reports_to_splunk(
-                        aggregate_reports_)
+                    if len(aggregate_reports_) > 0:
+                        hec_client.save_aggregate_reports_to_splunk(
+                            aggregate_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
         if args.save_forensic:
@@ -60,8 +61,9 @@ def _main():
             if args.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
-                    hec_client.save_forensic_reports_to_splunk(
-                        forensic_reports_)
+                    if len(forensic_reports_) > 0:
+                        hec_client.save_forensic_reports_to_splunk(
+                            forensic_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
 

@@ -1343,7 +1343,6 @@ def get_dmarc_reports_from_inbox(host=None,
                                      forensic_report_msg_uids
 
                 number_of_msgs = len(processed_messages)
-                logger.debug("Deleting messages")
                 for i in range(number_of_msgs):
                     msg_uid = processed_messages[i]
                     logger.debug("Deleting message {0} of {1}: "

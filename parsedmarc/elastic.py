@@ -182,7 +182,7 @@ def create_indexes(names=None, settings=None):
         settings (dict): Index settings
 
     """
-    logger.debug("Creating elasticsearch indexes")
+    logger.debug("Creating Elasticsearch indexes")
     if names is None:
         names = ["dmarc_aggregate", "dmarc_forensic"]
     for name in names:
