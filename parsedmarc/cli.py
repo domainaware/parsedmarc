@@ -20,10 +20,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
-
 def _main():
     """Called when the module is executed"""
     def process_reports(reports_):
