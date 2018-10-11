@@ -276,5 +276,3 @@ https://github.com/domainaware/parsedmarc/issues
    :target: https://travis-ci.org/domainaware/parsedmarc
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
-
-.. _download the latest version of pypy3: https://pypy.org/download.html#default-with-a-jit-compiler
