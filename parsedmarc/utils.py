@@ -399,6 +399,10 @@ def parse_email(data):
                                                                     " ")
     parsed_email["from"] = parse_email_address(parsed_email["from"][0])
 
+    if "date" in parsed_email:
+        parsed_email["date"] = parsed_email["date"].replace("T", " ")
+    else:
+        parsed_email["date"] = None
     if "reply_to" in parsed_email:
         parsed_email["reply_to"] = list(map(lambda x: parse_email_address(x),
                                             parsed_email["reply_to"]))

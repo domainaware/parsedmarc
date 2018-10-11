@@ -307,8 +307,10 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         """
     logger.debug("Saving forensic report to Elasticsearch")
     forensic_report = forensic_report.copy()
-    sample_date = forensic_report["parsed_sample"]["date"]
-    sample_date = human_timestamp_to_datetime(sample_date)
+    sample_date = None
+    if forensic_report["parsed_sample"]["date"] is not None:
+        sample_date = forensic_report["parsed_sample"]["date"]
+        sample_date = human_timestamp_to_datetime(sample_date)
     original_headers = forensic_report["parsed_sample"]["headers"]
     headers = OrderedDict()
     for original_header in original_headers:
