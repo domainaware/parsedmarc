@@ -1,9 +1,20 @@
-4.2.1
+4.3.1
 -----
 
 - Fix bug where `parsedmarc` would always try to save to Elastic search, 
 even if only `--hec` was used
 - Add options to save reports as a Kafka topic (mikesiegel  - #21)
+- Major refactoring of functions
+  - Functions that might be useful to other projects are now stored in 
+  `parsedmarc.utils`:
+    - `get_base_domain(domain)`
+    - `get_filename_safe_string(string)`
+    - `get_ip_address_country(ip_address)`
+    - `get_ip_address_info(ip_address, nameservers=None, timeout=2.0)`
+    - `get_reverse_dns(ip_address, nameservers=None, timeout=2.0)`
+    - `human_timestamp_to_datetime(human_timestamp)`
+    - `human_timestamp_to_timestamp(human_timestamp)`
+    - `parse_email(data)`
 
 4.2.0
 ------

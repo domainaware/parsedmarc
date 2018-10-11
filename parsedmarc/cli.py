@@ -95,10 +95,10 @@ def _main():
                             help="Write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query "
-                                 "(Default is Cloudflare's)")
+                                 "(Default is Cloudflare's nameservers)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (default 2.0)",
+                                 "from DNS (Default: 2.0)",
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
@@ -110,18 +110,18 @@ def _main():
                             help="Do not use SSL/TLS when connecting to IMAP")
     arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
                             help="The IMAP folder containing the reports\n"
-                                 "Default: INBOX")
+                                 "(Default: INBOX)")
     arg_parser.add_argument("-a", "--archive-folder",
                             help="Specifies the IMAP folder to move "
                                  "messages to after processing them\n"
-                                 "Default: Archive",
+                                 "(Default: Archive)",
                             default="Archive")
     arg_parser.add_argument("-d", "--delete",
                             help="Delete the reports after processing them",
                             action="store_true", default=False)
 
     arg_parser.add_argument("-E", "--elasticsearch-host", nargs="*",
-                            help="A list of one or more Elasticsearch "
+                            help="One or more Elasticsearch "
                                  "hostnames or URLs to use (e.g. "
                                  "localhost:9200)")
     arg_parser.add_argument("--elasticsearch-index-prefix",
@@ -151,10 +151,12 @@ def _main():
                             " or URLs")
     arg_parser.add_argument("--kafka-aggregate-topic",
                             help="The Kafka topic to publish aggregate "
-                            "reports to", default="dmarc_aggregate")
+                            "reports to (Default: dmarc_aggregate)",
+                            default="dmarc_aggregate")
     arg_parser.add_argument("--kafka-forensic_topic",
                             help="The Kafka topic to publish forensic reports"
-                            " to", default="dmarc_forensic")
+                            " to (Default: dmarc_forensic)",
+                            default="dmarc_forensic")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
                             help="Save aggregate reports to search indexes")

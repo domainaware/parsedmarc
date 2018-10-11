@@ -4,47 +4,38 @@
 
 import logging
 import os
-import platform
+import shutil
 import xml.parsers.expat as expat
 import json
 from datetime import datetime
 from collections import OrderedDict
-from datetime import timedelta
 from io import BytesIO, StringIO
 from gzip import GzipFile
-import tarfile
 import zipfile
 from csv import DictWriter
 import re
 from base64 import b64decode
 import binascii
-import shutil
 import email
 import tempfile
-import subprocess
 import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import formatdate
+import email.utils
 import smtplib
 from ssl import SSLError, CertificateError, create_default_context
 import time
 
-import requests
-import publicsuffix
 import xmltodict
-import dns.reversename
-import dns.resolver
-import dns.exception
-import geoip2.database
-import geoip2.errors
 import imapclient
 import imapclient.exceptions
 import dateparser
-import mailparser
 
-__version__ = "4.2.0k"
+from parsedmarc.__version__ import __version__
+from parsedmarc.utils import get_base_domain, get_filename_safe_string
+from parsedmarc.utils import get_ip_address_country, get_ip_address_info
+from parsedmarc.utils import timestamp_to_human, parse_email, EmailParserError
 
 logger = logging.getLogger("parsedmarc")
 
@@ -55,13 +46,6 @@ xml_schema_regex = re.compile(r"<\/?xs:schema.>", re.MULTILINE)
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
-
-
-USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
-            platform.system(),
-            platform.release(),
-            __version__
-        )
 
 
 class ParserError(RuntimeError):
@@ -88,251 +72,6 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _get_base_domain(domain):
-    """
-    Gets the base domain name for the given domain
-
-    .. note::
-        Results are based on a list of public domain suffixes at
-        https://publicsuffix.org/list/public_suffix_list.dat.
-
-        This file is saved to the current working directory,
-        where it is used as a cache file for 24 hours.
-
-    Args:
-        domain (str): A domain or subdomain
-
-    Returns:
-        str: The base domain of the given domain
-
-    """
-    psl_path = ".public_suffix_list.dat"
-
-    def download_psl():
-        url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        # Use a browser-like user agent string to bypass some proxy blocks
-        headers = {"User-Agent": USER_AGENT}
-        fresh_psl = requests.get(url, headers=headers).text
-        with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
-            fresh_psl_file.write(fresh_psl)
-
-    if not os.path.exists(psl_path):
-        download_psl()
-    else:
-        psl_age = datetime.now() - datetime.fromtimestamp(
-            os.stat(psl_path).st_mtime)
-        if psl_age > timedelta(hours=24):
-            try:
-                download_psl()
-            except Exception as error:
-                logger.warning(
-                    "Failed to download an updated PSL {0}".format(error))
-    with open(psl_path, encoding="utf-8") as psl_file:
-        psl = publicsuffix.PublicSuffixList(psl_file)
-
-    return psl.get_public_suffix(domain)
-
-
-def _query_dns(domain, record_type, nameservers=None, timeout=2.0):
-    """
-    Queries DNS
-
-    Args:
-        domain (str): The domain or subdomain to query about
-        record_type (str): The record type to query for
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
-
-    Returns:
-        list: A list of answers
-    """
-    resolver = dns.resolver.Resolver()
-    timeout = float(timeout)
-    if nameservers is None:
-        nameservers = ["1.1.1.1", "1.0.0.1",
-                       "2606:4700:4700::1111", "2606:4700:4700::1001",
-                       ]
-    resolver.nameservers = nameservers
-    resolver.timeout = timeout
-    resolver.lifetime = timeout
-    return list(map(
-        lambda r: r.to_text().replace(' "', '').replace('"', '').rstrip("."),
-        resolver.query(domain, record_type, tcp=True)))
-
-
-def _get_reverse_dns(ip_address, nameservers=None, timeout=2.0):
-    """
-    Resolves an IP address to a hostname using a reverse DNS query
-
-    Args:
-        ip_address (str): The IP address to resolve
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS query timeout in seconds
-
-    Returns:
-        str: The reverse DNS hostname (if any)
-    """
-    hostname = None
-    try:
-        address = dns.reversename.from_address(ip_address)
-        hostname = _query_dns(address, "PTR",
-                              nameservers=nameservers,
-                              timeout=timeout)[0]
-
-    except dns.exception.DNSException:
-        pass
-
-    return hostname
-
-
-def _timestamp_to_datetime(timestamp):
-    """
-    Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object
-
-    Args:
-        timestamp (int): The timestamp
-
-    Returns:
-        DateTime: The converted timestamp as a Python ``DateTime`` object
-    """
-    return datetime.fromtimestamp(int(timestamp))
-
-
-def _timestamp_to_human(timestamp):
-    """
-    Converts a UNIX/DMARC timestamp to a human-readable string
-
-    Args:
-        timestamp: The timestamp
-
-    Returns:
-        str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
-    """
-    return _timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def human_timestamp_to_datetime(human_timestamp):
-    """
-    Converts a human-readable timestamp into a Python ``DateTime`` object
-
-    Args:
-        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
-
-    Returns:
-        DateTime: The converted timestamp
-    """
-    return datetime.strptime(human_timestamp, "%Y-%m-%d %H:%M:%S")
-
-
-def human_timestamp_to_timestamp(human_timestamp):
-    """
-    Converts a human-readable timestamp into a into a UNIX timestamp
-
-    Args:
-        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
-
-    Returns:
-        float: The converted timestamp
-    """
-    return human_timestamp_to_datetime(human_timestamp).timestamp()
-
-
-def _get_ip_address_country(ip_address):
-    """
-    Uses the MaxMind Geolite2 Country database to return the ISO code for the
-    country associated with the given IPv4 or IPv6 address
-
-    Args:
-        ip_address (str): The IP address to query for
-
-    Returns:
-        str: And ISO country code associated with the given IP address
-    """
-    db_filename = ".GeoLite2-Country.mmdb"
-
-    def download_country_database(location=".GeoLite2-Country.mmdb"):
-        """Downloads the MaxMind Geolite2 Country database
-
-        Args:
-            location (str): Local location for the database file
-        """
-        url = "https://geolite.maxmind.com/download/geoip/database/" \
-              "GeoLite2-Country.tar.gz"
-        # Use a browser-like user agent string to bypass some proxy blocks
-        headers = {"User-Agent": USER_AGENT}
-        original_filename = "GeoLite2-Country.mmdb"
-        tar_bytes = requests.get(url, headers=headers).content
-        tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
-        tar_dir = tar_file.getnames()[0]
-        tar_path = "{0}/{1}".format(tar_dir, original_filename)
-        tar_file.extract(tar_path)
-        shutil.move(tar_path, location)
-        shutil.rmtree(tar_dir)
-
-    system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
-                    "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
-    db_path = ""
-
-    for system_path in system_paths:
-        if os.path.exists(system_path):
-            db_path = system_path
-            break
-
-    if db_path == "":
-        if not os.path.exists(db_filename):
-            download_country_database(db_filename)
-        else:
-            db_age = datetime.now() - datetime.fromtimestamp(
-                os.stat(db_filename).st_mtime)
-            if db_age > timedelta(days=60):
-                download_country_database()
-        db_path = db_filename
-
-    db_reader = geoip2.database.Reader(db_path)
-
-    country = None
-
-    try:
-        country = db_reader.country(ip_address).country.iso_code
-    except geoip2.errors.AddressNotFoundError:
-        pass
-
-    return country
-
-
-def _get_ip_address_info(ip_address, nameservers=None, timeout=2.0):
-    """
-    Returns reverse DNS and country information for the given IP address
-
-    Args:
-        ip_address (str): The IP address to check
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
-
-    Returns:
-        OrderedDict: ``ip_address``, ``reverse_dns``
-
-    """
-    ip_address = ip_address.lower()
-    info = OrderedDict()
-    info["ip_address"] = ip_address
-    reverse_dns = _get_reverse_dns(ip_address,
-                                   nameservers=nameservers,
-                                   timeout=timeout)
-    country = _get_ip_address_country(ip_address)
-    info["country"] = country
-    info["reverse_dns"] = reverse_dns
-    info["base_domain"] = None
-    if reverse_dns is not None:
-        base_domain = _get_base_domain(reverse_dns)
-        info["base_domain"] = base_domain
-
-    return info
-
-
 def _parse_report_record(record, nameservers=None, timeout=2.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -351,9 +90,9 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
         nameservers = ["8.8.8.8", "4.4.4.4"]
     record = record.copy()
     new_record = OrderedDict()
-    new_record["source"] = _get_ip_address_info(record["row"]["source_ip"],
-                                                nameservers=nameservers,
-                                                timeout=timeout)
+    new_record["source"] = get_ip_address_info(record["row"]["source_ip"],
+                                               nameservers=nameservers,
+                                               timeout=timeout)
     new_record["count"] = int(record["row"]["count"])
     policy_evaluated = record["row"]["policy_evaluated"].copy()
     new_policy_evaluated = OrderedDict([("disposition", "none"),
@@ -492,7 +231,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
                     "email"].split("@")[-1]
         org_name = report_metadata["org_name"]
         if org_name is not None:
-            org_name = _get_base_domain(org_name)
+            org_name = get_base_domain(org_name)
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
@@ -505,8 +244,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
                                       "").replace(">", "").split("@")[0]
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
-        date_range["begin"] = _timestamp_to_human(date_range["begin"])
-        date_range["end"] = _timestamp_to_human(date_range["end"])
+        date_range["begin"] = timestamp_to_human(date_range["begin"])
+        date_range["end"] = timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
         if "error" in report["report_metadata"]:
@@ -769,36 +508,6 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
     Returns:
         OrderedDict: A parsed report and sample
     """
-
-    def convert_address(original_address):
-        if original_address[0] == "":
-            display_name = None
-        else:
-            display_name = original_address[0]
-        address = original_address[1]
-
-        return OrderedDict([("display_name", display_name),
-                            ("address", address)])
-
-    def get_filename_safe_subject(_subject):
-        """
-        Converts a message subject to a string that is safe for a filename
-        Args:
-            _subject (str): A message subject
-
-        Returns:
-            str: A string safe for a filename
-        """
-        invalid_filename_chars = ['\\', '/', ':', '"', '*', '?', '|', '\n',
-                                  '\r']
-        if _subject is None:
-            _subject = "No Subject"
-        for char in invalid_filename_chars:
-            _subject = _subject.replace(char, "")
-        _subject = _subject.rstrip(".")
-
-        return _subject
-
     try:
         parsed_report = OrderedDict()
         report_values = feedback_report_regex.findall(feedback_report)
@@ -815,9 +524,9 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         parsed_report["arrival_date_utc"] = arrival_utc
 
         ip_address = parsed_report["source_ip"]
-        parsed_report["source"] = _get_ip_address_info(ip_address,
-                                                       nameservers=nameservers,
-                                                       timeout=timeout)
+        parsed_report["source"] = get_ip_address_info(ip_address,
+                                                      nameservers=nameservers,
+                                                      timeout=timeout)
         del parsed_report["source_ip"]
 
         if "identity_alignment" not in parsed_report:
@@ -842,66 +551,10 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             if optional_field not in parsed_report:
                 parsed_report[optional_field] = None
 
-        parsed_mail = mailparser.parse_from_string(sample)
-        parsed_headers = json.loads(parsed_mail.headers_json)
-        parsed_message = json.loads(parsed_mail.mail_json)
-        parsed_sample = OrderedDict([("headers", parsed_headers)])
-        for key in parsed_message:
-            parsed_sample[key] = parsed_message[key]
+        parsed_sample = parse_email(sample)
 
-        parsed_sample["date"] = parsed_sample["date"].replace("T", " ")
-        if "received" in parsed_message:
-            for received in parsed_message["received"]:
-                if "date_utc" in received:
-                    received["date_utc"] = received["date_utc"].replace("T",
-                                                                        " ")
-        msg_from = convert_address(parsed_sample["from"][0])
-        parsed_sample["from"] = msg_from
         if "reported_domain" not in parsed_report:
-            domain = msg_from["address"].split("@")[-1].lower()
-            parsed_report["reported_domain"] = domain
-
-        if "reply_to" in parsed_sample:
-            parsed_sample["reply_to"] = list(map(lambda x: convert_address(x),
-                                                 parsed_sample["reply_to"]))
-        else:
-            parsed_sample["reply_to"] = []
-
-        if "to" in parsed_sample:
-            parsed_sample["to"] = list(map(lambda x: convert_address(x),
-                                           parsed_sample["to"]))
-        else:
-            parsed_sample["to"] = []
-
-        if "cc" in parsed_sample:
-            parsed_sample["cc"] = list(map(lambda x: convert_address(x),
-                                           parsed_sample["cc"]))
-        else:
-            parsed_sample["cc"] = []
-
-        if "bcc" in parsed_sample:
-            parsed_sample["bcc"] = list(map(lambda x: convert_address(x),
-                                            parsed_sample["bcc"]))
-        else:
-            parsed_sample["bcc"] = []
-
-        if "delivered_to" in parsed_sample:
-            parsed_sample["delivered_to"] = list(
-                map(lambda x: convert_address(x),
-                    parsed_sample["delivered_to"])
-            )
-
-        if "attachments" not in parsed_sample:
-            parsed_sample["attachments"] = []
-
-        if "subject" not in parsed_sample:
-            parsed_sample["subject"] = None
-
-        parsed_sample["filename_safe_subject"] = get_filename_safe_subject(
-            parsed_sample["subject"])
-
-        if "body" not in parsed_sample:
-            parsed_sample["body"] = None
+            parsed_report["reported_domain"] = parsed_sample["from"]["domain"]
 
         if sample_headers_only and parsed_sample["has_defects"]:
             del parsed_sample["defects"]
@@ -979,72 +632,18 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         * ``report_type``: ``aggregate`` or ``forensic``
         * ``report``: The parsed report
     """
-
-    def is_outlook_msg(suspect_bytes):
-        """Checks if the given content is a Outlook msg OLE file"""
-        return suspect_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
-
-    def convert_outlook_msg(msg_bytes):
-        """
-        Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
-        standard RFC 822 format
-
-        Args:
-            msg_bytes (bytes): the content of the .msg file
-
-        Returns:
-            A RFC 822 string
-        """
-        if not is_outlook_msg(msg_bytes):
-            raise ValueError("The supplied bytes are not an Outlook MSG file")
-        orig_dir = os.getcwd()
-        tmp_dir = tempfile.mkdtemp()
-        os.chdir(tmp_dir)
-        with open("sample.msg", "wb") as msg_file:
-            msg_file.write(msg_bytes)
-        try:
-            subprocess.check_call(["msgconvert", "sample.msg"])
-            eml_path = "sample.eml"
-            with open(eml_path, "rb") as eml_file:
-                rfc822 = eml_file.read()
-        except FileNotFoundError:
-            raise ParserError("msgconvert utility not found")
-        finally:
-            os.chdir(orig_dir)
-            shutil.rmtree(tmp_dir)
-
-        return rfc822
-
-    def decode_header(header):
-        """Decodes a RFC 822 email header"""
-        header = header.replace("\r", "").replace("\n", "")
-        decoded_header = email.header.decode_header(header)
-        header = ""
-        for header_part in decoded_header:
-            if type(header_part[0]) == bytes:
-                encoding = header_part[1] or "ascii"
-                header_part = header_part[0].decode(encoding=encoding,
-                                                    errors="replace")
-            else:
-                header_part = header_part[0]
-            header += header_part
-        header = header.replace("\r", " ").replace("\n", " ")
-
-        return header
-
-    if type(input_) == bytes:
-        if is_outlook_msg(input_):
-            input_ = convert_outlook_msg(input_)
-        input_ = input_.decode("utf-8", errors="replace")
     result = None
     msg = email.message_from_string(input_)
+    msg_headers = msg.headers_json
+    date = email.utils.format_datetime(datetime.utcnow())
     subject = None
     feedback_report = None
     sample_headers_only = False
     sample = None
-    if "subject" in msg:
-        subject = decode_header(msg["subject"])
-    date = decode_header(msg["date"])
+    if "subject" in msg_headers:
+        subject = msg_headers["subject"]
+    if "date" in msg_headers:
+        date = msg_headers["date"]
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
@@ -1069,12 +668,16 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
             sample = payload
             sample_headers_only = False
         if feedback_report and sample:
-            forensic_report = parse_forensic_report(feedback_report,
-                                                    sample,
-                                                    sample_headers_only,
-                                                    date,
-                                                    nameservers=nameservers,
-                                                    timeout=timeout)
+            try:
+                forensic_report = parse_forensic_report(
+                    feedback_report,
+                    sample,
+                    sample_headers_only,
+                    date,
+                    nameservers=nameservers,
+                    timeout=timeout)
+            except EmailParserError as e:
+                raise ParserError(e.__str__())
 
             result = OrderedDict([("report_type", "forensic"),
                                   ("report", forensic_report)])
@@ -1342,7 +945,7 @@ def get_dmarc_reports_from_inbox(host=None,
                     else:
                         move_messages([message_uid], invalid_reports_folder)
                         logger.debug(
-                            "Moving message UID {0} to {1)".format(
+                            "Moving message UID {0} to {1}".format(
                                 message_uid, invalid_reports_folder))
 
         if not test:
@@ -1609,7 +1212,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
     msg = MIMEMultipart()
     msg['From'] = mail_from
     msg['To'] = ", ".join(mail_to)
-    msg['Date'] = formatdate(localtime=True)
+    msg['Date'] = email.utils.formatdate(localtime=True)
     msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
     text = message or "Please see the attached zip file\n"
 
