@@ -8,6 +8,8 @@ from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
 
+from parsedmarc.utils import human_timestamp_to_datetime
+
 logger = logging.getLogger("parsedmarc")
 
 
@@ -211,8 +213,8 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
-    begin_date = parsedmarc.human_timestamp_to_datetime(metadata["begin_date"])
-    end_date = parsedmarc.human_timestamp_to_datetime(metadata["end_date"])
+    begin_date = human_timestamp_to_datetime(metadata["begin_date"])
+    end_date = human_timestamp_to_datetime(metadata["end_date"])
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
     aggregate_report["begin_date"] = begin_date
