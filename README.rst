@@ -38,22 +38,26 @@ CLI help
 
 ::
 
-  usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                    [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                    [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
-                    [-a ARCHIVE_FOLDER] [-d]
-                    [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                    [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                    [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                    [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                    [--hec-skip-certificate-verification] [--save-aggregate]
-                    [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
-                    [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
-                    [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                    [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                    [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                    [-s] [--debug] [-v]
-                    [file_path [file_path ...]]
+usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                  [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
+                  [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
+                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                  [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                  [--hec-skip-certificate-verification]
+                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
+                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                  [--outgoing-port OUTGOING_PORT]
+                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                  [-s] [--debug] [-v]
+                  [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -66,10 +70,11 @@ CLI help
       -o OUTPUT, --output OUTPUT
                             Write output files to the given directory
       -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                            nameservers to query (Default is Cloudflare's)
+                            nameservers to query (Default is Cloudflare's
+                            nameservers)
       -t TIMEOUT, --timeout TIMEOUT
                             number of seconds to wait for an answer from DNS
-                            (default 2.0)
+                            (Default: 2.0)
       -H HOST, --host HOST  IMAP hostname or IP address
       -u USER, --user USER  IMAP user
       -p PASSWORD, --password PASSWORD
@@ -78,14 +83,15 @@ CLI help
                             IMAP port
       --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
       -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                            The IMAP folder containing the reports Default: INBOX
+                            The IMAP folder containing the reports (Default:
+                            INBOX)
       -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
                             Specifies the IMAP folder to move messages to after
-                            processing them Default: Archive
+                            processing them (Default: Archive)
       -d, --delete          Delete the reports after processing them
       -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                            A list of one or more Elasticsearch hostnames or URLs
-                            to use (e.g. localhost:9200)
+                            One or more Elasticsearch hostnames or URLs to use
+                            (e.g. localhost:9200)
       --elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX
                             Prefix to add in front of the dmarc_aggregate and
                             dmarc_forensic Elasticsearch index names, joined by _
@@ -101,6 +107,14 @@ CLI help
                             HTTP Event Collector (HEC)
       --hec-skip-certificate-verification
                             Skip certificate verification for Splunk HEC
+      -K [KAFKA_HOSTS [KAFKA_HOSTS ...]], --kafka-hosts [KAFKA_HOSTS [KAFKA_HOSTS ...]]
+                            A list of one or more Kafka hostnames or URLs
+      --kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC
+                            The Kafka topic to publish aggregate reports to
+                            (Default: dmarc_aggregate)
+      --kafka-forensic_topic KAFKA_FORENSIC_TOPIC
+                            The Kafka topic to publish forensic reports to
+                            (Default: dmarc_forensic)
       --save-aggregate      Save aggregate reports to search indexes
       --save-forensic       Save forensic reports to search indexes
       -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST

@@ -1,4 +1,4 @@
-4.3.1
+4.3.0
 -----
 
 - Fix bug where `parsedmarc` would always try to save to Elastic search, 
