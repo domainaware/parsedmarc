@@ -6,7 +6,8 @@ import urllib3
 
 import requests
 
-from parsedmarc import __version__, human_timestamp_to_timestamp
+from parsedmarc.__version__ import __version__
+from parsedmarc.utils import human_timestamp_to_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
