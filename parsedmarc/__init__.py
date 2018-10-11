@@ -1216,7 +1216,7 @@ def get_dmarc_reports_from_inbox(host=None,
             yield l[i:i + n]
 
     if delete and test:
-        raise ValueError("delete and test options are mutually exclusive")
+        raise ValueError("--delete and --test options are mutually exclusive")
 
     if connection is None and (user is None or password is None):
         raise ValueError("Must supply a connection, or a username and "

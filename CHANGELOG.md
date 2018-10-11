@@ -1,8 +1,15 @@
+4.2.1
+-----
+
+- Fix bug where `parsedmarc` would always try to save to Elastic search, 
+even if only `--hec` was used
+- Add options to save reports as a Kafka topic (mikesiegel  - #21)
+
 4.2.0
 ------
 
 - Save each aggregate report record as a separate Splunk event
-- Fix IMAP delete action (issue # 20)
+- Fix IMAP delete action (#20)
 - Suppress Splunk SSL validation warnings
 - Change default logging level to `WARNING`
 

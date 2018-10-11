@@ -30,9 +30,9 @@ def _main():
             print(output_str)
         if args.kafka_hosts:
             try:
-                kafkaClient = kafkaclient.KafkaClient(args.kafka_hosts)
-            except Exception as error:
-                logger.error("Kafka Error: {0}".format(error.__str__()))
+                kafka_client = kafkaclient.KafkaClient(args.kafka_hosts)
+            except Exception as error_:
+                logger.error("Kafka Error: {0}".format(error_.__str__()))
         if args.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -47,7 +47,7 @@ def _main():
                     exit(1)
                 try:
                     if args.kafka_hosts:
-                        kafkaClient.save_aggregate_reports_to_kafka(
+                        kafka_client.save_aggregate_reports_to_kafka(
                             report, kafka_aggregate_topic)
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
@@ -73,9 +73,8 @@ def _main():
                         error_.__str__()))
                 try:
                     if args.kafka_hosts:
-                        kafkaClient.save_forensic_reports_to_kafka(
+                        kafka_client.save_forensic_reports_to_kafka(
                             report, kafka_forensic_topic)
-
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
@@ -152,10 +151,10 @@ def _main():
                             " or URLs")
     arg_parser.add_argument("--kafka-aggregate-topic",
                             help="The Kafka topic to publish aggregate "
-                            "reports to.")
+                            "reports to", default="dmarc_aggregate")
     arg_parser.add_argument("--kafka-forensic_topic",
                             help="The Kafka topic to publish forensic reports"
-                            " to.")
+                            " to", default="dmarc_forensic")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
                             help="Save aggregate reports to search indexes")
@@ -226,7 +225,7 @@ def _main():
         es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
 
     if args.save_aggregate or args.save_forensic:
-        if (args.elasticsearch_host is None and args.hec
+        if (args.elasticsearch_host is None and args.hec is None
                 and args.kafka_hosts is None):
             args.elasticsearch_host = ["localhost:9200"]
         try:
@@ -250,14 +249,8 @@ def _main():
                                       args.hec_index,
                                       verify=verify)
 
-    kafka_aggregate_topic = "dmarc_aggrregate"
-    kafka_forensic_topic = "dmarc_forensic"
-
-    if args.kafka_aggregate_topic:
-        kafka_aggregate_topic = args.kafka_aggregate_topic
-
-    if args.kafka_forensic_topic:
-        kafka_forensic_topic = args.kafka_forensic_topic
+    kafka_aggregate_topic = args.kafka_aggregate_topic
+    kafka_forensic_topic = args.kafka_forensic_topic
 
     file_paths = []
     for file_path in args.file_path:
@@ -333,7 +326,7 @@ def _main():
             exit(1)
 
     if args.host and args.watch:
-        logger.info("Watching for email - Quit with ^c")
+        logger.info("Watching for email - Quit with ctrl-c")
         ssl = True
         if args.imap_no_ssl:
             ssl = False
