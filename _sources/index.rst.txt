@@ -18,7 +18,7 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, and OnDMARC.
+as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.
 
 Features
 ========
@@ -32,12 +32,12 @@ Features
 * Optionally email the results
 * Optionally send the results to Elasticsearch and/or Splunk, for use with
   premade dashboards
+* Optionally send reports to Apache Kafka
 
 Resources
 =========
 
-* `Demystifying DMARC`_
-
+* `Demystifying DMARC`_ - A complete guide to SPF, DKIM, and DMARC
 
 
 CLI help
@@ -137,6 +137,13 @@ CLI help
      -s, --silent          Only print errors and warnings
      --debug               Print debugging information
      -v, --version         show program's version number and exit
+
+SPF and DMARC record validation
+===============================
+
+If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
 
 SPF and DMARC record validation
 ===============================

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.2.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.2.0k documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.2.0
+                4.2.0k
               </div>
             
           
@@ -87,6 +87,7 @@
 <li><a class="reference internal" href="#resources">Resources</a></li>
 <li><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li><a class="reference internal" href="#spf-and-dmarc-record-validation">SPF and DMARC record validation</a></li>
+<li><a class="reference internal" href="#id1">SPF and DMARC record validation</a></li>
 <li><a class="reference internal" href="#sample-aggregate-report-output">Sample aggregate report output</a><ul>
 <li><a class="reference internal" href="#json">JSON</a></li>
 <li><a class="reference internal" href="#csv">CSV</a></li>
@@ -189,7 +190,7 @@
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, and OnDMARC.</p>
+as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.</p>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -202,12 +203,13 @@ as Agari, Dmarcian, and OnDMARC.</p>
 <li>Optionally email the results</li>
 <li>Optionally send the results to Elasticsearch and/or Splunk, for use with
 premade dashboards</li>
+<li>Optionally send reports to Apache Kafka</li>
 </ul>
 </div>
 <div class="section" id="resources">
 <h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a></li>
+<li><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a> - A complete guide to SPF, DKIM, and DMARC</li>
 </ul>
 </div>
 <div class="section" id="cli-help">
@@ -309,6 +311,12 @@ premade dashboards</li>
 </div>
 <div class="section" id="spf-and-dmarc-record-validation">
 <h2>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline">¶</a></h2>
+<p>If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project,
+<a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
+</div>
+<div class="section" id="id1">
+<h2>SPF and DMARC record validation<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <p>If you are looking for SPF and DMARC record validation and parsing,
 check out the sister project,
 <a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
@@ -1475,7 +1483,7 @@ to a callback function</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.2.0',
+              VERSION:'4.2.0k',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
