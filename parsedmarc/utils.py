@@ -324,6 +324,42 @@ def get_filename_safe_string(string):
 
     return string
 
+ def is_outlook_msg(suspect_bytes):
+        """Checks if the given content is a Outlook msg OLE file"""
+        return suspect_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+
+def convert_outlook_msg(msg_bytes):
+    """
+    Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
+    standard RFC 822 format
+
+    Args:
+        msg_bytes (bytes): the content of the .msg file
+
+    Returns:
+        A RFC 822 string
+    """
+    if not is_outlook_msg(msg_bytes):
+        raise ValueError("The supplied bytes are not an Outlook MSG file")
+    orig_dir = os.getcwd()
+    tmp_dir = tempfile.mkdtemp()
+    os.chdir(tmp_dir)
+    with open("sample.msg", "wb") as msg_file:
+        msg_file.write(msg_bytes)
+    try:
+        subprocess.check_call(["msgconvert", "sample.msg"])
+        eml_path = "sample.eml"
+        with open(eml_path, "rb") as eml_file:
+            rfc822 = eml_file.read()
+    except FileNotFoundError:
+        raise EmailParserError(
+            "Failed to convert Outlook MSG: msgconvert utility not found")
+    finally:
+        os.chdir(orig_dir)
+        shutil.rmtree(tmp_dir)
+
+    return rfc822
+
 
 def parse_email(data):
     """
@@ -334,42 +370,6 @@ def parse_email(data):
 
     Returns (dict): Parsed email data
     """
-
-    def is_outlook_msg(suspect_bytes):
-        """Checks if the given content is a Outlook msg OLE file"""
-        return suspect_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
-
-    def convert_outlook_msg(msg_bytes):
-        """
-        Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
-        standard RFC 822 format
-
-        Args:
-            msg_bytes (bytes): the content of the .msg file
-
-        Returns:
-            A RFC 822 string
-        """
-        if not is_outlook_msg(msg_bytes):
-            raise ValueError("The supplied bytes are not an Outlook MSG file")
-        orig_dir = os.getcwd()
-        tmp_dir = tempfile.mkdtemp()
-        os.chdir(tmp_dir)
-        with open("sample.msg", "wb") as msg_file:
-            msg_file.write(msg_bytes)
-        try:
-            subprocess.check_call(["msgconvert", "sample.msg"])
-            eml_path = "sample.eml"
-            with open(eml_path, "rb") as eml_file:
-                rfc822 = eml_file.read()
-        except FileNotFoundError:
-            raise EmailParserError(
-                "Failed to convert Outlook MSG: msgconvert utility not found")
-        finally:
-            os.chdir(orig_dir)
-            shutil.rmtree(tmp_dir)
-
-        return rfc822
 
     if type(data) == bytes:
         if is_outlook_msg(data):
