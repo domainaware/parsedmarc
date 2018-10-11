@@ -376,8 +376,9 @@ def parse_email(data):
             data = convert_outlook_msg(data)
         data = data.decode("utf-8", errors="replace")
     parsed_email = mailparser.parse_from_string(data)
+    headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()
-    parsed_email["headers"] = json.loads(parsed_email.headers_json).copy()
+    parsed_email["headers"] = headers
     if "date" in parsed_email:
         parsed_email["date"] = parsed_email["date"].replace("T", " ")
     if "received" in parsed_email:
