@@ -295,7 +295,7 @@ def parse_email_address(original_address):
     address_parts = address.split("@")
     local = None
     domain = None
-    if address_parts > 1:
+    if len(address_parts) > 1:
         local = address_parts[0].lower()
         domain = address_parts[-1].lower()
 
