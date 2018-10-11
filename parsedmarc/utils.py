@@ -176,6 +176,7 @@ def human_timestamp_to_datetime(human_timestamp):
     Returns:
         DateTime: The converted timestamp
     """
+    human_timestamp = human_timestamp.replace("T", " ")
     return datetime.strptime(human_timestamp, "%Y-%m-%d %H:%M:%S")
 
 
@@ -189,6 +190,7 @@ def human_timestamp_to_timestamp(human_timestamp):
     Returns:
         float: The converted timestamp
     """
+    human_timestamp = human_timestamp.replace("T", " ")
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
@@ -390,8 +392,6 @@ def parse_email(data):
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()
     parsed_email["headers"] = headers
-    if "date" in headers:
-        parsed_email["date"] = headers["date"].replace("T", " ")
     if "received" in parsed_email:
         for received in parsed_email["received"]:
             if "date_utc" in received:
