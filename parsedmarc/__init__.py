@@ -34,12 +34,12 @@ import dateparser
 import mailparser
 
 from parsedmarc.__version__ import __version__
-from parsedmarc.utils import get_base_domain, get_filename_safe_string
-from parsedmarc.utils import get_ip_address_country, get_ip_address_info
+from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, parse_email, EmailParserError
 
 logger = logging.getLogger("parsedmarc")
+logger.debug("parsedmarc v{0}".format(__version__))
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
@@ -640,7 +640,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
         msg = mailparser.parse_from_string(input_)
-        msg_headers = msg.headers_json
+        msg_headers = json.loads(msg.headers_json)
         msg = email.message_from_string(input_)
     except Exception as e:
         raise ParserError(e.__str__())
