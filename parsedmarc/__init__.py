@@ -640,9 +640,10 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
         msg = mailparser.parse_from_string(input_)
+        msg_headers = msg.headers_json
+        msg = email.message_from_string(input_)
     except Exception as e:
         raise ParserError(e.__str__())
-    msg_headers = msg.headers_json
     date = email.utils.format_datetime(datetime.utcnow())
     subject = None
     feedback_report = None
