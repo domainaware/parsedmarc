@@ -324,9 +324,11 @@ def get_filename_safe_string(string):
 
     return string
 
- def is_outlook_msg(suspect_bytes):
-        """Checks if the given content is a Outlook msg OLE file"""
-        return suspect_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+
+def is_outlook_msg(suspect_bytes):
+    """Checks if the given content is a Outlook msg OLE file"""
+    return suspect_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+
 
 def convert_outlook_msg(msg_bytes):
     """
