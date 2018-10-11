@@ -390,8 +390,8 @@ def parse_email(data):
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()
     parsed_email["headers"] = headers
-    if "date" in parsed_email:
-        parsed_email["date"] = parsed_email["date"].replace("T", " ")
+    if "date" in headers:
+        parsed_email["date"] = headers["date"].replace("T", " ")
     if "received" in parsed_email:
         for received in parsed_email["received"]:
             if "date_utc" in received:

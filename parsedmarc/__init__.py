@@ -36,7 +36,8 @@ import mailparser
 from parsedmarc.__version__ import __version__
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
-from parsedmarc.utils import timestamp_to_human, parse_email, EmailParserError
+from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
+from parsedmarc.utils import parse_email, EmailParserError
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
@@ -641,18 +642,20 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
             input_ = convert_outlook_msg(input_)
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
+        date = email.utils.format_datetime(datetime.utcnow())
+        if "date" in msg_headers:
+            date = human_timestamp_to_datetime(
+                msg_headers["date"].replace("T", ""))
         msg = email.message_from_string(input_)
+
     except Exception as e:
         raise ParserError(e.__str__())
-    date = email.utils.format_datetime(datetime.utcnow())
     subject = None
     feedback_report = None
     sample_headers_only = False
     sample = None
     if "subject" in msg_headers:
         subject = msg_headers["subject"]
-    if "date" in msg_headers:
-        date = msg_headers["date"]
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
