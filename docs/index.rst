@@ -37,7 +37,23 @@ Features
 Resources
 =========
 
+DMARC guides
+------------
+
 * `Demystifying DMARC`_ - A complete guide to SPF, DKIM, and DMARC
+
+SPF and DMARC record validation
+-------------------------------
+
+If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+
+Lookalike domains
+-----------------
+
+DMARC protects against domain spoofing, not lookalike domains. for open source
+lookalike domain monitoring, check out `DomainAware <https://github.com/seanthegeek/domainaware>`_.
 
 
 CLI help
@@ -151,20 +167,6 @@ CLI help
      -s, --silent          Only print errors and warnings
      --debug               Print debugging information
      -v, --version         show program's version number and exit
-
-SPF and DMARC record validation
-===============================
-
-If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project,
-`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
-
-SPF and DMARC record validation
-===============================
-
-If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project,
-`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
 
 Sample aggregate report output
 ==============================

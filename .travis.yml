@@ -1,6 +1,6 @@
 language: python
 
-sudo: false
+sudo: true
 
 python:
   - '3.4'
@@ -8,8 +8,11 @@ python:
   - '3.6'
 
 # commands to install dependencies
+before_install:
+  - "sudo apt-get update"
+  - "sudo apt-get install -y libemail-outlook-message-perl"
+
 install:
-  - "pip install flake8 pytest-cov pytest coveralls"
   - "pip install -r requirements.txt"
 
 # commands to run samples

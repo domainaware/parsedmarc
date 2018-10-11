@@ -107,12 +107,8 @@ ENV/
 
 # I/O files
 output/
-*.zip
-*.gz
 *.csv
 *.xls*
-*.eml
-*.msg
 
 # LibreOffice lock files
 .~*

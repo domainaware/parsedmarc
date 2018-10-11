@@ -31,33 +31,50 @@ Features
 Resources
 =========
 
+DMARC guides
+------------
+
 * `Demystifying DMARC`_ - A complete guide to SPF, DKIM, and DMARC
+
+SPF and DMARC record validation
+-------------------------------
+
+If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+
+Lookalike domains
+-----------------
+
+DMARC protects against domain spoofing, not lookalike domains. for open source
+lookalike domain monitoring, check out `DomainAware <https://github.com/seanthegeek/domainaware>`_.
+
 
 CLI help
 ========
 
 ::
 
-usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                  [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                  [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
-                  [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                  [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                  [--hec-skip-certificate-verification]
-                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                  [--outgoing-port OUTGOING_PORT]
-                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [-v]
-                  [file_path [file_path ...]]
+    usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                      [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
+                      [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
+                      [-a ARCHIVE_FOLDER] [-d]
+                      [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                      [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
+                      [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                      [--hec-skip-certificate-verification]
+                      [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                      [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                      [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
+                      [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                      [--outgoing-port OUTGOING_PORT]
+                      [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                      [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                      [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                      [-s] [--debug] [-v]
+                      [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -145,18 +162,6 @@ usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
       --debug               Print debugging information
       -v, --version         show program's version number and exit
 
-SPF and DMARC record validation
-===============================
-
-If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project,
-`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
-
-Lookalike domains
-=================
-
-DMARC protects against domain spoofing, not lookalike domains. for open source
-lookalike domain monitoring, check out `DomainAware <https://github.com/seanthegeek/domainaware>`_.
 
 Sample aggregate report output
 ==============================
@@ -254,125 +259,6 @@ Sample forensic report output
 
 I don't have a sample I can share for privacy reasons. If you have a sample
 forensic report that you can share publicly, please contact me!
-
-Installation
-============
-
-``parsedmarc`` works with Python 2 or 3, but Python 3 is preferred.
-
-On Debian or Ubuntu systems, run:
-
-.. code-block:: bash
-
-    $ sudo apt-get install python3-pip
-
-
-Python 3 installers for Windows and macOS can be found at
-https://www.python.org/downloads/
-
-To install or upgrade to the latest stable release of ``parsedmarc`` on
-macOS or Linux, run
-
-.. code-block:: bash
-
-    $ sudo -H pip3 install -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
-
-.. code-block:: bash
-
-    $ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
-
-.. note::
-
-    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows, simply
-    substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
-    above commands.
-
-Installation using pypy3
-------------------------
-
-For the best possible processing speed, consider using `parsedmarc` inside a ``pypy3``
-virtualenv. First, `download the latest version of pypy3`_. Extract it to
-``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
-symlink:
-
-.. code-block:: bash
-
-    $ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
-
-Install ``virtualenv`` on your system:
-
-.. code-block:: bash
-
-    $ sudo apt-get install python3-pip
-    $ sudo -H pip3 install -U virtualenv
-
-Uninstall any instance of ``parsedmarc`` that you may have installed globally
-
-.. code-block:: bash
-
-    $ sudo -H pip3 uninstall -y parsedmarc
-
-Next, create a ``pypy3`` virtualenv for parsedmarc
-
-
-.. code-block:: bash
-
-    $ sudo mkdir /opt/venvs
-    $ cd /opt/venvs
-    $ sudo -H pip3 install -U virtualenv
-    $ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-    $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
-
-To upgrade ``parsedmarc`` inside the virtualenv, run:
-
-
-.. code-block:: bash
-
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
-
-.. code-block:: bash
-
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
-
-Optional dependencies
----------------------
-
-If you would like to be able to parse emails saved from Microsoft Outlook
-(i.e. OLE .msg files), install ``msgconvert``:
-
-On Debian or Ubuntu systems, run:
-
-.. code-block:: bash
-
-    $ sudo apt-get install libemail-outlook-message-perl
-
-DNS performance
----------------
-
-You can often improve performance by providing one or more local nameservers
-to the CLI or function calls, as long as those nameservers return the same
-records as the public DNS.
-
-
-.. note::
-
-   If you do not specify any nameservers, Cloudflare's public nameservers are
-   used by default, **not the system's default nameservers**.
-
-   This is done to avoid a situation where records in a local nameserver do
-   not match records in the public DNS.
-
-Testing multiple report analyzers
----------------------------------
-
-If you would like to test parsedmarc and another report processing solution
-at the same time, you can have up to two mailto URIs each in the rua and ruf
-tags tgs in your DMARC record, separated by commas.
 
 Documentation
 =============
