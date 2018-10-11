@@ -3,7 +3,6 @@
 import logging
 from collections import OrderedDict
 
-import parsedmarc
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
@@ -309,14 +308,14 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     logger.debug("Saving forensic report to Elasticsearch")
     forensic_report = forensic_report.copy()
     sample_date = forensic_report["parsed_sample"]["date"]
-    sample_date = parsedmarc.human_timestamp_to_datetime(sample_date)
+    sample_date = human_timestamp_to_datetime(sample_date)
     original_headers = forensic_report["parsed_sample"]["headers"]
     headers = OrderedDict()
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
     arrival_date_human = forensic_report["arrival_date_utc"]
-    arrival_date = parsedmarc.human_timestamp_to_datetime(arrival_date_human)
+    arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
     search = Index(index).search()
     from_query = {"match": {"sample.headers.from": headers["from"]}}
