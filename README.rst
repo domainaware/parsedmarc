@@ -13,7 +13,7 @@ parsedmarc
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, and OnDMARC.
+as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.
 
 Features
 ========
@@ -25,13 +25,13 @@ Features
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch and/or Splunk, for use with
-  premade dashboards
+* Optionally send the results to Elasticsearch and/or Splunk, for use with premade dashboards
+* Optionally send reports to Apache Kafka
 
 Resources
 =========
 
-* `Demystifying DMARC`_
+* `Demystifying DMARC`_ - A complete guide to SPF, DKIM, and DMARC
 
 CLI help
 ========
@@ -135,7 +135,14 @@ SPF and DMARC record validation
 ===============================
 
 If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project, `checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+check out the sister project,
+`checkdmarc <https://domainaware.github.io/checkdmarc/>`_.
+
+Lookalike domains
+=================
+
+DMARC protects against domain spoofing, not lookalike domains. for open source
+lookalike domain monitoring, check out `DomainAware <https://github.com/seanthegeek/domainaware>`_.
 
 Sample aggregate report output
 ==============================

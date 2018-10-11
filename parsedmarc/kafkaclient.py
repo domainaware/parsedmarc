@@ -9,6 +9,7 @@ from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
 
 logger = logging.getLogger("parsedmarc")
 
+
 class KafkaError(RuntimeError):
     """Raised when a Kafka error occurs"""
 
