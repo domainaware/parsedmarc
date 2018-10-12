@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 4.2.0k documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 4.3.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.2.0k
+                4.3.0
               </div>
             
           
@@ -150,10 +150,11 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
 
-<span class="kn">import</span> <span class="nn">parsedmarc</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl.search</span> <span class="k">import</span> <span class="n">Q</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
     <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">DateRange</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span>
+
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">human_timestamp_to_datetime</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 
@@ -358,8 +359,8 @@
     <span class="n">org_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
     <span class="n">report_id</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
     <span class="n">domain</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
-    <span class="n">begin_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
-    <span class="n">end_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
+    <span class="n">begin_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
+    <span class="n">end_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
     <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
     <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
     <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_date</span>
@@ -453,15 +454,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving forensic report to Elasticsearch&quot;</span><span class="p">)</span>
     <span class="n">forensic_report</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">sample_date</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span>
-    <span class="n">sample_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">sample_date</span><span class="p">)</span>
+    <span class="n">sample_date</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sample_date</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span>
+        <span class="n">sample_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">sample_date</span><span class="p">)</span>
     <span class="n">original_headers</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;headers&quot;</span><span class="p">]</span>
     <span class="n">headers</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">original_header</span> <span class="ow">in</span> <span class="n">original_headers</span><span class="p">:</span>
         <span class="n">headers</span><span class="p">[</span><span class="n">original_header</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">original_headers</span><span class="p">[</span><span class="n">original_header</span><span class="p">]</span>
 
     <span class="n">arrival_date_human</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">]</span>
-    <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">parsedmarc</span><span class="o">.</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
+    <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
 
     <span class="n">search</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
     <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]}}</span>
@@ -570,7 +573,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.2.0k',
+              VERSION:'4.3.0',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>parsedmarc.splunk &mdash; parsedmarc 4.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> parsedmarc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                4.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">parsedmarc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../parsedmarc.html">parsedmarc</a> &raquo;</li>
+        
+      <li>parsedmarc.splunk</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for parsedmarc.splunk</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">urllib3</span>
+
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="kn">from</span> <span class="nn">parsedmarc.__version__</span> <span class="k">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">human_timestamp_to_timestamp</span>
+
+<span class="n">urllib3</span><span class="o">.</span><span class="n">disable_warnings</span><span class="p">(</span><span class="n">urllib3</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InsecureRequestWarning</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SplunkError"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.SplunkError">[docs]</a><span class="k">class</span> <span class="nc">SplunkError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a Splunk API error occurs&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="HECClient"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient">[docs]</a><span class="k">class</span> <span class="nc">HECClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A client for a Splunk HTTP Events Collector (HEC)&quot;&quot;&quot;</span>
+
+    <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC</span>
+    <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">access_token</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span>
+                 <span class="n">source</span><span class="o">=</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the HECClient</span>
+<span class="sd">        Args:</span>
+<span class="sd">            url (str): The URL of the HEC</span>
+<span class="sd">            access_token (str): The HEC access token</span>
+<span class="sd">            index (str): The name of the index</span>
+<span class="sd">            source (str): The source name</span>
+<span class="sd">            verify (bool): Verify SSL certificates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">://</span><span class="si">{1}</span><span class="s2">/services/collector/event/1.0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span>
+                                                                   <span class="n">url</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span> <span class="o">=</span> <span class="n">access_token</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;Splunk &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">getfqdn</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span> <span class="o">=</span> <span class="n">verify</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+                                 <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="s2">&quot;parsedmarc/</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">),</span>
+            <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="s2">&quot;Splunk </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">access_token</span><span class="p">)</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="HECClient.save_aggregate_reports_to_splunk"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_aggregate_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves aggregate DMARC reports to Splunk</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            aggregate_reports: A list of aggregate report dictionaries</span>
+<span class="sd">            to save in Splunk</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving aggregate reports to Splunk&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">aggregate_reports</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">json_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">aggregate_reports</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]:</span>
+                <span class="n">new_report</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="n">metadata</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="n">metadata</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;published_policy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;message_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;disposition&quot;</span>
+                <span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;dkim_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;passed_dmarc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;header_from&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span>
+                    <span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]:</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;dkim_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span>
+                        <span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]:</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span>
+                        <span class="s2">&quot;spf&quot;</span><span class="p">]</span>
+
+                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:aggregate&quot;</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_timestamp</span><span class="p">(</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
+                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
+                <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves forensic DMARC reports to Splunk</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            forensic_reports (list):  A list of forensic report dictionaries</span>
+<span class="sd">            to save in Splunk</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving forensic reports to Splunk&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">forensic_reports</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">json_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">forensic_reports</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:forensic&quot;</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_timestamp</span><span class="p">(</span>
+                <span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">])</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Sean Whalen
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../',
+              VERSION:'4.3.0',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

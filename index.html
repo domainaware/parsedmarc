@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.2.0k documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.2.0k
+                4.3.0
               </div>
             
           
@@ -84,23 +84,33 @@
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">parsedmarc documentation - Open source DMARC report analyzer and visualizer</a><ul>
 <li><a class="reference internal" href="#features">Features</a></li>
-<li><a class="reference internal" href="#resources">Resources</a></li>
-<li><a class="reference internal" href="#cli-help">CLI help</a></li>
+<li><a class="reference internal" href="#resources">Resources</a><ul>
+<li><a class="reference internal" href="#dmarc-guides">DMARC guides</a></li>
 <li><a class="reference internal" href="#spf-and-dmarc-record-validation">SPF and DMARC record validation</a></li>
-<li><a class="reference internal" href="#id1">SPF and DMARC record validation</a></li>
+<li><a class="reference internal" href="#lookalike-domains">Lookalike domains</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li><a class="reference internal" href="#sample-aggregate-report-output">Sample aggregate report output</a><ul>
 <li><a class="reference internal" href="#json">JSON</a></li>
 <li><a class="reference internal" href="#csv">CSV</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#sample-forensic-report-output">Sample forensic report output</a></li>
+<li><a class="reference internal" href="#sample-forensic-report-output">Sample forensic report output</a><ul>
+<li><a class="reference internal" href="#id1">JSON</a></li>
+<li><a class="reference internal" href="#id2">CSV</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#dns-performance">DNS performance</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
-<li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a></li>
+<li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a><ul>
+<li><a class="reference internal" href="#records-retention">Records retention</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#splunk">Splunk</a></li>
 <li><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
 </ul>
@@ -208,9 +218,23 @@ premade dashboards</li>
 </div>
 <div class="section" id="resources">
 <h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="dmarc-guides">
+<h3>DMARC guides<a class="headerlink" href="#dmarc-guides" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a> - A complete guide to SPF, DKIM, and DMARC</li>
 </ul>
+</div>
+<div class="section" id="spf-and-dmarc-record-validation">
+<h3>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline">¶</a></h3>
+<p>If you are looking for SPF and DMARC record validation and parsing,
+check out the sister project,
+<a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
+</div>
+<div class="section" id="lookalike-domains">
+<h3>Lookalike domains<a class="headerlink" href="#lookalike-domains" title="Permalink to this headline">¶</a></h3>
+<p>DMARC protects against domain spoofing, not lookalike domains. for open source
+lookalike domain monitoring, check out <a class="reference external" href="https://github.com/seanthegeek/domainaware">DomainAware</a>.</p>
+</div>
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
@@ -222,9 +246,13 @@ premade dashboards</li>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">ssl</span> <span class="n">OUTGOING_SSL</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">w</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
@@ -242,10 +270,11 @@ premade dashboards</li>
     <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
                           <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
     <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                          <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">Default</span> <span class="ow">is</span> <span class="n">Cloudflare</span><span class="s1">&#39;s)</span>
+                          <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">Default</span> <span class="ow">is</span> <span class="n">Cloudflare</span><span class="s1">&#39;s</span>
+                          <span class="n">nameservers</span><span class="p">)</span>
     <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
                           <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
-                          <span class="p">(</span><span class="n">default</span> <span class="mf">2.0</span><span class="p">)</span>
+                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
     <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
     <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
     <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
@@ -254,14 +283,15 @@ premade dashboards</li>
                           <span class="n">IMAP</span> <span class="n">port</span>
     <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span>         <span class="n">Do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">SSL</span><span class="o">/</span><span class="n">TLS</span> <span class="n">when</span> <span class="n">connecting</span> <span class="n">to</span> <span class="n">IMAP</span>
     <span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">reports</span><span class="o">-</span><span class="n">folder</span> <span class="n">REPORTS_FOLDER</span>
-                          <span class="n">The</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">Default</span><span class="p">:</span> <span class="n">INBOX</span>
+                          <span class="n">The</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">reports</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span>
+                          <span class="n">INBOX</span><span class="p">)</span>
     <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
                           <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
-                          <span class="n">processing</span> <span class="n">them</span> <span class="n">Default</span><span class="p">:</span> <span class="n">Archive</span>
+                          <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
     <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
     <span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">host</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]</span>
-                          <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span>
-                          <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
+                          <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span> <span class="n">to</span> <span class="n">use</span>
+                          <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
     <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span>
                           <span class="n">Prefix</span> <span class="n">to</span> <span class="n">add</span> <span class="ow">in</span> <span class="n">front</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
                           <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
@@ -277,6 +307,14 @@ premade dashboards</li>
                           <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
     <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span>
                           <span class="n">Skip</span> <span class="n">certificate</span> <span class="n">verification</span> <span class="k">for</span> <span class="n">Splunk</span> <span class="n">HEC</span>
+    <span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">hosts</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]</span>
+                          <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Kafka</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span>
+    <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span>
+                          <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span>
+                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_aggregate</span><span class="p">)</span>
+    <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span>
+                          <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span>
+                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_forensic</span><span class="p">)</span>
     <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span>      <span class="n">Save</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
     <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span>       <span class="n">Save</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
     <span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">host</span> <span class="n">OUTGOING_HOST</span>
@@ -308,18 +346,6 @@ premade dashboards</li>
     <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="spf-and-dmarc-record-validation">
-<h2>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline">¶</a></h2>
-<p>If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project,
-<a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
-</div>
-<div class="section" id="id1">
-<h2>SPF and DMARC record validation<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
-<p>If you are looking for SPF and DMARC record validation and parsing,
-check out the sister project,
-<a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
 </div>
 <div class="section" id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline">¶</a></h2>
@@ -409,8 +435,106 @@ schema.</p>
 </div>
 <div class="section" id="sample-forensic-report-output">
 <h2>Sample forensic report output<a class="headerlink" href="#sample-forensic-report-output" title="Permalink to this headline">¶</a></h2>
-<p>I don’t have a sample I can share for privacy reasons. If you have a sample
-forensic report that you can share publicly, please contact me!</p>
+<p>Thanks to Github user <a class="reference external" href="https://github.com/xennn">xennn</a> for the anonymized
+<a class="reference external" href="https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml">forensic report email sample</a>.</p>
+<div class="section" id="id1">
+<h3>JSON<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span> <span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;user_agent&quot;</span><span class="p">:</span> <span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;original_mail_from&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;original_rcpt_to&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;message_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span> <span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span> <span class="s2">&quot;smg-policy-action&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;dmarc&quot;</span>
+  <span class="p">],</span>
+  <span class="nt">&quot;reported_domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;arrival_date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;ip_address&quot;</span><span class="p">:</span> <span class="s2">&quot;10.10.10.10&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;country&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+    <span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+    <span class="nt">&quot;base_domain&quot;</span><span class="p">:</span> <span class="kc">null</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;authentication_mechanisms&quot;</span><span class="p">:</span> <span class="p">[],</span>
+  <span class="nt">&quot;original_envelope_id&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+  <span class="nt">&quot;dkim_domain&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+  <span class="nt">&quot;sample_headers_only&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nt">&quot;sample&quot;</span><span class="p">:</span> <span class="s2">&quot;Content-Type: message/rfc822\nContent-Disposition: inline\nReceived: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: &lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;\nTo: &lt;peter.pan@domain.de&gt;\nfrom: \&quot;=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\&quot; &lt;sharepoint@domain.de&gt;\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n\n&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;\n &quot;</span><span class="p">,</span>
+  <span class="nt">&quot;parsed_sample&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;content-transfer-encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;x-mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;message-id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;body&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;to&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+        <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
+      <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;to_domains&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="s2">&quot;domain.de&quot;</span>
+    <span class="p">],</span>
+    <span class="nt">&quot;received&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;Servernameone.domain.local Servernameone.domain.local 10.10.10.10&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;by&quot;</span><span class="p">:</span> <span class="s2">&quot;mailrelay.de mail.DOMAIN.de&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;with&quot;</span><span class="p">:</span> <span class="s2">&quot;SMTP id 38.E7.30937.BD6E1BB5&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 1 Oct 2018 11:20:27 +0200 CEST&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;hop&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="nt">&quot;date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">0</span>
+      <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="nt">&quot;content-disposition&quot;</span><span class="p">:</span> <span class="s2">&quot;inline&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;mime-version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;timezone&quot;</span><span class="p">:</span> <span class="s2">&quot;+2&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Interaktive Wettbewerber-Übersicht&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;has_defects&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+    <span class="nt">&quot;headers&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Content-Disposition&quot;</span><span class="p">:</span> <span class="s2">&quot;inline&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Received&quot;</span><span class="p">:</span> <span class="s2">&quot;from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Date&quot;</span><span class="p">:</span> <span class="s2">&quot;01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Message-ID&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;To&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;peter.pan@domain.de&gt;&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;\&quot;Interaktive Wettbewerber-Übersicht\&quot; &lt;sharepoint@domain.de&gt;&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;MIME-Version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;X-Mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Content-Transfer-Encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;reply_to&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="nt">&quot;cc&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="nt">&quot;bcc&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="nt">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="nt">&quot;filename_safe_subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>CSV<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">feedback_type</span><span class="p">,</span><span class="n">user_agent</span><span class="p">,</span><span class="n">version</span><span class="p">,</span><span class="n">original_envelope_id</span><span class="p">,</span><span class="n">original_mail_from</span><span class="p">,</span><span class="n">original_rcpt_to</span><span class="p">,</span><span class="n">arrival_date</span><span class="p">,</span><span class="n">arrival_date_utc</span><span class="p">,</span><span class="n">subject</span><span class="p">,</span><span class="n">message_id</span><span class="p">,</span><span class="n">authentication_results</span><span class="p">,</span><span class="n">dkim_domain</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">delivery_result</span><span class="p">,</span><span class="n">auth_failure</span><span class="p">,</span><span class="n">reported_domain</span><span class="p">,</span><span class="n">authentication_mechanisms</span><span class="p">,</span><span class="n">sample_headers_only</span>
+<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7</span><span class="o">.</span><span class="mf">30937.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10</span><span class="o">.</span><span class="mf">10.10</span><span class="p">,,,,</span><span class="n">smg</span><span class="o">-</span><span class="n">policy</span><span class="o">-</span><span class="n">action</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
+</pre></div>
+</div>
+</div>
 </div>
 <div class="section" id="bug-reports">
 <h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline">¶</a></h2>
@@ -509,7 +633,7 @@ tags in your DMARC record, separated by commas.</p>
 <h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.1.3</p>
+<p class="last">Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.3.0</p>
 </div>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
@@ -671,10 +795,15 @@ the commercial <a class="reference external" href="https://www.elastic.co/produc
 patterns. Select <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code> for the set of forensic objects, and
 select <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> for the other saved objects, as shown below.</p>
 <a class="reference external image-reference" href="_static/screenshots/index-pattern-conflicts.png"><img alt="A screenshot showing how to resolve index pattern conflicts after importing saved objects" class="align-center" src="_images/index-pattern-conflicts.png" /></a>
+<div class="section" id="records-retention">
+<h4>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this headline">¶</a></h4>
+<p>To prevent your indexes from growing too large, or to comply with records
+retention regulations such as GDPR, you need to use <a class="reference external" href="https://www.elastic.co/blog/managing-time-based-indices-efficiently">time-based indexes</a>.</p>
+</div>
 </div>
 <div class="section" id="splunk">
 <h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this headline">¶</a></h3>
-<p>Starting in version 4.1.3 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
+<p>Starting in version 4.3.0 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
 forensic DMARC data to a Splunk <a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC">HTTP Event collector (HEC)</a>. Simply use the
 following command line options, along with <code class="docutils literal notranslate"><span class="pre">--save-aggregate</span></code> and/or
 <code class="docutils literal notranslate"><span class="pre">--save-forensic</span></code>:</p>
@@ -1091,42 +1220,6 @@ or bytes.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="parsedmarc.human_timestamp_to_datetime">
-<code class="descclassname">parsedmarc.</code><code class="descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em>human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>human_timestamp</strong> (<em>str</em>) – A timestamp in <cite>YYYY-MM-DD HH:MM:SS`</cite> format</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DateTime</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="parsedmarc.human_timestamp_to_timestamp">
-<code class="descclassname">parsedmarc.</code><code class="descname">human_timestamp_to_timestamp</code><span class="sig-paren">(</span><em>human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#human_timestamp_to_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a human-readable timestamp into a into a UNIX timestamp</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>human_timestamp</strong> (<em>str</em>) – A timestamp in <cite>YYYY-MM-DD HH:MM:SS`</cite> format</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
 <dt id="parsedmarc.parse_aggregate_report_file">
 <code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em>_input</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
@@ -1181,7 +1274,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_forensic_report">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>sample_headers_only</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1190,7 +1283,6 @@ aggregate DMARC report</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>feedback_report</strong> (<em>str</em>) – A message’s feedback report as a string</li>
 <li><strong>sample</strong> (<em>str</em>) – The RFC 822 headers or RFC 822 message sample</li>
-<li><strong>sample_headers_only</strong> (<em>bool</em>) – Set true if the sample is only headers</li>
 <li><strong>msg_date</strong> (<em>str</em>) – The message’s date header</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
@@ -1434,6 +1526,330 @@ to a callback function</p>
 </table>
 </dd></dl>
 
+<span class="target" id="module-parsedmarc.splunk"></span><dl class="class">
+<dt id="parsedmarc.splunk.HECClient">
+<em class="property">class </em><code class="descclassname">parsedmarc.splunk.</code><code class="descname">HECClient</code><span class="sig-paren">(</span><em>url</em>, <em>access_token</em>, <em>index</em>, <em>source='parsedmarc'</em>, <em>verify=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>A client for a Splunk HTTP Events Collector (HEC)</p>
+<dl class="method">
+<dt id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
+<code class="descname">save_aggregate_reports_to_splunk</code><span class="sig-paren">(</span><em>aggregate_reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves aggregate DMARC reports to Splunk</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>aggregate_reports</strong> – A list of aggregate report dictionaries</li>
+<li><strong>save in Splunk</strong> (<em>to</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">
+<code class="descname">save_forensic_reports_to_splunk</code><span class="sig-paren">(</span><em>forensic_reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves forensic DMARC reports to Splunk</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>forensic_reports</strong> (<em>list</em>) – A list of forensic report dictionaries</li>
+<li><strong>save in Splunk</strong> (<em>to</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="parsedmarc.splunk.SplunkError">
+<em class="property">exception </em><code class="descclassname">parsedmarc.splunk.</code><code class="descname">SplunkError</code><a class="reference internal" href="_modules/parsedmarc/splunk.html#SplunkError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.SplunkError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a Splunk API error occurs</p>
+</dd></dl>
+
+<span class="target" id="module-parsedmarc.utils"></span><p>Utility functions that might be useful for other projects</p>
+<dl class="exception">
+<dt id="parsedmarc.utils.EmailParserError">
+<em class="property">exception </em><code class="descclassname">parsedmarc.utils.</code><code class="descname">EmailParserError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#EmailParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.EmailParserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an error parsing the email occurs</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.convert_outlook_msg">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">convert_outlook_msg</code><span class="sig-paren">(</span><em>msg_bytes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#convert_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.convert_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code> Perl utility to convert an Outlook MS file to
+standard RFC 822 format</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>msg_bytes</strong> (<em>bytes</em>) – the content of the .msg file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A RFC 822 string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.get_base_domain">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_base_domain</code><span class="sig-paren">(</span><em>domain</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the base domain name for the given domain</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Results are based on a list of public domain suffixes at
+<a class="reference external" href="https://publicsuffix.org/list/public_suffix_list.dat">https://publicsuffix.org/list/public_suffix_list.dat</a>.</p>
+<p class="last">This file is saved to the current working directory,
+where it is used as a cache file for 24 hours.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>domain</strong> (<em>str</em>) – A domain or subdomain</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The base domain of the given domain</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.get_filename_safe_string">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_filename_safe_string</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_filename_safe_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_filename_safe_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a string to a string that is safe for a filename
+:param string: A string to make safe for a filename
+:type string: str</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A string safe for a filename</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.get_ip_address_country">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_country</code><span class="sig-paren">(</span><em>ip_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the MaxMind Geolite2 Country database to return the ISO code for the
+country associated with the given IPv4 or IPv6 address</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">And ISO country code associated with the given IP address</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.get_ip_address_info">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_info</code><span class="sig-paren">(</span><em>ip_address</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns reverse DNS and country information for the given IP address</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ip_address</strong> (<em>str</em>) – The IP address to check</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><code class="docutils literal notranslate"><span class="pre">ip_address</span></code>, <code class="docutils literal notranslate"><span class="pre">reverse_dns</span></code></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">OrderedDict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.get_reverse_dns">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_reverse_dns</code><span class="sig-paren">(</span><em>ip_address</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolves an IP address to a hostname using a reverse DNS query</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ip_address</strong> (<em>str</em>) – The IP address to resolve</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS query timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The reverse DNS hostname (if any)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.human_timestamp_to_datetime">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em>human_timestamp</em>, <em>to_utc=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>human_timestamp</strong> (<em>str</em>) – A timestamp string</li>
+<li><strong>to_utc</strong> (<em>bool</em>) – Convert the timestamp to UTC</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The converted timestamp</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">DateTime</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.human_timestamp_to_timestamp">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">human_timestamp_to_timestamp</code><span class="sig-paren">(</span><em>human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a human-readable timestamp into a into a UNIX timestamp</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>human_timestamp</strong> (<em>str</em>) – A timestamp in <cite>YYYY-MM-DD HH:MM:SS`</cite> format</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.is_outlook_msg">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">is_outlook_msg</code><span class="sig-paren">(</span><em>content</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the given content is a Outlook msg OLE file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>content</strong> – Content to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A flag the indicates if a file is a Outlook MSG file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.parse_email">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">parse_email</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simplified email parser</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> – The RFC 822 message string, or MSG binary</td>
+</tr>
+</tbody>
+</table>
+<p>Returns (dict): Parsed email data</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.query_dns">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">query_dns</code><span class="sig-paren">(</span><em>domain</em>, <em>record_type</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries DNS</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>domain</strong> (<em>str</em>) – The domain or subdomain to query about</li>
+<li><strong>record_type</strong> (<em>str</em>) – The record type to query for</li>
+<li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
+<li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
+<li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of answers</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.timestamp_to_datetime">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">timestamp_to_datetime</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a UNIX/DMARC timestamp to a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timestamp</strong> (<em>int</em>) – The timestamp</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp as a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">DateTime</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.timestamp_to_human">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">timestamp_to_human</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timestamp</strong> – The timestamp</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The converted timestamp in <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span> <span class="pre">HH:MM:SS</span></code> format</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <div class="toctree-wrapper compound">
 </div>
 </div>
@@ -1483,7 +1899,7 @@ to a callback function</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.2.0k',
+              VERSION:'4.3.0',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
