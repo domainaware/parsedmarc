@@ -253,7 +253,7 @@ JSON
 CSV
 ---
 
-::
+.. code-block::
 
     xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,disposition,dkim_alignment,spf_alignment,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
     draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,none,fail,pass,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
@@ -262,8 +262,111 @@ CSV
 Sample forensic report output
 =============================
 
-I don't have a sample I can share for privacy reasons. If you have a sample
-forensic report that you can share publicly, please contact me!
+Thanks to Github user `xennn <https://github.com/xennn>`_ for the anonymized
+`forensic report email sample
+<https://github.com/domainaware/parsedmarc/issues/19>`_.
+
+JSON
+----
+
+
+.. code-block:: json
+
+    {
+      "feedback_type": "auth-failure",
+      "user_agent": "Lua/1.0",
+      "version": "1.0",
+      "original_mail_from": "sharepoint@domain.de",
+      "original_rcpt_to": "peter.pan@domain.de",
+      "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
+      "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+      "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
+      "delivery_result": "smg-policy-action",
+      "auth_failure": [
+        "dmarc"
+      ],
+      "reported_domain": "domain.de",
+      "arrival_date_utc": "2018-10-01 09:20:27",
+      "source": {
+        "ip_address": "10.10.10.10",
+        "country": null,
+        "reverse_dns": null,
+        "base_domain": null
+      },
+      "authentication_mechanisms": [],
+      "original_envelope_id": null,
+      "dkim_domain": null,
+      "sample_headers_only": false,
+      "sample": "Content-Type: message/rfc822\nContent-Disposition: inline\nReceived: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>\nTo: <peter.pan@domain.de>\nfrom: \"=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\" <sharepoint@domain.de>\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n\n<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>\n ",
+      "parsed_sample": {
+        "content-transfer-encoding": "quoted-printable",
+        "x-mailer": "Microsoft SharePoint Foundation 2010",
+        "message-id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+        "body": "<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>",
+        "to": [
+          {
+            "display_name": null,
+            "address": "peter.pan@domain.de",
+            "local": "peter.pan",
+            "domain": "domain.de"
+          }
+        ],
+        "date": "2018-10-01 09:20:27",
+        "to_domains": [
+          "domain.de"
+        ],
+        "received": [
+          {
+            "from": "Servernameone.domain.local Servernameone.domain.local 10.10.10.10",
+            "by": "mailrelay.de mail.DOMAIN.de",
+            "with": "SMTP id 38.E7.30937.BD6E1BB5",
+            "date": "Mon, 1 Oct 2018 11:20:27 +0200 CEST",
+            "hop": 1,
+            "date_utc": "2018-10-01 09:20:27",
+            "delay": 0
+          }
+        ],
+        "content-disposition": "inline",
+        "mime-version": "1.0",
+        "subject": "Subject",
+        "timezone": "+2",
+        "from": {
+          "display_name": "Interaktive Wettbewerber-Übersicht",
+          "address": "sharepoint@domain.de",
+          "local": "sharepoint",
+          "domain": "domain.de"
+        },
+        "content-type": "message/rfc822",
+        "has_defects": false,
+        "headers": {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Disposition": "inline",
+          "Received": "from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)",
+          "Date": "01 Oct 2018 11:20:27 +0200",
+          "Message-ID": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+          "To": "<peter.pan@domain.de>",
+          "from": "\"Interaktive Wettbewerber-Übersicht\" <sharepoint@domain.de>",
+          "Subject": "Subject",
+          "MIME-Version": "1.0",
+          "X-Mailer": "Microsoft SharePoint Foundation 2010",
+          "Content-Transfer-Encoding": "quoted-printable"
+        },
+        "reply_to": [],
+        "cc": [],
+        "bcc": [],
+        "attachments": [],
+        "filename_safe_subject": "Subject"
+      }
+    }
+
+
+CSV
+---
+
+.. code-block::
+
+    feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
+    auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,smg-policy-action,dmarc,domain.de,,False
 
 Bug reports
 ===========
@@ -398,7 +501,7 @@ Elasticsearch and Kibana
 
 .. note::
 
-   Splunk is also supported starting with ``parsedmarc`` 4.1.3
+   Splunk is also supported starting with ``parsedmarc`` 4.3.0
 
 
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
@@ -632,11 +735,17 @@ select ``dmarc_aggregate`` for the other saved objects, as shown below.
    :align: center
    :target: _static/screenshots/index-pattern-conflicts.png
 
+Records retention
+~~~~~~~~~~~~~~~~~
+
+To prevent your indexes from growing too large, or to comply with records
+retention regulations such as GDPR, you need to use `time-based indexes
+<https://www.elastic.co/blog/managing-time-based-indices-efficiently>`_.
 
 Splunk
 ------
 
-Starting in version 4.1.3 ``parsedmarc`` supports sending aggregate and/or
+Starting in version 4.3.0 ``parsedmarc`` supports sending aggregate and/or
 forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
 following command line options, along with ``--save-aggregate`` and/or
 ``--save-forensic``:

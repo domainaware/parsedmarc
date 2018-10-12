@@ -1,0 +1,90 @@
+Authentication-Results-Original: smtp.cardhealth.com; spf=Pass
+ smtp.mailfrom=abuse@163.com
+Received-SPF: Pass (smtp.cardhealth.com: domain of abuse@163.com
+  designates 220.181.12.184 as permitted sender)
+  identity=mailfrom; client-ip=220.181.12.184;
+  receiver=smtp.cardhealth.com; envelope-from="abuse@163.com";
+  x-sender="abuse@163.com"; x-conformance=spf_only;
+  x-record-type="v=spf1"
+Received: from m12-184.163.com ([220.181.12.184])  by smtp.cardhealth.com with
+ ESMTP; 28 Sep 2018 04:48:45 -0400
+Received: from 163.com (unknown [192.168.201.141])	by mfast9 (Coremail) with
+ SMTP id uMCowEAJ6lTs6q1bwLXEEg--.1184S2;	Fri, 28 Sep 2018 16:48:44 +0800
+ (CST)
+MIME-Version: 1.0
+From: <abuse@163.com>
+Subject: [Netease DMARC Failure Report] Rent Reminder
+Date: Fri, 28 Sep 2018 16:48:43 +0800
+To: <dmarcreports@cardinalhealth.com>
+Message-ID: <5BADEAEC.AC2A83.17156@m12-184.163.com>
+X-Coremail-Antispam: 1Uf129KBjDUn29KB7ZKAUJUUUUU529EdanIXcx71UUUUU7v73
+	VFW2AGmfu7bjvjm3AaLaJ3UbIYCTnIWIevJa73UjIFyTuYvj4RJUUUUUUUU
+X-Originating-IP: [192.168.201.141]
+X-CM-SenderInfo: 5dex2vi6rwjhhfrp/
+Return-Path: abuse@163.com
+Content-type: multipart/mixed;
+	boundary="B_3622128044_155770608"
+
+> This message is in MIME format. Since your mail reader does not understand
+this format, some or all of this message may not be legible.
+
+--B_3622128044_155770608
+Content-type: text/plain;
+	charset="UTF-8"
+Content-transfer-encoding: 7bit
+
+This is a spf/dkim authentication-failure report for an email message received from IP 167.89.69.24 on Fri, 28 Sep 2018 16:48:42 +0800.
+Below is some detail information about this message:
+ 1. SPF-authenticated Identifiers: email.entrata.com;
+ 2. DKIM-authenticated Identifiers: entrata.com;
+ 3. DMARC Mechanism Check Result: Identifier non-aligned, DMARC mechanism check failures;
+
+For more information please check Aggregate Reports or mail to abuse@163.com.
+
+
+--B_3622128044_155770608
+Content-type: message/feedback-report; name="ATT00001";
+ x-mac-creator="4F50494D"
+Content-ID: <C9EED1E253B7F5459DB3AC82BC6E9953@namprd04.prod.outlook.com>
+Content-disposition: attachment;
+	filename="ATT00001"
+Content-transfer-encoding: base64
+
+
+RmVlZGJhY2stVHlwZTogYXV0aC1mYWlsdXJlDQpVc2VyLUFnZW50OiBOdGVzRG1hcmNSZXBv
+cnRlci8xLjANClZlcnNpb246IDENCk9yaWdpbmFsLU1haWwtRnJvbTogPGJvdW5jZXMrMTEz
+NzYxNi1jMWFkLXhzajM5OT0xNjMuY29tQGVtYWlsLmVudHJhdGEuY29tPg0KQXJyaXZhbC1E
+YXRlOiBGcmksIDI4IFNlcCAyMDE4IDE2OjQ4OjQyICswODAwDQpTb3VyY2UtSVA6IDE2Ny44
+OS42OS4yNA0KUmVwb3J0ZWQtRG9tYWluOiBjYXJkaW5hbC5jb20NCk9yaWdpbmFsLUVudmVs
+b3BlLUlkOiBOOENvd0VBcGNVUG82cTFiblhsTUFBLS0uNDQzOTJTMw0KQXV0aGVudGljYXRp
+b24tUmVzdWx0czogMTYzLmNvbTsgZGtpbT1wYXNzICh2ZXJpZnkgcmVzdWx0OiBhbGwgc2ln
+bmF0dXJlcyB2ZXJpZmllZCkgaGVhZGVyLmQ9ZW50cmF0YS5jb207IHNwZj1wYXNzIHNtdHAu
+bWFpbGZyb209Ym91bmNlcysxMTM3NjE2LWMxYWQteHNqMzk5PTE2My5jb21AZW1haWwuZW50
+cmF0YS5jb20NCkRLSU0tRG9tYWluOiBlbnRyYXRhLmNvbQ0KRGVsaXZlcnktUmVzdWx0OiBk
+ZWxpdmVyZWQNCklkZW50aXR5LUFsaWdubWVudDogc3BmLGRraW0=
+--B_3622128044_155770608
+Content-type: message/rfc822
+Content-disposition: attachment
+
+Received: by filter1356p1mdw1.sendgrid.net with SMTP id filter1356p1mdw1-30359-5BADEAE4-E
+        2018-09-28 08:48:36.858842501 +0000 UTC m=+1856335.516585242
+Received: from MTEzNzYxNg (unknown [198.190.14.10])
+	by ismtpd0007p1las1.sendgrid.net (SG) with HTTP id oguVx1AxQayV5Sv2nYK-rA
+	for <system@entrata.com>; Fri, 28 Sep 2018 08:48:36.716 +0000 (UTC)
+From: 700 on Washington <info@cardinal.com>
+To: "redacted@163.com" <redacted@163.com>
+Subject: Rent Reminder
+Thread-Topic: Rent Reminder
+Thread-Index: AQHUVwgr2Hz5Jp/wMEGsfVZ94P1m5Q==
+X-MS-Exchange-MessageSentRepresentingType: 1
+Date: Fri, 28 Sep 2018 04:48:39 -0400
+Message-ID: <oguVx1AxQayV5Sv2nYK-rA@ismtpd0007p1las1.sendgrid.net>
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+X-MS-Exchange-Organization-RecordReviewCfmType: 0
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+
+
+--B_3622128044_155770608--
+

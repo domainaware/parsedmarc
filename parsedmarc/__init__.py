@@ -494,15 +494,14 @@ def parsed_aggregate_reports_to_csv(reports):
     return csv_file_object.getvalue()
 
 
-def parse_forensic_report(feedback_report, sample, sample_headers_only,
-                          msg_date, nameservers=None, timeout=2.0):
+def parse_forensic_report(feedback_report, sample, msg_date,
+                          nameservers=None, timeout=2.0):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
     Args:
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
-        sample_headers_only (bool): Set true if the sample is only headers
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
@@ -518,11 +517,14 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
             key = report_value[0].lower().replace("-", "_")
             parsed_report[key] = report_value[1]
 
+        if "content_type" in parsed_report:
+            del parsed_report["content_type"]
+
         if "arrival_date" not in parsed_report:
             parsed_report["arrival_date"] = msg_date
 
-        arrival_utc = dateparser.parse(parsed_report["arrival_date"],
-                                       settings={"TO_TIMEZONE": "UTC"})
+        arrival_utc = human_timestamp_to_datetime(
+            parsed_report["arrival_date"], to_utc=True)
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
@@ -559,6 +561,10 @@ def parse_forensic_report(feedback_report, sample, sample_headers_only,
         if "reported_domain" not in parsed_report:
             parsed_report["reported_domain"] = parsed_sample["from"]["domain"]
 
+        sample_headers_only = False
+        number_of_attachments = len(parsed_sample["attachments"])
+        if number_of_attachments < 1 and parsed_sample["body"] is None:
+            sample_headers_only = True
         if sample_headers_only and parsed_sample["has_defects"]:
             del parsed_sample["defects"]
             del parsed_sample["defects_categories"]
@@ -643,52 +649,57 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
         date = email.utils.format_datetime(datetime.utcnow())
-        if "date" in msg_headers:
+        if "Date" in msg_headers:
             date = human_timestamp_to_datetime(
-                msg_headers["date"].replace("T", ""))
+                msg_headers["Date"])
         msg = email.message_from_string(input_)
 
     except Exception as e:
         raise ParserError(e.__str__())
     subject = None
     feedback_report = None
-    sample_headers_only = False
     sample = None
-    if "subject" in msg_headers:
-        subject = msg_headers["subject"]
+    if "Subject" in msg_headers:
+        subject = msg_headers["Subject"]
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
         if type(payload) == list:
-            payload = payload[0].__str__()
-        if content_type == "message/feedback-report":
-            try:
-                if "Feedback-Type" in payload:
-                    feedback_report = payload
-                else:
-                    feedback_report = b64decode(payload).__str__()
-                feedback_report = feedback_report.lstrip("b'").rstrip("'")
-                feedback_report = feedback_report.replace("\\r", "")
-                feedback_report = feedback_report.replace("\\n", "\n")
-            except (ValueError, TypeError, binascii.Error):
-                feedback_report = payload
+            for payload_ in payload:
+                payload_ = payload_.__str__()
+                if content_type == "message/feedback-report":
+                    try:
+                        if "Feedback-Type" in payload_:
+                            feedback_report = payload_
+                        else:
+                            feedback_report = b64decode(payload_).__str__()
+                        feedback_report = feedback_report.lstrip(
+                            "b'").rstrip("'")
+                        feedback_report = feedback_report.replace("\\r", "")
+                        feedback_report = feedback_report.replace("\\n", "\n")
+                    except (ValueError, TypeError, binascii.Error):
+                        feedback_report = payload
 
-        elif content_type == "text/rfc822-headers":
-            sample = payload
-            sample_headers_only = True
-        elif content_type == "message/rfc822":
-            sample = payload
-            sample_headers_only = False
+                elif content_type == "text/rfc822-headers":
+                    sample = payload
+                elif content_type == "message/rfc822":
+                    sample = payload[0].__str__()
+                elif content_type == "multipart/report":
+                    if "Feedback-Type" in payload_:
+                        feedback_report = payload_
+                    elif "message/rfc822" in payload_:
+                        sample = payload_
+                    elif "text/rfc822-headers" in payload_:
+                        sample = payload_
         if feedback_report and sample:
             try:
                 forensic_report = parse_forensic_report(
                     feedback_report,
                     sample,
-                    sample_headers_only,
                     date,
                     nameservers=nameservers,
                     timeout=timeout)
-            except EmailParserError as e:
+            except Exception as e:
                 raise ParserError(e.__str__())
 
             result = OrderedDict([("report_type", "forensic"),

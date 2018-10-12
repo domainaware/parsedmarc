@@ -13,7 +13,7 @@ import shutil
 import mailparser
 import json
 
-
+import dateparser
 import dns.reversename
 import dns.resolver
 import dns.exception
@@ -166,18 +166,24 @@ def timestamp_to_human(timestamp):
     return timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def human_timestamp_to_datetime(human_timestamp):
+def human_timestamp_to_datetime(human_timestamp, to_utc=False):
     """
     Converts a human-readable timestamp into a Python ``DateTime`` object
 
     Args:
-        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+        human_timestamp (str): A timestamp string
+        to_utc (bool): Convert the timestamp to UTC
 
     Returns:
         DateTime: The converted timestamp
     """
-    human_timestamp = human_timestamp.replace("T", " ")
-    return datetime.strptime(human_timestamp, "%Y-%m-%d %H:%M:%S")
+
+    settings = {}
+
+    if to_utc:
+        settings = {"TO_TIMEZONE": "UTC"}
+
+    return dateparser.parse(human_timestamp, settings=settings)
 
 
 def human_timestamp_to_timestamp(human_timestamp):
