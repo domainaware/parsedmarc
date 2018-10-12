@@ -264,7 +264,6 @@ Thanks to Github user `xennn <https://github.com/xennn>`_ for the anonymized
 JSON
 ----
 
-
 .. code-block:: json
 
     {
