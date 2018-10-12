@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 
-from parsedmarc import __version__
+from parsedmarc.__version__ import __version__
 
 
 # -- General configuration ------------------------------------------------
