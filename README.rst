@@ -258,7 +258,8 @@ Sample forensic report output
 =============================
 
 Thanks to Github user `xennn <https://github.com/xennn>`_ for the anonymized
-`forensic report email sample <https://github.com/domainaware/parsedmarc/issues/19>`_
+`forensic report email sample
+<https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>`_.
 
 JSON
 ----
