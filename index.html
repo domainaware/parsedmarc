@@ -123,9 +123,11 @@
 <li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
 <li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
-<li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a><ul>
+<li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
+<li><a class="reference internal" href="#parsedmarc-splunk">parsedmarc.splunk</a><ul>
 </ul>
 </li>
+<li><a class="reference internal" href="#module-parsedmarc.utils">parsedmarc.utils</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -1530,6 +1532,11 @@ to a callback function</p>
 
 <div class="toctree-wrapper compound">
 </div>
+</div>
+<div class="section" id="parsedmarc-splunk">
+<h3>parsedmarc.splunk<a class="headerlink" href="#parsedmarc-splunk" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+</div>
 <span class="target" id="module-parsedmarc.splunk"></span><dl class="class">
 <dt id="parsedmarc.splunk.HECClient">
 <em class="property">class </em><code class="descclassname">parsedmarc.splunk.</code><code class="descname">HECClient</code><span class="sig-paren">(</span><em>url</em>, <em>access_token</em>, <em>index</em>, <em>source='parsedmarc'</em>, <em>verify=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
@@ -1580,7 +1587,10 @@ to a callback function</p>
 
 <div class="toctree-wrapper compound">
 </div>
-<span class="target" id="module-parsedmarc.utils"></span><p>Utility functions that might be useful for other projects</p>
+</div>
+<div class="section" id="module-parsedmarc.utils">
+<span id="parsedmarc-utils"></span><h3>parsedmarc.utils<a class="headerlink" href="#module-parsedmarc.utils" title="Permalink to this headline">¶</a></h3>
+<p>Utility functions that might be useful for other projects</p>
 <dl class="exception">
 <dt id="parsedmarc.utils.EmailParserError">
 <em class="property">exception </em><code class="descclassname">parsedmarc.utils.</code><code class="descname">EmailParserError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#EmailParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.EmailParserError" title="Permalink to this definition">¶</a></dt>
@@ -1856,8 +1866,6 @@ country associated with the given IPv4 or IPv6 address</p>
 </table>
 </dd></dl>
 
-<div class="toctree-wrapper compound">
-</div>
 <div class="toctree-wrapper compound">
 </div>
 </div>
