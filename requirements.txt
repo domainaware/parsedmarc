@@ -12,6 +12,11 @@ elasticsearch>=6.3.0,<7.0.0
 elasticsearch-dsl>=6.2.1,<7.0.0
 kafka-python
 flake8
-sphinx
+pytest
+pytest-cov
+sphinx==1.7.9
 sphinx_rtd_theme
+collective.checkdocs
 wheel
+rstcheck
+
