@@ -676,33 +676,6 @@ Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
    samples non-sensitive legitimate samples).
 
 
-When you first visit Kibana, it will prompt you to create an index pattern.
-Start by creating the index pattern ``dmarc_aggregate`` (without an ``*``),
-and select ``date_range`` as the time field. Once the ``dmarc_aggregate``
-index pattern ``dmarc_aggregate`` has been saved, create a ``dmarc_forensic``
-index pattern, with ``arrival_date`` as the time field.
-
-.. image:: _static/screenshots/define-dmarc-aggregate.png
-   :alt: A screenshot of defining the dmarc_aggregate index pattern
-   :align: center
-   :target: _static/screenshots/define-dmarc-aggregate.png
-
-.. image:: _static/screenshots/dmarc-aggregate-time-field.png
-   :alt: A screenshot of setting the time field for the dmarc_aggregate index pattern
-   :align: center
-   :target: _static/screenshots/dmarc-aggregate-time-field.png
-
-.. image:: _static/screenshots/define-dmarc-forensic.png
-   :alt: A screenshot of defining the dmarc_forensic index pattern
-   :align: center
-   :target: _static/screenshots/define-dmarc-forensic.png
-
-.. image:: _static/screenshots/dmarc-forensic-time-field.png
-   :alt: A screenshot of setting the time field for the dmarc_forensic index pattern
-   :align: center
-   :target: _static/screenshots/dmarc-forensic-time-field.png
-
-Once the index patterns have been created, you can import the dashboards.
 
 Download (right click the link and click save as) kibana_saved_objects.json_.
 
@@ -724,15 +697,6 @@ the commercial X-Pack_.
    :align: center
    :target: _static/screenshots/confirm-overwrite.png
 
-Kibana will then ask you to match the newly imported objects to your index
-patterns. Select ``dmarc_forensic`` for the set of forensic objects, and
-select ``dmarc_aggregate`` for the other saved objects, as shown below.
-
-
-.. image:: _static/screenshots/index-pattern-conflicts.png
-   :alt: A screenshot showing how to resolve index pattern conflicts after importing saved objects
-   :align: center
-   :target: _static/screenshots/index-pattern-conflicts.png
 
 Records retention
 ~~~~~~~~~~~~~~~~~

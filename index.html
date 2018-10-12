@@ -776,16 +776,6 @@ separate IMAP folder (using the  <code class="docutils literal notranslate"><spa
 moved known samples you want to save to that folder (e.g. malicious
 samples non-sensitive legitimate samples).</p>
 </div>
-<p>When you first visit Kibana, it will prompt you to create an index pattern.
-Start by creating the index pattern <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> (without an <code class="docutils literal notranslate"><span class="pre">*</span></code>),
-and select <code class="docutils literal notranslate"><span class="pre">date_range</span></code> as the time field. Once the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code>
-index pattern <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> has been saved, create a <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code>
-index pattern, with <code class="docutils literal notranslate"><span class="pre">arrival_date</span></code> as the time field.</p>
-<a class="reference external image-reference" href="_static/screenshots/define-dmarc-aggregate.png"><img alt="A screenshot of defining the dmarc_aggregate index pattern" class="align-center" src="_images/define-dmarc-aggregate.png" /></a>
-<a class="reference external image-reference" href="_static/screenshots/dmarc-aggregate-time-field.png"><img alt="A screenshot of setting the time field for the dmarc_aggregate index pattern" class="align-center" src="_images/dmarc-aggregate-time-field.png" /></a>
-<a class="reference external image-reference" href="_static/screenshots/define-dmarc-forensic.png"><img alt="A screenshot of defining the dmarc_forensic index pattern" class="align-center" src="_images/define-dmarc-forensic.png" /></a>
-<a class="reference external image-reference" href="_static/screenshots/dmarc-forensic-time-field.png"><img alt="A screenshot of setting the time field for the dmarc_forensic index pattern" class="align-center" src="_images/dmarc-forensic-time-field.png" /></a>
-<p>Once the index patterns have been created, you can import the dashboards.</p>
 <p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json">kibana_saved_objects.json</a>.</p>
 <p>Import <code class="docutils literal notranslate"><span class="pre">kibana_saved_objects.json</span></code> the Saved Objects tab of the management
 page of Kibana.</p>
@@ -795,10 +785,6 @@ breaks them, as there are no permissions/access controls in Kibana without
 the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
 <a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
 <a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
-<p>Kibana will then ask you to match the newly imported objects to your index
-patterns. Select <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code> for the set of forensic objects, and
-select <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> for the other saved objects, as shown below.</p>
-<a class="reference external image-reference" href="_static/screenshots/index-pattern-conflicts.png"><img alt="A screenshot showing how to resolve index pattern conflicts after importing saved objects" class="align-center" src="_images/index-pattern-conflicts.png" /></a>
 <div class="section" id="records-retention">
 <h4>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this headline">¶</a></h4>
 <p>To prevent your indexes from growing too large, or to comply with records
