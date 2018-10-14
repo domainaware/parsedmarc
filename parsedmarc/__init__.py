@@ -654,7 +654,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         msg = email.message_from_string(input_)
 
     except Exception as e:
-        raise ParserError(e.__str__())
+        raise InvalidDMARCReport(e.__str__())
     subject = None
     feedback_report = None
     sample = None

@@ -403,7 +403,15 @@ def parse_email(data):
             if "date_utc" in received:
                 received["date_utc"] = received["date_utc"].replace("T",
                                                                     " ")
-    parsed_email["from"] = parse_email_address(parsed_email["from"][0])
+
+    if "from" not in parsed_email:
+        if "From" in parsed_email["headers"]:
+            parsed_email["from"] = parsed_email["Headers"]["From"]
+        else:
+            parsed_email["from"] = None
+
+        if parsed_email["from"] is not None:
+            parsed_email["from"] = parse_email_address(parsed_email["from"][0])
 
     if "date" in parsed_email:
         parsed_email["date"] = parsed_email["date"].replace("T", " ")

@@ -1,3 +1,8 @@
+4.3.1
+-----
+
+- Fix parsing of some emails
+
 4.3.0
 -----
 
