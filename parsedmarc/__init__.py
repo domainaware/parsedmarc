@@ -665,25 +665,24 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         payload = part.get_payload()
         if type(payload) != list:
             payload = [payload]
-        for payload_ in payload:
-            payload_ = payload_.__str__()
-            if content_type == "message/feedback-report":
-                try:
-                    if "Feedback-Type" in payload_:
-                        feedback_report = payload_
-                    else:
-                        feedback_report = b64decode(payload_).__str__()
-                    feedback_report = feedback_report.lstrip(
-                        "b'").rstrip("'")
-                    feedback_report = feedback_report.replace("\\r", "")
-                    feedback_report = feedback_report.replace("\\n", "\n")
-                except (ValueError, TypeError, binascii.Error):
+        payload = payload[0].__str__()
+        if content_type == "message/feedback-report":
+            try:
+                if "Feedback-Type" in payload:
                     feedback_report = payload
+                else:
+                    feedback_report = b64decode(payload).__str__()
+                feedback_report = feedback_report.lstrip(
+                    "b'").rstrip("'")
+                feedback_report = feedback_report.replace("\\r", "")
+                feedback_report = feedback_report.replace("\\n", "\n")
+            except (ValueError, TypeError, binascii.Error):
+                feedback_report = payload
 
-            elif content_type == "text/rfc822-headers":
-                sample = payload
-            elif content_type == "message/rfc822":
-                sample = payload[0].__str__()
+        elif content_type == "text/rfc822-headers":
+            sample = payload
+        elif content_type == "message/rfc822":
+            sample = payload
 
     if feedback_report and sample:
         try:
