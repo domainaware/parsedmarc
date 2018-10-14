@@ -188,7 +188,7 @@ def create_indexes(names=None, settings=None):
     for name in names:
         index = Index(name)
         if not index.exists():
-            logger.debug("Creating Elasticsearch index: {0{".format(name))
+            logger.debug("Creating Elasticsearch index: {0}".format(name))
             if settings:
                 index.put_settings(settings)
             index.create()
