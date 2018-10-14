@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 4.3.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 4.3.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.0
+                4.3.1
               </div>
             
           
@@ -335,7 +335,7 @@
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: {0{&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
                 <span class="n">index</span><span class="o">.</span><span class="n">put_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
             <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span></div>
@@ -467,13 +467,25 @@
     <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
 
     <span class="n">search</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
-    <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]}}</span>
-    <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]}}</span>
-    <span class="n">arrival_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span><span class="p">}}</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">from_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_query</span><span class="p">)</span>
-    <span class="k">if</span> <span class="s2">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
-        <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]}}</span>
-        <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">to_query</span><span class="p">)</span>
+    <span class="n">arrival_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span><span class="p">}}</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_query</span><span class="p">)</span>
+
+    <span class="n">from_</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">to_</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">subject</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="s2">&quot;From&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">from_</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]</span>
+        <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">from_</span><span class="p">}}</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">from_query</span>
+    <span class="k">if</span> <span class="s2">&quot;To&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">to_</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;To&quot;</span><span class="p">]</span>
+        <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">to_</span><span class="p">}}</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">to_query</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;Subject&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span>
+        <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">subject_query</span>
+
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>
     <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
@@ -481,9 +493,9 @@
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;A forensic sample to </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;with a subject of </span><span class="si">{2}</span><span class="s2"> and arrival date of </span><span class="si">{3}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;already exists in &quot;</span>
-                           <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">],</span>
-                                                  <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">],</span>
-                                                  <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">],</span>
+                           <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">to_</span><span class="p">,</span>
+                                                  <span class="n">from_</span><span class="p">,</span>
+                                                  <span class="n">subject</span><span class="p">,</span>
                                                   <span class="n">arrival_date_human</span>
                                                   <span class="p">))</span>
 
@@ -573,7 +585,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.3.0',
+              VERSION:'4.3.1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
