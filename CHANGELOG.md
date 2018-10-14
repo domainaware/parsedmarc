@@ -1,3 +1,8 @@
+4.3.3
+-----
+
+- Fix forensic report email processing
+
 4.3.2
 -----
 
