@@ -322,15 +322,21 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     search = Index(index).search()
     arrival_query = {"match": {"arrival_date": arrival_date}}
     q = Q(arrival_query)
+
+    from_ = None
+    to_ = None
+    subject = None
     if "from" in headers:
-        from_query = {"match": {"sample.headers.from": headers["from"]}}
+        from_ = headers["from"]
+        from_query = {"match": {"sample.headers.from": from_}}
         q = q & from_query
     if "to" in headers:
-        to_query = {"match": {"sample.headers.to": headers["to"]}}
+        to_ = headers["to"]
+        to_query = {"match": {"sample.headers.to": to_}}
         q = q & Q(to_query)
     if "subject" in headers:
-        subject_query = {"match": {"sample.headers.subject": headers[
-            "subject"]}}
+        subject = headers["subject"]
+        subject_query = {"match": {"sample.headers.subject": subject}}
         q = q & subject_query
 
     search.query = q
@@ -340,9 +346,9 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         raise AlreadySaved("A forensic sample to {0} from {1} "
                            "with a subject of {2} and arrival date of {3} "
                            "already exists in "
-                           "Elasticsearch".format(headers["to"],
-                                                  headers["from"],
-                                                  headers["subject"],
+                           "Elasticsearch".format(to_,
+                                                  from_,
+                                                  subject,
                                                   arrival_date_human
                                                   ))
 

@@ -405,8 +405,8 @@ def parse_email(data):
                                                                     " ")
 
     if "from" not in parsed_email:
-        if "From" in parsed_email["headers"]:
-            parsed_email["from"] = parsed_email["Headers"]["From"]
+        if "from" in parsed_email["headers"]:
+            parsed_email["from"] = parsed_email["Headers"]["from"]
         else:
             parsed_email["from"] = None
 
