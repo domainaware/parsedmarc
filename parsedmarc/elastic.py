@@ -320,13 +320,19 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
     search = Index(index).search()
-    from_query = {"match": {"sample.headers.from": headers["from"]}}
-    subject_query = {"match": {"sample.headers.subject": headers["subject"]}}
-    arrival_query = {"match": {"sample.headers.arrival_date": arrival_date}}
-    q = Q(from_query) & Q(subject_query) & Q(arrival_query)
+    arrival_query = {"match": {"arrival_date": arrival_date}}
+    q = Q(arrival_query)
+    if "from" in headers:
+        from_query = {"match": {"sample.headers.from": headers["from"]}}
+        q = q & from_query
     if "to" in headers:
         to_query = {"match": {"sample.headers.to": headers["to"]}}
-        q & Q(to_query)
+        q = q & Q(to_query)
+    if "subject" in headers:
+        subject_query = {"match": {"sample.headers.subject": headers[
+            "subject"]}}
+        q = q & subject_query
+
     search.query = q
     existing = search.execute()
 

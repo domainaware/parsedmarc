@@ -2,6 +2,7 @@
 -----
 
 - Fix parsing of some emails
+- Fix duplicate forensic report search for Elasticsearch
 
 4.3.0
 -----
