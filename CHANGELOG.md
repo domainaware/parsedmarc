@@ -1,3 +1,8 @@
+4.3.2
+-----
+
+- Fix normalization of the forensic sample from address
+
 4.3.1
 -----
 

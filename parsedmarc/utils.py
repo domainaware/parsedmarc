@@ -410,8 +410,8 @@ def parse_email(data):
         else:
             parsed_email["from"] = None
 
-        if parsed_email["from"] is not None:
-            parsed_email["from"] = parse_email_address(parsed_email["from"][0])
+    if parsed_email["from"] is not None:
+        parsed_email["from"] = parse_email_address(parsed_email["from"][0])
 
     if "date" in parsed_email:
         parsed_email["date"] = parsed_email["date"].replace("T", " ")
