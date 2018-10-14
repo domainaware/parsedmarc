@@ -5,15 +5,15 @@ Received: from  mailrelay.de ([234.234.234.234])
           Mon, 1 Oct 2018 11:20:27 +0200
 Return-Path: <dmarc-report@domain.de>
 Received: from [127.0.0.1] ([local])
-    by  mailrelay.de (envelope-from <dmarc-report@domain.de>)
-    (ecelerity 4.2.39.63080 r(Core:4.2.39.2)) with UNKNOWN
-    id 48/E7-30937-BD6E1BB5; Mon, 01 Oct 2018 11:20:27 +0200
+	by  mailrelay.de (envelope-from <dmarc-report@domain.de>)
+	(ecelerity 4.2.39.63080 r(Core:4.2.39.2)) with UNKNOWN
+	id 48/E7-30937-BD6E1BB5; Mon, 01 Oct 2018 11:20:27 +0200
 Subject: DMARC Failure Report for domain.de (mail-from=sharepoint@domain.de, ip=10.10.10.10)
 To: dmarc-report@domain.de
 From: dmarc-report@domain.de
 X-MIMETrack: Itemize by SMTP Server on Servername/DOMAIN(Release 9.0.1FP10 HF197|April
  16, 2018) at 01.10.2018 11:20:27,
-    Serialize by Notes Client on Peter Pan/DOMAIN(Release 9.0.1|October
+	Serialize by Notes Client on Peter Pan/DOMAIN(Release 9.0.1|October
  14, 2013) at 05.10.2018 23:38:45
 X-Notes-Item: Memo;
  name=Form
@@ -22,7 +22,7 @@ X-Notes-Item: CN=Servername/O=DOMAIN;
  type=501; flags=44; name=$UpdatedBy
 Message-ID: <OF587285BA.CB01D107-ONC1258319.00334FCF@LocalDomain>
 X-Notes-Item: CN=Servername/O=DOMAIN,
-    CN=DE9899SL4/O=DOMAIN;
+	CN=DE9899SL4/O=DOMAIN;
  type=501; flags=0; name=RouteServers
 X-Notes-Item: =?UTF-8?B?MDEtT2N0LTIwMTggMTE6MjA6MjcgQ0VEVC8wMS1PY3QtMjAxOCAxMToyMDo=?=
  =?UTF-8?B?MjcgQ0VEVCwgMDEtT2N0LTIwMTggMTE6MjA6MjcgQ0VEVC8wMS1PY3Qt?=
@@ -46,18 +46,18 @@ X-Notes-Item: 1;
  name=$NoteHasNativeMIME
 Content-Type: multipart/report; report-type=feedback-report;
     boundary="_----jqB1YyrX3TKBNru++5PX3w===_48/E7-30937-BD6E1BB5"
- 
+
 --_----jqB1YyrX3TKBNru++5PX3w===_48/E7-30937-BD6E1BB5
 Content-Transfer-Encoding: 7bit
 Content-Type: text/plain; charset="US-ASCII"
- 
+
 This is an email abuse report for an email message received from IP 10.10.10.10 on Mon, 01 Oct 2018 11:20:27 +0200.
 The message below did not meet the sending domain's DMARC policy.
 For more information about this format please see http://tools.ietf.org/html/rfc6591 .
- 
+
 --_----jqB1YyrX3TKBNru++5PX3w===_48/E7-30937-BD6E1BB5
 Content-Type: message/feedback-report; name=report
- 
+
 Feedback-Type: auth-failure
 User-Agent: Lua/1.0
 Version: 1.0
@@ -70,13 +70,13 @@ Source-IP: 10.10.10.10
 Delivery-Result: smg-policy-action
 Auth-Failure: dmarc
 Reported-Domain: domain.de
- 
+
 --_----jqB1YyrX3TKBNru++5PX3w===_48/E7-30937-BD6E1BB5
 Content-Type: message/rfc822
 Content-Disposition: inline
- 
+
 Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])
-    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)
+	by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)
 Date: 01 Oct 2018 11:20:27 +0200
 Message-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>
 To: <peter.pan@domain.de>
@@ -86,10 +86,10 @@ MIME-Version: 1.0
 X-Mailer: Microsoft SharePoint Foundation 2010
 Content-Type: text/html; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
- 
+
 <html><head><base href=3D'
 wettbewerb' /></head><body><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"=
 ><HTML><HEAD><META NAME=3D"Generator" CONTENT=3D"MS Exchange Server version=
  08.01.0240.003"></html>
- 
+
 --_----jqB1YyrX3TKBNru++5PX3w===_48/E7-30937-BD6E1BB5--

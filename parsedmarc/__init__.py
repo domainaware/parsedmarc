@@ -683,57 +683,52 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
                     sample = payload
                 elif content_type == "message/rfc822":
                     sample = payload[0].__str__()
-                elif content_type == "multipart/report":
-                    if "Feedback-Type" in payload_:
-                        feedback_report = payload_
-                    elif "message/rfc822" in payload_:
-                        sample = payload_
-                    elif "text/rfc822-headers" in payload_:
-                        sample = payload_
-        if feedback_report and sample:
-            try:
-                forensic_report = parse_forensic_report(
-                    feedback_report,
-                    sample,
-                    date,
-                    nameservers=nameservers,
-                    timeout=timeout)
-            except Exception as e:
-                raise ParserError(e.__str__())
 
-            result = OrderedDict([("report_type", "forensic"),
-                                  ("report", forensic_report)])
-            return result
+    if feedback_report and sample:
         try:
-            payload = b64decode(payload)
-            if payload.startswith(MAGIC_ZIP) or \
-                    payload.startswith(MAGIC_GZIP) or \
-                    payload.startswith(MAGIC_XML):
-                ns = nameservers
-                aggregate_report = parse_aggregate_report_file(payload,
-                                                               nameservers=ns,
-                                                               timeout=timeout)
-                result = OrderedDict([("report_type", "aggregate"),
-                                      ("report", aggregate_report)])
-        except (TypeError, ValueError, binascii.Error):
-            pass
+            forensic_report = parse_forensic_report(
+                feedback_report,
+                sample,
+                date,
+                nameservers=nameservers,
+                timeout=timeout)
+        except Exception as e:
+            raise ParserError(e.__str__())
 
-        except InvalidAggregateReport as e:
-            error = 'Message with subject "{0}" ' \
-                    'is not a valid ' \
-                    'aggregate DMARC report: {1}'.format(subject, e)
-            raise InvalidAggregateReport(error)
+        result = OrderedDict([("report_type", "forensic"),
+                              ("report", forensic_report)])
+        return result
 
-        except InvalidForensicReport as e:
-            error = 'Message with subject "{0}" ' \
-                    'is not a valid ' \
-                    'forensic DMARC report: {1}'.format(subject, e)
-            raise InvalidForensicReport(error)
+    try:
+        payload = b64decode(payload)
+        if payload.startswith(MAGIC_ZIP) or \
+                payload.startswith(MAGIC_GZIP) or \
+                payload.startswith(MAGIC_XML):
+            ns = nameservers
+            aggregate_report = parse_aggregate_report_file(payload,
+                                                           nameservers=ns,
+                                                           timeout=timeout)
+            result = OrderedDict([("report_type", "aggregate"),
+                                  ("report", aggregate_report)])
+    except (TypeError, ValueError, binascii.Error):
+        pass
 
-        except FileNotFoundError as e:
-            error = 'Unable to parse message with subject "{0}": {1}' .format(
-                subject, e)
-            raise InvalidDMARCReport(error)
+    except InvalidAggregateReport as e:
+        error = 'Message with subject "{0}" ' \
+                'is not a valid ' \
+                'aggregate DMARC report: {1}'.format(subject, e)
+        raise InvalidAggregateReport(error)
+
+    except InvalidForensicReport as e:
+        error = 'Message with subject "{0}" ' \
+                'is not a valid ' \
+                'forensic DMARC report: {1}'.format(subject, e)
+        raise InvalidForensicReport(error)
+
+    except FileNotFoundError as e:
+        error = 'Unable to parse message with subject "{0}": {1}' .format(
+            subject, e)
+        raise InvalidDMARCReport(error)
 
     if result is None:
         error = 'Message with subject "{0}" is ' \
