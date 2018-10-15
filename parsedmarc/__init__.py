@@ -516,9 +516,6 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             key = report_value[0].lower().replace("-", "_")
             parsed_report[key] = report_value[1]
 
-        if "content_type" in parsed_report:
-            del parsed_report["content_type"]
-
         if "arrival_date" not in parsed_report:
             parsed_report["arrival_date"] = msg_date
 
