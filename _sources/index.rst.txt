@@ -271,92 +271,91 @@ JSON
 
 .. code-block:: json
 
-    {
-      "feedback_type": "auth-failure",
-      "user_agent": "Lua/1.0",
-      "version": "1.0",
-      "original_mail_from": "sharepoint@domain.de",
-      "original_rcpt_to": "peter.pan@domain.de",
-      "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
-      "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-      "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
-      "delivery_result": "smg-policy-action",
-      "auth_failure": [
-        "dmarc"
-      ],
-      "reported_domain": "domain.de",
-      "arrival_date_utc": "2018-10-01 09:20:27",
-      "source": {
-        "ip_address": "10.10.10.10",
-        "country": null,
-        "reverse_dns": null,
-        "base_domain": null
-      },
-      "authentication_mechanisms": [],
-      "original_envelope_id": null,
-      "dkim_domain": null,
-      "sample_headers_only": false,
-      "sample": "Content-Type: message/rfc822\nContent-Disposition: inline\nReceived: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>\nTo: <peter.pan@domain.de>\nfrom: \"=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\" <sharepoint@domain.de>\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n\n<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>\n ",
-      "parsed_sample": {
-        "content-transfer-encoding": "quoted-printable",
-        "x-mailer": "Microsoft SharePoint Foundation 2010",
-        "message-id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-        "body": "<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>",
-        "to": [
-          {
-            "display_name": null,
-            "address": "peter.pan@domain.de",
-            "local": "peter.pan",
+   {
+        "feedback_type": "auth-failure",
+        "user_agent": "Lua/1.0",
+        "version": "1.0",
+        "original_mail_from": "sharepoint@domain.de",
+        "original_rcpt_to": "peter.pan@domain.de",
+        "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
+        "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+        "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
+        "delivery_result": "smg-policy-action",
+        "auth_failure": [
+          "dmarc"
+        ],
+        "reported_domain": "domain.de",
+        "arrival_date_utc": "2018-10-01 09:20:27",
+        "source": {
+          "ip_address": "10.10.10.10",
+          "country": null,
+          "reverse_dns": null,
+          "base_domain": null
+        },
+        "authentication_mechanisms": [],
+        "original_envelope_id": null,
+        "dkim_domain": null,
+        "sample_headers_only": false,
+        "sample": "Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>\nTo: <peter.pan@domain.de>\nfrom: \"=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\" <sharepoint@domain.de>\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>\n",
+        "parsed_sample": {
+          "from": {
+            "display_name": "Interaktive Wettbewerber-Übersicht",
+            "address": "sharepoint@domain.de",
+            "local": "sharepoint",
             "domain": "domain.de"
-          }
-        ],
-        "date": "2018-10-01 09:20:27",
-        "to_domains": [
-          "domain.de"
-        ],
-        "received": [
-          {
-            "from": "Servernameone.domain.local Servernameone.domain.local 10.10.10.10",
-            "by": "mailrelay.de mail.DOMAIN.de",
-            "with": "SMTP id 38.E7.30937.BD6E1BB5",
-            "date": "Mon, 1 Oct 2018 11:20:27 +0200 CEST",
-            "hop": 1,
-            "date_utc": "2018-10-01 09:20:27",
-            "delay": 0
-          }
-        ],
-        "content-disposition": "inline",
-        "mime-version": "1.0",
-        "subject": "Subject",
-        "timezone": "+2",
-        "from": {
-          "display_name": "Interaktive Wettbewerber-Übersicht",
-          "address": "sharepoint@domain.de",
-          "local": "sharepoint",
-          "domain": "domain.de"
-        },
-        "content-type": "message/rfc822",
-        "has_defects": false,
-        "headers": {
-          "Content-Type": "text/html; charset=utf-8",
-          "Content-Disposition": "inline",
-          "Received": "from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)",
-          "Date": "01 Oct 2018 11:20:27 +0200",
-          "Message-ID": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-          "To": "<peter.pan@domain.de>",
-          "from": "\"Interaktive Wettbewerber-Übersicht\" <sharepoint@domain.de>",
-          "Subject": "Subject",
-          "MIME-Version": "1.0",
-          "X-Mailer": "Microsoft SharePoint Foundation 2010",
-          "Content-Transfer-Encoding": "quoted-printable"
-        },
-        "reply_to": [],
-        "cc": [],
-        "bcc": [],
-        "attachments": [],
-        "filename_safe_subject": "Subject"
+          },
+          "to_domains": [
+            "domain.de"
+          ],
+          "to": [
+            {
+              "display_name": null,
+              "address": "peter.pan@domain.de",
+              "local": "peter.pan",
+              "domain": "domain.de"
+            }
+          ],
+          "subject": "Subject",
+          "timezone": "+2",
+          "mime-version": "1.0",
+          "date": "2018-10-01 09:20:27",
+          "content-type": "text/html; charset=utf-8",
+          "x-mailer": "Microsoft SharePoint Foundation 2010",
+          "body": "<html><head><base href='\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"><HTML><HEAD><META NAME=\"Generator\" CONTENT=\"MS Exchange Server version 08.01.0240.003\"></html>",
+          "received": [
+            {
+              "from": "Servernameone.domain.local Servernameone.domain.local 10.10.10.10",
+              "by": "mailrelay.de mail.DOMAIN.de",
+              "with": "SMTP id 38.E7.30937.BD6E1BB5",
+              "date": "Mon, 1 Oct 2018 11:20:27 +0200 CEST",
+              "hop": 1,
+              "date_utc": "2018-10-01 09:20:27",
+              "delay": 0
+            }
+          ],
+          "content-transfer-encoding": "quoted-printable",
+          "message-id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+          "has_defects": false,
+          "headers": {
+            "Received": "from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)",
+            "Date": "01 Oct 2018 11:20:27 +0200",
+            "Message-ID": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+            "To": "<peter.pan@domain.de>",
+            "from": "\"Interaktive Wettbewerber-Übersicht\" <sharepoint@domain.de>",
+            "Subject": "Subject",
+            "MIME-Version": "1.0",
+            "X-Mailer": "Microsoft SharePoint Foundation 2010",
+            "Content-Type": "text/html; charset=utf-8",
+            "Content-Transfer-Encoding": "quoted-printable"
+          },
+          "reply_to": [],
+          "cc": [],
+          "bcc": [],
+          "attachments": [],
+          "filename_safe_subject": "Subject"
+        }
       }
-    }
+
 
 
 CSV

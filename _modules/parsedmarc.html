@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.3.2 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.3.3 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.2
+                4.3.3
               </div>
             
           
@@ -661,9 +661,6 @@
             <span class="n">key</span> <span class="o">=</span> <span class="n">report_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_value</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="s2">&quot;content_type&quot;</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;content_type&quot;</span><span class="p">]</span>
-
         <span class="k">if</span> <span class="s2">&quot;arrival_date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg_date</span>
 
@@ -808,26 +805,26 @@
     <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">walk</span><span class="p">():</span>
         <span class="n">content_type</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">get_content_type</span><span class="p">()</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">get_payload</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">payload_</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
-                <span class="n">payload_</span> <span class="o">=</span> <span class="n">payload_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/feedback-report&quot;</span><span class="p">:</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="s2">&quot;Feedback-Type&quot;</span> <span class="ow">in</span> <span class="n">payload_</span><span class="p">:</span>
-                            <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload_</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">payload_</span><span class="p">)</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
-                        <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span>
-                            <span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
-                        <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">r&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-                        <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">):</span>
-                        <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">payload</span> <span class="o">=</span> <span class="p">[</span><span class="n">payload</span><span class="p">]</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/feedback-report&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;Feedback-Type&quot;</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
+                    <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+                <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span>
+                    <span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+                <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">r&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">):</span>
+                <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
 
-                <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/rfc822-headers&quot;</span><span class="p">:</span>
-                    <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
-                <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">:</span>
-                    <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/rfc822-headers&quot;</span><span class="p">:</span>
+            <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
+        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">:</span>
+            <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
 
     <span class="k">if</span> <span class="n">feedback_report</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1656,7 +1653,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.3.2',
+              VERSION:'4.3.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

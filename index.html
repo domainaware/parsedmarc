@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.3 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.2
+                4.3.3
               </div>
             
           
@@ -444,91 +444,89 @@ schema.</p>
 <div class="section" id="id1">
 <h3>JSON<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span> <span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;user_agent&quot;</span><span class="p">:</span> <span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;original_mail_from&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;original_rcpt_to&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;message_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span> <span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span> <span class="s2">&quot;smg-policy-action&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span> <span class="p">[</span>
-    <span class="s2">&quot;dmarc&quot;</span>
-  <span class="p">],</span>
-  <span class="nt">&quot;reported_domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;arrival_date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;ip_address&quot;</span><span class="p">:</span> <span class="s2">&quot;10.10.10.10&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;country&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-    <span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-    <span class="nt">&quot;base_domain&quot;</span><span class="p">:</span> <span class="kc">null</span>
-  <span class="p">},</span>
-  <span class="nt">&quot;authentication_mechanisms&quot;</span><span class="p">:</span> <span class="p">[],</span>
-  <span class="nt">&quot;original_envelope_id&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-  <span class="nt">&quot;dkim_domain&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-  <span class="nt">&quot;sample_headers_only&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
-  <span class="nt">&quot;sample&quot;</span><span class="p">:</span> <span class="s2">&quot;Content-Type: message/rfc822\nContent-Disposition: inline\nReceived: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: &lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;\nTo: &lt;peter.pan@domain.de&gt;\nfrom: \&quot;=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\&quot; &lt;sharepoint@domain.de&gt;\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n\n&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;\n &quot;</span><span class="p">,</span>
-  <span class="nt">&quot;parsed_sample&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;content-transfer-encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;x-mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;message-id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;body&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;to&quot;</span><span class="p">:</span> <span class="p">[</span>
-      <span class="p">{</span>
-        <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
-        <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
-      <span class="p">}</span>
-    <span class="p">],</span>
-    <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;to_domains&quot;</span><span class="p">:</span> <span class="p">[</span>
-      <span class="s2">&quot;domain.de&quot;</span>
-    <span class="p">],</span>
-    <span class="nt">&quot;received&quot;</span><span class="p">:</span> <span class="p">[</span>
-      <span class="p">{</span>
-        <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;Servernameone.domain.local Servernameone.domain.local 10.10.10.10&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;by&quot;</span><span class="p">:</span> <span class="s2">&quot;mailrelay.de mail.DOMAIN.de&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;with&quot;</span><span class="p">:</span> <span class="s2">&quot;SMTP id 38.E7.30937.BD6E1BB5&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 1 Oct 2018 11:20:27 +0200 CEST&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;hop&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="nt">&quot;date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">0</span>
-      <span class="p">}</span>
-    <span class="p">],</span>
-    <span class="nt">&quot;content-disposition&quot;</span><span class="p">:</span> <span class="s2">&quot;inline&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;mime-version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;timezone&quot;</span><span class="p">:</span> <span class="s2">&quot;+2&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Interaktive Wettbewerber-Übersicht&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
-    <span class="p">},</span>
-    <span class="nt">&quot;content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;has_defects&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
-    <span class="nt">&quot;headers&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Content-Disposition&quot;</span><span class="p">:</span> <span class="s2">&quot;inline&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Received&quot;</span><span class="p">:</span> <span class="s2">&quot;from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n    by  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Date&quot;</span><span class="p">:</span> <span class="s2">&quot;01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Message-ID&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;To&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;peter.pan@domain.de&gt;&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;\&quot;Interaktive Wettbewerber-Übersicht\&quot; &lt;sharepoint@domain.de&gt;&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;MIME-Version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;X-Mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;Content-Transfer-Encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span>
-    <span class="p">},</span>
-    <span class="nt">&quot;reply_to&quot;</span><span class="p">:</span> <span class="p">[],</span>
-    <span class="nt">&quot;cc&quot;</span><span class="p">:</span> <span class="p">[],</span>
-    <span class="nt">&quot;bcc&quot;</span><span class="p">:</span> <span class="p">[],</span>
-    <span class="nt">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[],</span>
-    <span class="nt">&quot;filename_safe_subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+     <span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span> <span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;user_agent&quot;</span><span class="p">:</span> <span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;original_mail_from&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;original_rcpt_to&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;message_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span> <span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span> <span class="s2">&quot;smg-policy-action&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span> <span class="p">[</span>
+       <span class="s2">&quot;dmarc&quot;</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;reported_domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;arrival_date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;source&quot;</span><span class="p">:</span> <span class="p">{</span>
+       <span class="nt">&quot;ip_address&quot;</span><span class="p">:</span> <span class="s2">&quot;10.10.10.10&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;country&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+       <span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+       <span class="nt">&quot;base_domain&quot;</span><span class="p">:</span> <span class="kc">null</span>
+     <span class="p">},</span>
+     <span class="nt">&quot;authentication_mechanisms&quot;</span><span class="p">:</span> <span class="p">[],</span>
+     <span class="nt">&quot;original_envelope_id&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+     <span class="nt">&quot;dkim_domain&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+     <span class="nt">&quot;sample_headers_only&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+     <span class="nt">&quot;sample&quot;</span><span class="p">:</span> <span class="s2">&quot;Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: &lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;\nTo: &lt;peter.pan@domain.de&gt;\nfrom: \&quot;=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\&quot; &lt;sharepoint@domain.de&gt;\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;\n&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;parsed_sample&quot;</span><span class="p">:</span> <span class="p">{</span>
+       <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="p">{</span>
+         <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Interaktive Wettbewerber-Übersicht&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;sharepoint&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
+       <span class="p">},</span>
+       <span class="nt">&quot;to_domains&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">&quot;domain.de&quot;</span>
+       <span class="p">],</span>
+       <span class="nt">&quot;to&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="p">{</span>
+           <span class="nt">&quot;display_name&quot;</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+           <span class="nt">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;local&quot;</span><span class="p">:</span> <span class="s2">&quot;peter.pan&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;domain&quot;</span><span class="p">:</span> <span class="s2">&quot;domain.de&quot;</span>
+         <span class="p">}</span>
+       <span class="p">],</span>
+       <span class="nt">&quot;subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;timezone&quot;</span><span class="p">:</span> <span class="s2">&quot;+2&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;mime-version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;x-mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;body&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;html&gt;&lt;head&gt;&lt;base href=&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=\&quot;Generator\&quot; CONTENT=\&quot;MS Exchange Server version 08.01.0240.003\&quot;&gt;&lt;/html&gt;&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;received&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="p">{</span>
+           <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;Servernameone.domain.local Servernameone.domain.local 10.10.10.10&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;by&quot;</span><span class="p">:</span> <span class="s2">&quot;mailrelay.de mail.DOMAIN.de&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;with&quot;</span><span class="p">:</span> <span class="s2">&quot;SMTP id 38.E7.30937.BD6E1BB5&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 1 Oct 2018 11:20:27 +0200 CEST&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;hop&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+           <span class="nt">&quot;date_utc&quot;</span><span class="p">:</span> <span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;delay&quot;</span><span class="p">:</span> <span class="mi">0</span>
+         <span class="p">}</span>
+       <span class="p">],</span>
+       <span class="nt">&quot;content-transfer-encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;message-id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;has_defects&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+       <span class="nt">&quot;headers&quot;</span><span class="p">:</span> <span class="p">{</span>
+         <span class="nt">&quot;Received&quot;</span><span class="p">:</span> <span class="s2">&quot;from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;Date&quot;</span><span class="p">:</span> <span class="s2">&quot;01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;Message-ID&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;To&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;peter.pan@domain.de&gt;&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;from&quot;</span><span class="p">:</span> <span class="s2">&quot;\&quot;Interaktive Wettbewerber-Übersicht\&quot; &lt;sharepoint@domain.de&gt;&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;Subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;MIME-Version&quot;</span><span class="p">:</span> <span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;X-Mailer&quot;</span><span class="p">:</span> <span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;Content-Transfer-Encoding&quot;</span><span class="p">:</span> <span class="s2">&quot;quoted-printable&quot;</span>
+       <span class="p">},</span>
+       <span class="nt">&quot;reply_to&quot;</span><span class="p">:</span> <span class="p">[],</span>
+       <span class="nt">&quot;cc&quot;</span><span class="p">:</span> <span class="p">[],</span>
+       <span class="nt">&quot;bcc&quot;</span><span class="p">:</span> <span class="p">[],</span>
+       <span class="nt">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[],</span>
+       <span class="nt">&quot;filename_safe_subject&quot;</span><span class="p">:</span> <span class="s2">&quot;Subject&quot;</span>
+     <span class="p">}</span>
+   <span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -1901,7 +1899,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.2',
+              VERSION:'4.3.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
