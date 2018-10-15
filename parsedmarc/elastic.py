@@ -326,16 +326,16 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     from_ = None
     to_ = None
     subject = None
-    if "From" in headers:
-        from_ = headers["From"]
+    if "from" in headers:
+        from_ = headers["from"]
         from_query = {"match": {"sample.headers.from": from_}}
         q = q & from_query
-    if "To" in headers:
-        to_ = headers["To"]
+    if "to" in headers:
+        to_ = headers["to"]
         to_query = {"match": {"sample.headers.to": to_}}
         q = q & Q(to_query)
-    if "Subject" in headers:
-        subject = headers["Subject"]
+    if "subject" in headers:
+        subject = headers["subject"]
         subject_query = {"match": {"sample.headers.subject": subject}}
         q = q & subject_query
 
