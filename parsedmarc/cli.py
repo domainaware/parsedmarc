@@ -91,8 +91,8 @@ def _main():
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
                                  "report files or emails")
-    strip_attachment_help = "Replace attachment payloads in " \
-                            "forensic report samples with null values"
+    strip_attachment_help = "Remove attachment payloads from forensic " \
+                            "report output"
     arg_parser.add_argument("--strip-attachment-payloads",
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
