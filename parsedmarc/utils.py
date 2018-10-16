@@ -12,6 +12,8 @@ import subprocess
 import shutil
 import mailparser
 import json
+import hashlib
+import base64
 
 import dateparser
 import dns.reversename
@@ -450,10 +452,20 @@ def parse_email(data, strip_attachment_payloads=False):
 
     if "attachments" not in parsed_email:
         parsed_email["attachments"] = []
-    elif strip_attachment_payloads:
+    else:
         for attachment in parsed_email["attachments"]:
             if "payload" in attachment:
-                del attachment["payload"]
+                payload = attachment["payload"]
+                if "content_transfer_encoding" in attachment:
+                    if attachment["content_transfer_encoding"] == "base64":
+                        payload = base64.b64decode(payload)
+                    else:
+                        payload = str.encode(payload)
+                attachment["sha256"] = hashlib.sha256(payload).hexdigest()
+        if strip_attachment_payloads:
+            for attachment in parsed_email["attachments"]:
+                if "payload" in attachment:
+                    del attachment["payload"]
 
     if "subject" not in parsed_email:
         parsed_email["subject"] = None

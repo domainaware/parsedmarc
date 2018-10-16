@@ -1,5 +1,4 @@
 dnspython
-urllib3
 requests
 publicsuffix
 xmltodict
