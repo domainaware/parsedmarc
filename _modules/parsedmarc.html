@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.3.3 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.3.4 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.3
+                4.3.4
               </div>
             
           
@@ -270,8 +270,7 @@
             <span class="n">reasons</span> <span class="o">=</span> <span class="p">[</span><span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;reason&quot;</span><span class="p">]]</span>
     <span class="k">for</span> <span class="n">reason</span> <span class="ow">in</span> <span class="n">reasons</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">&quot;comment&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reason</span><span class="p">:</span>
-            <span class="n">reason</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
-            <span class="n">reasons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reason</span><span class="p">)</span>
+            <span class="n">reason</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reasons</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_policy_evaluated</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -596,12 +595,14 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
-            <span class="n">policy_override_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
-                                               <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
-                                               <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
-            <span class="n">policy_override_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">],</span>
-                                                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
-                                                <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
+            <span class="n">policy_override_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
+                <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
+            <span class="n">policy_override_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
+                <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">policy_override_reasons</span><span class="p">)</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;policy_override_comments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -639,7 +640,8 @@
 
 
 <div class="viewcode-block" id="parse_forensic_report"><a class="viewcode-back" href="../index.html#parsedmarc.parse_forensic_report">[docs]</a><span class="k">def</span> <span class="nf">parse_forensic_report</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">msg_date</span><span class="p">,</span>
-                          <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+                          <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+                          <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a DMARC forensic report and sample to a ``OrderedDict``</span>
 
@@ -650,6 +652,8 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
+<span class="sd">        forensic report results</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: A parsed report and sample</span>
@@ -697,7 +701,9 @@
             <span class="k">if</span> <span class="n">optional_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
                 <span class="n">parsed_report</span><span class="p">[</span><span class="n">optional_field</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">parsed_sample</span> <span class="o">=</span> <span class="n">parse_email</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="n">parsed_sample</span> <span class="o">=</span> <span class="n">parse_email</span><span class="p">(</span>
+            <span class="n">sample</span><span class="p">,</span>
+            <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="s2">&quot;reported_domain&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;reported_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_sample</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
@@ -768,7 +774,8 @@
     <span class="k">return</span> <span class="n">csv_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+                       <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parses a DMARC report from an email</span>
 
@@ -776,6 +783,8 @@
 <span class="sd">        input_: An emailed DMARC report in RFC 822 format, as bytes or a string</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
+<span class="sd">        forensic report results</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict:</span>
@@ -833,7 +842,8 @@
                 <span class="n">sample</span><span class="p">,</span>
                 <span class="n">date</span><span class="p">,</span>
                 <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
 
@@ -880,7 +890,8 @@
     <span class="k">return</span> <span class="n">result</span></div>
 
 
-<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+                      <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
 <span class="sd">    file-like object. or bytes</span>
 
@@ -889,6 +900,8 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
+<span class="sd">        forensic report results</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed DMARC report</span>
@@ -908,9 +921,11 @@
                                <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">report</span><span class="p">)])</span>
     <span class="k">except</span> <span class="n">InvalidAggregateReport</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
             <span class="n">results</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">content</span><span class="p">,</span>
                                          <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                         <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+                                         <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                                         <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">InvalidDMARCReport</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="s2">&quot;Not a valid aggregate or forensic &quot;</span>
                                      <span class="s2">&quot;report&quot;</span><span class="p">)</span>
@@ -948,7 +963,8 @@
                                  <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                                  <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+                                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+                                 <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fetches and parses DMARC reports from sn inbox</span>
 
@@ -967,6 +983,8 @@
 <span class="sd">        test (bool): Do not move or delete messages after processing them</span>
 <span class="sd">        nameservers (list): A list of DNS nameservers to query</span>
 <span class="sd">        dns_timeout (float): Set the DNS query timeout</span>
+<span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
+<span class="sd">        forensic report results</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``</span>
@@ -1078,10 +1096,11 @@
                                            <span class="p">[</span><span class="s2">&quot;RFC822&quot;</span><span class="p">])[</span><span class="n">message_uid</span><span class="p">][</span><span class="sa">b</span><span class="s2">&quot;RFC822&quot;</span><span class="p">]</span>
 
                 <span class="n">msg_content</span> <span class="o">=</span> <span class="n">raw_msg</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
-
+                <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
                 <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">msg_content</span><span class="p">,</span>
                                                   <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                                  <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">)</span>
+                                                  <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                                                  <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">:</span>
                     <span class="n">aggregate_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                     <span class="n">aggregate_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_uid</span><span class="p">)</span>
@@ -1425,7 +1444,7 @@
 <div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span> <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                 <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">):</span>
+                <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use an IDLE IMAP connection to parse incoming emails, and pass the results</span>
 <span class="sd">    to a callback function</span>
@@ -1445,6 +1464,8 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Set the DNS query timeout</span>
+<span class="sd">        strip_attachment_payloads (bool): Replace attachment payloads in</span>
+<span class="sd">        forensic report samples with None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">rf</span> <span class="o">=</span> <span class="n">reports_folder</span>
     <span class="n">af</span> <span class="o">=</span> <span class="n">archive_folder</span>
@@ -1475,6 +1496,7 @@
             <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
             <span class="n">idle_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
             <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">get_imap_capabilities</span><span class="p">(</span><span class="n">server</span><span class="p">)</span>
+            <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="n">server</span><span class="p">,</span>
                                                <span class="n">move_supported</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span>
                                                <span class="n">reports_folder</span><span class="o">=</span><span class="n">rf</span><span class="p">,</span>
@@ -1482,7 +1504,8 @@
                                                <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
                                                <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
                                                <span class="n">nameservers</span><span class="o">=</span><span class="n">ns</span><span class="p">,</span>
-                                               <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+                                               <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+                                               <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">)</span>
             <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">idle</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1653,7 +1676,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.3.3',
+              VERSION:'4.3.4',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

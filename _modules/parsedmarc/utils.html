@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 4.3.3 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 4.3.4 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.3
+                4.3.4
               </div>
             
           
@@ -159,6 +159,8 @@
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">mailparser</span>
 <span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">base64</span>
 
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
@@ -527,12 +529,13 @@
     <span class="k">return</span> <span class="n">rfc822</span></div>
 
 
-<div class="viewcode-block" id="parse_email"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.parse_email">[docs]</a><span class="k">def</span> <span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_email"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.parse_email">[docs]</a><span class="k">def</span> <span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simplified email parser</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data: The RFC 822 message string, or MSG binary</span>
+<span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads</span>
 
 <span class="sd">    Returns (dict): Parsed email data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -596,6 +599,20 @@
 
     <span class="k">if</span> <span class="s2">&quot;attachments&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;attachments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">attachment</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;attachments&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">&quot;payload&quot;</span> <span class="ow">in</span> <span class="n">attachment</span><span class="p">:</span>
+                <span class="n">payload</span> <span class="o">=</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;content_transfer_encoding&quot;</span> <span class="ow">in</span> <span class="n">attachment</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;content_transfer_encoding&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;base64&quot;</span><span class="p">:</span>
+                        <span class="n">payload</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">payload</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+                <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;sha256&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">strip_attachment_payloads</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">attachment</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;attachments&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="s2">&quot;payload&quot;</span> <span class="ow">in</span> <span class="n">attachment</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="s2">&quot;subject&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -643,7 +660,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.3.3',
+              VERSION:'4.3.4',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

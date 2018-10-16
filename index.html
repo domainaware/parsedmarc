@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.3 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.4 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.3
+                4.3.4
               </div>
             
           
@@ -242,10 +242,10 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
@@ -271,6 +271,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 
   <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
     <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+    <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
+                          <span class="n">Remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
     <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
                           <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
     <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
@@ -1140,7 +1142,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host=None</em>, <em>user=None</em>, <em>password=None</em>, <em>connection=None</em>, <em>port=None</em>, <em>ssl=True</em>, <em>move_supported=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host=None</em>, <em>user=None</em>, <em>password=None</em>, <em>connection=None</em>, <em>port=None</em>, <em>ssl=True</em>, <em>move_supported=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from sn inbox</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1161,6 +1163,8 @@ or bytes.</p>
 <li><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of DNS nameservers to query</li>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
+<li><strong>report results</strong> (<em>forensic</em>) – </li>
 </ul>
 </td>
 </tr>
@@ -1262,7 +1266,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_forensic_report">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1275,6 +1279,8 @@ aggregate DMARC report</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
+<li><strong>report results</strong> (<em>forensic</em>) – </li>
 </ul>
 </td>
 </tr>
@@ -1290,7 +1296,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_report_email">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_email</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_email</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1300,6 +1306,8 @@ aggregate DMARC report</p>
 <li><strong>input</strong> – An emailed DMARC report in RFC 822 format, as bytes or a string</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
+<li><strong>report results</strong> (<em>forensic</em>) – </li>
 </ul>
 </td>
 </tr>
@@ -1319,7 +1327,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_report_file">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_file</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_file</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1331,6 +1339,8 @@ file-like object. or bytes</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
+<li><strong>report results</strong> (<em>forensic</em>) – </li>
 </ul>
 </td>
 </tr>
@@ -1402,7 +1412,7 @@ headers</p>
 
 <dl class="function">
 <dt id="parsedmarc.watch_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>port=None</em>, <em>ssl=True</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>port=None</em>, <em>ssl=True</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
 to a callback function</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1424,6 +1434,8 @@ to a callback function</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Replace attachment payloads in</li>
+<li><strong>report samples with None</strong> (<em>forensic</em>) – </li>
 </ul>
 </td>
 </tr>
@@ -1774,13 +1786,17 @@ country associated with the given IPv4 or IPv6 address</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.parse_email">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">parse_email</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">parse_email</code><span class="sig-paren">(</span><em>data</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>A simplified email parser</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> – The RFC 822 message string, or MSG binary</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> – The RFC 822 message string, or MSG binary</li>
+<li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1899,7 +1915,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.3',
+              VERSION:'4.3.4',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
