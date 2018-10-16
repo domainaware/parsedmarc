@@ -380,12 +380,13 @@ def convert_outlook_msg(msg_bytes):
     return rfc822
 
 
-def parse_email(data):
+def parse_email(data, strip_attachment_payloads=False):
     """
     A simplified email parser
 
     Args:
         data: The RFC 822 message string, or MSG binary
+        strip_attachment_payloads (bool): Remove attachment payloads
 
     Returns (dict): Parsed email data
     """
@@ -449,6 +450,10 @@ def parse_email(data):
 
     if "attachments" not in parsed_email:
         parsed_email["attachments"] = []
+    elif strip_attachment_payloads:
+        for attachment in parsed_email["attachments"]:
+            if "payload" in attachment:
+                del attachment["payload"]
 
     if "subject" not in parsed_email:
         parsed_email["subject"] = None

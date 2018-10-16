@@ -495,7 +495,8 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          nameservers=None, timeout=2.0):
+                          nameservers=None, timeout=2.0,
+                          strip_attachment_payloads=False):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -506,6 +507,8 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        strip_attachment_payloads (bool): Remove attachment payloads from
+        forensic report results
 
     Returns:
         OrderedDict: A parsed report and sample
@@ -553,7 +556,9 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             if optional_field not in parsed_report:
                 parsed_report[optional_field] = None
 
-        parsed_sample = parse_email(sample)
+        parsed_sample = parse_email(
+            sample,
+            strip_attachment_payloads=strip_attachment_payloads)
 
         if "reported_domain" not in parsed_report:
             parsed_report["reported_domain"] = parsed_sample["from"]["domain"]
@@ -624,7 +629,8 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, timeout=2.0):
+def parse_report_email(input_, nameservers=None, timeout=2.0,
+                       strip_attachment_payloads=False):
     """
     Parses a DMARC report from an email
 
@@ -632,6 +638,8 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
         nameservers (list): A list of one or more nameservers to use
         timeout (float): Sets the DNS timeout in seconds
+        strip_attachment_payloads (bool): Remove attachment payloads from
+        forensic report results
 
     Returns:
         OrderedDict:
@@ -689,7 +697,8 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
                 sample,
                 date,
                 nameservers=nameservers,
-                timeout=timeout)
+                timeout=timeout,
+                strip_attachment_payloads=strip_attachment_payloads)
         except Exception as e:
             raise ParserError(e.__str__())
 
@@ -736,7 +745,8 @@ def parse_report_email(input_, nameservers=None, timeout=2.0):
     return result
 
 
-def parse_report_file(input_, nameservers=None, timeout=2.0):
+def parse_report_file(input_, nameservers=None, timeout=2.0,
+                      strip_attachment_payloads=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -745,6 +755,8 @@ def parse_report_file(input_, nameservers=None, timeout=2.0):
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        strip_attachment_payloads (bool): Remove attachment payloads from
+        forensic report results
 
     Returns:
         OrderedDict: The parsed DMARC report
@@ -764,9 +776,11 @@ def parse_report_file(input_, nameservers=None, timeout=2.0):
                                ("report", report)])
     except InvalidAggregateReport:
         try:
+            sa = strip_attachment_payloads
             results = parse_report_email(content,
                                          nameservers=nameservers,
-                                         timeout=timeout)
+                                         timeout=timeout,
+                                         strip_attachment_payloads=sa)
         except InvalidDMARCReport:
             raise InvalidDMARCReport("Not a valid aggregate or forensic "
                                      "report")
@@ -804,7 +818,8 @@ def get_dmarc_reports_from_inbox(host=None,
                                  archive_folder="Archive",
                                  delete=False, test=False,
                                  nameservers=None,
-                                 dns_timeout=6.0):
+                                 dns_timeout=6.0,
+                                 strip_attachment_payloads=False):
     """
     Fetches and parses DMARC reports from sn inbox
 
@@ -823,6 +838,8 @@ def get_dmarc_reports_from_inbox(host=None,
         test (bool): Do not move or delete messages after processing them
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
+        strip_attachment_payloads (bool): Remove attachment payloads from
+        forensic report results
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -934,10 +951,11 @@ def get_dmarc_reports_from_inbox(host=None,
                                            ["RFC822"])[message_uid][b"RFC822"]
 
                 msg_content = raw_msg.decode("utf-8", errors="replace")
-
+                sa = strip_attachment_payloads
                 parsed_email = parse_report_email(msg_content,
                                                   nameservers=nameservers,
-                                                  timeout=dns_timeout)
+                                                  timeout=dns_timeout,
+                                                  strip_attachment_payloads=sa)
                 if parsed_email["report_type"] == "aggregate":
                     aggregate_reports.append(parsed_email["report"])
                     aggregate_report_msg_uids.append(message_uid)
@@ -1281,7 +1299,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
 def watch_inbox(host, username, password, callback, port=None, ssl=True,
                 reports_folder="INBOX", archive_folder="Archive",
                 delete=False, test=False, wait=30, nameservers=None,
-                dns_timeout=6.0):
+                dns_timeout=6.0, strip_attachment_payloads=False):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
@@ -1301,6 +1319,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Set the DNS query timeout
+        strip_attachment_payloads (bool): Replace attachment payloads in
+        forensic report samples with None
     """
     rf = reports_folder
     af = archive_folder
@@ -1331,6 +1351,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
             server.select_folder(rf)
             idle_start_time = time.monotonic()
             ms = "MOVE" in get_imap_capabilities(server)
+            sa = strip_attachment_payloads
             res = get_dmarc_reports_from_inbox(connection=server,
                                                move_supported=ms,
                                                reports_folder=rf,
@@ -1338,7 +1359,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                                delete=delete,
                                                test=test,
                                                nameservers=ns,
-                                               dns_timeout=dt)
+                                               dns_timeout=dt,
+                                               strip_attachment_payloads=sa)
             callback(res)
             server.idle()
         else:

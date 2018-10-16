@@ -1,3 +1,10 @@
+4.3.4
+-----
+
+- Fix crash on empty aggregate report comments (brakhane - PR #25)
+- Add `strip_attachment_payloads` option to functions and 
+`--strip-attachment-payloads` option to the CLI
+
 4.3.3
 -----
 

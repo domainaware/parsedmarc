@@ -2,7 +2,7 @@
 
 import platform
 
-__version__ = "4.3.3"
+__version__ = "4.3.4"
 
 USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
             platform.system(),

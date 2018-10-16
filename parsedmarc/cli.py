@@ -91,6 +91,10 @@ def _main():
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
                                  "report files or emails")
+    strip_attachment_help = "Replace attachment payloads in " \
+                            "forensic report samples with null values"
+    arg_parser.add_argument("--strip-attachment-payloads",
+                            help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="Write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
@@ -261,9 +265,11 @@ def _main():
 
     for file_path in file_paths:
         try:
+            sa = args.strip_attachment_payloads
             file_results = parse_report_file(file_path,
                                              nameservers=args.nameservers,
-                                             timeout=args.timeout)
+                                             timeout=args.timeout,
+                                             strip_attachment_payloads=sa)
             if file_results["report_type"] == "aggregate":
                 aggregate_reports.append(file_results["report"])
             elif file_results["report_type"] == "forensic":
@@ -282,6 +288,7 @@ def _main():
             rf = args.reports_folder
             af = args.archive_folder
             ns = args.nameservers
+            sa = args.strip_attachment_payloads
             ssl = True
             if args.imap_no_ssl:
                 ssl = False
@@ -294,7 +301,9 @@ def _main():
                                                    archive_folder=af,
                                                    delete=args.delete,
                                                    nameservers=ns,
-                                                   test=args.test)
+                                                   test=args.test,
+                                                   strip_attachment_payloads=sa
+                                                   )
 
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
@@ -333,12 +342,13 @@ def _main():
         if args.imap_no_ssl:
             ssl = False
         try:
+            sa = args.strip_attachment_payloads
             watch_inbox(args.host, args.user, args.password, process_reports,
                         port=args.imap_port, ssl=ssl,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,
-                        dns_timeout=args.timeout)
+                        dns_timeout=args.timeout, strip_attachment_payloads=sa)
         except IMAPError as error:
             logger.error("IMAP Error: {0}".format(error.__str__()))
             exit(1)
