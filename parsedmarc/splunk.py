@@ -2,8 +2,8 @@ import logging
 from urllib.parse import urlparse
 import socket
 import json
-import urllib3
 
+import urllib3
 import requests
 
 from parsedmarc.__version__ import __version__
