@@ -450,12 +450,14 @@ def parsed_aggregate_reports_to_csv(reports):
             row["disposition"] = record["policy_evaluated"]["disposition"]
             row["spf_alignment"] = record["policy_evaluated"]["spf"]
             row["dkim_alignment"] = record["policy_evaluated"]["dkim"]
-            policy_override_reasons = list(map(lambda r: r["type"],
-                                               record["policy_evaluated"]
-                                               ["policy_override_reasons"]))
-            policy_override_comments = list(map(lambda r: r["comment"] or "none",
-                                                record["policy_evaluated"]
-                                                ["policy_override_reasons"]))
+            policy_override_reasons = list(map(
+                lambda r: r["type"],
+                record["policy_evaluated"]
+                ["policy_override_reasons"]))
+            policy_override_comments = list(map(
+                lambda r: r["comment"] or "none",
+                record["policy_evaluated"]
+                ["policy_override_reasons"]))
             row["policy_override_reasons"] = ",".join(
                 policy_override_reasons)
             row["policy_override_comments"] = "|".join(
