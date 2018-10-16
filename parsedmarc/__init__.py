@@ -125,8 +125,7 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
             reasons = [policy_evaluated["reason"]]
     for reason in reasons:
         if "comment" not in reason:
-            reason["comment"] = "none"
-            reasons.append(reason)
+            reason["comment"] = None
     new_policy_evaluated["policy_override_reasons"] = reasons
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
@@ -454,7 +453,7 @@ def parsed_aggregate_reports_to_csv(reports):
             policy_override_reasons = list(map(lambda r: r["type"],
                                                record["policy_evaluated"]
                                                ["policy_override_reasons"]))
-            policy_override_comments = list(map(lambda r: r["comment"],
+            policy_override_comments = list(map(lambda r: r["comment"] or "none",
                                                 record["policy_evaluated"]
                                                 ["policy_override_reasons"]))
             row["policy_override_reasons"] = ",".join(
