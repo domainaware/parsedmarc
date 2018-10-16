@@ -61,10 +61,10 @@ CLI help
 
 ::
 
- usage: parsedmarc [-h] [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                   [-t TIMEOUT] [-H HOST] [-u USER] [-p PASSWORD]
-                   [--imap-port IMAP_PORT] [--imap-no-ssl] [-r REPORTS_FOLDER]
-                   [-a ARCHIVE_FOLDER] [-d]
+ usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
+                   [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
+                   [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
+                   [--imap-no-ssl] [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
                    [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
                    [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
                    [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
@@ -90,6 +90,8 @@ CLI help
 
    optional arguments:
      -h, --help            show this help message and exit
+     --strip-attachment-payloads
+                           Remove attachment payloads from forensic report output
      -o OUTPUT, --output OUTPUT
                            Write output files to the given directory
      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
