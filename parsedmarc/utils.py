@@ -34,6 +34,24 @@ class EmailParserError(RuntimeError):
     """Raised when an error parsing the email occurs"""
 
 
+def decode_base64(data):
+    """
+    Decodes a base64 string, with padding being optional
+
+    Args:
+        data: A base64 encoded string
+
+    Returns:
+        bytes: The decoded bytes
+
+    """
+    data = str(data)
+    missing_padding = len(data) % 4
+    if missing_padding != 0:
+        data += b'=' * (4 - missing_padding)
+    return base64.b64decode(data)
+
+
 def get_base_domain(domain):
     """
     Gets the base domain name for the given domain
@@ -458,7 +476,7 @@ def parse_email(data, strip_attachment_payloads=False):
                 payload = attachment["payload"]
                 if "content_transfer_encoding" in attachment:
                     if attachment["content_transfer_encoding"] == "base64":
-                        payload = base64.b64decode(payload)
+                        payload = decode_base64(payload)
                     else:
                         payload = str.encode(payload)
                 attachment["sha256"] = hashlib.sha256(payload).hexdigest()

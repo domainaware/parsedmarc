@@ -1,3 +1,8 @@
+4.3.5
+-----
+
+- Fix base64 attachment decoding (#26)
+
 4.3.4
 -----
 
