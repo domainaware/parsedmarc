@@ -105,6 +105,9 @@ ENV/
 # PyCharm Project settings
 .idea/
 
+# Visual Studio Code settings
+.vscode/
+
 # I/O files
 output/
 *.csv
