@@ -10,7 +10,7 @@
 - Add SHA256 hashes of attachments to output
 - Add `strip_attachment_payloads` option to functions and 
 `--strip-attachment-payloads` option to the CLI (#23)
-- Remove `urllib3` from requirements to avoid conflict with `requests`
+- Set `urllib3` version requirements to match `requests`
 
 4.3.3
 -----
