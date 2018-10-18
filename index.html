@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.4 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.5 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.4
+                4.3.5
               </div>
             
           
@@ -1611,6 +1611,24 @@ standard RFC 822 format</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.utils.decode_base64">
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">decode_base64</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes a base64 string, with padding being optional</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> – A base64 encoded string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The decoded bytes</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bytes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.utils.get_base_domain">
 <code class="descclassname">parsedmarc.utils.</code><code class="descname">get_base_domain</code><span class="sig-paren">(</span><em>domain</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the base domain name for the given domain</p>
@@ -1915,7 +1933,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.4',
+              VERSION:'4.3.5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

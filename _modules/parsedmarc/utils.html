@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 4.3.4 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 4.3.5 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.4
+                4.3.5
               </div>
             
           
@@ -179,6 +179,24 @@
 
 <div class="viewcode-block" id="EmailParserError"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.EmailParserError">[docs]</a><span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Raised when an error parsing the email occurs&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="decode_base64"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.decode_base64">[docs]</a><span class="k">def</span> <span class="nf">decode_base64</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decodes a base64 string, with padding being optional</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: A base64 encoded string</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bytes: The decoded bytes</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">missing_padding</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span>
+    <span class="k">if</span> <span class="n">missing_padding</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">+=</span> <span class="sa">b</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="n">missing_padding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_base_domain"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
@@ -605,7 +623,7 @@
                 <span class="n">payload</span> <span class="o">=</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="s2">&quot;content_transfer_encoding&quot;</span> <span class="ow">in</span> <span class="n">attachment</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;content_transfer_encoding&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;base64&quot;</span><span class="p">:</span>
-                        <span class="n">payload</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+                        <span class="n">payload</span> <span class="o">=</span> <span class="n">decode_base64</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">payload</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
                 <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;sha256&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
@@ -660,7 +678,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.3.4',
+              VERSION:'4.3.5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
