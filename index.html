@@ -659,13 +659,13 @@ maximum JVM heap sizes in <code class="docutils literal notranslate"><span class
 reasonable levels, depending on your server’s resources.</p>
 <p>Always set the minimum and maximum JVM heap sizes to the same
 value. For example, to set a 4 GB heap size, set</p>
-<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>-Xms4g
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>-Xms4g
 -Xmx4g
 </pre></div>
 </div>
+<p class="last">See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html</a>
+for more information.</p>
 </div>
-<p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html</a>
-for more information</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
 sudo systemctl <span class="nb">enable</span> elasticsearch.service
 sudo systemctl <span class="nb">enable</span> kibana.service
