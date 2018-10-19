@@ -1,3 +1,8 @@
+4.3.6
+-----
+
+- Be more forgiving for forensic reports with missing fields
+
 4.3.5
 -----
 

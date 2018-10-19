@@ -523,6 +523,12 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         if "arrival_date" not in parsed_report:
             parsed_report["arrival_date"] = msg_date
 
+        if "version" not in parsed_report:
+            parsed_report["version"] = 1
+
+        if "user_agent" not in parsed_report:
+            parsed_report["user_agent"] = None
+
         arrival_utc = human_timestamp_to_datetime(
             parsed_report["arrival_date"], to_utc=True)
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
