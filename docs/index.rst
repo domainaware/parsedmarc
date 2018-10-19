@@ -533,9 +533,8 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
       -Xms4g
       -Xmx4g
 
-
-See https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html
-for more information
+   See https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html
+   for more information.
 
 .. code-block:: bash
 
