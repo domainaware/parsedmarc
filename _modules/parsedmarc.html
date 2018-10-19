@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.3.5 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.3.6 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.5
+                4.3.6
               </div>
             
           
@@ -667,6 +667,12 @@
 
         <span class="k">if</span> <span class="s2">&quot;arrival_date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg_date</span>
+
+        <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="s2">&quot;user_agent&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;user_agent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">arrival_utc</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1676,7 +1682,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.3.5',
+              VERSION:'4.3.6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
