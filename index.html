@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.5 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.6 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.5
+                4.3.6
               </div>
             
           
@@ -649,7 +649,24 @@ wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|<
 <span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
 sudo apt-get update
 sudo apt-get install -y default-jre-headless elasticsearch kibana
-sudo systemctl daemon-reload
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>The default JVM heap size for Elasticsearch is very small (1g), which will
+cause it to crash under a heavy load. To fix this, increase the minimum and
+maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to more
+reasonable levels, depending on your server’s resources.</p>
+<p>Always set the minimum and maximum JVM heap sizes to the same
+value. For example, to set a 4 GB heap size, set</p>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>-Xms4g
+-Xmx4g
+</pre></div>
+</div>
+</div>
+<p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html</a>
+for more information</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
 sudo systemctl <span class="nb">enable</span> elasticsearch.service
 sudo systemctl <span class="nb">enable</span> kibana.service
 sudo service start elasticsearch
@@ -1933,7 +1950,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.5',
+              VERSION:'4.3.6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
