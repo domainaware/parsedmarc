@@ -517,6 +517,28 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
     echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
     sudo apt-get update
     sudo apt-get install -y default-jre-headless elasticsearch kibana
+
+.. warning::
+
+   The default JVM heap size for Elasticsearch is very small (1g), which will
+   cause it to crash under a heavy load. To fix this, increase the minimum and
+   maximum JVM heap sizes in ``/etc/elasticsearch/jvm.options`` to more
+   reasonable levels, depending on your server's resources.
+
+   Always set the minimum and maximum JVM heap sizes to the same
+   value. For example, to set a 4 GB heap size, set
+
+   .. code-block::
+
+      -Xms4g
+      -Xmx4g
+
+
+See https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html
+for more information
+
+.. code-block:: bash
+
     sudo systemctl daemon-reload
     sudo systemctl enable elasticsearch.service
     sudo systemctl enable kibana.service
@@ -645,7 +667,6 @@ Restart nginx:
 .. code-block:: bash
 
     sudo service nginx restart
-
 
 Now that Elasticsearch is up and running, use ``parsedmarc`` to send data to
 it.
