@@ -528,7 +528,7 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
    Always set the minimum and maximum JVM heap sizes to the same
    value. For example, to set a 4 GB heap size, set
 
-   .. code-block::
+   .. code-block:: bash
 
       -Xms4g
       -Xmx4g
