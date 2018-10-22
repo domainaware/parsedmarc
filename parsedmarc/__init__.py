@@ -822,10 +822,12 @@ def get_dmarc_reports_from_inbox(host=None,
                                  move_supported=None,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
-                                 delete=False, test=False,
+                                 delete=False,
+                                 test=False,
                                  nameservers=None,
                                  dns_timeout=6.0,
-                                 strip_attachment_payloads=False):
+                                 strip_attachment_payloads=False,
+                                 results=None):
     """
     Fetches and parses DMARC reports from sn inbox
 
@@ -846,6 +848,7 @@ def get_dmarc_reports_from_inbox(host=None,
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        results (dict): Results from the previous run
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -870,6 +873,10 @@ def get_dmarc_reports_from_inbox(host=None,
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
     invalid_reports_folder = "{0}/Invalid".format(archive_folder)
+
+    if results:
+        aggregate_reports = results["aggregate_reports"].copy()
+        forensic_reports = results["forensic_reports"].copy()
 
     try:
         if connection:
@@ -929,14 +936,14 @@ def get_dmarc_reports_from_inbox(host=None,
                 server.create_folder(subfolder)
         server.select_folder(reports_folder)
         messages = server.search()
+        total_messages = len(messages)
         logger.debug("Found {0} messages in IMAP folder {1}".format(
             len(messages), reports_folder))
         for i in range(len(messages)):
-            number_of_messages = len(messages)
             message_uid = messages[i]
             logger.debug("Processing message {0} of {1}: UID {2}".format(
                 i+1,
-                number_of_messages,
+                total_messages,
                 message_uid
             ))
             try:
@@ -992,12 +999,12 @@ def get_dmarc_reports_from_inbox(host=None,
                 processed_messages = aggregate_report_msg_uids + \
                                      forensic_report_msg_uids
 
-                number_of_msgs = len(processed_messages)
-                for i in range(number_of_msgs):
+                number_of_processed_msgs = len(processed_messages)
+                for i in range(number_of_processed_msgs):
                     msg_uid = processed_messages[i]
                     logger.debug(
                         "Deleting message {0} of {1}: UID {2}".format(
-                            i + 1, number_of_msgs, msg_uid))
+                            i + 1, number_of_processed_msgs, msg_uid))
                     try:
                         delete_messages([msg_uid])
 
@@ -1024,12 +1031,12 @@ def get_dmarc_reports_from_inbox(host=None,
                         "{0} {1} to {1}".format(
                             log_message, reports_folder,
                             aggregate_reports_folder))
-                    number_of_msgs = len(aggregate_report_msg_uids)
-                    for i in range(number_of_msgs):
+                    number_of_agg_report_msgs = len(aggregate_report_msg_uids)
+                    for i in range(number_of_agg_report_msgs):
                         msg_uid = aggregate_report_msg_uids[i]
                         logger.debug(
                             "Moving message {0} of {1}: UID {2}".format(
-                                i+1, number_of_msgs, msg_uid))
+                                i+1, number_of_agg_report_msgs, msg_uid))
                         try:
                             move_messages([msg_uid],
                                           aggregate_reports_folder)
@@ -1058,13 +1065,13 @@ def get_dmarc_reports_from_inbox(host=None,
                         "{0} {1} to {2}".format(message,
                                                 reports_folder,
                                                 forensic_reports_folder))
-                    number_of_msgs = len(forensic_report_msg_uids)
-                    for i in range(number_of_msgs):
+                    number_of_forensic_msgs = len(forensic_report_msg_uids)
+                    for i in range(number_of_forensic_msgs):
                         msg_uid = forensic_report_msg_uids[i]
                         message = "Moving message"
                         logger.debug("{0} {1} of {2}: UID {2}".format(
                             message,
-                            i + 1, number_of_msgs, msg_uid))
+                            i + 1, number_of_forensic_msgs, msg_uid))
                         try:
                             move_messages([msg_uid],
                                           forensic_reports_folder)
@@ -1089,6 +1096,26 @@ def get_dmarc_reports_from_inbox(host=None,
 
         results = OrderedDict([("aggregate_reports", aggregate_reports),
                                ("forensic_reports", forensic_reports)])
+
+        if not test and total_messages > 0:
+            # Process emails that came in during the last run
+            results = get_dmarc_reports_from_inbox(
+                host=host,
+                user=user,
+                password=password,
+                connection=connection,
+                port=port,
+                ssl=ssl,
+                move_supported=move_supported,
+                reports_folder=reports_folder,
+                archive_folder=archive_folder,
+                delete=delete,
+                test=test,
+                nameservers=nameservers,
+                dns_timeout=dns_timeout,
+                strip_attachment_payloads=strip_attachment_payloads,
+                results=results
+            )
 
         return results
     except imapclient.exceptions.IMAPClientError as error:

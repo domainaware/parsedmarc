@@ -1,3 +1,10 @@
+4.3.7
+-----
+
+- When checking an inbox, always recheck for messages when processing is 
+complete
+
+
 4.3.6
 -----
 
