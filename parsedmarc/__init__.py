@@ -893,6 +893,8 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
+            logger.debug("Deleting message UIDs {0}".format(",".join(
+                msg_uids)))
             if type(msg_uids) == str:
                 msg_uids = [msg_uids]
 
@@ -906,6 +908,9 @@ def get_dmarc_reports_from_inbox(host=None,
                 if move_supported:
                     server.move(chunk, folder)
                 else:
+                    logger.debug("Copying message UIDs {0} to {1}".format(
+                        ",".join(chunk), folder
+                    ))
                     server.copy(msg_uids, folder)
                     delete_messages(msg_uids)
 
@@ -925,6 +930,8 @@ def get_dmarc_reports_from_inbox(host=None,
                                                                         ".")
             forensic_reports_folder = forensic_reports_folder.replace("/",
                                                                       ".")
+            invalid_reports_folder = invalid_reports_folder.replace("/",
+                                                                    ".")
         subfolders = [aggregate_reports_folder,
                       forensic_reports_folder,
                       invalid_reports_folder]
@@ -989,10 +996,10 @@ def get_dmarc_reports_from_inbox(host=None,
                             "Deleting message UID {0}".format(message_uid))
                         delete_messages([message_uid])
                     else:
-                        move_messages([message_uid], invalid_reports_folder)
                         logger.debug(
                             "Moving message UID {0} to {1}".format(
                                 message_uid, invalid_reports_folder))
+                        move_messages([message_uid], invalid_reports_folder)
 
         if not test:
             if delete:
