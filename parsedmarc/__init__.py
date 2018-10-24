@@ -895,15 +895,15 @@ def get_dmarc_reports_from_inbox(host=None,
         def delete_messages(msg_uids):
             logger.debug("Deleting message UIDs {0}".format(",".join(
                 msg_uids)))
-            if type(msg_uids) == str:
-                msg_uids = [msg_uids]
+            if type(msg_uids) == str or type(msg_uids) == int:
+                msg_uids = [int(msg_uids)]
 
             server.delete_messages(msg_uids, silent=True)
             server.expunge(msg_uids)
 
         def move_messages(msg_uids, folder):
-            if type(msg_uids) == str:
-                msg_uids = [msg_uids]
+            if type(msg_uids) == str or type(msg_uids) == int:
+                msg_uids = [int(msg_uids)]
             for chunk in chunks(msg_uids, 100):
                 if move_supported:
                     server.move(chunk, folder)
