@@ -894,7 +894,7 @@ def get_dmarc_reports_from_inbox(host=None,
 
         def delete_messages(msg_uids):
             logger.debug("Deleting message UIDs {0}".format(",".join(
-                msg_uids)))
+                str(uid) for uid in msg_uids)))
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
 
@@ -907,12 +907,12 @@ def get_dmarc_reports_from_inbox(host=None,
             for chunk in chunks(msg_uids, 100):
                 if move_supported:
                     logger.debug("Moving message UIDs {0} to {1}".format(
-                        ",".join(chunk), folder
+                        ",".join(str(uid) for uid in chunk), folder
                     ))
                     server.move(chunk, folder)
                 else:
                     logger.debug("Copying message UIDs {0} to {1}".format(
-                        ",".join(chunk), folder
+                        ",".join(str(uid) for uid in chunk), folder
                     ))
                     server.copy(msg_uids, folder)
                     delete_messages(msg_uids)
