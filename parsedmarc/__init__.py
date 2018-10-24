@@ -906,6 +906,9 @@ def get_dmarc_reports_from_inbox(host=None,
                 msg_uids = [int(msg_uids)]
             for chunk in chunks(msg_uids, 100):
                 if move_supported:
+                    logger.debug("Moving message UIDs {0} to {1}".format(
+                        ",".join(chunk), folder
+                    ))
                     server.move(chunk, folder)
                 else:
                     logger.debug("Copying message UIDs {0} to {1}".format(
