@@ -474,12 +474,17 @@ def parse_email(data, strip_attachment_payloads=False):
         for attachment in parsed_email["attachments"]:
             if "payload" in attachment:
                 payload = attachment["payload"]
-                if "content_transfer_encoding" in attachment:
-                    if attachment["content_transfer_encoding"] == "base64":
-                        payload = decode_base64(payload)
-                    else:
-                        payload = str.encode(payload)
-                attachment["sha256"] = hashlib.sha256(payload).hexdigest()
+                try:
+                    if "content_transfer_encoding" in attachment:
+                        if attachment["content_transfer_encoding"] == "base64":
+                            payload = decode_base64(payload)
+                        else:
+                            payload = str.encode(payload)
+                    attachment["sha256"] = hashlib.sha256(payload).hexdigest()
+                except Exception as e:
+                    logger.debug("Unable to decode attachment: {0}".format(
+                        e.__str__()
+                    ))
         if strip_attachment_payloads:
             for attachment in parsed_email["attachments"]:
                 if "payload" in attachment:
