@@ -45,7 +45,7 @@ def decode_base64(data):
         bytes: The decoded bytes
 
     """
-    data = str(data)
+    data = bytes(data, encoding="ascii")
     missing_padding = len(data) % 4
     if missing_padding != 0:
         data += b'=' * (4 - missing_padding)
