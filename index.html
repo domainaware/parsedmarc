@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.7 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.8 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.7
+                4.3.8
               </div>
             
           
@@ -245,7 +245,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
+                  <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
@@ -263,93 +264,95 @@ lookalike domain monitoring, check out <a class="reference external" href="https
                   <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
                   <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
-  <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
+<span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
-  <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
-    <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
-                          <span class="n">files</span> <span class="ow">or</span> <span class="n">emails</span>
+<span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
+                        <span class="n">files</span> <span class="ow">or</span> <span class="n">emails</span>
 
-  <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
-    <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
-    <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
-                          <span class="n">Remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
-    <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
-                          <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
-    <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                          <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">Default</span> <span class="ow">is</span> <span class="n">Cloudflare</span><span class="s1">&#39;s</span>
-                          <span class="n">nameservers</span><span class="p">)</span>
-    <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
-                          <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
-                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
-    <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
-    <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
-    <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
-                          <span class="n">IMAP</span> <span class="n">password</span>
-    <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span>
-                          <span class="n">IMAP</span> <span class="n">port</span>
-    <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span>         <span class="n">Do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">SSL</span><span class="o">/</span><span class="n">TLS</span> <span class="n">when</span> <span class="n">connecting</span> <span class="n">to</span> <span class="n">IMAP</span>
-    <span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">reports</span><span class="o">-</span><span class="n">folder</span> <span class="n">REPORTS_FOLDER</span>
-                          <span class="n">The</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">reports</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span>
-                          <span class="n">INBOX</span><span class="p">)</span>
-    <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
-                          <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
-                          <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
-    <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
-    <span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">host</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]</span>
-                          <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span> <span class="n">to</span> <span class="n">use</span>
-                          <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span>
-                          <span class="n">Prefix</span> <span class="n">to</span> <span class="n">add</span> <span class="ow">in</span> <span class="n">front</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
-                          <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
-    <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span>
-                          <span class="n">Append</span> <span class="n">this</span> <span class="n">suffix</span> <span class="n">to</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
-                          <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
-    <span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span>             <span class="n">URL</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span>
-                          <span class="n">The</span> <span class="n">authorization</span> <span class="n">token</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span>
-                          <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span>
-                          <span class="n">The</span> <span class="n">index</span> <span class="n">to</span> <span class="n">use</span> <span class="n">when</span> <span class="n">sending</span> <span class="n">events</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Splunk</span>
-                          <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span>
-                          <span class="n">Skip</span> <span class="n">certificate</span> <span class="n">verification</span> <span class="k">for</span> <span class="n">Splunk</span> <span class="n">HEC</span>
-    <span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">hosts</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]</span>
-                          <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Kafka</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span>
-    <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span>
-                          <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span>
-                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_aggregate</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span>
-                          <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span>
-                          <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_forensic</span><span class="p">)</span>
-    <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span>      <span class="n">Save</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
-    <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span>       <span class="n">Save</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
-    <span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">host</span> <span class="n">OUTGOING_HOST</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">host</span>
-    <span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">user</span> <span class="n">OUTGOING_USER</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">user</span>
-    <span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">password</span> <span class="n">OUTGOING_PASSWORD</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">password</span>
-    <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">port</span>
-    <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">ssl</span> <span class="n">OUTGOING_SSL</span>
-                          <span class="n">Use</span> <span class="n">SSL</span><span class="o">/</span><span class="n">TLS</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">STARTTLS</span> <span class="p">(</span><span class="n">more</span> <span class="n">secure</span><span class="p">,</span> <span class="ow">and</span>
-                          <span class="n">required</span> <span class="n">by</span> <span class="n">some</span> <span class="n">providers</span><span class="p">,</span> <span class="n">like</span> <span class="n">Gmail</span><span class="p">)</span>
-    <span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="kn">from</span> <span class="nn">OUTGOING_FROM</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="kn">from</span> <span class="nn">address</span>
-    <span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">to</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">to</span> <span class="n">these</span> <span class="n">addresses</span>
-    <span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">subject</span> <span class="n">OUTGOING_SUBJECT</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">subject</span>
-    <span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">attachment</span> <span class="n">OUTGOING_ATTACHMENT</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">filename</span>
-    <span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">message</span> <span class="n">OUTGOING_MESSAGE</span>
-                          <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">message</span>
-    <span class="o">-</span><span class="n">w</span><span class="p">,</span> <span class="o">--</span><span class="n">watch</span>           <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
-                          <span class="n">arrive</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">inbox</span>
-    <span class="o">--</span><span class="n">test</span>                <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
-    <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">Only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
-    <span class="o">--</span><span class="n">debug</span>               <span class="n">Print</span> <span class="n">debugging</span> <span class="n">information</span>
-    <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
+<span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
+                        <span class="n">Remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
+  <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
+                        <span class="n">Write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
+  <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">Default</span> <span class="ow">is</span> <span class="n">Cloudflare</span><span class="s1">&#39;s</span>
+                        <span class="n">nameservers</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
+                        <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
+                        <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
+  <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
+  <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
+                        <span class="n">IMAP</span> <span class="n">password</span>
+  <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span>
+                        <span class="n">IMAP</span> <span class="n">port</span>
+  <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span>
+                        <span class="n">Skip</span> <span class="n">certificate</span> <span class="n">verification</span> <span class="k">for</span> <span class="n">IMAP</span>
+  <span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span>         <span class="n">Do</span> <span class="ow">not</span> <span class="n">use</span> <span class="n">SSL</span><span class="o">/</span><span class="n">TLS</span> <span class="n">when</span> <span class="n">connecting</span> <span class="n">to</span> <span class="n">IMAP</span>
+  <span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">reports</span><span class="o">-</span><span class="n">folder</span> <span class="n">REPORTS_FOLDER</span>
+                        <span class="n">The</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">containing</span> <span class="n">the</span> <span class="n">reports</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span>
+                        <span class="n">INBOX</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">,</span> <span class="o">--</span><span class="n">archive</span><span class="o">-</span><span class="n">folder</span> <span class="n">ARCHIVE_FOLDER</span>
+                        <span class="n">Specifies</span> <span class="n">the</span> <span class="n">IMAP</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">move</span> <span class="n">messages</span> <span class="n">to</span> <span class="n">after</span>
+                        <span class="n">processing</span> <span class="n">them</span> <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">Archive</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">--</span><span class="n">delete</span>          <span class="n">Delete</span> <span class="n">the</span> <span class="n">reports</span> <span class="n">after</span> <span class="n">processing</span> <span class="n">them</span>
+  <span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">host</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]</span>
+                        <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span> <span class="n">to</span> <span class="n">use</span>
+                        <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span>
+                        <span class="n">Prefix</span> <span class="n">to</span> <span class="n">add</span> <span class="ow">in</span> <span class="n">front</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
+                        <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
+  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span>
+                        <span class="n">Append</span> <span class="n">this</span> <span class="n">suffix</span> <span class="n">to</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
+                        <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
+  <span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span>             <span class="n">URL</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span>
+                        <span class="n">The</span> <span class="n">authorization</span> <span class="n">token</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span>
+                        <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span>
+                        <span class="n">The</span> <span class="n">index</span> <span class="n">to</span> <span class="n">use</span> <span class="n">when</span> <span class="n">sending</span> <span class="n">events</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Splunk</span>
+                        <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span>
+                        <span class="n">Skip</span> <span class="n">certificate</span> <span class="n">verification</span> <span class="k">for</span> <span class="n">Splunk</span> <span class="n">HEC</span>
+  <span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">hosts</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]</span>
+                        <span class="n">A</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Kafka</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span>
+  <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span>
+                        <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span>
+                        <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_aggregate</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span>
+                        <span class="n">The</span> <span class="n">Kafka</span> <span class="n">topic</span> <span class="n">to</span> <span class="n">publish</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span>
+                        <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="n">dmarc_forensic</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span>      <span class="n">Save</span> <span class="n">aggregate</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
+  <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span>       <span class="n">Save</span> <span class="n">forensic</span> <span class="n">reports</span> <span class="n">to</span> <span class="n">search</span> <span class="n">indexes</span>
+  <span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">host</span> <span class="n">OUTGOING_HOST</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">host</span>
+  <span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">user</span> <span class="n">OUTGOING_USER</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">user</span>
+  <span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">password</span> <span class="n">OUTGOING_PASSWORD</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">password</span>
+  <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">port</span>
+  <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">ssl</span> <span class="n">OUTGOING_SSL</span>
+                        <span class="n">Use</span> <span class="n">SSL</span><span class="o">/</span><span class="n">TLS</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">STARTTLS</span> <span class="p">(</span><span class="n">more</span> <span class="n">secure</span><span class="p">,</span> <span class="ow">and</span>
+                        <span class="n">required</span> <span class="n">by</span> <span class="n">some</span> <span class="n">providers</span><span class="p">,</span> <span class="n">like</span> <span class="n">Gmail</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="kn">from</span> <span class="nn">OUTGOING_FROM</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="kn">from</span> <span class="nn">address</span>
+  <span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">to</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">to</span> <span class="n">these</span> <span class="n">addresses</span>
+  <span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">subject</span> <span class="n">OUTGOING_SUBJECT</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">subject</span>
+  <span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">attachment</span> <span class="n">OUTGOING_ATTACHMENT</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">filename</span>
+  <span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">,</span> <span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">message</span> <span class="n">OUTGOING_MESSAGE</span>
+                        <span class="n">Email</span> <span class="n">the</span> <span class="n">results</span> <span class="n">using</span> <span class="n">this</span> <span class="n">message</span>
+  <span class="o">-</span><span class="n">w</span><span class="p">,</span> <span class="o">--</span><span class="n">watch</span>           <span class="n">Use</span> <span class="n">an</span> <span class="n">IMAP</span> <span class="n">IDLE</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">process</span> <span class="n">reports</span> <span class="k">as</span> <span class="n">they</span>
+                        <span class="n">arrive</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">inbox</span>
+  <span class="o">--</span><span class="n">test</span>                <span class="n">Do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
+  <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">Only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
+  <span class="o">--</span><span class="n">debug</span>               <span class="n">Print</span> <span class="n">debugging</span> <span class="n">information</span>
+  <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
 </div>
@@ -548,6 +551,35 @@ schema.</p>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>If your system is behind a web proxy, you neeed to configure your system
+to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
+proxy details there, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<span class="n">https_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<span class="n">ftp_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+</pre></div>
+</div>
+<p>Or if no credentials are needed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<span class="n">https_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<span class="n">ftp_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+</pre></div>
+</div>
+<p class="last">This will set the the proxy up for use system-wide, including for
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>If your mail server is Microsoft Exchange, ensure that it is patched to at
+least:</p>
+<ul class="last simple">
+<li>Exchange Server 2010 Update Rollup 22 (<a class="reference external" href="https://support.microsoft.com/KB/4295699">KB4295699</a>)</li>
+<li>Exchange Server 2013 Cumulative Update 21 (<a class="reference external" href="https://support.microsoft.com/KB/4099855">KB4099855</a>)</li>
+<li>Exchange Server 2016 Cumulative Update 11 (<a class="reference external" href="https://support.microsoft.com/kb/4134118">KB4134118</a>)</li>
+</ul>
+</div>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
 </pre></div>
@@ -1159,7 +1191,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host=None</em>, <em>user=None</em>, <em>password=None</em>, <em>connection=None</em>, <em>port=None</em>, <em>ssl=True</em>, <em>move_supported=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em>, <em>results=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em>host=None</em>, <em>user=None</em>, <em>password=None</em>, <em>connection=None</em>, <em>port=None</em>, <em>ssl=True</em>, <em>ssl_context=None</em>, <em>move_supported=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em>, <em>results=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from sn inbox</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1172,6 +1204,7 @@ or bytes.</p>
 <li><strong>connection</strong> – An IMAPCLient connection to reuse</li>
 <li><strong>port</strong> – The mail server port</li>
 <li><strong>ssl</strong> (<em>bool</em>) – Use SSL/TLS</li>
+<li><strong>ssl_context</strong> (<em>SSLContext</em>) – A SSL context</li>
 <li><strong>move_supported</strong> – Indicate if the IMAP server supports the MOVE command</li>
 <li><strong>if None</strong><strong>)</strong> (<em>(</em><em>autodetect</em>) – </li>
 <li><strong>reports_folder</strong> – The IMAP folder where reports can be found</li>
@@ -1430,7 +1463,7 @@ headers</p>
 
 <dl class="function">
 <dt id="parsedmarc.watch_inbox">
-<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>port=None</em>, <em>ssl=True</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">watch_inbox</code><span class="sig-paren">(</span><em>host</em>, <em>username</em>, <em>password</em>, <em>callback</em>, <em>port=None</em>, <em>ssl=True</em>, <em>ssl_context=None</em>, <em>reports_folder='INBOX'</em>, <em>archive_folder='Archive'</em>, <em>delete=False</em>, <em>test=False</em>, <em>wait=30</em>, <em>nameservers=None</em>, <em>dns_timeout=6.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
 to a callback function</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1444,6 +1477,7 @@ to a callback function</p>
 <li><strong>callback</strong> – The callback function to receive the parsing results</li>
 <li><strong>port</strong> – The mail server port</li>
 <li><strong>ssl</strong> (<em>bool</em>) – Use SSL/TLS</li>
+<li><strong>ssl_context</strong> (<em>SSLContext</em>) – A SSL context</li>
 <li><strong>reports_folder</strong> – The IMAP folder where reports can be found</li>
 <li><strong>archive_folder</strong> – The folder to move processed mail to</li>
 <li><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</li>
@@ -1951,7 +1985,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.7',
+              VERSION:'4.3.8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 4.3.7 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 4.3.8 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.7
+                4.3.8
               </div>
             
           
@@ -964,6 +964,7 @@
                                  <span class="n">connection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">ssl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                 <span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">move_supported</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                                  <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
@@ -983,6 +984,7 @@
 <span class="sd">        connection: An IMAPCLient connection to reuse</span>
 <span class="sd">        port: The mail server port</span>
 <span class="sd">        ssl (bool): Use SSL/TLS</span>
+<span class="sd">        ssl_context (SSLContext): A SSL context</span>
 <span class="sd">        move_supported: Indicate if the IMAP server supports the MOVE command</span>
 <span class="sd">        (autodetect if None)</span>
 <span class="sd">        reports_folder: The IMAP folder where reports can be found</span>
@@ -1027,9 +1029,14 @@
         <span class="k">if</span> <span class="n">connection</span><span class="p">:</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">connection</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Connecting to IMAP over plain text&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ssl_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">create_default_context</span><span class="p">()</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span>
                                            <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
                                            <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                           <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
                                            <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
 
@@ -1038,19 +1045,27 @@
             <span class="n">move_supported</span> <span class="o">=</span> <span class="s2">&quot;MOVE&quot;</span> <span class="ow">in</span> <span class="n">server_capabilities</span>
 
         <span class="k">def</span> <span class="nf">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
-                <span class="n">msg_uids</span> <span class="o">=</span> <span class="p">[</span><span class="n">msg_uids</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Deleting message UID(s) </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span> <span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">msg_uids</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                <span class="n">msg_uids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)]</span>
 
             <span class="n">server</span><span class="o">.</span><span class="n">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">expunge</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">move_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="n">folder</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
-                <span class="n">msg_uids</span> <span class="o">=</span> <span class="p">[</span><span class="n">msg_uids</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                <span class="n">msg_uids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)]</span>
             <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="mi">100</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">move_supported</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Moving message UID(s) </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span> <span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">),</span> <span class="n">folder</span>
+                    <span class="p">))</span>
                     <span class="n">server</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copying message UID(s) </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span> <span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">),</span> <span class="n">folder</span>
+                    <span class="p">))</span>
                     <span class="n">server</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
                     <span class="n">delete_messages</span><span class="p">(</span><span class="n">msg_uids</span><span class="p">)</span>
 
@@ -1062,7 +1077,8 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">server</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">):</span>
                 <span class="n">server</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                    <span class="s2">&quot;Creating IMAP folder: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">))</span>
+                    <span class="s2">&quot;Creating IMAP folder: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">aggregate_reports_folder</span><span class="p">))</span>
         <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span><span class="p">:</span>
             <span class="c1">#  Only replace / with . when . doesn&#39;t work</span>
             <span class="c1"># This usually indicates a dovecot IMAP server</span>
@@ -1070,6 +1086,8 @@
                                                                         <span class="s2">&quot;.&quot;</span><span class="p">)</span>
             <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="n">forensic_reports_folder</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span>
                                                                       <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="n">invalid_reports_folder</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span>
+                                                                    <span class="s2">&quot;.&quot;</span><span class="p">)</span>
         <span class="n">subfolders</span> <span class="o">=</span> <span class="p">[</span><span class="n">aggregate_reports_folder</span><span class="p">,</span>
                       <span class="n">forensic_reports_folder</span><span class="p">,</span>
                       <span class="n">invalid_reports_folder</span><span class="p">]</span>
@@ -1099,9 +1117,12 @@
                 <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Connecting to IMAP over plain text&quot;</span><span class="p">)</span>
                     <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span>
                                                    <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
                                                    <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                                   <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
                                                    <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                     <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
                     <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
@@ -1134,10 +1155,10 @@
                             <span class="s2">&quot;Deleting message UID </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message_uid</span><span class="p">))</span>
                         <span class="n">delete_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">])</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">move_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="n">invalid_reports_folder</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                             <span class="s2">&quot;Moving message UID </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                                 <span class="n">message_uid</span><span class="p">,</span> <span class="n">invalid_reports_folder</span><span class="p">))</span>
+                        <span class="n">move_messages</span><span class="p">([</span><span class="n">message_uid</span><span class="p">],</span> <span class="n">invalid_reports_folder</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
@@ -1162,9 +1183,12 @@
                     <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Connecting to IMAP over plain text&quot;</span><span class="p">)</span>
                         <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span>
                                                        <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
                                                        <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                                       <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
                                                        <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                         <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
                         <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
@@ -1195,10 +1219,16 @@
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                                 <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
-                            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span>
-                                                           <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
-                                                           <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
-                                                           <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
+                                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                                    <span class="s2">&quot;Connecting to IMAP over plain text&quot;</span><span class="p">)</span>
+                            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span>
+                                <span class="n">host</span><span class="p">,</span>
+                                <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+                                <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
+                                <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span>
+                            <span class="p">)</span>
                             <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
                             <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
                             <span class="n">move_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">],</span>
@@ -1230,10 +1260,15 @@
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                                 <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
-                            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span>
-                                                           <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
-                                                           <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
-                                                           <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
+                                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                                    <span class="s2">&quot;Connecting to IMAP over plain text&quot;</span><span class="p">)</span>
+                            <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span>
+                                <span class="n">host</span><span class="p">,</span>
+                                <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+                                <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
+                                <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                             <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
                             <span class="n">server</span><span class="o">.</span><span class="n">select_folder</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
                             <span class="n">move_messages</span><span class="p">([</span><span class="n">msg_uid</span><span class="p">],</span>
@@ -1251,6 +1286,7 @@
                 <span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
                 <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
                 <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
                 <span class="n">move_supported</span><span class="o">=</span><span class="n">move_supported</span><span class="p">,</span>
                 <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
                 <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
@@ -1475,9 +1511,10 @@
 
 
 <div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span> <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
-                <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                <span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
+                <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+                <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+                <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use an IDLE IMAP connection to parse incoming emails, and pass the results</span>
 <span class="sd">    to a callback function</span>
@@ -1489,6 +1526,7 @@
 <span class="sd">        callback: The callback function to receive the parsing results</span>
 <span class="sd">        port: The mail server port</span>
 <span class="sd">        ssl (bool): Use SSL/TLS</span>
+<span class="sd">        ssl_context (SSLContext): A SSL context</span>
 <span class="sd">        reports_folder: The IMAP folder where reports can be found</span>
 <span class="sd">        archive_folder: The folder to move processed mail to</span>
 <span class="sd">        delete (bool): Delete  messages after processing them</span>
@@ -1504,7 +1542,11 @@
     <span class="n">af</span> <span class="o">=</span> <span class="n">archive_folder</span>
     <span class="n">ns</span> <span class="o">=</span> <span class="n">nameservers</span>
     <span class="n">dt</span> <span class="o">=</span> <span class="n">dns_timeout</span>
-    <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span> <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ssl_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">create_default_context</span><span class="p">()</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                                   <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
+                                   <span class="n">use_uid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">server</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
@@ -1709,7 +1751,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'4.3.7',
+              VERSION:'4.3.8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
