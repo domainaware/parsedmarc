@@ -1,3 +1,12 @@
+4.3.8
+-----
+
+- Fix decoding of attachments inside forensic samples
+- Add CLI option `--imap-skip-certificate-verification`
+- Add optional `ssl_context` argument for `get_dmarc_reports_from_inbox()`
+and `watch_inbox()`
+- Debug logging improvements
+
 4.3.7
 -----
 

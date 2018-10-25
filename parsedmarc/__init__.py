@@ -819,6 +819,7 @@ def get_dmarc_reports_from_inbox(host=None,
                                  connection=None,
                                  port=None,
                                  ssl=True,
+                                 ssl_context=None,
                                  move_supported=None,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
@@ -838,6 +839,7 @@ def get_dmarc_reports_from_inbox(host=None,
         connection: An IMAPCLient connection to reuse
         port: The mail server port
         ssl (bool): Use SSL/TLS
+        ssl_context (SSLContext): A SSL context
         move_supported: Indicate if the IMAP server supports the MOVE command
         (autodetect if None)
         reports_folder: The IMAP folder where reports can be found
@@ -882,9 +884,12 @@ def get_dmarc_reports_from_inbox(host=None,
         if connection:
             server = connection
         else:
+            if ssl_context is None:
+                ssl_context = create_default_context()
             server = imapclient.IMAPClient(host,
                                            port=port,
                                            ssl=ssl,
+                                           ssl_context=ssl_context,
                                            use_uid=True)
             server.login(user, password)
 
@@ -925,7 +930,8 @@ def get_dmarc_reports_from_inbox(host=None,
             if not server.folder_exists(aggregate_reports_folder):
                 server.create_folder(aggregate_reports_folder)
                 logger.debug(
-                    "Creating IMAP folder: {0}".format(archive_folder))
+                    "Creating IMAP folder: {0}".format(
+                        aggregate_reports_folder))
         except imapclient.exceptions.IMAPClientError:
             #  Only replace / with . when . doesn't work
             # This usually indicates a dovecot IMAP server
@@ -967,6 +973,7 @@ def get_dmarc_reports_from_inbox(host=None,
                     server = imapclient.IMAPClient(host,
                                                    port=port,
                                                    ssl=ssl,
+                                                   ssl_context=ssl_context,
                                                    use_uid=True)
                     server.login(user, password)
                     server.select_folder(reports_folder)
@@ -1030,6 +1037,7 @@ def get_dmarc_reports_from_inbox(host=None,
                         server = imapclient.IMAPClient(host,
                                                        port=port,
                                                        ssl=ssl,
+                                                       ssl_context=ssl_context,
                                                        use_uid=True)
                         server.login(user, password)
                         server.select_folder(reports_folder)
@@ -1060,10 +1068,13 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
-                            server = imapclient.IMAPClient(host,
-                                                           port=port,
-                                                           ssl=ssl,
-                                                           use_uid=True)
+                            server = imapclient.IMAPClient(
+                                host,
+                                port=port,
+                                ssl=ssl,
+                                ssl_context=ssl_context,
+                                use_uid=True
+                            )
                             server.login(user, password)
                             server.select_folder(reports_folder)
                             move_messages([msg_uid],
@@ -1095,10 +1106,12 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
-                            server = imapclient.IMAPClient(host,
-                                                           port=port,
-                                                           ssl=ssl,
-                                                           use_uid=True)
+                            server = imapclient.IMAPClient(
+                                host,
+                                port=port,
+                                ssl=ssl,
+                                ssl_context=ssl_context,
+                                use_uid=True)
                             server.login(user, password)
                             server.select_folder(reports_folder)
                             move_messages([msg_uid],
@@ -1116,6 +1129,7 @@ def get_dmarc_reports_from_inbox(host=None,
                 connection=connection,
                 port=port,
                 ssl=ssl,
+                ssl_context=ssl_context,
                 move_supported=move_supported,
                 reports_folder=reports_folder,
                 archive_folder=archive_folder,
@@ -1340,9 +1354,10 @@ def email_results(results, host, mail_from, mail_to, port=0,
 
 
 def watch_inbox(host, username, password, callback, port=None, ssl=True,
-                reports_folder="INBOX", archive_folder="Archive",
-                delete=False, test=False, wait=30, nameservers=None,
-                dns_timeout=6.0, strip_attachment_payloads=False):
+                ssl_context=None, reports_folder="INBOX",
+                archive_folder="Archive", delete=False, test=False, wait=30,
+                nameservers=None, dns_timeout=6.0,
+                strip_attachment_payloads=False):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
@@ -1354,6 +1369,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         callback: The callback function to receive the parsing results
         port: The mail server port
         ssl (bool): Use SSL/TLS
+        ssl_context (SSLContext): A SSL context
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1369,7 +1385,11 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     af = archive_folder
     ns = nameservers
     dt = dns_timeout
-    server = imapclient.IMAPClient(host, port=port, ssl=ssl, use_uid=True)
+    if ssl_context is None:
+        ssl_context = create_default_context()
+    server = imapclient.IMAPClient(host, port=port, ssl=ssl,
+                                   ssl_context=ssl_context,
+                                   use_uid=True)
 
     try:
         server.login(username, password)

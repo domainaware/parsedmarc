@@ -9,6 +9,7 @@ from glob import glob
 import logging
 from collections import OrderedDict
 import json
+from ssl import CERT_NONE, create_default_context
 
 from elasticsearch.exceptions import ElasticsearchException
 
@@ -109,6 +110,10 @@ def _main():
     arg_parser.add_argument("-u", "--user", help="IMAP user")
     arg_parser.add_argument("-p", "--password", help="IMAP password")
     arg_parser.add_argument("--imap-port", default=None, help="IMAP port")
+    arg_parser.add_argument("--imap-skip-certificate-verification",
+                            action="store_true",
+                            default=False,
+                            help="Skip certificate verification for IMAP")
     arg_parser.add_argument("--imap-no-ssl", action="store_true",
                             default=False,
                             help="Do not use SSL/TLS when connecting to IMAP")
@@ -290,11 +295,18 @@ def _main():
             ns = args.nameservers
             sa = args.strip_attachment_payloads
             ssl = True
+            ssl_context = None
+            if args.imap_skip_certificate_verification:
+                logger.debug("Skipping IMAP certificate verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = CERT_NONE
             if args.imap_no_ssl:
                 ssl = False
             reports = get_dmarc_reports_from_inbox(host=args.host,
                                                    port=args.imap_port,
                                                    ssl=ssl,
+                                                   ssl_context=ssl_context,
                                                    user=args.user,
                                                    password=args.password,
                                                    reports_folder=rf,
@@ -339,12 +351,18 @@ def _main():
     if args.host and args.watch:
         logger.info("Watching for email - Quit with ctrl-c")
         ssl = True
+        ssl_context = None
+        if args.imap_skip_certificate_verification:
+            logger.debug("Skipping IMAP certificate verification")
+            ssl_context = create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = CERT_NONE
         if args.imap_no_ssl:
             ssl = False
         try:
             sa = args.strip_attachment_payloads
             watch_inbox(args.host, args.user, args.password, process_reports,
-                        port=args.imap_port, ssl=ssl,
+                        port=args.imap_port, ssl=ssl, ssl_context=ssl_context,
                         reports_folder=args.reports_folder,
                         archive_folder=args.archive_folder, delete=args.delete,
                         test=args.test, nameservers=args.nameservers,
