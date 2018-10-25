@@ -107,6 +107,9 @@ class HECClient(object):
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
                 json_str += "{0}\n".format(json.dumps(data))
+
+        if not self.session.verify:
+            logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(self.url, data=json_str).json()
         except Exception as e:
@@ -139,6 +142,9 @@ class HECClient(object):
             data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
+
+        if not self.session.verify:
+            logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(self.url, data=json_str).json()
         except Exception as e:

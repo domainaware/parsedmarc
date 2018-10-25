@@ -884,6 +884,8 @@ def get_dmarc_reports_from_inbox(host=None,
         if connection:
             server = connection
         else:
+            if not ssl:
+                logger.debug("Connecting to IMAP over plain text")
             if ssl_context is None:
                 ssl_context = create_default_context()
             server = imapclient.IMAPClient(host,
@@ -898,7 +900,7 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
-            logger.debug("Deleting message UIDs {0}".format(",".join(
+            logger.debug("Deleting message UID(s) {0}".format(",".join(
                 str(uid) for uid in msg_uids)))
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
@@ -911,12 +913,12 @@ def get_dmarc_reports_from_inbox(host=None,
                 msg_uids = [int(msg_uids)]
             for chunk in chunks(msg_uids, 100):
                 if move_supported:
-                    logger.debug("Moving message UIDs {0} to {1}".format(
+                    logger.debug("Moving message UID(s) {0} to {1}".format(
                         ",".join(str(uid) for uid in chunk), folder
                     ))
                     server.move(chunk, folder)
                 else:
-                    logger.debug("Copying message UIDs {0} to {1}".format(
+                    logger.debug("Copying message UID(s) {0} to {1}".format(
                         ",".join(str(uid) for uid in chunk), folder
                     ))
                     server.copy(msg_uids, folder)
@@ -970,6 +972,8 @@ def get_dmarc_reports_from_inbox(host=None,
                 except (ConnectionResetError, TimeoutError) as error:
                     logger.debug("IMAP error: {0}".format(error.__str__()))
                     logger.debug("Reconnecting to IMAP")
+                    if not ssl:
+                        logger.debug("Connecting to IMAP over plain text")
                     server = imapclient.IMAPClient(host,
                                                    port=port,
                                                    ssl=ssl,
@@ -1034,6 +1038,8 @@ def get_dmarc_reports_from_inbox(host=None,
                     except (ConnectionResetError, TimeoutError) as e:
                         logger.debug("IMAP error: {0}".format(e.__str__()))
                         logger.debug("Reconnecting to IMAP")
+                        if not ssl:
+                            logger.debug("Connecting to IMAP over plain text")
                         server = imapclient.IMAPClient(host,
                                                        port=port,
                                                        ssl=ssl,
@@ -1068,6 +1074,9 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
+                            if not ssl:
+                                logger.debug(
+                                    "Connecting to IMAP over plain text")
                             server = imapclient.IMAPClient(
                                 host,
                                 port=port,
@@ -1106,6 +1115,9 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
+                            if not ssl:
+                                logger.debug(
+                                    "Connecting to IMAP over plain text")
                             server = imapclient.IMAPClient(
                                 host,
                                 port=port,
