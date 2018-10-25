@@ -55,26 +55,26 @@ CLI help
 
 ::
 
-    usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                      [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                      [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                      [--imap-no-ssl] [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                      [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                      [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                      [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                      [--hec-skip-certificate-verification]
-                      [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                      [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                      [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                      [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                      [--outgoing-port OUTGOING_PORT]
-                      [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                      [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                      [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                      [-s] [--debug] [-v]
-                      [file_path [file_path ...]]
+    usage: cli.py [-h] [--strip-attachment-payloads] [-o OUTPUT]
+                  [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
+                  [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
+                  [--imap-skip-certificate-verification] [--imap-no-ssl]
+                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
+                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                  [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                  [--hec-skip-certificate-verification]
+                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC] [--save-aggregate]
+                  [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
+                  [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
+                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                  [-s] [--debug] [-v]
+                  [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -100,6 +100,8 @@ CLI help
                             IMAP password
       --imap-port IMAP_PORT
                             IMAP port
+      --imap-skip-certificate-verification
+                            Skip certificate verification for IMAP
       --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
       -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
                             The IMAP folder containing the reports (Default:

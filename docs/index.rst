@@ -61,26 +61,27 @@ CLI help
 
 ::
 
- usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                   [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                   [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                   [--imap-no-ssl] [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                   [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                   [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                   [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                   [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                   [--hec-skip-certificate-verification]
-                   [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                   [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                   [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                   [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                   [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                   [--outgoing-port OUTGOING_PORT]
-                   [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                   [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                   [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                   [-s] [--debug] [-v]
-                   [file_path [file_path ...]]
+   usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
+                     [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
+                     [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
+                     [--imap-skip-certificate-verification] [--imap-no-ssl]
+                     [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                     [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                     [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
+                     [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                     [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                     [--hec-skip-certificate-verification]
+                     [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                     [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                     [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
+                     [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                     [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                     [--outgoing-port OUTGOING_PORT]
+                     [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                     [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                     [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                     [-s] [--debug] [-v]
+                     [file_path [file_path ...]]
 
    Parses DMARC reports
 
@@ -106,6 +107,8 @@ CLI help
                            IMAP password
      --imap-port IMAP_PORT
                            IMAP port
+     --imap-skip-certificate-verification
+                           Skip certificate verification for IMAP
      --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
                            The IMAP folder containing the reports (Default:
@@ -379,6 +382,39 @@ Installation
 ============
 
 ``parsedmarc`` works with Python 3 only.
+
+.. note::
+
+   If your system is behind a web proxy, you neeed to configure your system
+   to use that proxy. To do this, edit ``/etc/environment`` and add your
+   proxy details there, for example:
+
+   ::
+
+      http_proxy=http://user:password@prox-server:3128
+      https_proxy=http://user:password@prox-server:3128
+      ftp_proxy=http://user:password@prox-server:3128
+
+   Or if no credentials are needed:
+
+   ::
+
+      http_proxy=http://prox-server:3128
+      https_proxy=http://@prox-server:3128
+      ftp_proxy=http://prox-server:3128
+
+   This will set the the proxy up for use system-wide, including for
+   ``parsedmarc``.
+
+.. warning::
+
+   If your mail server is Microsoft Exchange, ensure that it is patched to at
+   least:
+
+   - Exchange Server 2010 Update Rollup 22 (`KB4295699 <https://support.microsoft.com/KB/4295699>`_)
+   - Exchange Server 2013 Cumulative Update 21 (`KB4099855 <https://support.microsoft.com/KB/4099855>`_)
+   - Exchange Server 2016 Cumulative Update 11 (`KB4134118 <https://support.microsoft.com/kb/4134118>`_)
+
 
 On Debian or Ubuntu systems, run:
 
