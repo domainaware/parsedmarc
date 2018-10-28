@@ -676,7 +676,7 @@ tags in your DMARC record, separated by commas.</p>
 <p class="first admonition-title">Note</p>
 <p class="last">Elasticsearch and Kibana 6 or later are required</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y openjdk-8-jre apt-transport-https
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
 <span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
 sudo apt-get update

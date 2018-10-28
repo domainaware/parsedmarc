@@ -548,7 +548,7 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 .. code-block:: bash
 
-    sudo apt-get install -y openjdk-8-jre apt-transport-https
+    sudo apt-get install -y apt-transport-https
     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
     echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
     sudo apt-get update
