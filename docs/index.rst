@@ -577,8 +577,8 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
     sudo systemctl daemon-reload
     sudo systemctl enable elasticsearch.service
     sudo systemctl enable kibana.service
-    sudo service start elasticsearch
-    sudo service start kibana
+    sudo service elasticsearch start
+    sudo service kibana start
 
 Without the commercial X-Pack_, Kibana does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
