@@ -6,6 +6,7 @@ import json
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
 from collections import OrderedDict
+from parsedmarc.utils import human_timestamp_to_datetime
 
 logger = logging.getLogger("parsedmarc")
 
