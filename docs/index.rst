@@ -548,7 +548,7 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 .. code-block:: bash
 
-    sudo apt-get install -y openjdk-8-jre apt-transport-https
+    sudo apt-get install -y apt-transport-https
     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
     echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
     sudo apt-get update
@@ -577,8 +577,8 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
     sudo systemctl daemon-reload
     sudo systemctl enable elasticsearch.service
     sudo systemctl enable kibana.service
-    sudo service start elasticsearch
-    sudo service start kibana
+    sudo service elasticsearch start
+    sudo service kibana start
 
 Without the commercial X-Pack_, Kibana does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
