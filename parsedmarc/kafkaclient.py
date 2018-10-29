@@ -49,8 +49,8 @@ class KafkaClient(object):
         metadata = report["report_metadata"]
         begin_date = human_timestamp_to_datetime(metadata["begin_date"])
         end_date = human_timestamp_to_datetime(metadata["end_date"])
-        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
-        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
+        begin_date_human = begin_date.strftime("%Y-%m-%dT%H:%M:%S")
+        end_date_human = end_date.strftime("%Y-%m-%dT%H:%M:%S")
         date_range = [begin_date_human,
                       end_date_human]
         logger.debug("date_range is {}".format(date_range))
@@ -67,8 +67,6 @@ class KafkaClient(object):
             aggregate_topic (str): The name of the Kafka topic
 
         """
-        logger.debug("aggregate_reports_save was called with aggr_report"
-                     "type {}".format(type(aggregate_reports)))
         if (type(aggregate_reports) == dict or
            type(aggregate_reports) == OrderedDict):
             aggregate_reports = [aggregate_reports]
