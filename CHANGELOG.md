@@ -1,3 +1,12 @@
+4.3.9
+-----
+
+- Kafka output improvements
+  - Moved some key values (`report_id`, `org_email`, `org_name`) higher in the JSON structure
+  - Recreated the `date_range` values from the ES client for easier parsing.
+  - Started sending individual record slices. Kafka default message size is 1 MB, some aggregate reports were exceeding this. Now it appends meta-data and sends record by record.
+
+
 4.3.8
 -----
 
