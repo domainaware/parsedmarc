@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.8 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.3.9 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.3.8
+                4.3.9
               </div>
             
           
@@ -107,6 +107,7 @@
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#dns-performance">DNS performance</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
+<li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a><ul>
 <li><a class="reference internal" href="#records-retention">Records retention</a></li>
 </ul>
@@ -665,6 +666,89 @@ not match records in the public DNS.</p>
 at the same time, you can have up to two mailto URIs each in the rua and ruf
 tags in your DMARC record, separated by commas.</p>
 </div>
+<div class="section" id="accessing-an-inbox-using-owa-ews">
+<h3>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this headline">¶</a></h3>
+<p>Some organisations do not allow IMAP, and only support Exchange Web Services
+(EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
+as a local EWS/OWA IMAP gateway.</p>
+<p>To do this, download the latest <code class="docutils literal notranslate"><span class="pre">davmail-version.zip</span></code> from
+<a class="reference external" href="https://sourceforge.net/projects/davmail/files/">https://sourceforge.net/projects/davmail/files/</a></p>
+<p>Extract the zip using the <code class="docutils literal notranslate"><span class="pre">unzip</span></code> command.</p>
+<p>Install Java:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-install default-jre-headless
+</pre></div>
+</div>
+<p>Configure Davmail by creating a <code class="docutils literal notranslate"><span class="pre">davmail.properties</span></code> file</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># DavMail settings, see http://davmail.sourceforge.net/ for documentation</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># Basic settings</span>
+
+<span class="c1"># Server or workstation mode</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">server</span><span class="o">=</span><span class="n">true</span>
+
+<span class="c1"># connection mode auto, EWS or WebDav</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">enableEws</span><span class="o">=</span><span class="n">auto</span>
+
+<span class="c1"># base Exchange OWA or EWS url</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">url</span><span class="o">=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">outlook</span><span class="o">.</span><span class="n">office365</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">EWS</span><span class="o">/</span><span class="n">Exchange</span><span class="o">.</span><span class="n">asmx</span>
+
+<span class="c1"># Listener ports</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">imapPort</span><span class="o">=</span><span class="mi">1143</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># Network settings</span>
+
+<span class="c1"># Network proxy settings</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">enableProxy</span><span class="o">=</span><span class="n">false</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">useSystemProxies</span><span class="o">=</span><span class="n">false</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">proxyHost</span><span class="o">=</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">proxyPort</span><span class="o">=</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">proxyUser</span><span class="o">=</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">proxyPassword</span><span class="o">=</span>
+
+<span class="c1"># proxy exclude list</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">noProxyFor</span><span class="o">=</span>
+
+<span class="c1"># allow remote connection to DavMail</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">allowRemote</span><span class="o">=</span><span class="n">false</span>
+
+<span class="c1"># bind server sockets to the loopback address</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">bindAddress</span><span class="o">=</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span>
+
+<span class="c1"># disable SSL for specified listeners</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">nosecureimap</span><span class="o">=</span><span class="n">false</span>
+
+<span class="c1"># Send keepalive character during large folder and messages download</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">enableKeepalive</span><span class="o">=</span><span class="n">true</span>
+<span class="c1"># Message count limit on folder retrieval</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">folderSizeLimit</span><span class="o">=</span><span class="mi">0</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># IMAP settings</span>
+
+<span class="c1"># Delete messages immediately on IMAP STORE \Deleted flag</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">imapAutoExpunge</span><span class="o">=</span><span class="n">true</span>
+
+<span class="c1"># Enable IDLE support, set polling delay in minutes</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">imapIdleDelay</span><span class="o">=</span><span class="mi">1</span>
+
+<span class="c1"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate message size for performance reasons</span>
+<span class="n">davmail</span><span class="o">.</span><span class="n">imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="n">true</span>
+
+<span class="c1">#############################################################</span>
+</pre></div>
+</div>
+<p>Run Davmail</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./davmail.sh
+</pre></div>
+</div>
+<p>Because you are interacting with Davmail server over the loopback
+(i.e. 127.0.0.1), pass the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--imap-no-ssl -H <span class="m">127</span>.0.0.1 --imap-port <span class="m">1143</span>
+</pre></div>
+</div>
+</div>
 <div class="section" id="elasticsearch-and-kibana">
 <h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note">
@@ -823,7 +907,7 @@ it is normal to receive very few forensic reports.</p>
 in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span> <span class="pre">--save-forensic</span></code> manually on a
 separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">-r</span></code> option), after you have manually
 moved known samples you want to save to that folder (e.g. malicious
-samples non-sensitive legitimate samples).</p>
+samples and non-sensitive legitimate samples).</p>
 </div>
 <p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json">kibana_saved_objects.json</a>.</p>
 <p>Import <code class="docutils literal notranslate"><span class="pre">kibana_saved_objects.json</span></code> the Saved Objects tab of the management
@@ -1985,7 +2069,7 @@ country associated with the given IPv4 or IPv6 address</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'4.3.8',
+              VERSION:'4.3.9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
