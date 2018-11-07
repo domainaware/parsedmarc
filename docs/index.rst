@@ -532,6 +532,101 @@ If you would like to test parsedmarc and another report processing solution
 at the same time, you can have up to two mailto URIs each in the rua and ruf
 tags in your DMARC record, separated by commas.
 
+Accessing an inbox using OWA/EWS
+--------------------------------
+
+Some organisations do not allow IMAP, and only support Exchange Web Services
+(EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
+as a local EWS/OWA IMAP gateway.
+
+To do this, download the latest ``davmail-version.zip`` from
+https://sourceforge.net/projects/davmail/files/
+
+Extract the zip using the ``unzip`` command.
+
+Install Java:
+
+.. code-block:: bash
+
+    sudo apt-install default-jre-headless
+
+Configure Davmail by creating a ``davmail.properties`` file
+
+::
+
+   # DavMail settings, see http://davmail.sourceforge.net/ for documentation
+
+   #############################################################
+   # Basic settings
+
+   # Server or workstation mode
+   davmail.server=true
+
+   # connection mode auto, EWS or WebDav
+   davmail.enableEws=auto
+
+   # base Exchange OWA or EWS url
+   davmail.url=https://outlook.office365.com/EWS/Exchange.asmx
+
+   # Listener ports
+   davmail.imapPort=1143
+
+   #############################################################
+   # Network settings
+
+   # Network proxy settings
+   davmail.enableProxy=false
+   davmail.useSystemProxies=false
+   davmail.proxyHost=
+   davmail.proxyPort=
+   davmail.proxyUser=
+   davmail.proxyPassword=
+
+   # proxy exclude list
+   davmail.noProxyFor=
+
+   # allow remote connection to DavMail
+   davmail.allowRemote=false
+
+   # bind server sockets to the loopback address
+   davmail.bindAddress=127.0.0.1
+
+   # disable SSL for specified listeners
+   davmail.ssl.nosecureimap=false
+
+   # Send keepalive character during large folder and messages download
+   davmail.enableKeepalive=true
+   # Message count limit on folder retrieval
+   davmail.folderSizeLimit=0
+
+   #############################################################
+   # IMAP settings
+
+   # Delete messages immediately on IMAP STORE \Deleted flag
+   davmail.imapAutoExpunge=true
+
+   # Enable IDLE support, set polling delay in minutes
+   davmail.imapIdleDelay=1
+
+   # Always reply to IMAP RFC822.SIZE requests with Exchange approximate message size for performance reasons
+   davmail.imapAlwaysApproxMsgSize=true
+
+   #############################################################
+
+Run Davmail
+
+.. code-block:: bash
+
+    ./davmail.sh
+
+
+Because you are interacting with Davmail server over the loopback
+(i.e. 127.0.0.1), pass the following options to ``parsedmarc``:
+
+.. code-block:: bash
+
+      --imap-no-ssl -H 127.0.0.1 --imap-port 1143
+
 Elasticsearch and Kibana
 ------------------------
 
@@ -730,7 +825,7 @@ Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
    in your DMARC inbox, but run ``parsedmarc --save-forensic`` manually on a
    separate IMAP folder (using the  ``-r`` option), after you have manually
    moved known samples you want to save to that folder (e.g. malicious
-   samples non-sensitive legitimate samples).
+   samples and non-sensitive legitimate samples).
 
 
 
