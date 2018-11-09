@@ -1,3 +1,8 @@
+4.4.1
+-----
+
+- Don't crash if Elasticsearch returns an unexpected result (workaround for issue #31)
+
 4.4.0
 -----
 

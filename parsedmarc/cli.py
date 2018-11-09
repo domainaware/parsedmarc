@@ -42,10 +42,9 @@ def _main():
                             report, index=es_aggregate_index)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
-                except ElasticsearchException as error_:
+                except elastic.ElasticsearchError as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
-                    exit(1)
                 try:
                     if args.kafka_hosts:
                         kafka_client.save_aggregate_reports_to_kafka(
@@ -69,7 +68,7 @@ def _main():
                             report, index=es_forensic_index)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
-                except ElasticsearchException as error_:
+                except elastic.ElasticsearchError as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
                 try:
@@ -243,7 +242,7 @@ def _main():
             if args.elasticsearch_host:
                 elastic.set_hosts(args.elasticsearch_host)
                 elastic.create_indexes([es_aggregate_index, es_forensic_index])
-        except ElasticsearchException as error:
+        except elastic.ElasticsearchError as error:
             logger.error("Elasticsearch Error: {0}".format(error.__str__()))
             exit(1)
 

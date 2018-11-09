@@ -12,6 +12,10 @@ from parsedmarc.utils import human_timestamp_to_datetime
 logger = logging.getLogger("parsedmarc")
 
 
+class ElasticsearchError(Exception):
+    """Raised when an Elasticsearch error occurs"""
+
+
 class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
@@ -187,11 +191,15 @@ def create_indexes(names=None, settings=None):
         names = ["dmarc_aggregate", "dmarc_forensic"]
     for name in names:
         index = Index(name)
-        if not index.exists():
-            logger.debug("Creating Elasticsearch index: {0}".format(name))
-            if settings:
-                index.put_settings(settings)
-            index.create()
+        try:
+            if not index.exists():
+                logger.debug("Creating Elasticsearch index: {0}".format(name))
+                if settings:
+                    index.put_settings(settings)
+                index.create()
+        except Exception as e:
+            raise ElasticsearchError(
+                "Elasticsearch error: {0}".format(e.__str__()))
 
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
@@ -289,7 +297,11 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
                                    result=spf_result["result"])
 
         agg_doc.meta.index = index
-        agg_doc.save()
+        try:
+            agg_doc.save()
+        except Exception as e:
+            raise ElasticsearchError(
+                "Elasticsearch error: {0}".format(e.__str__()))
 
 
 def save_forensic_report_to_elasticsearch(forensic_report,
@@ -401,4 +413,8 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     )
 
     forensic_doc.meta.index = index
-    forensic_doc.save()
+    try:
+        forensic_doc.save()
+    except Exception as e:
+        raise ElasticsearchError(
+            "Elasticsearch error: {0}".format(e.__str__()))
