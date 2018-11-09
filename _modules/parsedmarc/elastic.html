@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 4.4.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 4.4.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.4.0
+                4.4.1
               </div>
             
           
@@ -157,6 +157,10 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">human_timestamp_to_datetime</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
 
 
 <span class="k">class</span> <span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -334,11 +338,15 @@
         <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dmarc_aggregate&quot;</span><span class="p">,</span> <span class="s2">&quot;dmarc_forensic&quot;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
-                <span class="n">index</span><span class="o">.</span><span class="n">put_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
-            <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
+                    <span class="n">index</span><span class="o">.</span><span class="n">put_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+                <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
+                <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
@@ -436,7 +444,11 @@
                                    <span class="n">result</span><span class="o">=</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
 
         <span class="n">agg_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
-        <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
+                <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
@@ -548,7 +560,11 @@
     <span class="p">)</span>
 
     <span class="n">forensic_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
-    <span class="n">forensic_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">forensic_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
+            <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 </pre></div>
 
            </div>
@@ -585,7 +601,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'4.4.0',
+              VERSION:'4.4.1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
