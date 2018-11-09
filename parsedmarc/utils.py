@@ -14,6 +14,7 @@ import mailparser
 import json
 import hashlib
 import base64
+import platform
 
 import dateparser
 import dns.reversename
@@ -24,7 +25,13 @@ import geoip2.errors
 import requests
 import publicsuffix
 
-from parsedmarc.__version__ import USER_AGENT
+__version__ = "4.3.9"
+
+USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+            platform.system(),
+            platform.release(),
+            __version__
+        )
 
 
 logger = logging.getLogger("parsedmarc")

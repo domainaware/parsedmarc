@@ -32,11 +32,12 @@ import imapclient
 import imapclient.exceptions
 import mailparser
 
-from parsedmarc.__version__ import __version__
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
+
+__version__ = "4.4.0"
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
