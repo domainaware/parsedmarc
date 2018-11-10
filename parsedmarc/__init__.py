@@ -50,6 +50,7 @@ MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 
+DNS_CACHE = dict()
 
 class ParserError(RuntimeError):
     """Raised whenever the parser fails for some reason"""
@@ -93,9 +94,13 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
         nameservers = ["8.8.8.8", "4.4.4.4"]
     record = record.copy()
     new_record = OrderedDict()
-    new_record["source"] = get_ip_address_info(record["row"]["source_ip"],
-                                               nameservers=nameservers,
-                                               timeout=timeout)
+    new_record_source = DNS_CACHE.get(record["row"]["source_ip"], None)
+    if not new_record_source:
+        new_record_source = get_ip_address_info(record["row"]["source_ip"],
+                                                nameservers=nameservers,
+                                                timeout=timeout)
+        DNS_CACHE[record["row"]["source_ip"]] = new_record_source
+    new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
     policy_evaluated = record["row"]["policy_evaluated"].copy()
     new_policy_evaluated = OrderedDict([("disposition", "none"),
@@ -207,6 +212,8 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         OrderedDict: The parsed aggregate DMARC report
     """
     errors = []
+
+    DNS_CACHE = dict()
 
     try:
         xmltodict.parse(xml)["feedback"]
@@ -536,9 +543,13 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         parsed_report["arrival_date_utc"] = arrival_utc
 
         ip_address = parsed_report["source_ip"]
-        parsed_report["source"] = get_ip_address_info(ip_address,
-                                                      nameservers=nameservers,
-                                                      timeout=timeout)
+        parsed_report_source = DNS_CACHE.get(ip_address, None)
+        if not parsed_report_source:
+            parsed_report_source = get_ip_address_info(ip_address,
+                                                       nameservers=nameservers,
+                                                       timeout=timeout)
+            DNS_CACHE[ip_address] = parsed_report_source
+        parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
         if "identity_alignment" not in parsed_report:
