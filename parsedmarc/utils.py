@@ -104,13 +104,14 @@ def get_base_domain(domain):
     return psl.get_public_suffix(domain)
 
 
-def query_dns(domain, record_type, nameservers=None, timeout=2.0):
+def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     """
     Queries DNS
 
     Args:
         domain (str): The domain or subdomain to query about
         record_type (str): The record type to query for
+        cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
@@ -118,6 +119,14 @@ def query_dns(domain, record_type, nameservers=None, timeout=2.0):
     Returns:
         list: A list of answers
     """
+    domain = str(domain).lower()
+    record_type = record_type.upper()
+    cache_key = "{0}_{1}".format(domain, record_type)
+    if cache:
+        records = cache.get(cache_key, None)
+        if records:
+            return records
+
     resolver = dns.resolver.Resolver()
     timeout = float(timeout)
     if nameservers is None:
@@ -134,19 +143,24 @@ def query_dns(domain, record_type, nameservers=None, timeout=2.0):
         _resource_record = [
             resource_record[0][:0].join(resource_record)
             for resource_record in resource_records if resource_record]
-        return [r.decode() for r in _resource_record]
+        records = [r.decode() for r in _resource_record]
     else:
-        return list(map(
+        records = list(map(
             lambda r: r.to_text().replace('"', '').rstrip("."),
             resolver.query(domain, record_type, tcp=True)))
+    if cache:
+        cache[cache_key] = records
+
+    return records
 
 
-def get_reverse_dns(ip_address, nameservers=None, timeout=2.0):
+def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
     Args:
         ip_address (str): The IP address to resolve
+        cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
@@ -157,7 +171,7 @@ def get_reverse_dns(ip_address, nameservers=None, timeout=2.0):
     hostname = None
     try:
         address = dns.reversename.from_address(ip_address)
-        hostname = query_dns(address, "PTR",
+        hostname = query_dns(address, "PTR", cache=cache,
                              nameservers=nameservers,
                              timeout=timeout)[0]
 
@@ -290,12 +304,13 @@ def get_ip_address_country(ip_address):
     return country
 
 
-def get_ip_address_info(ip_address, nameservers=None, timeout=2.0):
+def get_ip_address_info(ip_address, cache=None, nameservers=None, timeout=2.0):
     """
     Returns reverse DNS and country information for the given IP address
 
     Args:
         ip_address (str): The IP address to check
+        cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
@@ -305,6 +320,10 @@ def get_ip_address_info(ip_address, nameservers=None, timeout=2.0):
 
     """
     ip_address = ip_address.lower()
+    if cache:
+        info = cache.get(ip_address, None)
+        if info:
+            return info
     info = OrderedDict()
     info["ip_address"] = ip_address
     reverse_dns = get_reverse_dns(ip_address,
