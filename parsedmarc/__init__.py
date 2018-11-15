@@ -52,6 +52,7 @@ MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 
 DNS_CACHE = dict()
 
+
 class ParserError(RuntimeError):
     """Raised whenever the parser fails for some reason"""
 
@@ -212,8 +213,6 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
         OrderedDict: The parsed aggregate DMARC report
     """
     errors = []
-
-    DNS_CACHE = dict()
 
     try:
         xmltodict.parse(xml)["feedback"]
