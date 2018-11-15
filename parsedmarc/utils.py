@@ -426,11 +426,15 @@ def parse_email(data, strip_attachment_payloads=False):
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()
     parsed_email["headers"] = headers
+
     if "received" in parsed_email:
         for received in parsed_email["received"]:
             if "date_utc" in received:
-                received["date_utc"] = received["date_utc"].replace("T",
-                                                                    " ")
+                if received["date_utc"] is None:
+                    del received["date_utc"]
+                else:
+                    received["date_utc"] = received["date_utc"].replace("T",
+                                                                        " ")
 
     if "from" not in parsed_email:
         if "From" in parsed_email["headers"]:
