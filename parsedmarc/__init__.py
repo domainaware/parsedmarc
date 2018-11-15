@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "4.4.1"
+__version__ = "4.5.0"
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
@@ -1506,6 +1506,20 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                 idle_start_time = time.monotonic()
             responses = server.idle_check(timeout=wait)
             if responses is not None:
+                if len(responses) == 0:
+                    # Gmail/G-Suite does not generate anything in the responses
+                    server.idle_done()
+                    res = get_dmarc_reports_from_inbox(connection=server,
+                                                       move_supported=ms,
+                                                       reports_folder=rf,
+                                                       archive_folder=af,
+                                                       delete=delete,
+                                                       test=test,
+                                                       nameservers=ns,
+                                                       dns_timeout=dt)
+                    callback(res)
+                    server.idle()
+                    idle_start_time = time.monotonic()
                 for response in responses:
                     if response[1] == b'RECENT' and response[0] > 0:
                         server.idle_done()

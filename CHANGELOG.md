@@ -1,3 +1,10 @@
+4.5.0
+-----
+
+- Bugfix: `fo` tag is a string, not an integer (closes issue #31)
+- Bugfix: IDE email processing in Gmail/G-Suite accounts (closes issue #33)
+- Cache DNS queries in memory
+
 4.4.1
 -----
 

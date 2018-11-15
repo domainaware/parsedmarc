@@ -28,7 +28,7 @@ class _PublishedPolicy(InnerDoc):
     p = Text()
     sp = Text()
     pct = Integer()
-    fo = Integer()
+    fo = Text()
 
 
 class _DKIMResult(InnerDoc):
