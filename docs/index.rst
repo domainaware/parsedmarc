@@ -100,7 +100,7 @@ CLI help
                            nameservers)
      -t TIMEOUT, --timeout TIMEOUT
                            number of seconds to wait for an answer from DNS
-                           (Default: 2.0)
+                           (Default: 6.0)
      -H HOST, --host HOST  IMAP hostname or IP address
      -u USER, --user USER  IMAP user
      -p PASSWORD, --password PASSWORD
