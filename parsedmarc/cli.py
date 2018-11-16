@@ -100,7 +100,7 @@ def _main():
                                  "(Default is Cloudflare's nameservers)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (Default: 2.0)",
+                                 "from DNS (Default: 6.0)",
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
@@ -240,6 +240,8 @@ def _main():
             if args.elasticsearch_host:
                 elastic.set_hosts(args.elasticsearch_host)
                 elastic.create_indexes([es_aggregate_index, es_forensic_index])
+                elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
+                                        forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:
             logger.error("Elasticsearch Error: {0}".format(error.__str__()))
             exit(1)

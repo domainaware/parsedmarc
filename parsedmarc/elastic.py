@@ -2,6 +2,7 @@
 
 import logging
 from collections import OrderedDict
+import json
 
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
@@ -28,7 +29,7 @@ class _PublishedPolicy(InnerDoc):
     p = Text()
     sp = Text()
     pct = Integer()
-    fo = Text()
+    fo = Integer()  # TODO: Change this to Text (issue #31)
 
 
 class _DKIMResult(InnerDoc):
@@ -200,6 +201,32 @@ def create_indexes(names=None, settings=None):
         except Exception as e:
             raise ElasticsearchError(
                 "Elasticsearch error: {0}".format(e.__str__()))
+
+
+def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
+    """
+    Updates index mappings
+
+    Args:
+        aggregate_indexes (list): A list of aggregate index names
+        forensic_indexes (list): A list of forensic index names
+    """
+    if aggregate_indexes is None:
+        aggregate_indexes = []
+    if forensic_indexes is None:
+        forensic_indexes = []
+    for aggregate_index_name in aggregate_indexes:
+        aggregate_index = Index(aggregate_index_name)
+        doc = "doc"
+        fo_field = "published_policy.fo"
+        fo = "fo"
+        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])[
+            aggregate_index_name]["mappings"][doc][fo_field]["mapping"][fo]
+        fo_type = fo_mapping["type"]
+        if fo_type == "long":
+            pass  # TODO: Do reindex, delete, and alias here (issue #31)
+    for forensic_index in forensic_indexes:
+        pass
 
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
