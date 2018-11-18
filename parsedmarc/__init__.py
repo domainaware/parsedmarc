@@ -1451,7 +1451,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         raise IMAPError("DNS resolution failed")
     except ConnectionRefusedError:
         raise IMAPError("Connection refused")
-    except ConnectionResetError:
+    except (KeyError, ConnectionResetError):
         logger.debug("IMAP error: Connection reset")
         logger.debug("Reconnecting watcher")
         server = imapclient.IMAPClient(host)
@@ -1542,7 +1542,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
             raise IMAPError("DNS resolution failed")
         except ConnectionRefusedError:
             raise IMAPError("Connection refused")
-        except ConnectionResetError:
+        except (KeyError, ConnectionResetError):
             logger.debug("IMAP error: Connection reset")
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
@@ -1558,6 +1558,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                                test=test,
                                                nameservers=ns,
                                                dns_timeout=dt)
+            callback(res)
+            server.idle()
         except ConnectionAbortedError:
             raise IMAPError("Connection aborted")
         except TimeoutError:
