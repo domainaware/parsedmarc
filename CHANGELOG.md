@@ -7,6 +7,8 @@
 as `text` instead of `long` (Closes issue #31)
 - Bugfix: IDLE email processing in Gmail/G-Suite accounts (closes issue #33)
 - Bugfix: Fix inaccurate DNS timeout in CLI documentation (closes issue #34)
+- Bugfix: Crash when `Arrival-Date` header is missing in a 
+forensic/fialure/ruf report 
 - IMAP reliability improvements
 - Save data in separate indexes each day to make managing data retention easier
 - Cache DNS queries in memory

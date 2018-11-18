@@ -527,7 +527,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             parsed_report[key] = report_value[1]
 
         if "arrival_date" not in parsed_report:
-            parsed_report["arrival_date"] = msg_date
+            parsed_report["arrival_date"] = msg_date.isoformat()
 
         if "version" not in parsed_report:
             parsed_report["version"] = 1
