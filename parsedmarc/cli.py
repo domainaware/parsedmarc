@@ -37,7 +37,8 @@ def _main():
                 try:
                     if args.elasticsearch_host:
                         elastic.save_aggregate_report_to_elasticsearch(
-                            report, index_suffix=args.elasticsearch_index_suffix)
+                            report,
+                            index_suffix=args.elasticsearch_index_suffix)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -63,7 +64,8 @@ def _main():
                 try:
                     if args.elasticsearch_host:
                         elastic.save_forensic_report_to_elasticsearch(
-                            report, index_suffix=args.elasticsearch_index_suffix)
+                            report,
+                            index_suffix=args.elasticsearch_index_suffix)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:

@@ -244,7 +244,8 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
             }
             Index(new_index_name).create()
             Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)
+            reindex(connections.get_connection(), aggregate_index_name,
+                    new_index_name)
             Index(aggregate_index_name).delete()
 
     for forensic_index in forensic_indexes:
