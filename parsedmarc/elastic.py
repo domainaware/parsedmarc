@@ -2,11 +2,10 @@
 
 import logging
 from collections import OrderedDict
-import json
 
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
-    InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date
+    InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date, Search
 from elasticsearch.helpers import reindex
 
 
@@ -180,18 +179,15 @@ def set_hosts(hosts):
     connections.create_connection(hosts=hosts, timeout=20)
 
 
-def create_indexes(names=None, settings=None):
+def create_indexes(names, settings=None):
     """
     Create Elasticsearch indexes
 
     Args:
         names (list): A list of index names
-        ["dmarc_aggregate", "dmarc_forensic"] by default
         settings (dict): Index settings
 
     """
-    if names is None:
-        names = ["dmarc_aggregate", "dmarc_forensic"]
     for name in names:
         index = Index(name)
         try:
@@ -219,12 +215,14 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
     if forensic_indexes is None:
         forensic_indexes = []
     for aggregate_index_name in aggregate_indexes:
+        if not Index(aggregate_index_name).exists():
+            continue
         aggregate_index = Index(aggregate_index_name)
         doc = "doc"
         fo_field = "published_policy.fo"
         fo = "fo"
-        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])[
-            aggregate_index_name]["mappings"]
+        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
+        fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
         if doc not in fo_mapping:
             continue
 
@@ -248,20 +246,19 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
             Index(new_index_name).put_mapping(doc_type=doc, body=body)
             reindex(connections.get_connection(), aggregate_index_name, new_index_name)
             Index(aggregate_index_name).delete()
-            Index(new_index_name).put_alias(name=aggregate_index_name)
 
     for forensic_index in forensic_indexes:
         pass
 
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
-                                           index="dmarc_aggregate"):
+                                           index_suffix=None):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
-        index (str): The name of the index to save to
+        index_suffix (str): The suffix of the name of the index to save to
 
     Raises:
             AlreadySaved
@@ -276,6 +273,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     end_date = human_timestamp_to_datetime(metadata["end_date"])
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
+    index_date = begin_date.strftime("%Y-%m-%d")
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
     date_range = (aggregate_report["begin_date"],
@@ -283,11 +281,11 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
     org_name_query = Q(dict(match=dict(org_name=org_name)))
     report_id_query = Q(dict(match=dict(report_id=report_id)))
-    domain_query = Q(dict(match=dict(domain=domain)))
+    domain_query = Q(dict(match={"published_policy.domain": domain}))
     begin_date_query = Q(dict(match=dict(date_range=begin_date)))
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
-    search = Index(index).search()
+    search = Search(index="dmarc_aggregate*")
     search.query = org_name_query & report_id_query & domain_query & \
         begin_date_query & end_date_query
 
@@ -348,7 +346,13 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
                                    scope=spf_result["scope"],
                                    result=spf_result["result"])
 
+        index = "dmarc_aggregate"
+        if index_suffix:
+            index = "{0}_{1}".format(index, index_suffix)
+        index = "{0}-{1}".format(index, index_date)
+        create_indexes([index])
         agg_doc.meta.index = index
+
         try:
             agg_doc.save()
         except Exception as e:
@@ -357,13 +361,13 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
 
 def save_forensic_report_to_elasticsearch(forensic_report,
-                                          index="dmarc_forensic"):
+                                          index_suffix=None):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 
         Args:
             forensic_report (OrderedDict): A parsed forensic report
-            index (str): The name of the index to save to
+            index_suffix (str): The suffix of the name of the index to save to
 
         Raises:
             AlreadySaved
@@ -383,7 +387,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     arrival_date_human = forensic_report["arrival_date_utc"]
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
-    search = Index(index).search()
+    search = Search(index="dmarc_forensic*")
     arrival_query = {"match": {"arrival_date": arrival_date}}
     q = Q(arrival_query)
 
@@ -464,6 +468,12 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         sample=sample
     )
 
+    index = "dmarc_forensic"
+    if index_suffix:
+        index = "{0}_{1}".format(index, index_suffix)
+    index_date = arrival_date.strftime("%Y-%m-%d")
+    index = "{0}-{1}".format(index, index_date)
+    create_indexes([index])
     forensic_doc.meta.index = index
     try:
         forensic_doc.save()

@@ -37,7 +37,7 @@ def _main():
                 try:
                     if args.elasticsearch_host:
                         elastic.save_aggregate_report_to_elasticsearch(
-                            report, index=es_aggregate_index)
+                            report, index_suffix=args.elasticsearch_index_suffix)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -63,7 +63,7 @@ def _main():
                 try:
                     if args.elasticsearch_host:
                         elastic.save_forensic_report_to_elasticsearch(
-                            report, index=es_forensic_index)
+                            report, index_suffix=args.elasticsearch_index_suffix)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -130,10 +130,6 @@ def _main():
                             help="One or more Elasticsearch "
                                  "hostnames or URLs to use (e.g. "
                                  "localhost:9200)")
-    arg_parser.add_argument("--elasticsearch-index-prefix",
-                            help="Prefix to add in front of the "
-                                 "dmarc_aggregate and dmarc_forensic "
-                                 "Elasticsearch index names, joined by _")
     arg_parser.add_argument("--elasticsearch-index-suffix",
                             help="Append this suffix to the "
                                  "dmarc_aggregate and dmarc_forensic "
@@ -219,27 +215,21 @@ def _main():
         arg_parser.print_help()
         exit(1)
 
-    es_aggregate_index = "dmarc_aggregate"
-    es_forensic_index = "dmarc_forensic"
-
-    if args.elasticsearch_index_prefix:
-        prefix = args.elasticsearch_index_prefix
-        es_aggregate_index = "{0}_{1}".format(prefix, es_aggregate_index)
-        es_forensic_index = "{0}_{1}".format(prefix, es_forensic_index)
-
-    if args.elasticsearch_index_suffix:
-        suffix = args.elasticsearch_index_suffix
-        es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
-        es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
-
     if args.save_aggregate or args.save_forensic:
         if (args.elasticsearch_host is None and args.hec is None
                 and args.kafka_hosts is None):
             args.elasticsearch_host = ["localhost:9200"]
         try:
             if args.elasticsearch_host:
+                es_aggregate_index = "dmarc_aggregate"
+                es_forensic_index = "dmarc_forensic"
+                if args.elasticsearch_index_suffix:
+                    suffix = args.elasticsearch_index_suffix
+                    es_aggregate_index = "{0}_{1}".format(
+                        es_aggregate_index, suffix)
+                    es_forensic_index = "{0}_{1}".format(
+                        es_forensic_index, suffix)
                 elastic.set_hosts(args.elasticsearch_host)
-                elastic.create_indexes([es_aggregate_index, es_forensic_index])
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:

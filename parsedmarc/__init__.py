@@ -664,6 +664,8 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
     try:
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
+        if type(input_) == bytes:
+            input_ = input_.decode(encoding="utf8")
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
         date = email.utils.format_datetime(datetime.utcnow())
@@ -1451,8 +1453,26 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         raise IMAPError("DNS resolution failed")
     except ConnectionRefusedError:
         raise IMAPError("Connection refused")
-    except (KeyError, ConnectionResetError):
+    except ConnectionResetError:
         logger.debug("IMAP error: Connection reset")
+        logger.debug("Reconnecting watcher")
+        server = imapclient.IMAPClient(host)
+        server.login(username, password)
+        server.select_folder(rf)
+        idle_start_time = time.monotonic()
+        ms = "MOVE" in get_imap_capabilities(server)
+        res = get_dmarc_reports_from_inbox(connection=server,
+                                           move_supported=ms,
+                                           reports_folder=rf,
+                                           archive_folder=af,
+                                           delete=delete,
+                                           test=test,
+                                           nameservers=ns,
+                                           dns_timeout=dt)
+        callback(res)
+        server.idle()
+    except KeyError:
+        logger.debug("IMAP error: Server returned unexpected result")
         logger.debug("Reconnecting watcher")
         server = imapclient.IMAPClient(host)
         server.login(username, password)
@@ -1544,6 +1564,24 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
             raise IMAPError("Connection refused")
         except (KeyError, ConnectionResetError):
             logger.debug("IMAP error: Connection reset")
+            logger.debug("Reconnecting watcher")
+            server = imapclient.IMAPClient(host)
+            server.login(username, password)
+            server.select_folder(rf)
+            idle_start_time = time.monotonic()
+            ms = "MOVE" in get_imap_capabilities(server)
+            res = get_dmarc_reports_from_inbox(connection=server,
+                                               move_supported=ms,
+                                               reports_folder=rf,
+                                               archive_folder=af,
+                                               delete=delete,
+                                               test=test,
+                                               nameservers=ns,
+                                               dns_timeout=dt)
+            callback(res)
+            server.idle()
+        except KeyError:
+            logger.debug("IMAP error: Server returned unexpected result")
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
             server.login(username, password)

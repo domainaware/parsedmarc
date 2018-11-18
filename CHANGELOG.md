@@ -1,8 +1,14 @@
-4.5.0
+5.0.0
 -----
 
+**Note**: Re-importing [kibana_saved_objects.json](https://raw.githubusercontent.com/domainaware/parsedmarc/1bd6d46b61ad2e2ab13bf4ed01e99d8cf6f598f7/kibana/kibana_saved_objects.json) in Kibana is required for this version!
+
+- Bugfix: Reindex the aggregate report index field `published_policy.fo` 
+as `text` instead of `long` (Closes issue #31)
 - Bugfix: IDLE email processing in Gmail/G-Suite accounts (closes issue #33)
 - Bugfix: Fix inaccurate DNS timeout in CLI documentation (closes issue #34)
+- IMAP reliability improvements
+- Save data in separate indexes each day to make managing data retention easier
 - Cache DNS queries in memory
 
 4.4.1
