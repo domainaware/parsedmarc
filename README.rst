@@ -25,7 +25,8 @@ Features
 * Consistent data structures
 * Simple JSON and/or CSV output
 * Optionally email the results
-* Optionally send the results to Elasticsearch and/or Splunk, for use with premade dashboards
+* Optionally send the results to Elasticsearch and/or Splunk, for use with
+  premade dashboards
 * Optionally send reports to Apache Kafka
 
 Resources
@@ -46,8 +47,9 @@ check out the sister project,
 Lookalike domains
 -----------------
 
-DMARC protects against domain spoofing, not lookalike domains. for open source
-lookalike domain monitoring, check out `DomainAware <https://github.com/seanthegeek/domainaware>`_.
+DMARC protects against domain spoofing, not lookalike domains. For open source
+lookalike domain monitoring, check out
+`DomainAware <https://github.com/seanthegeek/domainaware>`_.
 
 
 CLI help
@@ -55,26 +57,26 @@ CLI help
 
 ::
 
-    usage: cli.py [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                  [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                  [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                  [--imap-skip-certificate-verification] [--imap-no-ssl]
-                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
-                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                  [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                  [--hec-skip-certificate-verification]
-                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC] [--save-aggregate]
-                  [--save-forensic] [-O OUTGOING_HOST] [-U OUTGOING_USER]
-                  [-P OUTGOING_PASSWORD] [--outgoing-port OUTGOING_PORT]
-                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [-v]
-                  [file_path [file_path ...]]
+    usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
+                      [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
+                      [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
+                      [--imap-skip-certificate-verification] [--imap-no-ssl]
+                      [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                      [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                      [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                      [--hec-skip-certificate-verification]
+                      [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                      [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                      [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
+                      [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                      [--outgoing-port OUTGOING_PORT]
+                      [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                      [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                      [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                      [-s] [--debug] [-v]
+                      [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -113,9 +115,6 @@ CLI help
       -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
                             One or more Elasticsearch hostnames or URLs to use
                             (e.g. localhost:9200)
-      --elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX
-                            Prefix to add in front of the dmarc_aggregate and
-                            dmarc_forensic Elasticsearch index names, joined by _
       --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
                             Append this suffix to the dmarc_aggregate and
                             dmarc_forensic Elasticsearch index names, joined by _
