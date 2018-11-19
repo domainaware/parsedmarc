@@ -863,7 +863,7 @@ Kibana index patterns with versions that match the upgraded indexes:
 6. Download (right click the link and click save as)
    the latest version of kibana_saved_objects.json_
 7. Import ``kibana_saved_objects.json`` by clicking Import from the Kibana
-Saved Objects page
+   Saved Objects page
 
 
 Records retention
