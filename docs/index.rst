@@ -861,7 +861,7 @@ Kibana index patterns with versions that match the upgraded indexes:
 4. Click Delete
 5. Click Delete on the conformation message
 6. Download (right click the link and click save as)
-the latest version of kibana_saved_objects.json_
+  the latest version of kibana_saved_objects.json_
 7. Import ``kibana_saved_objects.json`` by clicking Import from the Kibana
 Saved Objects page
 
