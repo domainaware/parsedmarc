@@ -1,7 +1,7 @@
 5.0.0
 -----
 
-**Note**: Re-importing [kibana_saved_objects.json](https://raw.githubusercontent.com/domainaware/parsedmarc/1bd6d46b61ad2e2ab13bf4ed01e99d8cf6f598f7/kibana/kibana_saved_objects.json) in Kibana is required for this version!
+**Note**: Re-importing `kibana_saved_objects.json` in Kibana [is required](https://domainaware.github.io/parsedmarc/#upgrading-kibana-index-patterns) when upgrading to this version!
 
 - Bugfix: Reindex the aggregate report index field `published_policy.fo` 
 as `text` instead of `long` (Closes issue #31)
