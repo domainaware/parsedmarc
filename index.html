@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 4.4.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.0.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.4.1
+                5.0.0
               </div>
             
           
@@ -109,6 +109,7 @@
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a><ul>
+<li><a class="reference internal" href="#upgrading-kibana-index-patterns">Upgrading Kibana index patterns</a></li>
 <li><a class="reference internal" href="#records-retention">Records retention</a></li>
 </ul>
 </li>
@@ -249,7 +250,6 @@ lookalike domain monitoring, check out <a class="reference external" href="https
                   <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span><span class="p">]</span>
                   <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span>
@@ -282,7 +282,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
                         <span class="n">nameservers</span><span class="p">)</span>
   <span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">timeout</span> <span class="n">TIMEOUT</span>
                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
-                        <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
+                        <span class="p">(</span><span class="n">Default</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">)</span>
   <span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">,</span> <span class="o">--</span><span class="n">host</span> <span class="n">HOST</span>  <span class="n">IMAP</span> <span class="n">hostname</span> <span class="ow">or</span> <span class="n">IP</span> <span class="n">address</span>
   <span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">,</span> <span class="o">--</span><span class="n">user</span> <span class="n">USER</span>  <span class="n">IMAP</span> <span class="n">user</span>
   <span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="o">--</span><span class="n">password</span> <span class="n">PASSWORD</span>
@@ -302,9 +302,6 @@ lookalike domain monitoring, check out <a class="reference external" href="https
   <span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">host</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]</span>
                         <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Elasticsearch</span> <span class="n">hostnames</span> <span class="ow">or</span> <span class="n">URLs</span> <span class="n">to</span> <span class="n">use</span>
                         <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">9200</span><span class="p">)</span>
-  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">prefix</span> <span class="n">ELASTICSEARCH_INDEX_PREFIX</span>
-                        <span class="n">Prefix</span> <span class="n">to</span> <span class="n">add</span> <span class="ow">in</span> <span class="n">front</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
-                        <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
   <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span>
                         <span class="n">Append</span> <span class="n">this</span> <span class="n">suffix</span> <span class="n">to</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
                         <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
@@ -733,7 +730,8 @@ as a local EWS/OWA IMAP gateway.</p>
 <span class="c1"># Enable IDLE support, set polling delay in minutes</span>
 <span class="n">davmail</span><span class="o">.</span><span class="n">imapIdleDelay</span><span class="o">=</span><span class="mi">1</span>
 
-<span class="c1"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate message size for performance reasons</span>
+<span class="c1"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate</span>
+<span class="c1"># message size for performance reasons</span>
 <span class="n">davmail</span><span class="o">.</span><span class="n">imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="n">true</span>
 
 <span class="c1">#############################################################</span>
@@ -918,10 +916,31 @@ breaks them, as there are no permissions/access controls in Kibana without
 the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
 <a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
 <a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
+<div class="section" id="upgrading-kibana-index-patterns">
+<h4>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this headline">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 5.0.0 makes some changes to the way data is indexed in
+Elasticsearch. if you are upgrading prom a previous release of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, you need to complete the following steps to replace the
+Kibana index patterns with versions that match the upgraded indexes:</p>
+<ol class="arabic simple">
+<li>Login in to Kibana, and click on Management</li>
+<li>Under Kibana, click on Saved Objects</li>
+<li>Check the checkboxes for the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code>
+index patterns</li>
+<li>Click Delete</li>
+<li>Click Delete on the conformation message</li>
+<li>Download (right click the link and click save as)
+the latest version of <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json">kibana_saved_objects.json</a></li>
+<li>Import <code class="docutils literal notranslate"><span class="pre">kibana_saved_objects.json</span></code> by clicking Import from the Kibana
+Saved Objects page</li>
+</ol>
+</div>
 <div class="section" id="records-retention">
 <h4>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this headline">¶</a></h4>
-<p>To prevent your indexes from growing too large, or to comply with records
-retention regulations such as GDPR, you need to use <a class="reference external" href="https://www.elastic.co/blog/managing-time-based-indices-efficiently">time-based indexes</a>.</p>
+<p>Starting in version 5.0.0, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> stores data in a separate
+index for each day to make it easy to comply with records
+retention regulations such as GDPR. For fore information,
+check out the Elastic guide to <a class="reference external" href="https://www.elastic.co/blog/managing-time-based-indices-efficiently">managing time-based indexes efficiently</a>.</p>
 </div>
 </div>
 <div class="section" id="splunk">
@@ -1595,7 +1614,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.create_indexes">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">create_indexes</code><span class="sig-paren">(</span><em>names=None</em>, <em>settings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">create_indexes</code><span class="sig-paren">(</span><em>names</em>, <em>settings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create Elasticsearch indexes</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1603,7 +1622,6 @@ to a callback function</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>names</strong> (<em>list</em>) – A list of index names</li>
-<li><strong>&quot;dmarc_forensic&quot;</strong><strong>] </strong><strong>by default</strong> (<em>[</em><em>&quot;dmarc_aggregate&quot;</em><em>,</em>) – </li>
 <li><strong>settings</strong> (<em>dict</em>) – Index settings</li>
 </ul>
 </td>
@@ -1613,8 +1631,26 @@ to a callback function</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.elastic.migrate_indexes">
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">migrate_indexes</code><span class="sig-paren">(</span><em>aggregate_indexes=None</em>, <em>forensic_indexes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates index mappings</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names</li>
+<li><strong>forensic_indexes</strong> (<em>list</em>) – A list of forensic index names</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index='dmarc_aggregate'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index_suffix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1622,7 +1658,7 @@ to a callback function</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>aggregate_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</li>
-<li><strong>index</strong> (<em>str</em>) – The name of the index to save to</li>
+<li><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</li>
 </ul>
 </td>
 </tr>
@@ -1635,7 +1671,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index='dmarc_forensic'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index_suffix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1643,7 +1679,7 @@ to a callback function</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>forensic_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</li>
-<li><strong>index</strong> (<em>str</em>) – The name of the index to save to</li>
+<li><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</li>
 </ul>
 </td>
 </tr>
@@ -1834,7 +1870,7 @@ country associated with the given IPv4 or IPv6 address</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_ip_address_info">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_info</code><span class="sig-paren">(</span><em>ip_address</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_info</code><span class="sig-paren">(</span><em>ip_address</em>, <em>cache=None</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns reverse DNS and country information for the given IP address</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1842,6 +1878,7 @@ country associated with the given IPv4 or IPv6 address</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>ip_address</strong> (<em>str</em>) – The IP address to check</li>
+<li><strong>cache</strong> (<em>ExpiringDict</em>) – Cache storage</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
@@ -1860,7 +1897,7 @@ country associated with the given IPv4 or IPv6 address</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_reverse_dns">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_reverse_dns</code><span class="sig-paren">(</span><em>ip_address</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_reverse_dns</code><span class="sig-paren">(</span><em>ip_address</em>, <em>cache=None</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolves an IP address to a hostname using a reverse DNS query</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1868,6 +1905,7 @@ country associated with the given IPv4 or IPv6 address</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>ip_address</strong> (<em>str</em>) – The IP address to resolve</li>
+<li><strong>cache</strong> (<em>ExpiringDict</em>) – Cache storage</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS query timeout in seconds</li>
@@ -1965,7 +2003,7 @@ country associated with the given IPv4 or IPv6 address</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.query_dns">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">query_dns</code><span class="sig-paren">(</span><em>domain</em>, <em>record_type</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">query_dns</code><span class="sig-paren">(</span><em>domain</em>, <em>record_type</em>, <em>cache=None</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries DNS</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1974,6 +2012,7 @@ country associated with the given IPv4 or IPv6 address</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>domain</strong> (<em>str</em>) – The domain or subdomain to query about</li>
 <li><strong>record_type</strong> (<em>str</em>) – The record type to query for</li>
+<li><strong>cache</strong> (<em>ExpiringDict</em>) – Cache storage</li>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
@@ -2072,17 +2111,7 @@ country associated with the given IPv4 or IPv6 address</p>
 
     
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'./',
-              VERSION:'4.4.1',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script type="text/javascript" src="_static/jquery.js"></script>
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>

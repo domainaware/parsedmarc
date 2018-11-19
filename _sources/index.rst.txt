@@ -67,7 +67,6 @@ CLI help
                      [--imap-skip-certificate-verification] [--imap-no-ssl]
                      [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
                      [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                     [--elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX]
                      [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
                      [--hec-skip-certificate-verification]
@@ -100,7 +99,7 @@ CLI help
                            nameservers)
      -t TIMEOUT, --timeout TIMEOUT
                            number of seconds to wait for an answer from DNS
-                           (Default: 2.0)
+                           (Default: 6.0)
      -H HOST, --host HOST  IMAP hostname or IP address
      -u USER, --user USER  IMAP user
      -p PASSWORD, --password PASSWORD
@@ -120,9 +119,6 @@ CLI help
      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
                            One or more Elasticsearch hostnames or URLs to use
                            (e.g. localhost:9200)
-     --elasticsearch-index-prefix ELASTICSEARCH_INDEX_PREFIX
-                           Prefix to add in front of the dmarc_aggregate and
-                           dmarc_forensic Elasticsearch index names, joined by _
      --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
                            Append this suffix to the dmarc_aggregate and
                            dmarc_forensic Elasticsearch index names, joined by _
@@ -608,7 +604,8 @@ Configure Davmail by creating a ``davmail.properties`` file
    # Enable IDLE support, set polling delay in minutes
    davmail.imapIdleDelay=1
 
-   # Always reply to IMAP RFC822.SIZE requests with Exchange approximate message size for performance reasons
+   # Always reply to IMAP RFC822.SIZE requests with Exchange approximate
+   # message size for performance reasons
    davmail.imapAlwaysApproxMsgSize=true
 
    #############################################################
@@ -849,12 +846,33 @@ the commercial X-Pack_.
    :align: center
    :target: _static/screenshots/confirm-overwrite.png
 
+Upgrading Kibana index patterns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``parsedmarc`` 5.0.0 makes some changes to the way data is indexed in
+Elasticsearch. if you are upgrading prom a previous release of
+``parsedmarc``, you need to complete the following steps to replace the
+Kibana index patterns with versions that match the upgraded indexes:
+
+1. Login in to Kibana, and click on Management
+2. Under Kibana, click on Saved Objects
+3. Check the checkboxes for the ``dmarc_aggregate`` and ``dmarc_forensic``
+   index patterns
+4. Click Delete
+5. Click Delete on the conformation message
+6. Download (right click the link and click save as)
+   the latest version of kibana_saved_objects.json_
+7. Import ``kibana_saved_objects.json`` by clicking Import from the Kibana
+   Saved Objects page
+
 
 Records retention
 ~~~~~~~~~~~~~~~~~
 
-To prevent your indexes from growing too large, or to comply with records
-retention regulations such as GDPR, you need to use `time-based indexes
+Starting in version 5.0.0, ``parsedmarc`` stores data in a separate
+index for each day to make it easy to comply with records
+retention regulations such as GDPR. For fore information,
+check out the Elastic guide to `managing time-based indexes efficiently
 <https://www.elastic.co/blog/managing-time-based-indices-efficiently>`_.
 
 Splunk

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 4.4.1 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 5.0.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.4.1
+                5.0.0
               </div>
             
           
@@ -251,13 +251,14 @@
     <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="query_dns"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.query_dns">[docs]</a><span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="query_dns"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.query_dns">[docs]</a><span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Queries DNS</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        domain (str): The domain or subdomain to query about</span>
 <span class="sd">        record_type (str): The record type to query for</span>
+<span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
@@ -265,6 +266,14 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        list: A list of answers</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">record_type</span> <span class="o">=</span> <span class="n">record_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">cache_key</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">records</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">records</span>
+
     <span class="n">resolver</span> <span class="o">=</span> <span class="n">dns</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">Resolver</span><span class="p">()</span>
     <span class="n">timeout</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">nameservers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -281,19 +290,24 @@
         <span class="n">_resource_record</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">resource_record</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">resource_record</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">resource_record</span> <span class="ow">in</span> <span class="n">resource_records</span> <span class="k">if</span> <span class="n">resource_record</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">_resource_record</span><span class="p">]</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">_resource_record</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">to_text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">),</span>
-            <span class="n">resolver</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">tcp</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span></div>
+            <span class="n">resolver</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">tcp</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
+        <span class="n">cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">records</span>
+
+    <span class="k">return</span> <span class="n">records</span></div>
 
 
-<div class="viewcode-block" id="get_reverse_dns"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_reverse_dns">[docs]</a><span class="k">def</span> <span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_reverse_dns"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_reverse_dns">[docs]</a><span class="k">def</span> <span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resolves an IP address to a hostname using a reverse DNS query</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to resolve</span>
+<span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS query timeout in seconds</span>
@@ -304,7 +318,7 @@
     <span class="n">hostname</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">address</span> <span class="o">=</span> <span class="n">dns</span><span class="o">.</span><span class="n">reversename</span><span class="o">.</span><span class="n">from_address</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
-        <span class="n">hostname</span> <span class="o">=</span> <span class="n">query_dns</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="s2">&quot;PTR&quot;</span><span class="p">,</span>
+        <span class="n">hostname</span> <span class="o">=</span> <span class="n">query_dns</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="s2">&quot;PTR&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
                              <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                              <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -437,12 +451,13 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to check</span>
+<span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
@@ -452,6 +467,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ip_address</span> <span class="o">=</span> <span class="n">ip_address</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">info</span>
     <span class="n">info</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ip_address</span>
     <span class="n">reverse_dns</span> <span class="o">=</span> <span class="n">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span>
@@ -573,11 +592,15 @@
     <span class="n">headers</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">parsed_email</span><span class="o">.</span><span class="n">headers_json</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">parsed_email</span><span class="o">.</span><span class="n">mail_json</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span>
+
     <span class="k">if</span> <span class="s2">&quot;received&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">received</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;received&quot;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="s2">&quot;date_utc&quot;</span> <span class="ow">in</span> <span class="n">received</span><span class="p">:</span>
-                <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span>
-                                                                    <span class="s2">&quot; &quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span>
+                                                                        <span class="s2">&quot; &quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;from&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">&quot;From&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">]:</span>
@@ -687,17 +710,7 @@
 
     
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'../../',
-              VERSION:'4.4.1',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script type="text/javascript" src="../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../_static/doctools.js"></script>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 4.4.1 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 5.0.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                4.4.1
+                5.0.0
               </div>
             
           
@@ -152,7 +152,9 @@
 
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl.search</span> <span class="k">import</span> <span class="n">Q</span>
 <span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
-    <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">DateRange</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span>
+    <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">DateRange</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span><span class="p">,</span> <span class="n">Search</span>
+<span class="kn">from</span> <span class="nn">elasticsearch.helpers</span> <span class="k">import</span> <span class="n">reindex</span>
+
 
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">human_timestamp_to_datetime</span>
 
@@ -175,7 +177,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">sp</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">pct</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
-    <span class="n">fo</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
+    <span class="n">fo</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>  <span class="c1"># TODO: Change this to Text (issue #31)</span>
 
 
 <span class="k">class</span> <span class="nc">_DKIMResult</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -324,18 +326,15 @@
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="n">hosts</span><span class="o">=</span><span class="n">hosts</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create Elasticsearch indexes</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        names (list): A list of index names</span>
-<span class="sd">        [&quot;dmarc_aggregate&quot;, &quot;dmarc_forensic&quot;] by default</span>
 <span class="sd">        settings (dict): Index settings</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dmarc_aggregate&quot;</span><span class="p">,</span> <span class="s2">&quot;dmarc_forensic&quot;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -349,14 +348,65 @@
                 <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
+<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Updates index mappings</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        aggregate_indexes (list): A list of aggregate index names</span>
+<span class="sd">        forensic_indexes (list): A list of forensic index names</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">aggregate_indexes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">aggregate_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">forensic_indexes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">forensic_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">aggregate_index_name</span> <span class="ow">in</span> <span class="n">aggregate_indexes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">continue</span>
+        <span class="n">aggregate_index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="s2">&quot;doc&quot;</span>
+        <span class="n">fo_field</span> <span class="o">=</span> <span class="s2">&quot;published_policy.fo&quot;</span>
+        <span class="n">fo</span> <span class="o">=</span> <span class="s2">&quot;fo&quot;</span>
+        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">aggregate_index</span><span class="o">.</span><span class="n">get_field_mapping</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="n">fo_field</span><span class="p">])</span>
+        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">fo_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;mappings&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">doc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fo_mapping</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="n">doc</span><span class="p">][</span><span class="n">fo_field</span><span class="p">][</span><span class="s2">&quot;mapping&quot;</span><span class="p">][</span><span class="n">fo</span><span class="p">]</span>
+        <span class="n">fo_type</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">fo_type</span> <span class="o">==</span> <span class="s2">&quot;long&quot;</span><span class="p">:</span>
+            <span class="c1"># TODO: Do reindex, delete, and alias here (issue #31)</span>
+            <span class="n">new_index_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-v</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;published_policy.fo&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyword&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;ignore_above&quot;</span><span class="p">:</span> <span class="mi">256</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">put_mapping</span><span class="p">(</span><span class="n">doc_type</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
+            <span class="n">reindex</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(),</span> <span class="n">aggregate_index_name</span><span class="p">,</span>
+                    <span class="n">new_index_name</span><span class="p">)</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">forensic_index</span> <span class="ow">in</span> <span class="n">forensic_indexes</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
-                                           <span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_aggregate&quot;</span><span class="p">):</span>
+                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves a parsed DMARC aggregate report to ElasticSearch</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_report (OrderedDict): A parsed forensic report</span>
-<span class="sd">        index (str): The name of the index to save to</span>
+<span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">            AlreadySaved</span>
@@ -371,6 +421,7 @@
     <span class="n">end_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
     <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
     <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+    <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_date</span>
     <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_date</span>
     <span class="n">date_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
@@ -378,11 +429,11 @@
 
     <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
     <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
-    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">)))</span>
+    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;published_policy.domain&quot;</span><span class="p">:</span> <span class="n">domain</span><span class="p">}))</span>
     <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
 
-    <span class="n">search</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_aggregate*&quot;</span><span class="p">)</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span> <span class="o">&amp;</span> \
         <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
 
@@ -443,7 +494,13 @@
                                    <span class="n">scope</span><span class="o">=</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;scope&quot;</span><span class="p">],</span>
                                    <span class="n">result</span><span class="o">=</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
 
+        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
+        <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+        <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">])</span>
         <span class="n">agg_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -452,13 +509,13 @@
 
 
 <div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
-                                          <span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_forensic&quot;</span><span class="p">):</span>
+                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves a parsed DMARC forensic report to ElasticSearch</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            forensic_report (OrderedDict): A parsed forensic report</span>
-<span class="sd">            index (str): The name of the index to save to</span>
+<span class="sd">            index_suffix (str): The suffix of the name of the index to save to</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            AlreadySaved</span>
@@ -478,7 +535,7 @@
     <span class="n">arrival_date_human</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">]</span>
     <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
 
-    <span class="n">search</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_forensic*&quot;</span><span class="p">)</span>
     <span class="n">arrival_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span><span class="p">}}</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_query</span><span class="p">)</span>
 
@@ -559,6 +616,12 @@
         <span class="n">sample</span><span class="o">=</span><span class="n">sample</span>
     <span class="p">)</span>
 
+    <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
+    <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+    <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+    <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">])</span>
     <span class="n">forensic_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">forensic_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
@@ -598,17 +661,7 @@
 
     
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'../../',
-              VERSION:'4.4.1',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script type="text/javascript" src="../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../_static/doctools.js"></script>
