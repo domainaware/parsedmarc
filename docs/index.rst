@@ -850,7 +850,7 @@ Upgrading Kibana index patterns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``parsedmarc`` 5.0.0 makes some changes to the way data is indexed in
-Elasticsearch. if you are upgrading prom a previous release of
+Elasticsearch. if you are upgrading from a previous release of
 ``parsedmarc``, you need to complete the following steps to replace the
 Kibana index patterns with versions that match the upgraded indexes:
 
