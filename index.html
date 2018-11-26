@@ -582,6 +582,11 @@ least:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
 </pre></div>
 </div>
+<p>On CentOS systems, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo yum install -y python34-setuptools
+$ sudo easy_install-3.4 pip
+</pre></div>
+</div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
 <p>To install or upgrade to the latest stable release of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> on
@@ -758,6 +763,7 @@ as a local EWS/OWA IMAP gateway.</p>
 <p class="first admonition-title">Note</p>
 <p class="last">Elasticsearch and Kibana 6 or later are required</p>
 </div>
+<p>On Debian/Ubuntu based systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
 <span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/6.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
@@ -765,6 +771,8 @@ sudo apt-get update
 sudo apt-get install -y default-jre-headless elasticsearch kibana
 </pre></div>
 </div>
+<p>For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
+<a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html">Elasticsearch</a> and <a class="reference external" href="https://www.elastic.co/guide/en/kibana/current/rpm.html">Kibana</a>.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p>The default JVM heap size for Elasticsearch is very small (1g), which will
@@ -791,6 +799,10 @@ sudo service kibana start
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
 authentication.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y nginx apache2-utils
+</pre></div>
+</div>
+<p>Or, on CentOS:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y nginx httpd-tools
 </pre></div>
 </div>
 <p>Create a directory to store the certificates and keys:</p>
