@@ -17,6 +17,7 @@ before_install:
   - "sudo apt-get update"
   - "sudo apt-get install -y default-jre-headless elasticsearch"
   - "sudo systemctl daemon-reload"
+  - "sudo systemctl list-units --type=service"
   - "sudo systemctl enable elasticsearch.service"
   - "sudo service elastsearch start"
 
