@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "5.0.0"
+__version__ = "5.0.1"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
@@ -92,9 +92,9 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['dnspython', 'expiringdict', 'publicsuffix', 'xmltodict',
-                      'geoip2', 'urllib3<1.24,>=1.21.1', 'requests',
-                      'imapclient', 'mail-parser', 'dateparser',
+    install_requires=['dnspython', 'expiringdict', 'publicsuffix2',
+                      'xmltodict', 'geoip2', 'urllib3<1.24,>=1.21.1',
+                      'requests', 'imapclient', 'mail-parser', 'dateparser',
                       'elasticsearch>=6.3.0,<7.0.0',
                       'elasticsearch-dsl>=6.2.1,<7.0.0', 'kafka-python'
                       ],

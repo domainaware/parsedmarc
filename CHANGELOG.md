@@ -1,3 +1,10 @@
+5.0.1
+-----
+
+- Use `publixsuffix2` (closes issue #4)
+- Add Elasticsearch to automated testing
+
+
 5.0.0
 -----
 
