@@ -16,6 +16,7 @@ before_install:
   - 'echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list'
   - "sudo apt-get update"
   - "sudo apt-get install -y default-jre-headless elasticsearch"
+  - "ls /etc/systemd/system"
   - "sudo systemctl daemon-reload"
   - "sudo systemctl list-units --all --type=service"
   - "sudo systemctl enable elasticsearch.service"
