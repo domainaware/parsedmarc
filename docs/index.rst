@@ -421,7 +421,7 @@ On Debian or Ubuntu systems, run:
 
 On CentOS systems, run:
 
-.. code-block::
+.. code-block:: bash
 
    $ sudo yum install -y python34-setuptools
    $ sudo easy_install-3.4 pip
