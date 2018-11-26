@@ -419,6 +419,13 @@ On Debian or Ubuntu systems, run:
     $ sudo apt-get install python3-pip
 
 
+On CentOS systems, run:
+
+.. code-block::
+
+   $ sudo yum install -y python34-setuptools
+   $ sudo easy_install-3.4 pip
+
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
 
@@ -638,6 +645,8 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
     Elasticsearch and Kibana 6 or later are required
 
+On Debian/Ubuntu based systems, run:
+
 .. code-block:: bash
 
     sudo apt-get install -y apt-transport-https
@@ -645,6 +654,9 @@ To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
     echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
     sudo apt-get update
     sudo apt-get install -y default-jre-headless elasticsearch kibana
+
+For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
+`Elasticsearch`_ and `Kibana`_.
 
 .. warning::
 
@@ -679,6 +691,12 @@ authentication.
 .. code-block:: bash
 
     sudo apt-get install -y nginx apache2-utils
+
+Or, on CentOS:
+
+.. code-block:: bash
+
+   sudo yum install -y nginx httpd-tools
 
 Create a directory to store the certificates and keys:
 
@@ -1202,6 +1220,10 @@ Indices and tables
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 
 .. _download the latest version of pypy3: https://pypy.org/download.html#default-with-a-jit-compiler
+
+.. _Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
+
+.. _Kibana: https://www.elastic.co/guide/en/kibana/current/rpm.html
 
 .. _X-Pack: https://www.elastic.co/products/x-pack
 
