@@ -2,6 +2,9 @@ language: python
 
 sudo: true
 
+services:
+  - elasticsearch
+
 python:
   - '3.4'
   - '3.5'
@@ -10,17 +13,13 @@ python:
 # commands to install dependencies
 before_install:
   - "sudo apt-get install -y apt-transport-https"
-  - "wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -"
-  - 'echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list'
-  - "sudo apt-get update"
-  - "sudo apt-get install -y default-jre-headless elasticsearch"
-  - "sudo systemctl daemon-reload"
-  - "sudo systemctl enable elasticsearch.service"
-  - "sudo service elastsearch start"
   - "sudo apt-get install -y libemail-outlook-message-perl"
 
 install:
   - "pip install -r requirements.txt"
+
+before_script:
+  - sleep 10
 
 # commands to run samples
 script:
