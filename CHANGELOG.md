@@ -3,6 +3,7 @@
 
 - Use `publixsuffix2` (closes issue #4)
 - Add Elasticsearch to automated testing
+- Lock `elasticsearch-dsl` required version to `6.2.1` (closes issue #25)
 
 
 5.0.0
