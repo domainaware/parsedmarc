@@ -2,7 +2,7 @@ dnspython
 expiringdict
 urllib3<1.24,>=1.21.1
 requests
-publicsuffix2
+publicsuffix
 xmltodict
 geoip2
 dnspython

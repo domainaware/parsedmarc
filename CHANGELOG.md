@@ -1,3 +1,8 @@
+5.0.2
+-----
+
+- Revert to using `publicsuffix` instead of `publicsuffix2`
+
 5.0.1
 -----
 

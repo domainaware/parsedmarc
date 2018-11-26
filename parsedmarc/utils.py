@@ -23,9 +23,9 @@ import dns.exception
 import geoip2.database
 import geoip2.errors
 import requests
-import publicsuffix2
+import publicsuffix
 
-__version__ = "4.3.9"
+__version__ = "5.0.2"
 
 USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
             platform.system(),
@@ -99,7 +99,7 @@ def get_base_domain(domain):
                 logger.warning(
                     "Failed to download an updated PSL {0}".format(error))
     with open(psl_path, encoding="utf-8") as psl_file:
-        psl = publicsuffix2.PublicSuffixList(psl_file)
+        psl = publicsuffix.PublicSuffixList(psl_file)
 
     return psl.get_public_suffix(domain)
 
