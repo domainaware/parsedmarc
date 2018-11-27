@@ -167,7 +167,7 @@ def _main():
     arg_parser.add_argument("--kafka-use-ssl",
                             action="store_true",
                             help="""Use SSL/TLS to connect to Kafka
-                            (implied when ``--kafka-username or 
+                            (implied when --kafka-username or 
                             --kafka-password are provided)""")
     arg_parser.add_argument("--kafka-aggregate-topic",
                             help="The Kafka topic to publish aggregate "
