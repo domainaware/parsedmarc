@@ -2,6 +2,7 @@
 
 import logging
 import json
+import ssl
 
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
@@ -16,16 +17,41 @@ class KafkaError(RuntimeError):
 
 
 class KafkaClient(object):
-    def __init__(self, kafka_hosts):
-        try:
-            self.producer = KafkaProducer(
-                          value_serializer=lambda v: json.dumps(v).encode(
+    def __init__(self, kafka_hosts, use_ssl=False, username=None,
+                 password=None):
+        """
+        Initializes the Kafka client
+        Args:
+            kafka_hosts (list): A list of Kafka hostnames
+            (with optional port numbers)
+            use_ssl (bool): Use a SSL/TLS connection
+            username (str): An optional username
+            password (str):  An optional password
+
+        Notes:
+            ``use_ssl=True`` is implied when a username or password are
+            supplied.
+
+            When using Azure Event Hubs, the username is literally
+            ``$ConnectionString``, and the password is the
+            Azure Event Hub connection string.
+        """
+        config = dict(value_serializer=lambda v: json.dumps(v).encode(
                               'utf-8'),
-                          bootstrap_servers=kafka_hosts)
+                      bootstrap_servers=kafka_hosts)
+        if use_ssl or username or password:
+            config["security_protocol"] = "SSL"
+            config["ssl_context"] = ssl.create_default_context()
+            if username or password:
+                config["sasl_plain_username"] = username or ""
+                config["sasl_plain_password"] = password or ""
+        try:
+            self.producer = KafkaProducer(**config)
         except NoBrokersAvailable:
             raise KafkaError("No Kafka brokers available")
 
-    def strip_metadata(self, report):
+    @staticmethod
+    def strip_metadata(report):
         """
           Duplicates org_name, org_email and report_id into JSON root
           and removes report_metadata key to bring it more inline
@@ -38,7 +64,8 @@ class KafkaClient(object):
 
         return report
 
-    def generate_daterange(self, report):
+    @staticmethod
+    def generate_daterange(report):
         """
         Creates a date_range timestamp with format YYYY-MM-DD-T-HH:MM:SS
         based on begin and end dates for easier parsing in Kibana.

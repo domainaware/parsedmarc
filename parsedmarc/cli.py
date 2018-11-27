@@ -29,7 +29,11 @@ def _main():
             print(output_str)
         if args.kafka_hosts:
             try:
-                kafka_client = kafkaclient.KafkaClient(args.kafka_hosts)
+                kafka_client = kafkaclient.KafkaClient(
+                    args.kafka_hosts,
+                    username=args.kafka_username,
+                    password=args.kafka_password
+                )
             except Exception as error_:
                 logger.error("Kafka Error: {0}".format(error_.__str__()))
         if args.save_aggregate:
@@ -151,8 +155,20 @@ def _main():
                             help="Skip certificate verification for Splunk "
                                  "HEC")
     arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
-                            help="A list of one or more Kafka hostnames"
-                            " or URLs")
+                            help="A list of one or more Kafka hostnames")
+    arg_parser.add_argument("--kafka-username",
+                            help=""""An optional Kafka username
+                            Note: For Azure Event hub, this is 
+                            literally $ConnectionString""")
+    arg_parser.add_argument("--kafka-password",
+                            help=""""An optional Kafka password
+                                Note: For Azure Event hub, this is 
+                                the Azure-provided connection string""")
+    arg_parser.add_argument("--kafka-use-ssl",
+                            action="store_true",
+                            help="""Use SSL/TLS to connect to Kafka
+                            (implied when ``--kafka-username or 
+                            --kafka-password are provided)""")
     arg_parser.add_argument("--kafka-aggregate-topic",
                             help="The Kafka topic to publish aggregate "
                             "reports to (Default: dmarc_aggregate)",

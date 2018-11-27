@@ -1,3 +1,8 @@
+5.1.0
+-----
+
+- Add support for TLS/SSL and uerename/password auth to Kafka 
+
 5.0.2
 -----
 
