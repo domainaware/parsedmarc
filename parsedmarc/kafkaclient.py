@@ -9,6 +9,8 @@ from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
 from collections import OrderedDict
 from parsedmarc.utils import human_timestamp_to_datetime
 
+from parsedmarc import __version__
+
 logger = logging.getLogger("parsedmarc")
 
 
@@ -38,7 +40,8 @@ class KafkaClient(object):
         """
         config = dict(value_serializer=lambda v: json.dumps(v).encode(
                               'utf-8'),
-                      bootstrap_servers=kafka_hosts)
+                      bootstrap_servers=kafka_hosts,
+                      client_id="parsedmarc-{0}".format(__version__))
         if use_ssl or username or password:
             config["security_protocol"] = "SSL"
             config["ssl_context"] = ssl.create_default_context()
