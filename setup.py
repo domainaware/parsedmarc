@@ -95,8 +95,8 @@ setup(
     install_requires=['dnspython', 'expiringdict', 'publicsuffix',
                       'xmltodict', 'geoip2', 'urllib3<1.24,>=1.21.1',
                       'requests', 'imapclient', 'mail-parser', 'dateparser',
-                      'elasticsearch',
-                      'elasticsearch-dsl', 'kafka-python'
+                      'elasticsearch==6.3.1',
+                      'elasticsearch-dsl==6.2.1', 'kafka-python'
                       ],
 
     entry_points={

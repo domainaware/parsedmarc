@@ -9,8 +9,8 @@ dnspython
 imapclient
 mail-parser
 dateparser
-elasticsearch
-elasticsearch-dsl
+elasticsearch==6.3.1
+elasticsearch-dsl==6.2.1
 kafka-python
 flake8
 sphinx
