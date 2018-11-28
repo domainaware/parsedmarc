@@ -30,7 +30,7 @@ class _PublishedPolicy(InnerDoc):
     p = Text()
     sp = Text()
     pct = Integer()
-    fo = Text()  # TODO: Change this to Text (issue #31)
+    fo = Text()
 
 
 class _DKIMResult(InnerDoc):
@@ -54,7 +54,7 @@ class _AggregateReportDoc(Document):
     org_email = Text()
     org_extra_contact_info = Text()
     report_id = Text()
-    date_range = DateRange()
+    date_range = Date()
     errors = Text()
     published_policy = Object(_PublishedPolicy)
     source_ip_address = Ip()

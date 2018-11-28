@@ -1,7 +1,10 @@
 5.1.0
 -----
 
-- Add support for TLS/SSL and uerename/password auth to Kafka 
+- Bugfix: Elasticsearch/Python mapping mismatch (fixes root cause of issue #25)
+- Remove static `elasticsearch` and `elasticsearch-dsl` versions from package requirements
+- Add support for TLS/SSL and username/password auth to Kafka
+ 
 
 5.0.2
 -----
