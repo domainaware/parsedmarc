@@ -109,82 +109,83 @@ def _main():
                                  "from DNS (Default: 6.0)",
                             type=float,
                             default=6.0)
-    arg_parser.add_argument("-H", "--host", help="IMAP hostname or IP address")
-    arg_parser.add_argument("-u", "--user", help="IMAP user")
-    arg_parser.add_argument("-p", "--password", help="IMAP password")
-    arg_parser.add_argument("--imap-port", default=None, help="IMAP port")
+    arg_parser.add_argument("-H", "--host",
+                            help="an IMAP hostname or IP address")
+    arg_parser.add_argument("-u", "--user", help="an IMAP user")
+    arg_parser.add_argument("-p", "--password", help="an IMAP password")
+    arg_parser.add_argument("--imap-port", default=None, help="an IMAP port")
     arg_parser.add_argument("--imap-skip-certificate-verification",
                             action="store_true",
                             default=False,
-                            help="Skip certificate verification for IMAP")
+                            help="skip certificate verification for IMAP")
     arg_parser.add_argument("--imap-no-ssl", action="store_true",
                             default=False,
-                            help="Do not use SSL/TLS when connecting to IMAP")
+                            help="do not use SSL/TLS when connecting to IMAP")
     arg_parser.add_argument("-r", "--reports-folder", default="INBOX",
-                            help="The IMAP folder containing the reports\n"
-                                 "(Default: INBOX)")
+                            help="the IMAP folder containing the reports\n"
+                                 "(default: INBOX)")
     arg_parser.add_argument("-a", "--archive-folder",
-                            help="Specifies the IMAP folder to move "
+                            help="specifies the IMAP folder to move "
                                  "messages to after processing them\n"
-                                 "(Default: Archive)",
+                                 "(default: Archive)",
                             default="Archive")
     arg_parser.add_argument("-d", "--delete",
-                            help="Delete the reports after processing them",
+                            help="delete the reports after processing them",
                             action="store_true", default=False)
 
     arg_parser.add_argument("-E", "--elasticsearch-host", nargs="*",
-                            help="One or more Elasticsearch "
+                            help="une or more Elasticsearch "
                                  "hostnames or URLs to use (e.g. "
                                  "localhost:9200)")
     arg_parser.add_argument("--elasticsearch-index-suffix",
-                            help="Append this suffix to the "
+                            help="append this suffix to the "
                                  "dmarc_aggregate and dmarc_forensic "
                                  "Elasticsearch index names, joined by _")
-    arg_parser.add_argument("--hec", help="URL to a Splunk HTTP Event "
+    arg_parser.add_argument("--hec", help="the URL to a Splunk HTTP Event "
                                           "Collector (HEC)")
-    arg_parser.add_argument("--hec-token", help="The authorization token for "
+    arg_parser.add_argument("--hec-token", help="the authorization token for "
                                                 "a Splunk "
                                                 "HTTP Event Collector (HEC)")
-    arg_parser.add_argument("--hec-index", help="The index to use when "
+    arg_parser.add_argument("--hec-index", help="the index to use when "
                                                 "sending events to the "
                                                 "Splunk HTTP Event Collector "
                                                 "(HEC)")
     arg_parser.add_argument("--hec-skip-certificate-verification",
                             action="store_true",
                             default=False,
-                            help="Skip certificate verification for Splunk "
+                            help="skip certificate verification for Splunk "
                                  "HEC")
     arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
-                            help="A list of one or more Kafka hostnames")
+                            help="s list of one or more Kafka hostnames")
     arg_parser.add_argument("--kafka-username",
-                            help='An optional Kafka username')
+                            help='sn optional Kafka username')
     arg_parser.add_argument("--kafka-password",
-                            help="An optional Kafka password")
+                            help="sn optional Kafka password")
     arg_parser.add_argument("--kafka-use-ssl",
                             action="store_true",
-                            help="Use SSL/TLS to connect to Kafka "
+                            help="use SSL/TLS to connect to Kafka "
                                  "(implied when --kafka-username or "
                                  "--kafka-password are provided)")
     arg_parser.add_argument("--kafka-aggregate-topic",
-                            help="The Kafka topic to publish aggregate "
+                            help="the Kafka topic to publish aggregate "
                             "reports to (Default: dmarc_aggregate)",
                             default="dmarc_aggregate")
     arg_parser.add_argument("--kafka-forensic_topic",
-                            help="The Kafka topic to publish forensic reports"
+                            help="the Kafka topic to publish forensic reports"
                             " to (Default: dmarc_forensic)",
                             default="dmarc_forensic")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
-                            help="Save aggregate reports to search indexes")
+                            help="save aggregate reports to search indexes")
     arg_parser.add_argument("--save-forensic", action="store_true",
                             default=False,
-                            help="Save forensic reports to search indexes")
+                            help="save forensic reports to search indexes")
     arg_parser.add_argument("-O", "--outgoing-host",
-                            help="Email the results using this host")
+                            help="email the results using this host")
     arg_parser.add_argument("-U", "--outgoing-user",
-                            help="Email the results using this user")
+                            help="email the results using this user")
     arg_parser.add_argument("-P", "--outgoing-password",
-                            help="Email the results using this password")
+                            help="email the results using this password")
     arg_parser.add_argument("--outgoing-port",
                             help="Email the results using this port")
     arg_parser.add_argument("--outgoing-ssl",
