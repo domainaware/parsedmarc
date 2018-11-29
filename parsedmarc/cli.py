@@ -103,10 +103,10 @@ def _main():
                             help="Write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query "
-                                 "(Default is Cloudflare's nameservers)")
+                                 "(default is Cloudflare's nameservers)")
     arg_parser.add_argument("-t", "--timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (Default: 6.0)",
+                                 "from DNS (default: 6.0)",
                             type=float,
                             default=6.0)
     arg_parser.add_argument("-H", "--host",
@@ -168,11 +168,11 @@ def _main():
                                  "--kafka-password are provided)")
     arg_parser.add_argument("--kafka-aggregate-topic",
                             help="the Kafka topic to publish aggregate "
-                            "reports to (Default: dmarc_aggregate)",
+                            "reports to (default: dmarc_aggregate)",
                             default="dmarc_aggregate")
     arg_parser.add_argument("--kafka-forensic_topic",
                             help="the Kafka topic to publish forensic reports"
-                            " to (Default: dmarc_forensic)",
+                            " to (default: dmarc_forensic)",
                             default="dmarc_forensic")
     arg_parser.add_argument("--save-aggregate", action="store_true",
                             default=False,
