@@ -158,9 +158,9 @@ def _main():
     arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
                             help="s list of one or more Kafka hostnames")
     arg_parser.add_argument("--kafka-username",
-                            help='sn optional Kafka username')
+                            help='an optional Kafka username')
     arg_parser.add_argument("--kafka-password",
-                            help="sn optional Kafka password")
+                            help="an optional Kafka password")
     arg_parser.add_argument("--kafka-use-ssl",
                             action="store_true",
                             help="use SSL/TLS to connect to Kafka "
@@ -187,7 +187,7 @@ def _main():
     arg_parser.add_argument("-P", "--outgoing-password",
                             help="email the results using this password")
     arg_parser.add_argument("--outgoing-port",
-                            help="Email the results using this port")
+                            help="email the results using this port")
     arg_parser.add_argument("--outgoing-ssl",
                             help="use SSL/TLS instead of STARTTLS (more "
                                  "secure, and required by some providers, "
