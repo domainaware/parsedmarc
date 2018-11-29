@@ -30,7 +30,7 @@ class _PublishedPolicy(InnerDoc):
     p = Text()
     sp = Text()
     pct = Integer()
-    fo = Text()  # TODO: Change this to Text (issue #31)
+    fo = Text()
 
 
 class _DKIMResult(InnerDoc):
@@ -229,7 +229,6 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
         fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
         fo_type = fo_mapping["type"]
         if fo_type == "long":
-            # TODO: Do reindex, delete, and alias here (issue #31)
             new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
             body = {"properties": {"published_policy.fo": {
                 "type": "text",
