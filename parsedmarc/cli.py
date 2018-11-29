@@ -189,21 +189,21 @@ def _main():
     arg_parser.add_argument("--outgoing-port",
                             help="Email the results using this port")
     arg_parser.add_argument("--outgoing-ssl",
-                            help="Use SSL/TLS instead of STARTTLS (more "
+                            help="use SSL/TLS instead of STARTTLS (more "
                                  "secure, and required by some providers, "
                                  "like Gmail)")
     arg_parser.add_argument("-F", "--outgoing-from",
-                            help="Email the results using this from address")
+                            help="email the results using this from address")
     arg_parser.add_argument("-T", "--outgoing-to", nargs="+",
-                            help="Email the results to these addresses")
+                            help="email the results to these addresses")
     arg_parser.add_argument("-S", "--outgoing-subject",
-                            help="Email the results using this subject")
+                            help="email the results using this subject")
     arg_parser.add_argument("-A", "--outgoing-attachment",
-                            help="Email the results using this filename")
+                            help="email the results using this filename")
     arg_parser.add_argument("-M", "--outgoing-message",
-                            help="Email the results using this message")
+                            help="email the results using this message")
     arg_parser.add_argument("-w", "--watch", action="store_true",
-                            help="Use an IMAP IDLE connection to process "
+                            help="use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
     arg_parser.add_argument("--test",
                             help="Do not move or delete IMAP messages",
@@ -211,7 +211,7 @@ def _main():
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="Only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",
-                            help="Print debugging information")
+                            help="print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
                             version=__version__)
 
