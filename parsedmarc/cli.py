@@ -157,13 +157,9 @@ def _main():
     arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
                             help="A list of one or more Kafka hostnames")
     arg_parser.add_argument("--kafka-username",
-                            help='An optional Kafka username\nNote: For '
-                                 'Azure Event hub, this is literally '
-                                 '"$ConnectionString"')
+                            help='An optional Kafka username')
     arg_parser.add_argument("--kafka-password",
-                            help="An optional Kafka password\n"
-                                 "Note: For Azure Event hub, this is  the "
-                                 "Azure-provided connection string")
+                            help="An optional Kafka password")
     arg_parser.add_argument("--kafka-use-ssl",
                             action="store_true",
                             help="Use SSL/TLS to connect to Kafka "

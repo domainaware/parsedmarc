@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
-    InnerDoc, Integer, Text, Boolean, DateRange, Ip, Date, Search
+    InnerDoc, Integer, Text, Boolean, Ip, Date, Search
 from elasticsearch.helpers import reindex
 
 
@@ -54,7 +54,7 @@ class _AggregateReportDoc(Document):
     org_email = Text()
     org_extra_contact_info = Text()
     report_id = Text()
-    date_range = DateRange()
+    date_range = Date()
     errors = Text()
     published_policy = Object(_PublishedPolicy)
     source_ip_address = Ip()
@@ -277,8 +277,8 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     index_date = begin_date.strftime("%Y-%m-%d")
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
-    date_range = (aggregate_report["begin_date"],
-                  aggregate_report["end_date"])
+    date_range = [aggregate_report["begin_date"],
+                  aggregate_report["end_date"]]
 
     org_name_query = Q(dict(match=dict(org_name=org_name)))
     report_id_query = Q(dict(match=dict(report_id=report_id)))
