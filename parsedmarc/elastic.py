@@ -287,8 +287,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
     search = Search(index="dmarc_aggregate*")
-    search.query = org_name_query & report_id_query & domain_query & \
-        begin_date_query & end_date_query
+    query = org_name_query & report_id_query & domain_query
+    query = query & begin_date_query & end_date_query
+    search.query = query
 
     existing = search.execute()
     if len(existing) > 0:
