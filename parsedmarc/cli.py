@@ -156,7 +156,7 @@ def _main():
                             help="skip certificate verification for Splunk "
                                  "HEC")
     arg_parser.add_argument("-K", "--kafka-hosts", nargs="*",
-                            help="s list of one or more Kafka hostnames")
+                            help="a list of one or more Kafka hostnames")
     arg_parser.add_argument("--kafka-username",
                             help='an optional Kafka username')
     arg_parser.add_argument("--kafka-password",
