@@ -206,10 +206,10 @@ def _main():
                             help="use an IMAP IDLE connection to process "
                                  "reports as they arrive in the inbox")
     arg_parser.add_argument("--test",
-                            help="Do not move or delete IMAP messages",
+                            help="do not move or delete IMAP messages",
                             action="store_true", default=False)
     arg_parser.add_argument("-s", "--silent", action="store_true",
-                            help="Only print errors and warnings")
+                            help="only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",
                             help="print debugging information")
     arg_parser.add_argument("-v", "--version", action="version",
