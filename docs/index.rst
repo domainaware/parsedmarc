@@ -71,6 +71,8 @@ CLI help
                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
                      [--hec-skip-certificate-verification]
                      [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                     [--kafka-username KAFKA_USERNAME]
+                     [--kafka-password KAFKA_PASSWORD] [--kafka-use-ssl]
                      [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
                      [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
                      [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
@@ -91,82 +93,88 @@ CLI help
    optional arguments:
      -h, --help            show this help message and exit
      --strip-attachment-payloads
-                           Remove attachment payloads from forensic report output
+                           remove attachment payloads from forensic report output
      -o OUTPUT, --output OUTPUT
-                           Write output files to the given directory
+                           write output files to the given directory
      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query (Default is Cloudflare's
+                           nameservers to query (default is Cloudflare's
                            nameservers)
      -t TIMEOUT, --timeout TIMEOUT
                            number of seconds to wait for an answer from DNS
-                           (Default: 6.0)
-     -H HOST, --host HOST  IMAP hostname or IP address
-     -u USER, --user USER  IMAP user
+                           (default: 6.0)
+     -H HOST, --host HOST  an IMAP hostname or IP address
+     -u USER, --user USER  an IMAP user
      -p PASSWORD, --password PASSWORD
-                           IMAP password
+                           an IMAP password
      --imap-port IMAP_PORT
-                           IMAP port
+                           an IMAP port
      --imap-skip-certificate-verification
-                           Skip certificate verification for IMAP
-     --imap-no-ssl         Do not use SSL/TLS when connecting to IMAP
+                           skip certificate verification for IMAP
+     --imap-no-ssl         do not use SSL/TLS when connecting to IMAP
      -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                           The IMAP folder containing the reports (Default:
+                           the IMAP folder containing the reports (default:
                            INBOX)
      -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                           Specifies the IMAP folder to move messages to after
-                           processing them (Default: Archive)
-     -d, --delete          Delete the reports after processing them
+                           specifies the IMAP folder to move messages to after
+                           processing them (default: Archive)
+     -d, --delete          delete the reports after processing them
      -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                           One or more Elasticsearch hostnames or URLs to use
+                           une or more Elasticsearch hostnames or URLs to use
                            (e.g. localhost:9200)
      --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
-                           Append this suffix to the dmarc_aggregate and
+                           append this suffix to the dmarc_aggregate and
                            dmarc_forensic Elasticsearch index names, joined by _
-     --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
+     --hec HEC             the URL to a Splunk HTTP Event Collector (HEC)
      --hec-token HEC_TOKEN
-                           The authorization token for a Splunk HTTP Event
+                           the authorization token for a Splunk HTTP Event
                            Collector (HEC)
      --hec-index HEC_INDEX
-                           The index to use when sending events to the Splunk
+                           the index to use when sending events to the Splunk
                            HTTP Event Collector (HEC)
      --hec-skip-certificate-verification
-                           Skip certificate verification for Splunk HEC
+                           skip certificate verification for Splunk HEC
      -K [KAFKA_HOSTS [KAFKA_HOSTS ...]], --kafka-hosts [KAFKA_HOSTS [KAFKA_HOSTS ...]]
-                           A list of one or more Kafka hostnames or URLs
+                           s list of one or more Kafka hostnames
+     --kafka-username KAFKA_USERNAME
+                           an optional Kafka username
+     --kafka-password KAFKA_PASSWORD
+                           an optional Kafka password
+     --kafka-use-ssl       use SSL/TLS to connect to Kafka (implied when --kafka-
+                           username or --kafka-password are provided)
      --kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC
-                           The Kafka topic to publish aggregate reports to
-                           (Default: dmarc_aggregate)
+                           the Kafka topic to publish aggregate reports to
+                           (default: dmarc_aggregate)
      --kafka-forensic_topic KAFKA_FORENSIC_TOPIC
-                           The Kafka topic to publish forensic reports to
-                           (Default: dmarc_forensic)
-     --save-aggregate      Save aggregate reports to search indexes
-     --save-forensic       Save forensic reports to search indexes
+                           the Kafka topic to publish forensic reports to
+                           (default: dmarc_forensic)
+     --save-aggregate      save aggregate reports to search indexes
+     --save-forensic       save forensic reports to search indexes
      -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                           Email the results using this host
+                           email the results using this host
      -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                           Email the results using this user
+                           email the results using this user
      -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                           Email the results using this password
+                           email the results using this password
      --outgoing-port OUTGOING_PORT
-                           Email the results using this port
+                           email the results using this port
      --outgoing-ssl OUTGOING_SSL
-                           Use SSL/TLS instead of STARTTLS (more secure, and
+                           use SSL/TLS instead of STARTTLS (more secure, and
                            required by some providers, like Gmail)
      -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                           Email the results using this from address
+                           email the results using this from address
      -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                           Email the results to these addresses
+                           email the results to these addresses
      -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                           Email the results using this subject
+                           email the results using this subject
      -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                           Email the results using this filename
+                           email the results using this filename
      -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                           Email the results using this message
-     -w, --watch           Use an IMAP IDLE connection to process reports as they
+                           email the results using this message
+     -w, --watch           use an IMAP IDLE connection to process reports as they
                            arrive in the inbox
-     --test                Do not move or delete IMAP messages
-     -s, --silent          Only print errors and warnings
-     --debug               Print debugging information
+     --test                do not move or delete IMAP messages
+     -s, --silent          only print errors and warnings
+     --debug               print debugging information
      -v, --version         show program's version number and exit
 
 Sample aggregate report output

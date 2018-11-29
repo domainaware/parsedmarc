@@ -95,12 +95,12 @@ def _main():
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
                                  "report files or emails")
-    strip_attachment_help = "Remove attachment payloads from forensic " \
+    strip_attachment_help = "remove attachment payloads from forensic " \
                             "report output"
     arg_parser.add_argument("--strip-attachment-payloads",
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
-                            help="Write output files to the given directory")
+                            help="write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query "
                                  "(default is Cloudflare's nameservers)")
