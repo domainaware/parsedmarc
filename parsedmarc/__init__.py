@@ -18,7 +18,6 @@ from base64 import b64decode
 import binascii
 import email
 import tempfile
-import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -26,6 +25,7 @@ import email.utils
 import smtplib
 from ssl import SSLError, CertificateError, create_default_context
 import time
+import socket
 
 from expiringdict import ExpiringDict
 import xmltodict
@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "5.1.0"
+__version__ = "5.1.1"
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
@@ -527,6 +527,9 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             parsed_report[key] = report_value[1]
 
         if "arrival_date" not in parsed_report:
+            if msg_date is None:
+                raise InvalidForensicReport(
+                    "Forensic sample is not a valid email")
             parsed_report["arrival_date"] = msg_date.isoformat()
 
         if "version" not in parsed_report:
@@ -978,7 +981,8 @@ def get_dmarc_reports_from_inbox(host=None,
                     raw_msg = server.fetch(message_uid,
                                            ["RFC822"])[message_uid][b"RFC822"]
 
-                except (ConnectionResetError, TimeoutError) as error:
+                except (ConnectionResetError, socket.error,
+                        TimeoutError) as error:
                     logger.debug("IMAP error: {0}".format(error.__str__()))
                     logger.debug("Reconnecting to IMAP")
                     if not ssl:
@@ -1044,7 +1048,8 @@ def get_dmarc_reports_from_inbox(host=None,
                         message = "Error deleting message UID"
                         e = "{0} {1}: " "{2}".format(message, msg_uid, e)
                         logger.error("IMAP error: {0}".format(e))
-                    except (ConnectionResetError, TimeoutError) as e:
+                    except (ConnectionResetError, socket.error,
+                            TimeoutError) as e:
                         logger.debug("IMAP error: {0}".format(e.__str__()))
                         logger.debug("Reconnecting to IMAP")
                         if not ssl:
@@ -1079,7 +1084,8 @@ def get_dmarc_reports_from_inbox(host=None,
                             message = "Error moving message UID"
                             e = "{0} {1}: {2}".format(message, msg_uid, e)
                             logger.error("IMAP error: {0}".format(e))
-                        except (ConnectionResetError, TimeoutError) as error:
+                        except (ConnectionResetError, socket.error,
+                                TimeoutError) as error:
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
@@ -1562,7 +1568,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
             raise IMAPError("DNS resolution failed")
         except ConnectionRefusedError:
             raise IMAPError("Connection refused")
-        except (KeyError, ConnectionResetError):
+        except (KeyError, socket.error, BrokenPipeError, ConnectionResetError):
             logger.debug("IMAP error: Connection reset")
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)

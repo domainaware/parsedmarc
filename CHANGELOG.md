@@ -1,9 +1,15 @@
+5.1.1
+-----
+
+- Bugfix: Crash when parsing invalid forensic reports (#38)
+
+
 5.1.0
 -----
 
 - Bugfix: Submit aggregate dates to Elasticsearch as lists, not tuples
 - Support `elasticsearch-dsl<=6.3.0`
-- Add support for TLS/SSL and uerename/password auth to Kafka 
+- Add support for TLS/SSL and username/password auth to Kafka 
 
 5.0.2
 -----
