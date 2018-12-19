@@ -3,6 +3,7 @@
 
 - Bugfix: Crash when parsing invalid forensic reports (#38)
 - Bugfix: Crash when IMAp connection is lost
+- Increase default Splunk HEC response timeout to 60 seconds
 
 5.1.0
 -----

@@ -25,7 +25,7 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
     def __init__(self, url, access_token, index,
-                 source="parsedmarc", verify=True):
+                 source="parsedmarc", verify=True, timeout=60):
         """
         Initializes the HECClient
         Args:
@@ -34,6 +34,8 @@ class HECClient(object):
             index (str): The name of the index
             source (str): The source name
             verify (bool): Verify SSL certificates
+            timeout (float): Number of seconds to wait for the server to send
+            data before giving up
         """
         url = urlparse(url)
         self.url = "{0}://{1}/services/collector/event/1.0".format(url.scheme,
@@ -43,6 +45,7 @@ class HECClient(object):
         self.host = socket.getfqdn()
         self.source = source
         self.session = requests.Session()
+        self.timeout = timeout
         self.session.verify = verify
         self._common_data = dict(host=self.host, source=self.source,
                                  index=self.index)
@@ -111,7 +114,9 @@ class HECClient(object):
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str).json()
+            response = self.session.post(self.url, data=json_str,
+                                         timeout=self.timeout)
+            response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
@@ -124,7 +129,6 @@ class HECClient(object):
         Args:
             forensic_reports (list):  A list of forensic report dictionaries
             to save in Splunk
-
         """
         logger.debug("Saving forensic reports to Splunk")
         if type(forensic_reports) == dict:
@@ -146,7 +150,9 @@ class HECClient(object):
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str).json()
+            response = self.session.post(self.url, data=json_str,
+                                         timeout=self.timeout)
+            response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
