@@ -2,7 +2,7 @@
 -----
 
 - Bugfix: Crash when parsing invalid forensic reports (#38)
-
+- Bugfix: Crash when IMAp connection is lost
 
 5.1.0
 -----
