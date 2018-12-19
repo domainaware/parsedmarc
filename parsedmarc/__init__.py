@@ -18,6 +18,7 @@ from base64 import b64decode
 import binascii
 import email
 import tempfile
+import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -25,7 +26,6 @@ import email.utils
 import smtplib
 from ssl import SSLError, CertificateError, create_default_context
 import time
-import socket
 
 from expiringdict import ExpiringDict
 import xmltodict
