@@ -673,8 +673,13 @@ For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
    maximum JVM heap sizes in ``/etc/elasticsearch/jvm.options`` to more
    reasonable levels, depending on your server's resources.
 
+   Make sure the system has at least 2 GB more RAM then the assigned JVM
+   heap size.
+
    Always set the minimum and maximum JVM heap sizes to the same
-   value. For example, to set a 4 GB heap size, set
+   value.
+
+   For example, to set a 4 GB heap size, set
 
    .. code-block:: bash
 
