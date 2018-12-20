@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 5.1.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 5.1.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.0
+                5.1.1
               </div>
             
           
@@ -183,7 +183,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;5.1.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;5.1.1&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
@@ -672,6 +672,9 @@
             <span class="n">parsed_report</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_value</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="s2">&quot;arrival_date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">msg_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span>
+                    <span class="s2">&quot;Forensic sample is not a valid email&quot;</span><span class="p">)</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
@@ -1123,7 +1126,8 @@
                     <span class="n">raw_msg</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">message_uid</span><span class="p">,</span>
                                            <span class="p">[</span><span class="s2">&quot;RFC822&quot;</span><span class="p">])[</span><span class="n">message_uid</span><span class="p">][</span><span class="sa">b</span><span class="s2">&quot;RFC822&quot;</span><span class="p">]</span>
 
-                <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+                        <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
@@ -1189,7 +1193,8 @@
                         <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Error deleting message UID&quot;</span>
                         <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">: &quot;</span> <span class="s2">&quot;</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-                    <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+                            <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="n">ssl</span><span class="p">:</span>
@@ -1224,7 +1229,8 @@
                             <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID&quot;</span>
                             <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">: </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-                        <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                        <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionResetError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+                                <span class="ne">TimeoutError</span><span class="p">)</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                                 <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
                             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting to IMAP&quot;</span><span class="p">)</span>
@@ -1707,7 +1713,7 @@
             <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;Connection refused&quot;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ConnectionResetError</span><span class="p">):</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="ne">BrokenPipeError</span><span class="p">,</span> <span class="ne">ConnectionResetError</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: Connection reset&quot;</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>

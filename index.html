@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.1.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.1.1 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.0
+                5.1.1
               </div>
             
           
@@ -787,8 +787,11 @@ sudo apt-get install -y default-jre-headless elasticsearch kibana
 cause it to crash under a heavy load. To fix this, increase the minimum and
 maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to more
 reasonable levels, depending on your server’s resources.</p>
+<p>Make sure the system has at least 2 GB more RAM then the assigned JVM
+heap size.</p>
 <p>Always set the minimum and maximum JVM heap sizes to the same
-value. For example, to set a 4 GB heap size, set</p>
+value.</p>
+<p>For example, to set a 4 GB heap size, set</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>-Xms4g
 -Xmx4g
 </pre></div>
@@ -1733,7 +1736,7 @@ to a callback function</p>
 </div>
 <span class="target" id="module-parsedmarc.splunk"></span><dl class="class">
 <dt id="parsedmarc.splunk.HECClient">
-<em class="property">class </em><code class="descclassname">parsedmarc.splunk.</code><code class="descname">HECClient</code><span class="sig-paren">(</span><em>url</em>, <em>access_token</em>, <em>index</em>, <em>source='parsedmarc'</em>, <em>verify=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">parsedmarc.splunk.</code><code class="descname">HECClient</code><span class="sig-paren">(</span><em>url</em>, <em>access_token</em>, <em>index</em>, <em>source='parsedmarc'</em>, <em>verify=True</em>, <em>timeout=60</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>A client for a Splunk HTTP Events Collector (HEC)</p>
 <dl class="method">
 <dt id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
