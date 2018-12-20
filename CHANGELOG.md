@@ -1,8 +1,8 @@
 5.1.1
 -----
 
-- Bugfix: Crash when parsing invalid forensic reports (#38)
-- Bugfix: Crash when IMAp connection is lost
+- Bugfix: Crash when parsing invalid forensic report samples (#38)
+- Bugfix: Crash when IMAP connection is lost
 - Increase default Splunk HEC response timeout to 60 seconds
 
 5.1.0
