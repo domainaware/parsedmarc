@@ -424,15 +424,15 @@ On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    $ sudo apt-get install python3-pip
+    sudo apt-get install python3-pip
 
 
 On CentOS systems, run:
 
 .. code-block:: bash
 
-   $ sudo yum install -y python34-setuptools
-   $ sudo easy_install-3.4 pip
+   sudo yum install -y python34-setuptools
+   sudo easy_install-3.4 pip
 
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
@@ -442,13 +442,13 @@ macOS or Linux, run
 
 .. code-block:: bash
 
-    $ sudo -H pip3 install -U parsedmarc
+    sudo -H pip3 install -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    $ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
@@ -467,45 +467,45 @@ symlink:
 
 .. code-block:: bash
 
-    $ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+    sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 
 Install ``virtualenv`` on your system:
 
 .. code-block:: bash
 
-    $ sudo apt-get install python3-pip
-    $ sudo -H pip3 install -U virtualenv
+    sudo apt-get install python3-pip
+    sudo -H pip3 install -U virtualenv
 
 Uninstall any instance of ``parsedmarc`` that you may have installed globally
 
 .. code-block:: bash
 
-    $ sudo -H pip3 uninstall -y parsedmarc
+    sudo -H pip3 uninstall -y parsedmarc
 
 Next, create a ``pypy3`` virtualenv for parsedmarc
 
 
 .. code-block:: bash
 
-    $ sudo mkdir /opt/venvs
-    $ cd /opt/venvs
-    $ sudo -H pip3 install -U virtualenv
-    $ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-    $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
+    sudo mkdir /opt/venvs
+    cd /opt/venvs
+    sudo -H pip3 install -U virtualenv
+    sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 
 To upgrade ``parsedmarc`` inside the virtualenv, run:
 
 
 .. code-block:: bash
 
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    $ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 
 Optional dependencies
 ---------------------
@@ -517,7 +517,7 @@ On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    $ sudo apt-get install libemail-outlook-message-perl
+    sudo apt-get install libemail-outlook-message-perl
 
 
 DNS performance
