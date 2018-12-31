@@ -404,7 +404,7 @@ Installation
    ::
 
       http_proxy=http://prox-server:3128
-      https_proxy=http://@prox-server:3128
+      https_proxy=https://prox-server:3128
       ftp_proxy=http://prox-server:3128
 
    This will set the the proxy up for use system-wide, including for
