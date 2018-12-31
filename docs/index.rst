@@ -460,7 +460,7 @@ Or, install the latest development release directly from GitHub:
 Installation using pypy3
 ------------------------
 
-For the best possible processing speed, consider using `parsedmarc` inside a ``pypy3``
+For the best possible processing speed, consider using ``parsedmarc`` inside a ``pypy3``
 virtualenv. First, `download the latest version of pypy3`_. Extract it to
 ``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
 symlink:
