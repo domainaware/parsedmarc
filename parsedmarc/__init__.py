@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "5.1.1"
+__version__ = "5.1.2"
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
@@ -1171,6 +1171,35 @@ def get_dmarc_reports_from_inbox(host=None,
         return results
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+        # Workaround for random Exchange/Office365 IMAP errors
+        if "Server Unavailable" in error or "BAD" in error:
+            sleep_minutes = 5
+            logger.debug(
+                "Received Server Unavailable response"
+                "Waiting {0} minutes before trying again".format(
+                    sleep_minutes))
+            time.sleep(sleep_minutes * 60)
+            results = get_dmarc_reports_from_inbox(
+                host=host,
+                user=user,
+                password=password,
+                connection=connection,
+                port=port,
+                ssl=ssl,
+                ssl_context=ssl_context,
+                move_supported=move_supported,
+                reports_folder=reports_folder,
+                archive_folder=archive_folder,
+                delete=delete,
+                test=test,
+                nameservers=nameservers,
+                dns_timeout=dns_timeout,
+                strip_attachment_payloads=strip_attachment_payloads,
+                results=results
+            )
+
+            return results
+
         raise IMAPError(error)
     except socket.gaierror:
         raise IMAPError("DNS resolution failed")
@@ -1433,7 +1462,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().replace("b'", "").replace("'", "")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable. 15" in error or "BAD" in error:
+        if "Server Unavailable" in error or "BAD" in error:
             logger.debug("IMAP error: {0}".format(error))
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)

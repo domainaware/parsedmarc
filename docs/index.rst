@@ -396,7 +396,7 @@ Installation
    ::
 
       http_proxy=http://user:password@prox-server:3128
-      https_proxy=http://user:password@prox-server:3128
+      https_proxy=https://user:password@prox-server:3128
       ftp_proxy=http://user:password@prox-server:3128
 
    Or if no credentials are needed:

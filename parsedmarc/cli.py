@@ -372,7 +372,7 @@ def _main():
                         test=args.test, nameservers=args.nameservers,
                         dns_timeout=args.timeout, strip_attachment_payloads=sa)
         except IMAPError as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
+            logger.error("IMAP error: {0}".format(error.__str__()))
             exit(1)
 
 

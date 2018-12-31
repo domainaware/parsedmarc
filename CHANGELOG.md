@@ -1,3 +1,8 @@
+5.1.2
+-----
+
+- Workaround unexpected Office365/Exchange IMAP responses
+
 5.1.1
 -----
 
