@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 5.1.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 5.1.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.1
+                5.1.2
               </div>
             
           
@@ -183,7 +183,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;5.1.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;5.1.2&quot;</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
@@ -1316,6 +1316,35 @@
         <span class="k">return</span> <span class="n">results</span>
     <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="c1"># Workaround for random Exchange/Office365 IMAP errors</span>
+        <span class="k">if</span> <span class="s2">&quot;Server Unavailable&quot;</span> <span class="ow">in</span> <span class="n">error</span> <span class="ow">or</span> <span class="s2">&quot;BAD&quot;</span> <span class="ow">in</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">sleep_minutes</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;Received Server Unavailable response&quot;</span>
+                <span class="s2">&quot;Waiting </span><span class="si">{0}</span><span class="s2"> minutes before trying again&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">sleep_minutes</span><span class="p">))</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">sleep_minutes</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_inbox</span><span class="p">(</span>
+                <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span>
+                <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+                <span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
+                <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+                <span class="n">ssl</span><span class="o">=</span><span class="n">ssl</span><span class="p">,</span>
+                <span class="n">ssl_context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">,</span>
+                <span class="n">move_supported</span><span class="o">=</span><span class="n">move_supported</span><span class="p">,</span>
+                <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
+                <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
+                <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
+                <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
+                <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">,</span>
+                <span class="n">results</span><span class="o">=</span><span class="n">results</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">results</span>
+
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">gaierror</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">IMAPError</span><span class="p">(</span><span class="s2">&quot;DNS resolution failed&quot;</span><span class="p">)</span>
@@ -1578,7 +1607,7 @@
     <span class="k">except</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">IMAPClientError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;b&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
         <span class="c1"># Workaround for random Exchange/Office365 IMAP errors</span>
-        <span class="k">if</span> <span class="s2">&quot;Server Unavailable. 15&quot;</span> <span class="ow">in</span> <span class="n">error</span> <span class="ow">or</span> <span class="s2">&quot;BAD&quot;</span> <span class="ow">in</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;Server Unavailable&quot;</span> <span class="ow">in</span> <span class="n">error</span> <span class="ow">or</span> <span class="s2">&quot;BAD&quot;</span> <span class="ow">in</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IMAP error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reconnecting watcher&quot;</span><span class="p">)</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">imapclient</span><span class="o">.</span><span class="n">IMAPClient</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
@@ -1816,7 +1845,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'5.1.1',
+            VERSION:'5.1.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

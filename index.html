@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.1.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.1.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.1
+                5.1.2
               </div>
             
           
@@ -563,7 +563,7 @@ schema.</p>
 to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
 proxy details there, for example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">https_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<span class="n">https_proxy</span><span class="o">=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
 <span class="n">ftp_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
 </pre></div>
 </div>
@@ -587,23 +587,23 @@ least:</p>
 </ul>
 </div>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install python3-pip
 </pre></div>
 </div>
 <p>On CentOS systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo yum install -y python34-setuptools
-$ sudo easy_install-3.4 pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools
+sudo easy_install-3.4 pip
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
 <p>To install or upgrade to the latest stable release of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> on
 macOS or Linux, run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 <div class="admonition note">
@@ -614,37 +614,37 @@ above commands.</p>
 </div>
 <div class="section" id="installation-using-pypy3">
 <h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline">¶</a></h3>
-<p>For the best possible processing speed, consider using <cite>parsedmarc</cite> inside a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code>
+<p>For the best possible processing speed, consider using <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code>
 virtualenv. First, <a class="reference external" href="https://pypy.org/download.html#default-with-a-jit-compiler">download the latest version of pypy3</a>. Extract it to
 <code class="docutils literal notranslate"><span class="pre">/opt/pypy3</span></code> (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">mkdir</span> <span class="pre">/opt</span></code> if <code class="docutils literal notranslate"><span class="pre">/opt</span></code> does not exist), then create a
 symlink:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 </pre></div>
 </div>
 <p>Install <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> on your system:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install python3-pip
-$ sudo -H pip3 install -U virtualenv
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install python3-pip
+sudo -H pip3 install -U virtualenv
 </pre></div>
 </div>
 <p>Uninstall any instance of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> that you may have installed globally</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H pip3 uninstall -y parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 uninstall -y parsedmarc
 </pre></div>
 </div>
 <p>Next, create a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code> virtualenv for parsedmarc</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo mkdir /opt/venvs
-$ <span class="nb">cd</span> /opt/venvs
-$ sudo -H pip3 install -U virtualenv
-$ sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
-$ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir /opt/venvs
+<span class="nb">cd</span> /opt/venvs
+sudo -H pip3 install -U virtualenv
+sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
+sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 </pre></div>
 </div>
 <p>To upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 </div>
@@ -653,7 +653,7 @@ $ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 <p>If you would like to be able to parse emails saved from Microsoft Outlook
 (i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install libemail-outlook-message-perl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install libemail-outlook-message-perl
 </pre></div>
 </div>
 </div>
@@ -2135,7 +2135,7 @@ country associated with the given IPv4 or IPv6 address</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'5.1.1',
+            VERSION:'5.1.2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
