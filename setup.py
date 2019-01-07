@@ -93,7 +93,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dnspython', 'expiringdict', 'publicsuffix',
-                      'xmltodict', 'geoip2', 'urllib3,>=1.21.1',
+                      'xmltodict', 'geoip2', 'urllib3>=1.21.1',
                       'requests', 'imapclient', 'mail-parser', 'dateparser',
                       'elasticsearch',
                       'elasticsearch-dsl', 'kafka-python'
