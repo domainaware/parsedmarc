@@ -1,3 +1,8 @@
+5.1.3
+-----
+
+- Remove `urllib3` version upper limit
+
 5.1.2
 -----
 

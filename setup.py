@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "5.1.2"
+__version__ = "5.1.3"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
@@ -93,7 +93,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dnspython', 'expiringdict', 'publicsuffix',
-                      'xmltodict', 'geoip2', 'urllib3<1.24,>=1.21.1',
+                      'xmltodict', 'geoip2', 'urllib3,>=1.21.1',
                       'requests', 'imapclient', 'mail-parser', 'dateparser',
                       'elasticsearch',
                       'elasticsearch-dsl', 'kafka-python'
