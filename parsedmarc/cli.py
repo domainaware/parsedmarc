@@ -141,11 +141,11 @@ def _main():
                             help="append this suffix to the "
                                  "dmarc_aggregate and dmarc_forensic "
                                  "Elasticsearch index names, joined by _")
-    arg_parser.add_argument("--elasticsearch-use-ssl", default=False, action="store_true",
-                            help="enable ssl connection to elasticsearch server")
+    arg_parser.add_argument("--elasticsearch-use-ssl", default=False,
+                            action="store_true",
+                            help="Use SSL when connecting to Elasticsearch")
     arg_parser.add_argument("--elasticsearch-ssl-cert-path", default=None,
-                            help="if enabled ssl connection to elasticsearch"
-                            "this is the path to the cert which validates the server")
+                            help="Path to the Elasticsearch SSL certificate")
     arg_parser.add_argument("--hec", help="the URL to a Splunk HTTP Event "
                                           "Collector (HEC)")
     arg_parser.add_argument("--hec-token", help="the authorization token for "

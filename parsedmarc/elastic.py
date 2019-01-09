@@ -172,9 +172,9 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None):
     Sets the Elasticsearch hosts to use
 
     Args:
-        hosts: A single hostname or URL, or list of hostnames or URLs
-        [use_ssl]: boolean, if True enables HTTPS connection to the server
-        [ssl_cert_path]: string, path to the certificate chain to validate the connection
+        hosts (str): A single hostname or URL, or list of hostnames or URLs
+        use_ssl (bool): Use a HTTPS connection to the server
+        ssl_cert_path (str): Path to the certificate chain
     """
     if type(hosts) != list:
         hosts = [hosts]
