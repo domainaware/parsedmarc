@@ -38,7 +38,12 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "5.1.3"
+__version__ = "5.2.0"
+
+logging.basicConfig(
+    format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] '
+           '%(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S')
 
 logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))

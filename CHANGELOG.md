@@ -1,3 +1,17 @@
+5.2.0
+-----
+- More details in logging output
+- And CLI options
+  ```
+  --elasticsearch-use-ssl
+                        Use SSL when connecting to Elasticsearch
+  --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
+                        Path to the Elasticsearch SSL certificate
+  --elasticsearch-monthly-indexes
+                        Use monthly Elasticsearch indexes instead of daily
+                        indexes
+  ```
+
 5.1.3
 -----
 
