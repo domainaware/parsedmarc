@@ -265,13 +265,15 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
 
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
-                                           index_suffix=None):
+                                           index_suffix=None,
+                                           monthly_indexes=False):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
         index_suffix (str): The suffix of the name of the index to save to
+        monthly_indexes (bool): Use monthly indexes instead of daily indexes
 
     Raises:
             AlreadySaved
@@ -286,7 +288,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     end_date = human_timestamp_to_datetime(metadata["end_date"])
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
-    index_date = begin_date.strftime("%Y-%m-%d")
+    if monthly_indexes:
+        index_date = begin_date.strftime("%Y-%m")
+    else:
+        index_date = begin_date.strftime("%Y-%m-%d")
     aggregate_report["begin_date"] = begin_date
     aggregate_report["end_date"] = end_date
     date_range = [aggregate_report["begin_date"],
@@ -375,13 +380,16 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
 
 def save_forensic_report_to_elasticsearch(forensic_report,
-                                          index_suffix=None):
+                                          index_suffix=None,
+                                          monthly_indexes=False):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 
         Args:
             forensic_report (OrderedDict): A parsed forensic report
             index_suffix (str): The suffix of the name of the index to save to
+            monthly_indexes (bool): Use monthly indexes instead of daily
+                                    indexes
 
         Raises:
             AlreadySaved
@@ -485,7 +493,10 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     index = "dmarc_forensic"
     if index_suffix:
         index = "{0}_{1}".format(index, index_suffix)
-    index_date = arrival_date.strftime("%Y-%m-%d")
+    if monthly_indexes:
+        index_date = arrival_date.strftime("%Y-%m")
+    else:
+        index_date = arrival_date.strftime("%Y-%m-%d")
     index = "{0}-{1}".format(index, index_date)
     create_indexes([index])
     forensic_doc.meta.index = index

@@ -42,7 +42,8 @@ def _main():
                     if args.elasticsearch_host:
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
-                            index_suffix=args.elasticsearch_index_suffix)
+                            index_suffix=args.elasticsearch_index_suffix,
+                            monthly_indexes=args.elasticsearch_monthly_indexes)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -69,7 +70,8 @@ def _main():
                     if args.elasticsearch_host:
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
-                            index_suffix=args.elasticsearch_index_suffix)
+                            index_suffix=args.elasticsearch_index_suffix,
+                            monthly_indexes=args.elasticsearch_monthly_indexes)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -146,6 +148,10 @@ def _main():
                             help="Use SSL when connecting to Elasticsearch")
     arg_parser.add_argument("--elasticsearch-ssl-cert-path", default=None,
                             help="Path to the Elasticsearch SSL certificate")
+    arg_parser.add_argument("--elasticsearch-monthly-indexes",
+                            action="store_true", default=False,
+                            help="Use monthly Elasticsearch indexes instead "
+                                 "of daily indexes")
     arg_parser.add_argument("--hec", help="the URL to a Splunk HTTP Event "
                                           "Collector (HEC)")
     arg_parser.add_argument("--hec-token", help="the authorization token for "
@@ -249,7 +255,8 @@ def _main():
                         es_aggregate_index, suffix)
                     es_forensic_index = "{0}_{1}".format(
                         es_forensic_index, suffix)
-                elastic.set_hosts(args.elasticsearch_host, args.elasticsearch_use_ssl,
+                elastic.set_hosts(args.elasticsearch_host,
+                                  args.elasticsearch_use_ssl,
                                   args.elasticsearch_ssl_cert_path)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
