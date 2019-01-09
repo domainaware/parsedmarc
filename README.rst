@@ -58,27 +58,30 @@ CLI help
 ::
 
     usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                      [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                      [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                      [--imap-skip-certificate-verification] [--imap-no-ssl]
-                      [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                      [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                      [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                      [--hec HEC] [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                      [--hec-skip-certificate-verification]
-                      [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                      [--kafka-username KAFKA_USERNAME]
-                      [--kafka-password KAFKA_PASSWORD] [--kafka-use-ssl]
-                      [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                      [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                      [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                      [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                      [--outgoing-port OUTGOING_PORT]
-                      [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                      [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                      [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                      [-s] [--debug] [-v]
-                      [file_path [file_path ...]]
+                  [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
+                  [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
+                  [--imap-skip-certificate-verification] [--imap-no-ssl]
+                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
+                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
+                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
+                  [--elasticsearch-use-ssl]
+                  [--elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH]
+                  [--elasticsearch-monthly-indexes] [--hec HEC]
+                  [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
+                  [--hec-skip-certificate-verification]
+                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
+                  [--kafka-username KAFKA_USERNAME]
+                  [--kafka-password KAFKA_PASSWORD] [--kafka-use-ssl]
+                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
+                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
+                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
+                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
+                  [--outgoing-port OUTGOING_PORT]
+                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
+                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
+                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
+                  [-s] [--debug] [-v]
+                  [file_path [file_path ...]]
 
     Parses DMARC reports
 
@@ -120,6 +123,13 @@ CLI help
       --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
                             append this suffix to the dmarc_aggregate and
                             dmarc_forensic Elasticsearch index names, joined by _
+      --elasticsearch-use-ssl
+                            Use SSL when connecting to Elasticsearch
+      --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
+                            Path to the Elasticsearch SSL certificate
+      --elasticsearch-monthly-indexes
+                            Use monthly Elasticsearch indexes instead of daily
+                            indexes
       --hec HEC             the URL to a Splunk HTTP Event Collector (HEC)
       --hec-token HEC_TOKEN
                             the authorization token for a Splunk HTTP Event
@@ -130,7 +140,7 @@ CLI help
       --hec-skip-certificate-verification
                             skip certificate verification for Splunk HEC
       -K [KAFKA_HOSTS [KAFKA_HOSTS ...]], --kafka-hosts [KAFKA_HOSTS [KAFKA_HOSTS ...]]
-                            s list of one or more Kafka hostnames
+                            a list of one or more Kafka hostnames
       --kafka-username KAFKA_USERNAME
                             an optional Kafka username
       --kafka-password KAFKA_PASSWORD
