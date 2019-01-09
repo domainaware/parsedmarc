@@ -141,6 +141,11 @@ def _main():
                             help="append this suffix to the "
                                  "dmarc_aggregate and dmarc_forensic "
                                  "Elasticsearch index names, joined by _")
+    arg_parser.add_argument("--elasticsearch-use-ssl", default=False, action="store_true",
+                            help="enable ssl connection to elasticsearch server")
+    arg_parser.add_argument("--elasticsearch-ssl-cert-path", default=None,
+                            help="if enabled ssl connection to elasticsearch"
+                            "this is the path to the cert which validates the server")
     arg_parser.add_argument("--hec", help="the URL to a Splunk HTTP Event "
                                           "Collector (HEC)")
     arg_parser.add_argument("--hec-token", help="the authorization token for "
@@ -244,7 +249,8 @@ def _main():
                         es_aggregate_index, suffix)
                     es_forensic_index = "{0}_{1}".format(
                         es_forensic_index, suffix)
-                elastic.set_hosts(args.elasticsearch_host)
+                elastic.set_hosts(args.elasticsearch_host, args.elasticsearch_use_ssl,
+                                  args.elasticsearch_ssl_cert_path)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:
