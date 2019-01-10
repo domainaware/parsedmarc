@@ -10,6 +10,7 @@
   --elasticsearch-monthly-indexes
                         Use monthly Elasticsearch indexes instead of daily
                         indexes
+  --log-file LOG_FILE   output logging to a file
   ```
 
 5.1.3
