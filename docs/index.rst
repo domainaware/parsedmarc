@@ -84,7 +84,7 @@ CLI help
                   [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
                   [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
                   [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [-v]
+                  [-s] [--debug] [--log-file LOG_FILE] [-v]
                   [file_path [file_path ...]]
 
    Parses DMARC reports
@@ -185,6 +185,7 @@ CLI help
      --test                do not move or delete IMAP messages
      -s, --silent          only print errors and warnings
      --debug               print debugging information
+     --log-file LOG_FILE   output logging to a file
      -v, --version         show program's version number and exit
 
 Sample aggregate report output
