@@ -41,7 +41,7 @@ from parsedmarc.utils import parse_email
 __version__ = "5.2.0"
 
 logging.basicConfig(
-    format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] '
+    format='%(levelname)-8s [%(filename)s:%(lineno)d] '
            '%(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S')
 
@@ -1177,11 +1177,13 @@ def get_dmarc_reports_from_inbox(host=None,
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable" in error or "BAD" in error:
+        if "Server Unavailable" in error or "BAD" in error or \
+                "Connection reset" in error:
             sleep_minutes = 5
             logger.debug(
-                "Received Server Unavailable response"
-                "Waiting {0} minutes before trying again".format(
+                "{0}. "
+                "Waiting {1} minutes before trying again".format(
+                    error,
                     sleep_minutes))
             time.sleep(sleep_minutes * 60)
             results = get_dmarc_reports_from_inbox(
@@ -1467,8 +1469,14 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().replace("b'", "").replace("'", "")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable" in error or "BAD" in error:
-            logger.debug("IMAP error: {0}".format(error))
+        if "Server Unavailable" in error or "BAD" in error or \
+                "Connection reset" in error:
+            sleep_minutes = 5
+            logger.debug(
+                "{0}. "
+                "Waiting {1} minutes before trying again".format(
+                    error,
+                    sleep_minutes))
             logger.debug("Reconnecting watcher")
             server = imapclient.IMAPClient(host)
             server.login(username, password)
@@ -1596,7 +1604,32 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                         idle_start_time = time.monotonic()
                         break
         except imapclient.exceptions.IMAPClientError as error:
-            error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
+            error = error.__str__().replace("b'", "").replace("'", "")
+            # Workaround for random Exchange/Office365 IMAP errors
+            if "Server Unavailable" in error or "BAD" in error or \
+                    "Connection reset" in error:
+                sleep_minutes = 5
+                logger.debug(
+                    "{0}. "
+                    "Waiting {1} minutes before trying again".format(
+                        error,
+                        sleep_minutes))
+                logger.debug("Reconnecting watcher")
+                server = imapclient.IMAPClient(host)
+                server.login(username, password)
+                server.select_folder(rf)
+                idle_start_time = time.monotonic()
+                ms = "MOVE" in get_imap_capabilities(server)
+                res = get_dmarc_reports_from_inbox(connection=server,
+                                                   move_supported=ms,
+                                                   reports_folder=rf,
+                                                   archive_folder=af,
+                                                   delete=delete,
+                                                   test=test,
+                                                   nameservers=ns,
+                                                   dns_timeout=dt)
+                callback(res)
+                server.idle()
             raise IMAPError(error)
         except socket.gaierror:
             raise IMAPError("DNS resolution failed")
