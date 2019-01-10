@@ -224,7 +224,7 @@ def _main():
     arg_parser.add_argument("--debug", action="store_true",
                             help="print debugging information")
     arg_parser.add_argument("--log-file", default=None,
-                            help="redirect logging to file")
+                            help="output logging to a file")
     arg_parser.add_argument("-v", "--version", action="version",
                             version=__version__)
 
@@ -241,7 +241,9 @@ def _main():
         logger.setLevel(logging.DEBUG)
     if args.log_file:
         fh = logging.FileHandler(args.log_file)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - '
+            '%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
         fh.setFormatter(formatter)
         logger.addHandler(fh)
     if args.host is None and len(args.file_path) == 0:
