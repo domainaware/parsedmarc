@@ -41,7 +41,7 @@ from parsedmarc.utils import parse_email
 __version__ = "5.2.0"
 
 logging.basicConfig(
-    format='%(levelname)-8s [%(filename)s:%(lineno)d] '
+    format='%(levelname)8s:%(filename)s:%(lineno)d:'
            '%(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S')
 
