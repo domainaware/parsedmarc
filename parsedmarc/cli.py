@@ -388,17 +388,13 @@ def _main():
             ssl_context.verify_mode = CERT_NONE
         if args.imap_no_ssl:
             ssl = False
-        try:
-            sa = args.strip_attachment_payloads
-            watch_inbox(args.host, args.user, args.password, process_reports,
-                        port=args.imap_port, ssl=ssl, ssl_context=ssl_context,
-                        reports_folder=args.reports_folder,
-                        archive_folder=args.archive_folder, delete=args.delete,
-                        test=args.test, nameservers=args.nameservers,
-                        dns_timeout=args.timeout, strip_attachment_payloads=sa)
-        except IMAPError as error:
-            logger.error("IMAP error: {0}".format(error.__str__()))
-            exit(1)
+        sa = args.strip_attachment_payloads
+        watch_inbox(args.host, args.user, args.password, process_reports,
+                    port=args.imap_port, ssl=ssl, ssl_context=ssl_context,
+                    reports_folder=args.reports_folder,
+                    archive_folder=args.archive_folder, delete=args.delete,
+                    test=args.test, nameservers=args.nameservers,
+                    dns_timeout=args.timeout, strip_attachment_payloads=sa)
 
 
 if __name__ == "__main__":
