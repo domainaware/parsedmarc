@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.1.3 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 5.2.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.3
+                5.2.0
               </div>
             
           
@@ -245,27 +245,30 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">username</span> <span class="n">KAFKA_USERNAME</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">password</span> <span class="n">KAFKA_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">use</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">ssl</span> <span class="n">OUTGOING_SSL</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">w</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-                  <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">H</span> <span class="n">HOST</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">u</span> <span class="n">USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span> <span class="n">PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">port</span> <span class="n">IMAP_PORT</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">imap</span><span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REPORTS_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARCHIVE_FOLDER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="p">[</span><span class="n">ELASTICSEARCH_HOST</span> <span class="o">...</span><span class="p">]]]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">use</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">ssl</span><span class="o">-</span><span class="n">cert</span><span class="o">-</span><span class="n">path</span> <span class="n">ELASTICSEARCH_SSL_CERT_PATH</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">monthly</span><span class="o">-</span><span class="n">indexes</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">index</span> <span class="n">HEC_INDEX</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">username</span> <span class="n">KAFKA_USERNAME</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">password</span> <span class="n">KAFKA_PASSWORD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">use</span><span class="o">-</span><span class="n">ssl</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">aggregate</span><span class="o">-</span><span class="n">topic</span> <span class="n">KAFKA_AGGREGATE_TOPIC</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">forensic_topic</span> <span class="n">KAFKA_FORENSIC_TOPIC</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">aggregate</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">forensic</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">O</span> <span class="n">OUTGOING_HOST</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">U</span> <span class="n">OUTGOING_USER</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">P</span> <span class="n">OUTGOING_PASSWORD</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">port</span> <span class="n">OUTGOING_PORT</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">--</span><span class="n">outgoing</span><span class="o">-</span><span class="n">ssl</span> <span class="n">OUTGOING_SSL</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">F</span> <span class="n">OUTGOING_FROM</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">T</span> <span class="n">OUTGOING_TO</span> <span class="p">[</span><span class="n">OUTGOING_TO</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span> <span class="n">OUTGOING_SUBJECT</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">A</span> <span class="n">OUTGOING_ATTACHMENT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="n">OUTGOING_MESSAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">w</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">test</span><span class="p">]</span>
+               <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+               <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
 
 <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
@@ -307,6 +310,13 @@ lookalike domain monitoring, check out <a class="reference external" href="https
   <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">index</span><span class="o">-</span><span class="n">suffix</span> <span class="n">ELASTICSEARCH_INDEX_SUFFIX</span>
                         <span class="n">append</span> <span class="n">this</span> <span class="n">suffix</span> <span class="n">to</span> <span class="n">the</span> <span class="n">dmarc_aggregate</span> <span class="ow">and</span>
                         <span class="n">dmarc_forensic</span> <span class="n">Elasticsearch</span> <span class="n">index</span> <span class="n">names</span><span class="p">,</span> <span class="n">joined</span> <span class="n">by</span> <span class="n">_</span>
+  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">use</span><span class="o">-</span><span class="n">ssl</span>
+                        <span class="n">Use</span> <span class="n">SSL</span> <span class="n">when</span> <span class="n">connecting</span> <span class="n">to</span> <span class="n">Elasticsearch</span>
+  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">ssl</span><span class="o">-</span><span class="n">cert</span><span class="o">-</span><span class="n">path</span> <span class="n">ELASTICSEARCH_SSL_CERT_PATH</span>
+                        <span class="n">Path</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Elasticsearch</span> <span class="n">SSL</span> <span class="n">certificate</span>
+  <span class="o">--</span><span class="n">elasticsearch</span><span class="o">-</span><span class="n">monthly</span><span class="o">-</span><span class="n">indexes</span>
+                        <span class="n">Use</span> <span class="n">monthly</span> <span class="n">Elasticsearch</span> <span class="n">indexes</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">daily</span>
+                        <span class="n">indexes</span>
   <span class="o">--</span><span class="n">hec</span> <span class="n">HEC</span>             <span class="n">the</span> <span class="n">URL</span> <span class="n">to</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span> <span class="n">Collector</span> <span class="p">(</span><span class="n">HEC</span><span class="p">)</span>
   <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">token</span> <span class="n">HEC_TOKEN</span>
                         <span class="n">the</span> <span class="n">authorization</span> <span class="n">token</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Splunk</span> <span class="n">HTTP</span> <span class="n">Event</span>
@@ -317,7 +327,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
   <span class="o">--</span><span class="n">hec</span><span class="o">-</span><span class="n">skip</span><span class="o">-</span><span class="n">certificate</span><span class="o">-</span><span class="n">verification</span>
                         <span class="n">skip</span> <span class="n">certificate</span> <span class="n">verification</span> <span class="k">for</span> <span class="n">Splunk</span> <span class="n">HEC</span>
   <span class="o">-</span><span class="n">K</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]],</span> <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">hosts</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="p">[</span><span class="n">KAFKA_HOSTS</span> <span class="o">...</span><span class="p">]]</span>
-                        <span class="n">s</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Kafka</span> <span class="n">hostnames</span>
+                        <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">Kafka</span> <span class="n">hostnames</span>
   <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">username</span> <span class="n">KAFKA_USERNAME</span>
                         <span class="n">an</span> <span class="n">optional</span> <span class="n">Kafka</span> <span class="n">username</span>
   <span class="o">--</span><span class="n">kafka</span><span class="o">-</span><span class="n">password</span> <span class="n">KAFKA_PASSWORD</span>
@@ -358,6 +368,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
   <span class="o">--</span><span class="n">test</span>                <span class="n">do</span> <span class="ow">not</span> <span class="n">move</span> <span class="ow">or</span> <span class="n">delete</span> <span class="n">IMAP</span> <span class="n">messages</span>
   <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
   <span class="o">--</span><span class="n">debug</span>               <span class="nb">print</span> <span class="n">debugging</span> <span class="n">information</span>
+  <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span>   <span class="n">output</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span>
   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
@@ -615,10 +626,15 @@ above commands.</p>
 <div class="section" id="installation-using-pypy3">
 <h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline">¶</a></h3>
 <p>For the best possible processing speed, consider using <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code>
-virtualenv. First, <a class="reference external" href="https://pypy.org/download.html#default-with-a-jit-compiler">download the latest version of pypy3</a>. Extract it to
+virtualenv. First, <a class="reference external" href="https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux">download the latest portable Linux version of pypy3</a>. Extract it to
 <code class="docutils literal notranslate"><span class="pre">/opt/pypy3</span></code> (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">mkdir</span> <span class="pre">/opt</span></code> if <code class="docutils literal notranslate"><span class="pre">/opt</span></code> does not exist), then create a
 symlink:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+tar -jxf pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+sudo chown -R root:root pypy3.5-6.0.0-linux_x86_64-portable
+sudo mv pypy3.5-6.0.0-linux_x86_64-portable /opt/pypy3
+sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 </pre></div>
 </div>
 <p>Install <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> on your system:</p>
@@ -1673,7 +1689,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index_suffix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1682,6 +1698,7 @@ to a callback function</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>aggregate_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</li>
 <li><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</li>
+<li><strong>monthly_indexes</strong> (<em>bool</em>) – Use monthly indexes instead of daily indexes</li>
 </ul>
 </td>
 </tr>
@@ -1694,7 +1711,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index_suffix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1703,6 +1720,8 @@ to a callback function</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>forensic_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</li>
 <li><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</li>
+<li><strong>monthly_indexes</strong> (<em>bool</em>) – Use monthly indexes instead of daily
+indexes</li>
 </ul>
 </td>
 </tr>
@@ -1715,13 +1734,18 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.set_hosts">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">set_hosts</code><span class="sig-paren">(</span><em>hosts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">set_hosts</code><span class="sig-paren">(</span><em>hosts</em>, <em>use_ssl=False</em>, <em>ssl_cert_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hosts</strong> – A single hostname or URL, or list of hostnames or URLs</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hosts</strong> (<em>str</em>) – A single hostname or URL, or list of hostnames or URLs</li>
+<li><strong>use_ssl</strong> (<em>bool</em>) – Use a HTTPS connection to the server</li>
+<li><strong>ssl_cert_path</strong> (<em>str</em>) – Path to the certificate chain</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>

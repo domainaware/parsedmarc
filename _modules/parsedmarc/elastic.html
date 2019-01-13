@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 5.1.3 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 5.2.0 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                5.1.3
+                5.2.0
               </div>
             
           
@@ -314,16 +314,29 @@
     <span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">):</span>
+<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        hosts: A single hostname or URL, or list of hostnames or URLs</span>
+<span class="sd">        hosts (str): A single hostname or URL, or list of hostnames or URLs</span>
+<span class="sd">        use_ssl (bool): Use a HTTPS connection to the server</span>
+<span class="sd">        ssl_cert_path (str): Path to the certificate chain</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">hosts</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
         <span class="n">hosts</span> <span class="o">=</span> <span class="p">[</span><span class="n">hosts</span><span class="p">]</span>
-    <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="n">hosts</span><span class="o">=</span><span class="n">hosts</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span></div>
+    <span class="n">conn_params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="n">hosts</span><span class="p">,</span>
+        <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="mi">20</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
+        <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;use_ssl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">ssl_cert_path</span><span class="p">:</span>
+            <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;ca_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssl_cert_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -399,13 +412,15 @@
 
 
 <div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
-                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves a parsed DMARC aggregate report to ElasticSearch</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_report (OrderedDict): A parsed forensic report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">            AlreadySaved</span>
@@ -420,7 +435,10 @@
     <span class="n">end_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">])</span>
     <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
     <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
-    <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">monthly_indexes</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_date</span>
     <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_date</span>
     <span class="n">date_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
@@ -509,13 +527,16 @@
 
 
 <div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
-                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                          <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves a parsed DMARC forensic report to ElasticSearch</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            forensic_report (OrderedDict): A parsed forensic report</span>
 <span class="sd">            index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">            monthly_indexes (bool): Use monthly indexes instead of daily</span>
+<span class="sd">                                    indexes</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            AlreadySaved</span>
@@ -619,7 +640,10 @@
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
     <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
-    <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">monthly_indexes</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">])</span>
     <span class="n">forensic_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
