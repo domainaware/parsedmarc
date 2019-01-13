@@ -1177,8 +1177,7 @@ def get_dmarc_reports_from_inbox(host=None,
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable" in error or "BAD" in error or \
-                "Connection reset" in error:
+        if "unexpected response" in error or "BAD" in error:
             sleep_minutes = 5
             logger.debug(
                 "{0}. "
@@ -1213,7 +1212,31 @@ def get_dmarc_reports_from_inbox(host=None,
     except ConnectionRefusedError:
         raise IMAPError("Connection refused")
     except ConnectionResetError:
-        raise IMAPError("Connection reset")
+        sleep_minutes = 5
+        logger.debug(
+            "Connection reset. "
+            "Waiting {0} minutes before trying again".format(sleep_minutes))
+        time.sleep(sleep_minutes * 60)
+        results = get_dmarc_reports_from_inbox(
+            host=host,
+            user=user,
+            password=password,
+            connection=connection,
+            port=port,
+            ssl=ssl,
+            ssl_context=ssl_context,
+            move_supported=move_supported,
+            reports_folder=reports_folder,
+            archive_folder=archive_folder,
+            delete=delete,
+            test=test,
+            nameservers=nameservers,
+            dns_timeout=dns_timeout,
+            strip_attachment_payloads=strip_attachment_payloads,
+            results=results
+        )
+
+        return results
     except ConnectionAbortedError:
         raise IMAPError("Connection aborted")
     except TimeoutError:
@@ -1469,8 +1492,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().replace("b'", "").replace("'", "")
         # Workaround for random Exchange/Office365 IMAP errors
-        if "Server Unavailable" in error or "BAD" in error or \
-                "Connection reset" in error:
+        if "unexpected response" in error or "BAD" in error:
             sleep_minutes = 5
             logger.debug(
                 "{0}. "
@@ -1606,8 +1628,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except imapclient.exceptions.IMAPClientError as error:
             error = error.__str__().replace("b'", "").replace("'", "")
             # Workaround for random Exchange/Office365 IMAP errors
-            if "Server Unavailable" in error or "BAD" in error or \
-                    "Connection reset" in error:
+            if "unexpected response" in error or "BAD" in error:
                 sleep_minutes = 5
                 logger.debug(
                     "{0}. "
@@ -1630,7 +1651,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                                    dns_timeout=dt)
                 callback(res)
                 server.idle()
-            raise IMAPError(error)
+            else:
+                raise IMAPError(error)
         except socket.gaierror:
             raise IMAPError("DNS resolution failed")
         except ConnectionRefusedError:
