@@ -11,8 +11,6 @@ from collections import OrderedDict
 import json
 from ssl import CERT_NONE, create_default_context
 
-import traceback
-
 from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, kafkaclient, splunk, save_output, \
     watch_inbox, email_results, SMTPError, ParserError, __version__
@@ -374,7 +372,6 @@ def _main():
                           subject=args.outgoing_subject)
         except SMTPError as error:
             logger.error("SMTP Error: {0}".format(error.__str__()))
-            traceback.print_tb()
             exit(1)
 
     if args.host and args.watch:

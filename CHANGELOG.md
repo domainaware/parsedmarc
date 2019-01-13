@@ -1,3 +1,8 @@
+5.2.1
+-----
+
+- Remove unnecessary debugging code
+
 5.2.0
 -----
 - Add filename and line number to logging output
