@@ -1,7 +1,8 @@
 5.2.0
 -----
-- More details in logging output
-- And CLI options
+- Add filename and line number to logging output
+- Improved IMAP error handling  
+- Add CLI options
   ```
   --elasticsearch-use-ssl
                         Use SSL when connecting to Elasticsearch
