@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "5.2.0"
+__version__ = "5.2.1"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
