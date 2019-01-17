@@ -984,7 +984,10 @@ def get_dmarc_reports_from_inbox(host=None,
             try:
                 try:
                     raw_msg = server.fetch(message_uid,
-                                           ["RFC822"])[message_uid][b"RFC822"]
+                                           ["RFC822"])
+                    logging.debug(json.dumps(raw_msg, indent=2,
+                                             ensure_ascii=True))
+                    raw_msg = raw_msg[message_uid][b"RFC822"]
 
                 except (ConnectionResetError, socket.error,
                         TimeoutError) as error:
