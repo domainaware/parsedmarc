@@ -26,7 +26,6 @@ import email.utils
 import smtplib
 from ssl import SSLError, CertificateError, create_default_context
 import time
-from pprint import PrettyPrinter
 
 from expiringdict import ExpiringDict
 import xmltodict
@@ -986,7 +985,7 @@ def get_dmarc_reports_from_inbox(host=None,
                 try:
                     raw_msg = server.fetch(message_uid,
                                            ["RFC822"])
-                    PrettyPrinter.pprint(raw_msg)
+                    logging.debug(raw_msg)
                     raw_msg = raw_msg[message_uid][b"RFC822"]
 
                 except (ConnectionResetError, socket.error,
