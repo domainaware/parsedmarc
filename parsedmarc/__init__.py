@@ -917,15 +917,30 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
+            _server = imapclient.IMAPClient(host,
+                                            port=port,
+                                            ssl=ssl,
+                                            ssl_context=ssl_context,
+                                            use_uid=True)
+            _server.login(user, password)
+
             logger.debug("Deleting message UID(s) {0}".format(",".join(
                 str(uid) for uid in msg_uids)))
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
 
-            server.delete_messages(msg_uids, silent=True)
-            server.expunge(msg_uids)
+            _server.delete_messages(msg_uids, silent=True)
+            _server.expunge(msg_uids)
+            _server.logout()
 
         def move_messages(msg_uids, folder):
+            _server = imapclient.IMAPClient(host,
+                                            port=port,
+                                            ssl=ssl,
+                                            ssl_context=ssl_context,
+                                            use_uid=True)
+            _server.login(user, password)
+
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
             for chunk in chunks(msg_uids, 100):
@@ -940,6 +955,8 @@ def get_dmarc_reports_from_inbox(host=None,
                     ))
                     server.copy(msg_uids, folder)
                     delete_messages(msg_uids)
+
+            _server.logout()
 
         if not server.folder_exists(archive_folder):
             logger.debug("Creating IMAP folder: {0}".format(archive_folder))
@@ -992,6 +1009,11 @@ def get_dmarc_reports_from_inbox(host=None,
                         TimeoutError) as error:
                     logger.debug("IMAP error: {0}".format(error.__str__()))
                     logger.debug("Reconnecting to IMAP")
+                    try:
+                        server.shutdown()
+                    except Exception as e:
+                        logger.debug(
+                            "Failed to log out: {0}".format(e.__str__()))
                     if not ssl:
                         logger.debug("Connecting to IMAP over plain text")
                     server = imapclient.IMAPClient(host,
@@ -1059,6 +1081,11 @@ def get_dmarc_reports_from_inbox(host=None,
                             TimeoutError) as e:
                         logger.debug("IMAP error: {0}".format(e.__str__()))
                         logger.debug("Reconnecting to IMAP")
+                        try:
+                            server.shutdown()
+                        except Exception as e:
+                            logger.debug(
+                                "Failed to log out: {0}".format(e.__str__()))
                         if not ssl:
                             logger.debug("Connecting to IMAP over plain text")
                         server = imapclient.IMAPClient(host,
@@ -1096,6 +1123,11 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
+                            try:
+                                server.shutdown()
+                            except Exception as e:
+                                logger.debug("Failed to log out: {0}".format(
+                                    e.__str__()))
                             if not ssl:
                                 logger.debug(
                                     "Connecting to IMAP over plain text")
@@ -1137,6 +1169,12 @@ def get_dmarc_reports_from_inbox(host=None,
                             logger.debug("IMAP error: {0}".format(
                                 error.__str__()))
                             logger.debug("Reconnecting to IMAP")
+                            try:
+                                server.shutdown()
+                            except Exception as e:
+                                logger.debug("Failed to "
+                                             "disconnect: {0}".format(
+                                    e.__str__()))
                             if not ssl:
                                 logger.debug(
                                     "Connecting to IMAP over plain text")
@@ -1174,6 +1212,11 @@ def get_dmarc_reports_from_inbox(host=None,
                 strip_attachment_payloads=strip_attachment_payloads,
                 results=results
             )
+
+        try:
+            server.logout()
+        except Exception as e:
+            logger.debug("Failed to log out: {0}".format(e.__str__()))
 
         return results
     except imapclient.exceptions.IMAPClientError as error:
@@ -1502,6 +1545,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                     error,
                     sleep_minutes))
             logger.debug("Reconnecting watcher")
+            try:
+                server.logout()
+            except Exception as e:
+                logger.debug("Failed to log out: {0}".format(e.__str__()))
             server = imapclient.IMAPClient(host)
             server.login(username, password)
             server.select_folder(rf)
@@ -1528,6 +1575,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except ConnectionResetError:
         logger.debug("IMAP error: Connection reset")
         logger.debug("Reconnecting watcher")
+        try:
+            server.shutdown()
+        except Exception as e:
+            logger.debug("Failed to disconnect: {0}".format(e.__str__()))
         server = imapclient.IMAPClient(host)
         server.login(username, password)
         server.select_folder(rf)
@@ -1546,6 +1597,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except KeyError:
         logger.debug("IMAP error: Server returned unexpected result")
         logger.debug("Reconnecting watcher")
+        try:
+            server.logout()
+        except Exception as e:
+            logger.debug("Failed to log out: {0}".format(e.__str__()))
         server = imapclient.IMAPClient(host)
         server.login(username, password)
         server.select_folder(rf)
@@ -1572,6 +1627,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     except BrokenPipeError:
         logger.debug("IMAP error: Broken pipe")
         logger.debug("Reconnecting watcher")
+        try:
+            server.shutdown()
+        except Exception as e:
+            logger.debug("Failed to disconnect: {0}".format(e.__str__()))
         server = imapclient.IMAPClient(host)
         server.login(username, password)
         server.select_folder(rf)
@@ -1638,6 +1697,11 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                         error,
                         sleep_minutes))
                 logger.debug("Reconnecting watcher")
+                try:
+                    server.logout()
+                except Exception as e:
+                    logger.debug("Failed to disconnect: {0}".format(
+                        e.__str__()))
                 server = imapclient.IMAPClient(host)
                 server.login(username, password)
                 server.select_folder(rf)
@@ -1662,6 +1726,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except (KeyError, socket.error, BrokenPipeError, ConnectionResetError):
             logger.debug("IMAP error: Connection reset")
             logger.debug("Reconnecting watcher")
+            try:
+                server.logout()
+            except Exception as e:
+                logger.debug("Failed to disconnect: {0}".format(e.__str__()))
             server = imapclient.IMAPClient(host)
             server.login(username, password)
             server.select_folder(rf)
@@ -1680,6 +1748,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except KeyError:
             logger.debug("IMAP error: Server returned unexpected result")
             logger.debug("Reconnecting watcher")
+            try:
+                server.logout()
+            except Exception as e:
+                logger.debug("Failed to log out: {0}".format(e.__str__()))
             server = imapclient.IMAPClient(host)
             server.login(username, password)
             server.select_folder(rf)
@@ -1706,6 +1778,10 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except BrokenPipeError:
             logger.debug("IMAP error: Broken pipe")
             logger.debug("Reconnecting watcher")
+            try:
+                server.shutdown()
+            except Exception as e:
+                logger.debug("Failed to disconnect: {0}".format(e.__str__()))
             server = imapclient.IMAPClient(host)
             server.login(username, password)
             server.select_folder(rf)
