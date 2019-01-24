@@ -1174,7 +1174,7 @@ def get_dmarc_reports_from_inbox(host=None,
                             except Exception as e:
                                 logger.debug("Failed to "
                                              "disconnect: {0}".format(
-                                             e.__str__()))
+                                                               e.__str__()))
                             if not ssl:
                                 logger.debug(
                                     "Connecting to IMAP over plain text")
