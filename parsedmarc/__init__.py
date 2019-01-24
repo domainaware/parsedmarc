@@ -912,7 +912,7 @@ def get_dmarc_reports_from_inbox(host=None,
                                            use_uid=True)
             server.login(user, password)
 
-        if move_supported is not None:
+        if move_supported is None:
             server_capabilities = get_imap_capabilities(server)
             move_supported = "MOVE" in server_capabilities
 
@@ -1796,6 +1796,5 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
 
     try:
         server.idle_done()
-        server.logout()
     except BrokenPipeError:
         pass
