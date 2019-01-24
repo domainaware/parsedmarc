@@ -917,30 +917,15 @@ def get_dmarc_reports_from_inbox(host=None,
             move_supported = "MOVE" in server_capabilities
 
         def delete_messages(msg_uids):
-            _server = imapclient.IMAPClient(host,
-                                            port=port,
-                                            ssl=ssl,
-                                            ssl_context=ssl_context,
-                                            use_uid=True)
-            _server.login(user, password)
-
             logger.debug("Deleting message UID(s) {0}".format(",".join(
                 str(uid) for uid in msg_uids)))
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
 
-            _server.delete_messages(msg_uids, silent=True)
-            _server.expunge(msg_uids)
-            _server.logout()
+            server.delete_messages(msg_uids, silent=True)
+            server.expunge(msg_uids)
 
         def move_messages(msg_uids, folder):
-            _server = imapclient.IMAPClient(host,
-                                            port=port,
-                                            ssl=ssl,
-                                            ssl_context=ssl_context,
-                                            use_uid=True)
-            _server.login(user, password)
-
             if type(msg_uids) == str or type(msg_uids) == int:
                 msg_uids = [int(msg_uids)]
             for chunk in chunks(msg_uids, 100):
@@ -955,8 +940,6 @@ def get_dmarc_reports_from_inbox(host=None,
                     ))
                     server.copy(msg_uids, folder)
                     delete_messages(msg_uids)
-
-            _server.logout()
 
         if not server.folder_exists(archive_folder):
             logger.debug("Creating IMAP folder: {0}".format(archive_folder))
