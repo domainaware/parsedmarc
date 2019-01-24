@@ -1213,11 +1213,6 @@ def get_dmarc_reports_from_inbox(host=None,
                 results=results
             )
 
-        try:
-            server.logout()
-        except Exception as e:
-            logger.debug("Failed to log out: {0}".format(e.__str__()))
-
         return results
     except imapclient.exceptions.IMAPClientError as error:
         error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
