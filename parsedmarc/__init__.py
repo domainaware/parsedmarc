@@ -1002,7 +1002,7 @@ def get_dmarc_reports_from_inbox(host=None,
                 try:
                     raw_msg = server.fetch(message_uid,
                                            ["RFC822"])
-                    logging.debug(raw_msg)
+                    logging.debug(raw_msg.keys())
                     raw_msg = raw_msg[message_uid][b"RFC822"]
 
                 except (ConnectionResetError, socket.error,
@@ -1174,7 +1174,7 @@ def get_dmarc_reports_from_inbox(host=None,
                             except Exception as e:
                                 logger.debug("Failed to "
                                              "disconnect: {0}".format(
-                                    e.__str__()))
+                                             e.__str__()))
                             if not ssl:
                                 logger.debug(
                                     "Connecting to IMAP over plain text")
