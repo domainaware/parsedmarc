@@ -723,7 +723,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
                 timeout=timeout,
                 strip_attachment_payloads=strip_attachment_payloads)
         except Exception as e:
-            raise ParserError(e.__str__())
+            raise InvalidForensicReport(e.__str__())
 
         result = OrderedDict([("report_type", "forensic"),
                               ("report", forensic_report)])
