@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "5.2.1"
+__version__ = "5.3.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -975,18 +975,23 @@ def get_dmarc_reports_from_inbox(host=None,
         logger.debug("Found {0} messages in IMAP folder {1}".format(
             len(messages), reports_folder))
         for i in range(len(messages)):
-            message_uid = messages[i]
+            msg_uid = messages[i]
             logger.debug("Processing message {0} of {1}: UID {2}".format(
                 i+1,
                 total_messages,
-                message_uid
+                msg_uid
             ))
             try:
                 try:
-                    raw_msg = server.fetch(message_uid,
-                                           ["RFC822"])
-                    logging.debug(raw_msg.keys())
-                    raw_msg = raw_msg[message_uid][b"RFC822"]
+                    raw_msg = server.fetch(msg_uid,
+                                           ["RFC822"])[msg_uid]
+                    msg_keys = [b'RFC822', b'BODY[NULL]']
+                    msg_key = ''
+                    for key in msg_keys:
+                        if key in raw_msg.keys():
+                            msg_key = key
+                            break
+                    raw_msg = raw_msg[msg_key]
 
                 except (ConnectionResetError, socket.error,
                         TimeoutError) as error:
@@ -1006,8 +1011,8 @@ def get_dmarc_reports_from_inbox(host=None,
                                                    use_uid=True)
                     server.login(user, password)
                     server.select_folder(reports_folder)
-                    raw_msg = server.fetch(message_uid,
-                                           ["RFC822"])[message_uid][b"RFC822"]
+                    raw_msg = server.fetch(msg_uid,
+                                           ["RFC822"])[msg_uid][b"RFC822"]
 
                 msg_content = raw_msg.decode("utf-8", errors="replace")
                 sa = strip_attachment_payloads
@@ -1017,28 +1022,28 @@ def get_dmarc_reports_from_inbox(host=None,
                                                   strip_attachment_payloads=sa)
                 if parsed_email["report_type"] == "aggregate":
                     aggregate_reports.append(parsed_email["report"])
-                    aggregate_report_msg_uids.append(message_uid)
+                    aggregate_report_msg_uids.append(msg_uid)
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
-                    forensic_report_msg_uids.append(message_uid)
+                    forensic_report_msg_uids.append(msg_uid)
 
             except imapclient.exceptions.IMAPClientError as error:
                 error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
                 error = "IMAP error: Skipping message UID {0}: {1}".format(
-                    message_uid, error)
+                    msg_uid, error)
                 logger.error("IMAP error: {0}".format(error))
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
                 if not test:
                     if delete:
                         logger.debug(
-                            "Deleting message UID {0}".format(message_uid))
-                        delete_messages([message_uid])
+                            "Deleting message UID {0}".format(msg_uid))
+                        delete_messages([msg_uid])
                     else:
                         logger.debug(
                             "Moving message UID {0} to {1}".format(
-                                message_uid, invalid_reports_folder))
-                        move_messages([message_uid], invalid_reports_folder)
+                                msg_uid, invalid_reports_folder))
+                        move_messages([msg_uid], invalid_reports_folder)
 
         if not test:
             if delete:
