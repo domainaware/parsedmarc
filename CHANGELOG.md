@@ -1,3 +1,9 @@
+5.3.0
+-----
+
+- Fix crash on invalid forensic report sample (Issue #47)
+- Fix DavMail support (Issue #45)
+
 5.2.1
 -----
 
