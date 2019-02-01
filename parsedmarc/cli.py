@@ -94,6 +94,8 @@ def _main():
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
+    arg_parser.add_argument("-c", "--config-file",
+                            help="A path to a configuration file")
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
                                  "report files or emails")
