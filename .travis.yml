@@ -25,7 +25,6 @@ script:
   - "cd .."
   - "python tests.py"
   - "python setup.py install"
-  - "parsedmarc --debug --save-aggregate samples/aggregate/*"
-  - "parsedmarc --debug --save-forensic samples/forensic/*"
+  - "parsedmarc -c ci.ini"
   - "python setup.py sdist"
   - "python setup.py bdist_wheel"

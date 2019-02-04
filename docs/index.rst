@@ -61,30 +61,9 @@ CLI help
 
 ::
 
-   usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                  [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                  [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                  [--imap-skip-certificate-verification] [--imap-no-ssl]
-                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                  [--elasticsearch-use-ssl]
-                  [--elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH]
-                  [--elasticsearch-monthly-indexes] [--hec HEC]
-                  [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                  [--hec-skip-certificate-verification]
-                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                  [--kafka-username KAFKA_USERNAME]
-                  [--kafka-password KAFKA_PASSWORD] [--kafka-use-ssl]
-                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                  [--outgoing-port OUTGOING_PORT]
-                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [--log-file LOG_FILE] [-v]
+   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
+                  [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                  [-t DNS_TIMEOUT] [-s] [--debug] [--log-file LOG_FILE] [-v]
                   [file_path [file_path ...]]
 
    Parses DMARC reports
@@ -95,6 +74,8 @@ CLI help
 
    optional arguments:
      -h, --help            show this help message and exit
+     -c CONFIG_FILE, --config-file CONFIG_FILE
+                           A path to a configuration file (--silent implied)
      --strip-attachment-payloads
                            remove attachment payloads from forensic report output
      -o OUTPUT, --output OUTPUT
@@ -102,87 +83,9 @@ CLI help
      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
                            nameservers to query (default is Cloudflare's
                            nameservers)
-     -t TIMEOUT, --timeout TIMEOUT
+     -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                            number of seconds to wait for an answer from DNS
                            (default: 6.0)
-     -H HOST, --host HOST  an IMAP hostname or IP address
-     -u USER, --user USER  an IMAP user
-     -p PASSWORD, --password PASSWORD
-                           an IMAP password
-     --imap-port IMAP_PORT
-                           an IMAP port
-     --imap-skip-certificate-verification
-                           skip certificate verification for IMAP
-     --imap-no-ssl         do not use SSL/TLS when connecting to IMAP
-     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                           the IMAP folder containing the reports (default:
-                           INBOX)
-     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                           specifies the IMAP folder to move messages to after
-                           processing them (default: Archive)
-     -d, --delete          delete the reports after processing them
-     -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                           une or more Elasticsearch hostnames or URLs to use
-                           (e.g. localhost:9200)
-     --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
-                           append this suffix to the dmarc_aggregate and
-                           dmarc_forensic Elasticsearch index names, joined by _
-     --elasticsearch-use-ssl
-                           Use SSL when connecting to Elasticsearch
-     --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
-                           Path to the Elasticsearch SSL certificate
-     --elasticsearch-monthly-indexes
-                           Use monthly Elasticsearch indexes instead of daily
-                           indexes
-     --hec HEC             the URL to a Splunk HTTP Event Collector (HEC)
-     --hec-token HEC_TOKEN
-                           the authorization token for a Splunk HTTP Event
-                           Collector (HEC)
-     --hec-index HEC_INDEX
-                           the index to use when sending events to the Splunk
-                           HTTP Event Collector (HEC)
-     --hec-skip-certificate-verification
-                           skip certificate verification for Splunk HEC
-     -K [KAFKA_HOSTS [KAFKA_HOSTS ...]], --kafka-hosts [KAFKA_HOSTS [KAFKA_HOSTS ...]]
-                           a list of one or more Kafka hostnames
-     --kafka-username KAFKA_USERNAME
-                           an optional Kafka username
-     --kafka-password KAFKA_PASSWORD
-                           an optional Kafka password
-     --kafka-use-ssl       use SSL/TLS to connect to Kafka (implied when --kafka-
-                           username or --kafka-password are provided)
-     --kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC
-                           the Kafka topic to publish aggregate reports to
-                           (default: dmarc_aggregate)
-     --kafka-forensic_topic KAFKA_FORENSIC_TOPIC
-                           the Kafka topic to publish forensic reports to
-                           (default: dmarc_forensic)
-     --save-aggregate      save aggregate reports to search indexes
-     --save-forensic       save forensic reports to search indexes
-     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                           email the results using this host
-     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                           email the results using this user
-     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                           email the results using this password
-     --outgoing-port OUTGOING_PORT
-                           email the results using this port
-     --outgoing-ssl OUTGOING_SSL
-                           use SSL/TLS instead of STARTTLS (more secure, and
-                           required by some providers, like Gmail)
-     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                           email the results using this from address
-     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                           email the results to these addresses
-     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                           email the results using this subject
-     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                           email the results using this filename
-     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                           email the results using this message
-     -w, --watch           use an IMAP IDLE connection to process reports as they
-                           arrive in the inbox
-     --test                do not move or delete IMAP messages
      -s, --silent          only print errors and warnings
      --debug               print debugging information
      --log-file LOG_FILE   output logging to a file
