@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "5.3.0"
+__version__ = "6.0.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -83,7 +83,7 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, nameservers=None, timeout=2.0):
+def _parse_report_record(record, nameservers=None, dns_timeout=2.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -92,7 +92,7 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
         record (OrderedDict): The record to convert
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+        dns_timeout (float): Sets the DNS timeout in seconds
 
     Returns:
         OrderedDict: The converted record
@@ -104,7 +104,7 @@ def _parse_report_record(record, nameservers=None, timeout=2.0):
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
                                             cache=IP_ADDRESS_CACHE,
                                             nameservers=nameservers,
-                                            timeout=timeout)
+                                            timeout=dns_timeout)
     new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
     policy_evaluated = record["row"]["policy_evaluated"].copy()
@@ -303,13 +303,13 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
             for record in report["record"]:
                 report_record = _parse_report_record(record,
                                                      nameservers=nameservers,
-                                                     timeout=timeout)
+                                                     dns_timeout=timeout)
                 records.append(report_record)
 
         else:
             report_record = _parse_report_record(report["record"],
                                                  nameservers=nameservers,
-                                                 timeout=timeout)
+                                                 dns_timeout=timeout)
             records.append(report_record)
 
         new_report["records"] = records
@@ -375,7 +375,7 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, timeout=2.0):
+def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -383,7 +383,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=2.0):
         _input: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+        dns_timeout (float): Sets the DNS timeout in seconds
 
     Returns:
         OrderedDict: The parsed DMARC aggregate report
@@ -392,7 +392,7 @@ def parse_aggregate_report_file(_input, nameservers=None, timeout=2.0):
 
     return parse_aggregate_report_xml(xml,
                                       nameservers=nameservers,
-                                      timeout=timeout)
+                                      timeout=dns_timeout)
 
 
 def parsed_aggregate_reports_to_csv(reports):
@@ -506,7 +506,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          nameservers=None, timeout=2.0,
+                          nameservers=None, dns_timeout=2.0,
                           strip_attachment_payloads=False):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
@@ -517,7 +517,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+        dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
 
@@ -551,7 +551,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         ip_address = parsed_report["source_ip"]
         parsed_report_source = get_ip_address_info(ip_address,
                                                    nameservers=nameservers,
-                                                   timeout=timeout)
+                                                   timeout=dns_timeout)
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
@@ -650,7 +650,7 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, timeout=2.0,
+def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                        strip_attachment_payloads=False):
     """
     Parses a DMARC report from an email
@@ -658,7 +658,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
         nameservers (list): A list of one or more nameservers to use
-        timeout (float): Sets the DNS timeout in seconds
+        dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
 
@@ -720,7 +720,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
                 sample,
                 date,
                 nameservers=nameservers,
-                timeout=timeout,
+                dns_timeout=dns_timeout,
                 strip_attachment_payloads=strip_attachment_payloads)
         except Exception as e:
             raise InvalidForensicReport(e.__str__())
@@ -735,9 +735,10 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
                 payload.startswith(MAGIC_GZIP) or \
                 payload.startswith(MAGIC_XML):
             ns = nameservers
-            aggregate_report = parse_aggregate_report_file(payload,
-                                                           nameservers=ns,
-                                                           timeout=timeout)
+            aggregate_report = parse_aggregate_report_file(
+                payload,
+                nameservers=ns,
+                dns_timeout=dns_timeout)
             result = OrderedDict([("report_type", "aggregate"),
                                   ("report", aggregate_report)])
     except (TypeError, ValueError, binascii.Error):
@@ -768,7 +769,7 @@ def parse_report_email(input_, nameservers=None, timeout=2.0,
     return result
 
 
-def parse_report_file(input_, nameservers=None, timeout=2.0,
+def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                       strip_attachment_payloads=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
@@ -777,7 +778,7 @@ def parse_report_file(input_, nameservers=None, timeout=2.0,
         input_: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+        dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
 
@@ -794,7 +795,7 @@ def parse_report_file(input_, nameservers=None, timeout=2.0,
     content = file_object.read()
     try:
         report = parse_aggregate_report_file(content, nameservers=nameservers,
-                                             timeout=timeout)
+                                             dns_timeout=dns_timeout)
         results = OrderedDict([("report_type", "aggregate"),
                                ("report", report)])
     except InvalidAggregateReport:
@@ -802,7 +803,7 @@ def parse_report_file(input_, nameservers=None, timeout=2.0,
             sa = strip_attachment_payloads
             results = parse_report_email(content,
                                          nameservers=nameservers,
-                                         timeout=timeout,
+                                         dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa)
         except InvalidDMARCReport:
             raise InvalidDMARCReport("Not a valid aggregate or forensic "
@@ -1018,7 +1019,7 @@ def get_dmarc_reports_from_inbox(host=None,
                 sa = strip_attachment_payloads
                 parsed_email = parse_report_email(msg_content,
                                                   nameservers=nameservers,
-                                                  timeout=dns_timeout,
+                                                  dns_timeout=dns_timeout,
                                                   strip_attachment_payloads=sa)
                 if parsed_email["report_type"] == "aggregate":
                     aggregate_reports.append(parsed_email["report"])

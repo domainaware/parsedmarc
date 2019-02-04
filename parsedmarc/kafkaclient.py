@@ -2,7 +2,7 @@
 
 import logging
 import json
-import ssl
+from ssl import create_default_context
 
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
@@ -19,14 +19,14 @@ class KafkaError(RuntimeError):
 
 
 class KafkaClient(object):
-    def __init__(self, kafka_hosts, use_ssl=False, username=None,
+    def __init__(self, kafka_hosts, ssl=False, username=None,
                  password=None):
         """
         Initializes the Kafka client
         Args:
             kafka_hosts (list): A list of Kafka hostnames
             (with optional port numbers)
-            use_ssl (bool): Use a SSL/TLS connection
+            ssl (bool): Use a SSL/TLS connection
             username (str): An optional username
             password (str):  An optional password
 
@@ -42,9 +42,9 @@ class KafkaClient(object):
                               'utf-8'),
                       bootstrap_servers=kafka_hosts,
                       client_id="parsedmarc-{0}".format(__version__))
-        if use_ssl or username or password:
+        if ssl or username or password:
             config["security_protocol"] = "SSL"
-            config["ssl_context"] = ssl.create_default_context()
+            config["ssl_context"] = create_default_context()
             if username or password:
                 config["sasl_plain_username"] = username or ""
                 config["sasl_plain_password"] = password or ""

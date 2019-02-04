@@ -122,3 +122,6 @@ output/
 
 # Temp files
 tmp/
+
+# Config files
+prod.ini

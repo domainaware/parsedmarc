@@ -1,3 +1,9 @@
+6.0.0
+-----
+
+- Move options from CLI to a config file (see updated installation documentation)
+- Refactoring to make argument names consistent 
+
 5.3.0
 -----
 
