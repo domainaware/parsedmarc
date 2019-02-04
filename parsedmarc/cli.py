@@ -309,7 +309,7 @@ def _main():
         fh.setFormatter(formatter)
         logger.addHandler(fh)
     if opts.imap_host is None and len(opts.file_path) == 0:
-        arg_parser.print_help()
+        logger.error("You must supply input files, or an IMAP configuration")
         exit(1)
 
     if opts.save_aggregate or opts.save_forensic:
