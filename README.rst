@@ -57,35 +57,151 @@ CLI help
 
 ::
 
-    usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
+   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
                   [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
                   [-t DNS_TIMEOUT] [-s] [--debug] [--log-file LOG_FILE] [-v]
                   [file_path [file_path ...]]
 
-       Parses DMARC reports
+   Parses DMARC reports
 
-       positional arguments:
-         file_path             one or more paths to aggregate or forensic report
-                               files or emails
+   positional arguments:
+     file_path             one or more paths to aggregate or forensic report
+                           files or emails
 
-       optional arguments:
-         -h, --help            show this help message and exit
-         -c CONFIG_FILE, --config-file CONFIG_FILE
-                               A path to a configuration file (--silent implied)
-         --strip-attachment-payloads
-                               remove attachment payloads from forensic report output
-         -o OUTPUT, --output OUTPUT
-                               write output files to the given directory
-         -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                               nameservers to query (default is Cloudflare's
-                               nameservers)
-         -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
-                               number of seconds to wait for an answer from DNS
-                               (default: 6.0)
-         -s, --silent          only print errors and warnings
-         --debug               print debugging information
-         --log-file LOG_FILE   output logging to a file
-         -v, --version         show program's version number and exit
+   optional arguments:
+     -h, --help            show this help message and exit
+     -c CONFIG_FILE, --config-file CONFIG_FILE
+                           A path to a configuration file (--silent implied)
+     --strip-attachment-payloads
+                           remove attachment payloads from forensic report output
+     -o OUTPUT, --output OUTPUT
+                           write output files to the given directory
+     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                           nameservers to query (default is Cloudflare's
+                           nameservers)
+     -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                           number of seconds to wait for an answer from DNS
+                           (default: 6.0)
+     -s, --silent          only print errors and warnings
+     --debug               print debugging information
+     --log-file LOG_FILE   output logging to a file
+     -v, --version         show program's version number and exit
+
+.. note::
+
+   In ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+
+Configuration file
+==================
+
+``parsedmarc`` can be configured by supplying the path to an INI file
+
+.. code-block:: bash
+
+    parsedmarc -c /etc/parsedmarc.ini
+
+For example
+
+.. code-block:: ini
+
+   # This is an example comment
+
+   [general]
+   save_aggregate = True
+   save_forensic = False
+
+   [imap]
+   host = imap.example.com
+   user = dmarcresports@example.com
+   password = $uperSecure
+   watch = True
+
+   [elasticsearch]
+   hosts = 127.0.0.1:92000
+   ssl = False
+
+   [splunk_hec]
+   url = https://splunkhec.example.com
+   token = HECTokenGoesHere
+   index = email
+
+The full set of configuration options are:
+
+- ``general``
+    - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
+    - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
+    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``output`` - str: Directory to place JSON and CSV files in
+    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: Cloudflare's public resolvers)
+    - ``dns_timeout`` - float: DNS timeout period
+    - ``debug`` - bool: Print debugging messages
+    - ``silent`` - bool: Only print errors (Default: True)
+    - ``log_file`` - str: Write log messages to a file at this path
+- ``imap``
+    - ``host`` - str: The IMAP server hostname or IP address
+    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``user`` - str: The IMAP user
+    - ``password`` - str: The IMAP password
+    - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
+    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``test`` - bool: Do not move or delete messages
+- ``elasticsearch``
+    - ``hosts`` - str: A comma separated list of URLs (e.g. https://user:secret@localhost:443)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``cert_path`` - str: Path to a trusted certificates
+    - ``index_suffix`` - str: A suffix to apply to the index names
+    - ``monthly_indexes`` - bool: Use monthly indexes instead of daily indexes
+- ``splunk_hec``
+    - ``url`` - str: The URL of the Splunk HTTP Events Collector (HEC)
+    - ``token`` - str: The HEC token
+    - ``index`` - str: The Splunk index to use
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+- ``kafka``
+    - ``hosts`` - str: A comma separated list of Kafka hosts
+    - ``user`` - str: The Kafka user
+    - ``passsword`` - str: The Kafka password
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``aggregate_topic`` - str: The Kafka topic for aggregate reports
+    - ``forensic_topic`` - str: The Kafka topic for forensic reports
+- ``smtp``
+    - ``host`` - str: The SMTP hostname
+    - ``port`` - int: The SMTP port (Default: 25)
+    - ``ssl`` - bool: Require SSL/TLS instead of using STARTTLS
+    - ``user`` - str: the SMTP username
+    - ``password`` - str: the SMTP password
+    - ``from`` - str: The From header to use in the email
+    - ``to`` - list: A list of email addresses to send to
+    - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
+    - ``attachment`` - str: The ZIP attachment filenames
+    - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+
+
+.. warning::
+
+    ``save_aggregate`` and ``save_forensic`` are separate options because
+    you may not want to save forensic reports (also known as failure reports)
+    to your Elasticsearch instance, particularly if you are in a
+    highly-regulated industry that handles sensitive data, such as healthcare
+    or finance. If your legitimate outgoing email fails DMARC, it is possible
+    that email may appear later in a forensic report.
+
+    Forensic reports contain the original headers of an email that failed a
+    DMARC check, and sometimes may also include the full message body,
+    depending on the policy of the reporting organization.
+
+    Most reporting organizations do not send forensic reports of any kind for
+    privacy reasons. While aggregate DMARC reports are sent at least daily,
+    it is normal to receive very few forensic reports.
+
+   An alternative approach is to still collect forensic/failure/ruf reports
+   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True`` manually on a
+   separate IMAP folder (using the  ``reports_folder`` option), after you have manually
+   moved known samples you want to save to that folder (e.g. malicious
+   samples and non-sensitive legitimate samples).
 
 Sample aggregate report output
 ==============================
@@ -177,7 +293,6 @@ CSV
     xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,disposition,dkim_alignment,spf_alignment,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
     draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,none,fail,pass,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
 
-
 Sample forensic report output
 =============================
 
@@ -188,92 +303,93 @@ Thanks to Github user `xennn <https://github.com/xennn>`_ for the anonymized
 JSON
 ----
 
+
 .. code-block:: json
 
-    {
-     "feedback_type": "auth-failure",
-     "user_agent": "Lua/1.0",
-     "version": "1.0",
-     "original_mail_from": "sharepoint@domain.de",
-     "original_rcpt_to": "peter.pan@domain.de",
-     "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
-     "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-     "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
-     "delivery_result": "smg-policy-action",
-     "auth_failure": [
-       "dmarc"
-     ],
-     "reported_domain": "domain.de",
-     "arrival_date_utc": "2018-10-01 09:20:27",
-     "source": {
-       "ip_address": "10.10.10.10",
-       "country": null,
-       "reverse_dns": null,
-       "base_domain": null
-     },
-     "authentication_mechanisms": [],
-     "original_envelope_id": null,
-     "dkim_domain": null,
-     "sample_headers_only": false,
-     "sample": "Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>\nTo: <peter.pan@domain.de>\nfrom: \"=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\" <sharepoint@domain.de>\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>\n",
-     "parsed_sample": {
-       "from": {
-         "display_name": "Interaktive Wettbewerber-Übersicht",
-         "address": "sharepoint@domain.de",
-         "local": "sharepoint",
-         "domain": "domain.de"
-       },
-       "to_domains": [
-         "domain.de"
-       ],
-       "to": [
-         {
-           "display_name": null,
-           "address": "peter.pan@domain.de",
-           "local": "peter.pan",
-           "domain": "domain.de"
-         }
-       ],
-       "subject": "Subject",
-       "timezone": "+2",
-       "mime-version": "1.0",
-       "date": "2018-10-01 09:20:27",
-       "content-type": "text/html; charset=utf-8",
-       "x-mailer": "Microsoft SharePoint Foundation 2010",
-       "body": "<html><head><base href='\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"><HTML><HEAD><META NAME=\"Generator\" CONTENT=\"MS Exchange Server version 08.01.0240.003\"></html>",
-       "received": [
-         {
-           "from": "Servernameone.domain.local Servernameone.domain.local 10.10.10.10",
-           "by": "mailrelay.de mail.DOMAIN.de",
-           "with": "SMTP id 38.E7.30937.BD6E1BB5",
-           "date": "Mon, 1 Oct 2018 11:20:27 +0200 CEST",
-           "hop": 1,
-           "date_utc": "2018-10-01 09:20:27",
-           "delay": 0
-         }
-       ],
-       "content-transfer-encoding": "quoted-printable",
-       "message-id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-       "has_defects": false,
-       "headers": {
-         "Received": "from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)",
-         "Date": "01 Oct 2018 11:20:27 +0200",
-         "Message-ID": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
-         "To": "<peter.pan@domain.de>",
-         "from": "\"Interaktive Wettbewerber-Übersicht\" <sharepoint@domain.de>",
-         "Subject": "Subject",
-         "MIME-Version": "1.0",
-         "X-Mailer": "Microsoft SharePoint Foundation 2010",
-         "Content-Type": "text/html; charset=utf-8",
-         "Content-Transfer-Encoding": "quoted-printable"
-       },
-       "reply_to": [],
-       "cc": [],
-       "bcc": [],
-       "attachments": [],
-       "filename_safe_subject": "Subject"
-     }
-   }
+   {
+        "feedback_type": "auth-failure",
+        "user_agent": "Lua/1.0",
+        "version": "1.0",
+        "original_mail_from": "sharepoint@domain.de",
+        "original_rcpt_to": "peter.pan@domain.de",
+        "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
+        "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+        "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
+        "delivery_result": "smg-policy-action",
+        "auth_failure": [
+          "dmarc"
+        ],
+        "reported_domain": "domain.de",
+        "arrival_date_utc": "2018-10-01 09:20:27",
+        "source": {
+          "ip_address": "10.10.10.10",
+          "country": null,
+          "reverse_dns": null,
+          "base_domain": null
+        },
+        "authentication_mechanisms": [],
+        "original_envelope_id": null,
+        "dkim_domain": null,
+        "sample_headers_only": false,
+        "sample": "Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: <38.E7.30937.BD6E1BB5@ mailrelay.de>\nTo: <peter.pan@domain.de>\nfrom: \"=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\" <sharepoint@domain.de>\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n<html><head><base href=3D'\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"=\n><HTML><HEAD><META NAME=3D\"Generator\" CONTENT=3D\"MS Exchange Server version=\n 08.01.0240.003\"></html>\n",
+        "parsed_sample": {
+          "from": {
+            "display_name": "Interaktive Wettbewerber-Übersicht",
+            "address": "sharepoint@domain.de",
+            "local": "sharepoint",
+            "domain": "domain.de"
+          },
+          "to_domains": [
+            "domain.de"
+          ],
+          "to": [
+            {
+              "display_name": null,
+              "address": "peter.pan@domain.de",
+              "local": "peter.pan",
+              "domain": "domain.de"
+            }
+          ],
+          "subject": "Subject",
+          "timezone": "+2",
+          "mime-version": "1.0",
+          "date": "2018-10-01 09:20:27",
+          "content-type": "text/html; charset=utf-8",
+          "x-mailer": "Microsoft SharePoint Foundation 2010",
+          "body": "<html><head><base href='\nwettbewerb' /></head><body><!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\"><HTML><HEAD><META NAME=\"Generator\" CONTENT=\"MS Exchange Server version 08.01.0240.003\"></html>",
+          "received": [
+            {
+              "from": "Servernameone.domain.local Servernameone.domain.local 10.10.10.10",
+              "by": "mailrelay.de mail.DOMAIN.de",
+              "with": "SMTP id 38.E7.30937.BD6E1BB5",
+              "date": "Mon, 1 Oct 2018 11:20:27 +0200 CEST",
+              "hop": 1,
+              "date_utc": "2018-10-01 09:20:27",
+              "delay": 0
+            }
+          ],
+          "content-transfer-encoding": "quoted-printable",
+          "message-id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+          "has_defects": false,
+          "headers": {
+            "Received": "from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)",
+            "Date": "01 Oct 2018 11:20:27 +0200",
+            "Message-ID": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
+            "To": "<peter.pan@domain.de>",
+            "from": "\"Interaktive Wettbewerber-Übersicht\" <sharepoint@domain.de>",
+            "Subject": "Subject",
+            "MIME-Version": "1.0",
+            "X-Mailer": "Microsoft SharePoint Foundation 2010",
+            "Content-Type": "text/html; charset=utf-8",
+            "Content-Transfer-Encoding": "quoted-printable"
+          },
+          "reply_to": [],
+          "cc": [],
+          "bcc": [],
+          "attachments": [],
+          "filename_safe_subject": "Subject"
+        }
+      }
 
 
 
@@ -284,12 +400,6 @@ CSV
 
     feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
     auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,smg-policy-action,dmarc,domain.de,,False
-
-
-Documentation
-=============
-
-https://domainaware.github.io/parsedmarc
 
 Bug reports
 ===========
