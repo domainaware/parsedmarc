@@ -955,8 +955,8 @@ Protect the ``parsedmarc`` configuration file from prying eyes
 
 .. code-block:: bash
 
-    sudo chown parsedmarc:parsedmarc /etc/parsedmarc.ini
-    sudo chmod ug=r,o= /etc/parsedmarc.ini
+    sudo chown root:parsedmarc /etc/parsedmarc.ini
+    sudo chmod u=rw,g=r,o= /etc/parsedmarc.ini
 
 Create the service configuration file
 
