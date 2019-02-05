@@ -18,7 +18,8 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.
+as Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
+and Valimail.
 
 Features
 ========
@@ -61,30 +62,9 @@ CLI help
 
 ::
 
-   usage: parsedmarc [-h] [--strip-attachment-payloads] [-o OUTPUT]
-                  [-n NAMESERVERS [NAMESERVERS ...]] [-t TIMEOUT] [-H HOST]
-                  [-u USER] [-p PASSWORD] [--imap-port IMAP_PORT]
-                  [--imap-skip-certificate-verification] [--imap-no-ssl]
-                  [-r REPORTS_FOLDER] [-a ARCHIVE_FOLDER] [-d]
-                  [-E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]]
-                  [--elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX]
-                  [--elasticsearch-use-ssl]
-                  [--elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH]
-                  [--elasticsearch-monthly-indexes] [--hec HEC]
-                  [--hec-token HEC_TOKEN] [--hec-index HEC_INDEX]
-                  [--hec-skip-certificate-verification]
-                  [-K [KAFKA_HOSTS [KAFKA_HOSTS ...]]]
-                  [--kafka-username KAFKA_USERNAME]
-                  [--kafka-password KAFKA_PASSWORD] [--kafka-use-ssl]
-                  [--kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC]
-                  [--kafka-forensic_topic KAFKA_FORENSIC_TOPIC]
-                  [--save-aggregate] [--save-forensic] [-O OUTGOING_HOST]
-                  [-U OUTGOING_USER] [-P OUTGOING_PASSWORD]
-                  [--outgoing-port OUTGOING_PORT]
-                  [--outgoing-ssl OUTGOING_SSL] [-F OUTGOING_FROM]
-                  [-T OUTGOING_TO [OUTGOING_TO ...]] [-S OUTGOING_SUBJECT]
-                  [-A OUTGOING_ATTACHMENT] [-M OUTGOING_MESSAGE] [-w] [--test]
-                  [-s] [--debug] [--log-file LOG_FILE] [-v]
+   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
+                  [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                  [-t DNS_TIMEOUT] [-s] [--debug] [--log-file LOG_FILE] [-v]
                   [file_path [file_path ...]]
 
    Parses DMARC reports
@@ -95,6 +75,8 @@ CLI help
 
    optional arguments:
      -h, --help            show this help message and exit
+     -c CONFIG_FILE, --config-file CONFIG_FILE
+                           A path to a configuration file (--silent implied)
      --strip-attachment-payloads
                            remove attachment payloads from forensic report output
      -o OUTPUT, --output OUTPUT
@@ -102,91 +84,129 @@ CLI help
      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
                            nameservers to query (default is Cloudflare's
                            nameservers)
-     -t TIMEOUT, --timeout TIMEOUT
+     -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                            number of seconds to wait for an answer from DNS
                            (default: 6.0)
-     -H HOST, --host HOST  an IMAP hostname or IP address
-     -u USER, --user USER  an IMAP user
-     -p PASSWORD, --password PASSWORD
-                           an IMAP password
-     --imap-port IMAP_PORT
-                           an IMAP port
-     --imap-skip-certificate-verification
-                           skip certificate verification for IMAP
-     --imap-no-ssl         do not use SSL/TLS when connecting to IMAP
-     -r REPORTS_FOLDER, --reports-folder REPORTS_FOLDER
-                           the IMAP folder containing the reports (default:
-                           INBOX)
-     -a ARCHIVE_FOLDER, --archive-folder ARCHIVE_FOLDER
-                           specifies the IMAP folder to move messages to after
-                           processing them (default: Archive)
-     -d, --delete          delete the reports after processing them
-     -E [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]], --elasticsearch-host [ELASTICSEARCH_HOST [ELASTICSEARCH_HOST ...]]
-                           une or more Elasticsearch hostnames or URLs to use
-                           (e.g. localhost:9200)
-     --elasticsearch-index-suffix ELASTICSEARCH_INDEX_SUFFIX
-                           append this suffix to the dmarc_aggregate and
-                           dmarc_forensic Elasticsearch index names, joined by _
-     --elasticsearch-use-ssl
-                           Use SSL when connecting to Elasticsearch
-     --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
-                           Path to the Elasticsearch SSL certificate
-     --elasticsearch-monthly-indexes
-                           Use monthly Elasticsearch indexes instead of daily
-                           indexes
-     --hec HEC             the URL to a Splunk HTTP Event Collector (HEC)
-     --hec-token HEC_TOKEN
-                           the authorization token for a Splunk HTTP Event
-                           Collector (HEC)
-     --hec-index HEC_INDEX
-                           the index to use when sending events to the Splunk
-                           HTTP Event Collector (HEC)
-     --hec-skip-certificate-verification
-                           skip certificate verification for Splunk HEC
-     -K [KAFKA_HOSTS [KAFKA_HOSTS ...]], --kafka-hosts [KAFKA_HOSTS [KAFKA_HOSTS ...]]
-                           a list of one or more Kafka hostnames
-     --kafka-username KAFKA_USERNAME
-                           an optional Kafka username
-     --kafka-password KAFKA_PASSWORD
-                           an optional Kafka password
-     --kafka-use-ssl       use SSL/TLS to connect to Kafka (implied when --kafka-
-                           username or --kafka-password are provided)
-     --kafka-aggregate-topic KAFKA_AGGREGATE_TOPIC
-                           the Kafka topic to publish aggregate reports to
-                           (default: dmarc_aggregate)
-     --kafka-forensic_topic KAFKA_FORENSIC_TOPIC
-                           the Kafka topic to publish forensic reports to
-                           (default: dmarc_forensic)
-     --save-aggregate      save aggregate reports to search indexes
-     --save-forensic       save forensic reports to search indexes
-     -O OUTGOING_HOST, --outgoing-host OUTGOING_HOST
-                           email the results using this host
-     -U OUTGOING_USER, --outgoing-user OUTGOING_USER
-                           email the results using this user
-     -P OUTGOING_PASSWORD, --outgoing-password OUTGOING_PASSWORD
-                           email the results using this password
-     --outgoing-port OUTGOING_PORT
-                           email the results using this port
-     --outgoing-ssl OUTGOING_SSL
-                           use SSL/TLS instead of STARTTLS (more secure, and
-                           required by some providers, like Gmail)
-     -F OUTGOING_FROM, --outgoing-from OUTGOING_FROM
-                           email the results using this from address
-     -T OUTGOING_TO [OUTGOING_TO ...], --outgoing-to OUTGOING_TO [OUTGOING_TO ...]
-                           email the results to these addresses
-     -S OUTGOING_SUBJECT, --outgoing-subject OUTGOING_SUBJECT
-                           email the results using this subject
-     -A OUTGOING_ATTACHMENT, --outgoing-attachment OUTGOING_ATTACHMENT
-                           email the results using this filename
-     -M OUTGOING_MESSAGE, --outgoing-message OUTGOING_MESSAGE
-                           email the results using this message
-     -w, --watch           use an IMAP IDLE connection to process reports as they
-                           arrive in the inbox
-     --test                do not move or delete IMAP messages
      -s, --silent          only print errors and warnings
      --debug               print debugging information
      --log-file LOG_FILE   output logging to a file
      -v, --version         show program's version number and exit
+
+.. note::
+
+   In ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+
+Configuration file
+==================
+
+``parsedmarc`` can be configured by supplying the path to an INI file
+
+.. code-block:: bash
+
+    parsedmarc -c /etc/parsedmarc.ini
+
+For example
+
+.. code-block:: ini
+
+   # This is an example comment
+
+   [general]
+   save_aggregate = True
+   save_forensic = True
+
+   [imap]
+   host = imap.example.com
+   user = dmarcresports@example.com
+   password = $uperSecure
+   watch = True
+
+   [elasticsearch]
+   hosts = 127.0.0.1:9200
+   ssl = False
+
+   [splunk_hec]
+   url = https://splunkhec.example.com
+   token = HECTokenGoesHere
+   index = email
+
+The full set of configuration options are:
+
+- ``general``
+    - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
+    - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
+    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``output`` - str: Directory to place JSON and CSV files in
+    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: Cloudflare's public resolvers)
+    - ``dns_timeout`` - float: DNS timeout period
+    - ``debug`` - bool: Print debugging messages
+    - ``silent`` - bool: Only print errors (Default: True)
+    - ``log_file`` - str: Write log messages to a file at this path
+- ``imap``
+    - ``host`` - str: The IMAP server hostname or IP address
+    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``user`` - str: The IMAP user
+    - ``password`` - str: The IMAP password
+    - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
+    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``test`` - bool: Do not move or delete messages
+- ``elasticsearch``
+    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or https://user:secret@localhost:443)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``cert_path`` - str: Path to a trusted certificates
+    - ``index_suffix`` - str: A suffix to apply to the index names
+    - ``monthly_indexes`` - bool: Use monthly indexes instead of daily indexes
+- ``splunk_hec``
+    - ``url`` - str: The URL of the Splunk HTTP Events Collector (HEC)
+    - ``token`` - str: The HEC token
+    - ``index`` - str: The Splunk index to use
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+- ``kafka``
+    - ``hosts`` - str: A comma separated list of Kafka hosts
+    - ``user`` - str: The Kafka user
+    - ``passsword`` - str: The Kafka password
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``aggregate_topic`` - str: The Kafka topic for aggregate reports
+    - ``forensic_topic`` - str: The Kafka topic for forensic reports
+- ``smtp``
+    - ``host`` - str: The SMTP hostname
+    - ``port`` - int: The SMTP port (Default: 25)
+    - ``ssl`` - bool: Require SSL/TLS instead of using STARTTLS
+    - ``user`` - str: the SMTP username
+    - ``password`` - str: the SMTP password
+    - ``from`` - str: The From header to use in the email
+    - ``to`` - list: A list of email addresses to send to
+    - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
+    - ``attachment`` - str: The ZIP attachment filenames
+    - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+
+
+.. warning::
+
+    ``save_aggregate`` and ``save_forensic`` are separate options because
+    you may not want to save forensic reports (also known as failure reports)
+    to your Elasticsearch instance, particularly if you are in a
+    highly-regulated industry that handles sensitive data, such as healthcare
+    or finance. If your legitimate outgoing email fails DMARC, it is possible
+    that email may appear later in a forensic report.
+
+    Forensic reports contain the original headers of an email that failed a
+    DMARC check, and sometimes may also include the full message body,
+    depending on the policy of the reporting organization.
+
+    Most reporting organizations do not send forensic reports of any kind for
+    privacy reasons. While aggregate DMARC reports are sent at least daily,
+    it is normal to receive very few forensic reports.
+
+   An alternative approach is to still collect forensic/failure/ruf reports
+   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True`` manually on a
+   separate IMAP folder (using the  ``reports_folder`` option), after you have manually
+   moved known samples you want to save to that folder (e.g. malicious
+   samples and non-sensitive legitimate samples).
 
 Sample aggregate report output
 ==============================
@@ -580,7 +600,7 @@ Install Java:
 
 Configure Davmail by creating a ``davmail.properties`` file
 
-::
+.. code-block:: properties
 
    # DavMail settings, see http://davmail.sourceforge.net/ for documentation
 
@@ -714,7 +734,7 @@ For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
     sudo service elasticsearch start
     sudo service kibana start
 
-Without the commercial X-Pack_, Kibana does not have any authentication
+Without the commercial X-Pack_ or ReadonlyREST_ products, Kibana does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
 authentication.
 
@@ -846,33 +866,6 @@ Restart nginx:
 Now that Elasticsearch is up and running, use ``parsedmarc`` to send data to
 it.
 
-Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
-``--save-forensic`` to ``parsedmarc`` save the results in Elasticsearch.
-
-.. warning::
-
-    ``--save-aggregate`` and ``--save-forensic`` are separate options because
-    you may not want to save forensic reports (also known as failure reports)
-    to your Elasticsearch instance, particularly if you are in a
-    highly-regulated industry that handles sensitive data, such as healthcare
-    or finance. If your legitimate outgoing email fails DMARC, it is possible
-    that email may appear later in a forensic report.
-
-    Forensic reports contain the original headers of an email that failed a
-    DMARC check, and sometimes may also include the full message body,
-    depending on the policy of the reporting organization.
-
-    Most reporting organizations do not send forensic reports of any kind for
-    privacy reasons. While aggregate DMARC reports are sent at least daily,
-    it is normal to receive very few forensic reports.
-
-   An alternative approach is to still collect forensic/failure/ruf reports
-   in your DMARC inbox, but run ``parsedmarc --save-forensic`` manually on a
-   separate IMAP folder (using the  ``-r`` option), after you have manually
-   moved known samples you want to save to that folder (e.g. malicious
-   samples and non-sensitive legitimate samples).
-
-
 
 Download (right click the link and click save as) kibana_saved_objects.json_.
 
@@ -927,32 +920,8 @@ Splunk
 ------
 
 Starting in version 4.3.0 ``parsedmarc`` supports sending aggregate and/or
-forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
-following command line options, along with ``--save-aggregate`` and/or
-``--save-forensic``:
+forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_.
 
-
-::
-
-     --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
-     --hec-token HEC_TOKEN
-                           The authorization token for a Splunk HTTP Event
-                           Collector (HEC)
-     --hec-index HEC_INDEX
-                           The index to use when sending events to the Splunk
-                           HTTP Event Collector (HEC)
-     --hec-skip-certificate-verification
-                           Skip certificate verification for Splunk HEC
-
-.. note::
-
-   To maintain CLI backwards compatibility with previous versions of
-   ``parsedmarc``, if ``--save-aggregate`` and/or ``--save-forensic`` are used
-   without the ``--hec`` or ``-E`` options, ``-E localhost:9200`` is implied.
-
-   It is possible to save data in Elasticsearch and Splunk at the same time by
-   supplying ``-E`` and the HEC options, along with ``--save-aggregate`` and/or
-   ``--save-forensic``.
 
 The project repository contains `XML files`_ for premade Splunk dashboards for
 aggregate and forensic DMARC reports.
@@ -975,6 +944,13 @@ Running parsedmarc as a systemd service
 Use systemd to run ``parsedmarc`` as a service and process reports as they
 arrive.
 
+
+Create a system user
+
+.. code-block:: bash
+
+    sudo useradd parsedmarc -r -s /bin/false
+
 Create the service configuration file
 
 .. code-block:: bash
@@ -990,29 +966,14 @@ Create the service configuration file
     After=network.target network-online.target elasticsearch.service
 
     [Service]
-    ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"
+    ExecStart=/usr/local/bin/parsedmarc -c /etc/parsedmarc.ini
+    User=parsedmarc
+    Group=parsedmarc
     Restart=always
     RestartSec=5m
 
     [Install]
     WantedBy=multi-user.target
-
-Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
-setting to suit your needs.
-
-.. note::
-
-    Always pass the ``--watch`` option to ``parsedmarc`` when running it as a
-    service. Use ``--silent`` to only log errors.
-
-.. warning::
-
-    As mentioned earlier, forensic/failure reports contain copies of emails
-    that failed DMARC, including emails that may be legitimate and contain
-    sensitive customer or business information. For privacy and/or regulatory
-    reasons, you may not want to use the ``--save-forensic`` flag included in
-    the example service configuration ``ExecStart`` setting, which would save
-    these samples to Elasticsearch.
 
 Then, enable the service
 
@@ -1256,6 +1217,8 @@ Indices and tables
 .. _Kibana: https://www.elastic.co/guide/en/kibana/current/rpm.html
 
 .. _X-Pack: https://www.elastic.co/products/x-pack
+
+.. _ReadonlyREST: https://readonlyrest.com/
 
 .. _kibana_saved_objects.json: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json
 
