@@ -183,6 +183,30 @@ The full set of configuration options are:
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
 
+
+.. warning::
+
+    ``save_aggregate`` and ``save_forensic`` are separate options because
+    you may not want to save forensic reports (also known as failure reports)
+    to your Elasticsearch instance, particularly if you are in a
+    highly-regulated industry that handles sensitive data, such as healthcare
+    or finance. If your legitimate outgoing email fails DMARC, it is possible
+    that email may appear later in a forensic report.
+
+    Forensic reports contain the original headers of an email that failed a
+    DMARC check, and sometimes may also include the full message body,
+    depending on the policy of the reporting organization.
+
+    Most reporting organizations do not send forensic reports of any kind for
+    privacy reasons. While aggregate DMARC reports are sent at least daily,
+    it is normal to receive very few forensic reports.
+
+   An alternative approach is to still collect forensic/failure/ruf reports
+   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True`` manually on a
+   separate IMAP folder (using the  ``reports_folder`` option), after you have manually
+   moved known samples you want to save to that folder (e.g. malicious
+   samples and non-sensitive legitimate samples).
+
 Sample aggregate report output
 ==============================
 
@@ -840,33 +864,6 @@ Restart nginx:
 
 Now that Elasticsearch is up and running, use ``parsedmarc`` to send data to
 it.
-
-Om the same system as Elasticsearch, pass ``--save-aggregate`` and/or
-``--save-forensic`` to ``parsedmarc`` save the results in Elasticsearch.
-
-.. warning::
-
-    ``--save-aggregate`` and ``--save-forensic`` are separate options because
-    you may not want to save forensic reports (also known as failure reports)
-    to your Elasticsearch instance, particularly if you are in a
-    highly-regulated industry that handles sensitive data, such as healthcare
-    or finance. If your legitimate outgoing email fails DMARC, it is possible
-    that email may appear later in a forensic report.
-
-    Forensic reports contain the original headers of an email that failed a
-    DMARC check, and sometimes may also include the full message body,
-    depending on the policy of the reporting organization.
-
-    Most reporting organizations do not send forensic reports of any kind for
-    privacy reasons. While aggregate DMARC reports are sent at least daily,
-    it is normal to receive very few forensic reports.
-
-   An alternative approach is to still collect forensic/failure/ruf reports
-   in your DMARC inbox, but run ``parsedmarc --save-forensic`` manually on a
-   separate IMAP folder (using the  ``-r`` option), after you have manually
-   moved known samples you want to save to that folder (e.g. malicious
-   samples and non-sensitive legitimate samples).
-
 
 
 Download (right click the link and click save as) kibana_saved_objects.json_.
