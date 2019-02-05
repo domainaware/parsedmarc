@@ -951,6 +951,13 @@ Create a system user
 
     sudo useradd parsedmarc -r -s /bin/false
 
+Protect the ``parsedmarc`` configuration file from prying eyes
+
+.. code-block:: bash
+
+    sudo chown parsedmarc:parsedmarc /etc/parsedmarc.ini
+    sudo chmod ug=r,o= /etc/parsedmarc.ini
+
 Create the service configuration file
 
 .. code-block:: bash
