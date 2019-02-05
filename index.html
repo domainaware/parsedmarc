@@ -1035,8 +1035,8 @@ arrive.</p>
 </pre></div>
 </div>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown parsedmarc:parsedmarc /etc/parsedmarc.ini
-sudo chmod <span class="nv">ug</span><span class="o">=</span>r,o<span class="o">=</span> /etc/parsedmarc.ini
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:parsedmarc /etc/parsedmarc.ini
+sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/parsedmarc.ini
 </pre></div>
 </div>
 <p>Create the service configuration file</p>
