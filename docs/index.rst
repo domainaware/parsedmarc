@@ -121,7 +121,7 @@ For example
    watch = True
 
    [elasticsearch]
-   urls = 127.0.0.1:92000
+   hosts = 127.0.0.1:92000
    ssl = False
 
    [splunk_hec]
@@ -149,11 +149,39 @@ The full set of configuration options are:
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
-    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into
+    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
-
+- ``elasticsearch``
+    - ``hosts`` - str: A comma separated list of URLs (e.g. https://user:secret@localhost:443)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``cert_path`` - str: Path to a trusted certificates
+    - ``index_suffix`` - str: A suffix to apply to the index names
+    - ``monthly_indexes`` - bool: Use monthly indexes instead of daily indexes
+- ``splunk_hec``
+    - ``url`` - str: The URL of the Splunk HTTP Events Collector (HEC)
+    - ``token`` - str: The HEC token
+    - ``index`` - str: The Splunk index to use
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+- ``kafka``
+    - ``hosts`` - str: A comma separated list of Kafka hosts
+    - ``user`` - str: The Kafka user
+    - ``passsword`` - str: The Kafka password
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``aggregate_topic`` - str: The Kafka topic for aggregate reports
+    - ``forensic_topic`` - str: The Kafka topic for forensic reports
+- ``smtp``
+    - ``host`` - str: The SMTP hostname
+    - ``port`` - int: The SMTP port (Default: 25)
+    - ``ssl`` - bool: Require SSL/TLS instead of using STARTTLS
+    - ``user`` - str: the SMTP username
+    - ``password`` - str: the SMTP password
+    - ``from`` - str: The From header to use in the email
+    - ``to`` - list: A list of email addresses to send to
+    - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
+    - ``attachment`` - str: The ZIP attachment filenames
+    - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
 
 Sample aggregate report output
 ==============================
@@ -894,22 +922,7 @@ Splunk
 ------
 
 Starting in version 4.3.0 ``parsedmarc`` supports sending aggregate and/or
-forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_. Simply use the
-following command line options, along with ``--save-aggregate`` and/or
-``--save-forensic``:
-
-
-::
-
-     --hec HEC             URL to a Splunk HTTP Event Collector (HEC)
-     --hec-token HEC_TOKEN
-                           The authorization token for a Splunk HTTP Event
-                           Collector (HEC)
-     --hec-index HEC_INDEX
-                           The index to use when sending events to the Splunk
-                           HTTP Event Collector (HEC)
-     --hec-skip-certificate-verification
-                           Skip certificate verification for Splunk HEC
+forensic DMARC data to a Splunk `HTTP Event collector (HEC)`_.
 
 
 The project repository contains `XML files`_ for premade Splunk dashboards for
@@ -963,23 +976,6 @@ Create the service configuration file
 
     [Install]
     WantedBy=multi-user.target
-
-Edit the command line options of ``parsedmarc`` in the service's ``ExecStart``
-setting to suit your needs.
-
-.. note::
-
-    Always pass the ``--watch`` option to ``parsedmarc`` when running it as a
-    service. Use ``--silent`` to only log errors.
-
-.. warning::
-
-    As mentioned earlier, forensic/failure reports contain copies of emails
-    that failed DMARC, including emails that may be legitimate and contain
-    sensitive customer or business information. For privacy and/or regulatory
-    reasons, you may not want to use the ``--save-forensic`` flag included in
-    the example service configuration ``ExecStart`` setting, which would save
-    these samples to Elasticsearch.
 
 Then, enable the service
 
