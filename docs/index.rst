@@ -91,6 +91,70 @@ CLI help
      --log-file LOG_FILE   output logging to a file
      -v, --version         show program's version number and exit
 
+.. note::
+
+   In ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+
+Configuration file
+==================
+
+``parsedmarc`` can be configured by supplying the path to an INI file
+
+.. code-block:: bash
+
+    parsedmarc -c /etc/parsedmarc.ini
+
+For example
+
+.. code-block:: ini
+
+   # This is an example comment
+
+   [general]
+   save_aggregate = True
+   save_forensic = False
+
+   [imap]
+   host = imap.example.com
+   user = dmarcresports@example.com
+   password = $uperSecure
+   watch = True
+
+   [elasticsearch]
+   urls = 127.0.0.1:92000
+   ssl = False
+
+   [splunk_hec]
+   url = https://splunkhec.example.com
+   token = HECTokenGoesHere
+   index = email
+
+The full set of configuration options are:
+
+- ``general``
+    - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
+    - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
+    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``output`` - str: Directory to place JSON and CSV files in
+    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: Cloudflare's public resolvers)
+    - ``dns_timeout`` - float: DNS timeout period
+    - ``debug`` - bool: Print debugging messages
+    - ``silent`` - bool: Only print errors (Default: True)
+    - ``log_file`` - str: Write log messages to a file at this path
+- ``imap``
+    - ``host`` - str: The IMAP server hostname or IP address
+    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``user`` - str: The IMAP user
+    - ``password`` - str: The IMAP password
+    - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
+    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``test`` - bool: Do not move or delete messages
+
+
 Sample aggregate report output
 ==============================
 
@@ -847,15 +911,6 @@ following command line options, along with ``--save-aggregate`` and/or
      --hec-skip-certificate-verification
                            Skip certificate verification for Splunk HEC
 
-.. note::
-
-   To maintain CLI backwards compatibility with previous versions of
-   ``parsedmarc``, if ``--save-aggregate`` and/or ``--save-forensic`` are used
-   without the ``--hec`` or ``-E`` options, ``-E localhost:9200`` is implied.
-
-   It is possible to save data in Elasticsearch and Splunk at the same time by
-   supplying ``-E`` and the HEC options, along with ``--save-aggregate`` and/or
-   ``--save-forensic``.
 
 The project repository contains `XML files`_ for premade Splunk dashboards for
 aggregate and forensic DMARC reports.
@@ -878,6 +933,13 @@ Running parsedmarc as a systemd service
 Use systemd to run ``parsedmarc`` as a service and process reports as they
 arrive.
 
+
+Create a system user
+
+.. code-block:: bash
+
+    sudo useradd parsedmarc -r -s /bin/false
+
 Create the service configuration file
 
 .. code-block:: bash
@@ -893,7 +955,9 @@ Create the service configuration file
     After=network.target network-online.target elasticsearch.service
 
     [Service]
-    ExecStart=/usr/local/bin/parsedmarc --watch --silent --save-aggregate --save-forensic -H "outlook.office365.com" -u "dmarc@example.com" -p "FooBar!"
+    ExecStart=/usr/local/bin/parsedmarc -c /etc/parsedmarc.ini
+    User=parsedmarc
+    Group=parsedmarc
     Restart=always
     RestartSec=5m
 
