@@ -13,7 +13,8 @@ parsedmarc
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.
+as Agari Domain Defense, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
+and Valimail.
 
 Features
 ========
@@ -108,7 +109,7 @@ For example
 
    [general]
    save_aggregate = True
-   save_forensic = False
+   save_forensic = True
 
    [imap]
    host = imap.example.com
@@ -117,7 +118,7 @@ For example
    watch = True
 
    [elasticsearch]
-   hosts = 127.0.0.1:92000
+   hosts = 127.0.0.1:9200
    ssl = False
 
    [splunk_hec]
@@ -150,7 +151,7 @@ The full set of configuration options are:
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
 - ``elasticsearch``
-    - ``hosts`` - str: A comma separated list of URLs (e.g. https://user:secret@localhost:443)
+    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or https://user:secret@localhost:443)
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
     - ``index_suffix`` - str: A suffix to apply to the index names

@@ -18,7 +18,8 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
 ``parsedmarc`` is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
-as Agari, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense.
+as Agari Domain Defense, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
+and Valimail.
 
 Features
 ========
@@ -112,7 +113,7 @@ For example
 
    [general]
    save_aggregate = True
-   save_forensic = False
+   save_forensic = True
 
    [imap]
    host = imap.example.com
@@ -121,7 +122,7 @@ For example
    watch = True
 
    [elasticsearch]
-   hosts = 127.0.0.1:92000
+   hosts = 127.0.0.1:9200
    ssl = False
 
    [splunk_hec]
@@ -154,7 +155,7 @@ The full set of configuration options are:
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
 - ``elasticsearch``
-    - ``hosts`` - str: A comma separated list of URLs (e.g. https://user:secret@localhost:443)
+    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or https://user:secret@localhost:443)
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
     - ``index_suffix`` - str: A suffix to apply to the index names
@@ -599,7 +600,7 @@ Install Java:
 
 Configure Davmail by creating a ``davmail.properties`` file
 
-::
+.. code-block:: properties
 
    # DavMail settings, see http://davmail.sourceforge.net/ for documentation
 
@@ -733,7 +734,7 @@ For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
     sudo service elasticsearch start
     sudo service kibana start
 
-Without the commercial X-Pack_, Kibana does not have any authentication
+Without the commercial X-Pack_ or ReadonlyREST_ products, Kibana does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
 authentication.
 
@@ -1216,6 +1217,8 @@ Indices and tables
 .. _Kibana: https://www.elastic.co/guide/en/kibana/current/rpm.html
 
 .. _X-Pack: https://www.elastic.co/products/x-pack
+
+.. _ReadonlyREST: https://readonlyrest.com/
 
 .. _kibana_saved_objects.json: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json
 
