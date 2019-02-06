@@ -44,7 +44,7 @@ def _main():
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
-                    if opts.elasticsearch_hostss:
+                    if opts.elasticsearch_hosts:
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
@@ -72,7 +72,7 @@ def _main():
         if opts.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
-                    if opts.elasticsearch_hostss:
+                    if opts.elasticsearch_hosts:
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
@@ -157,9 +157,11 @@ def _main():
                      hec_token=None,
                      hec_index=None,
                      hec_skip_certificate_verification=False,
-                     elasticsearch_hostss=None,
+                     elasticsearch_hosts=None,
                      elasticsearch_index_suffix=None,
                      elasticsearch_ssl=True,
+                     elasticsearch_ssl_cert_path=None,
+                     elasticsearch_monthly_indexes=False,
                      kafka_hosts=None,
                      kafka_username=None,
                      kafka_password=None,
@@ -233,7 +235,7 @@ def _main():
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
             if "hosts" in elasticsearch_config:
-                opts.elasticsearch_urls = _str_to_list(elasticsearch_config[
+                opts.elasticsearch_hosts = _str_to_list(elasticsearch_config[
                     "hosts"])
             if "index_suffix" in elasticsearch_config:
                 opts.elasticsearch_index_suffix = elasticsearch_config[
@@ -314,7 +316,7 @@ def _main():
 
     if opts.save_aggregate or opts.save_forensic:
         try:
-            if opts.elasticsearch_hostss:
+            if opts.elasticsearch_hosts:
                 es_aggregate_index = "dmarc_aggregate"
                 es_forensic_index = "dmarc_forensic"
                 if opts.elasticsearch_index_suffix:
@@ -323,7 +325,7 @@ def _main():
                         es_aggregate_index, suffix)
                     es_forensic_index = "{0}_{1}".format(
                         es_forensic_index, suffix)
-                elastic.set_hosts(opts.elasticsearch_hostss,
+                elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
