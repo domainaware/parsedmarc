@@ -1,3 +1,8 @@
+6.0.1
+-----
+
+- Fix Elasticsearch output (PR #50 - andrewmcgilvray)
+
 6.0.0
 -----
 
