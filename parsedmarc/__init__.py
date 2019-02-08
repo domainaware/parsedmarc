@@ -995,7 +995,10 @@ def get_dmarc_reports_from_inbox(host=None,
                     raw_msg = raw_msg[msg_key]
 
                 except (ConnectionResetError, socket.error,
-                        TimeoutError) as error:
+                        TimeoutError,
+                        imapclient.exceptions.IMAPClientError) as error:
+                    error = error.__str__().lstrip("b'").rstrip("'").rstrip(
+                        ".")
                     logger.debug("IMAP error: {0}".format(error.__str__()))
                     logger.debug("Reconnecting to IMAP")
                     try:
@@ -1027,12 +1030,6 @@ def get_dmarc_reports_from_inbox(host=None,
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
                     forensic_report_msg_uids.append(msg_uid)
-
-            except imapclient.exceptions.IMAPClientError as error:
-                error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-                error = "IMAP error: Skipping message UID {0}: {1}".format(
-                    msg_uid, error)
-                logger.error("IMAP error: {0}".format(error))
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
                 if not test:
