@@ -566,23 +566,6 @@ On Debian or Ubuntu systems, run:
 
     sudo apt-get install libemail-outlook-message-perl
 
-
-DNS performance
----------------
-
-You can often improve performance by providing one or more local nameservers
-to the CLI or function calls, as long as those nameservers return the same
-records as the public DNS.
-
-
-.. note::
-
-   If you do not specify any nameservers, Cloudflare's public nameservers are
-   used by default, **not the system's default nameservers**.
-
-   This is done to avoid a situation where records in a local nameserver do
-   not match records in the public DNS.
-
 Testing multiple report analyzers
 ---------------------------------
 
