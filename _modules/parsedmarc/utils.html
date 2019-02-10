@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.0.1 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.0.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                6.0.1
+                6.0.2
               </div>
             
           
@@ -162,6 +162,7 @@
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">atexit</span>
 
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
@@ -172,7 +173,7 @@
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">publicsuffix</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;5.0.2&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.0.2&quot;</span>
 
 <span class="n">USER_AGENT</span> <span class="o">=</span> <span class="s2">&quot;Mozilla/5.0 ((0 </span><span class="si">{1}</span><span class="s2">)) parsedmarc/</span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
@@ -182,6 +183,16 @@
 
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
+
+<span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_cleanup</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Remove temporary files&quot;&quot;&quot;</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tempdir</span><span class="p">)</span>
+
+
+<span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">_cleanup</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="EmailParserError"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.EmailParserError">[docs]</a><span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
@@ -224,7 +235,7 @@
 <span class="sd">        str: The base domain of the given domain</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">psl_path</span> <span class="o">=</span> <span class="s2">&quot;.public_suffix_list.dat&quot;</span>
+    <span class="n">psl_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s2">&quot;public_suffix_list.dat&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
         <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://publicsuffix.org/list/public_suffix_list.dat&quot;</span>
@@ -399,8 +410,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        str: And ISO country code associated with the given IP address</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">db_filename</span> <span class="o">=</span> <span class="s2">&quot;.GeoLite2-Country.mmdb&quot;</span>
-
     <span class="k">def</span> <span class="nf">download_country_database</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="s2">&quot;.GeoLite2-Country.mmdb&quot;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Downloads the MaxMind Geolite2 Country database</span>
 
@@ -422,22 +431,23 @@
 
     <span class="n">system_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">]</span>
-    <span class="n">db_path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">system_paths</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">system_path</span><span class="p">):</span>
             <span class="n">db_path</span> <span class="o">=</span> <span class="n">system_path</span>
             <span class="k">break</span>
 
-    <span class="k">if</span> <span class="n">db_path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_filename</span><span class="p">):</span>
-            <span class="n">download_country_database</span><span class="p">(</span><span class="n">db_filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
+            <span class="n">download_country_database</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_filename</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
                 <span class="n">download_country_database</span><span class="p">()</span>
-        <span class="n">db_path</span> <span class="o">=</span> <span class="n">db_filename</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="n">db_path</span>
 
     <span class="n">db_reader</span> <span class="o">=</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
 

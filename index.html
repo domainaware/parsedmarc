@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.0.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.0.2 documentation</title>
   
 
   
@@ -56,7 +56,7 @@
             
             
               <div class="version">
-                6.0.1
+                6.0.2
               </div>
             
           
@@ -125,6 +125,10 @@
 </li>
 <li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
 <li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
+<li><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
+<li><a class="reference internal" href="#if-you-run-a-mailing-list">If you run a mailing list</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
 <li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
 <li><a class="reference internal" href="#parsedmarc-splunk">parsedmarc.splunk</a><ul>
@@ -320,7 +324,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to the Elasticsearch and/or Splunk</li>
 <li><code class="docutils literal notranslate"><span class="pre">strip_attachments_payloads</span></code> - bool: Remove attachment payloads from results</li>
 <li><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</li>
-<li><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: Cloudflare’s public resolvers)</li>
+<li><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</li>
 <li><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</li>
 <li><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</li>
 <li><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</li>
@@ -403,6 +407,15 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </ul>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
+<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> setting.
+By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>,
+which are much faster and more reliable than Google, Cisco OpenDNS, or
+even most local resolvers.</p>
+<p class="last">The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network blocks DNS
+requests to outside resolvers.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
 <blockquote>
 <div><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
 you may not want to save forensic reports (also known as failure reports)
@@ -418,10 +431,10 @@ privacy reasons. While aggregate DMARC reports are sent at least daily,
 it is normal to receive very few forensic reports.</p>
 </div></blockquote>
 <p class="last">An alternative approach is to still collect forensic/failure/ruf reports
-in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with <code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code> manually on a
-separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option), after you have manually
-moved known samples you want to save to that folder (e.g. malicious
-samples and non-sensitive legitimate samples).</p>
+in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with <code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code>
+manually on a separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option),
+after you have manually moved known samples you want to save to that
+folder (e.g. malicious samples and non-sensitive legitimate samples).</p>
 </div>
 </div>
 <div class="section" id="sample-aggregate-report-output">
@@ -1244,6 +1257,49 @@ Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
 your TLD and/or any subdomain.</p>
 </div>
 </div></blockquote>
+</div>
+<div class="section" id="what-about-mailing-lists">
+<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline">¶</a></h2>
+<p>When you deploy DMARC on your domain, you might find that messages relayed by
+mailing lists are failing DMARC. This has two causes:</p>
+<ol class="arabic simple">
+<li>You are not DKIM signing your mail like you should be</li>
+<li>The mailing list is altering emails in ways that are not DMARC compliant
+before sending them</li>
+</ol>
+<p><a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of explaining exactly what mailing lists
+should and shouldn’t do to be DMARC compliant. Rather than repeat his fine
+work, here’s a TL;DR:</p>
+<div class="section" id="if-you-run-a-mailing-list">
+<h3>If you run a mailing list<a class="headerlink" href="#if-you-run-a-mailing-list" title="Permalink to this headline">¶</a></h3>
+<p><strong>Do</strong></p>
+<ul>
+<li><p class="first">Retain headers from the original message</p>
+</li>
+<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
+adding unsubscribe links to the body</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Unsubscribe</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">unsubscribe</span><span class="o">-</span><span class="n">link</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2919">RFC 2919</a> List-Id headers instead of modifying the subject</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Id</span><span class="p">:</span> <span class="n">Example</span> <span class="n">Mailing</span> <span class="n">List</span> <span class="o">&lt;</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Do not</strong></p>
+<ul class="simple">
+<li>Remove or modify any existing headers from the original message, including
+From, Date, Subject, etc.</li>
+<li>Add to or remove content from the message body, <strong>including traditional
+disclaimers and unsubscribe footers</strong></li>
+</ul>
+</div>
 </div>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
