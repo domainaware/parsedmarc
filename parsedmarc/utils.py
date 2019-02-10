@@ -15,6 +15,7 @@ import json
 import hashlib
 import base64
 import platform
+import atexit
 
 import dateparser
 import dns.reversename
@@ -25,7 +26,7 @@ import geoip2.errors
 import requests
 import publicsuffix
 
-__version__ = "5.0.2"
+__version__ = "6.0.2"
 
 USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
             platform.system(),
@@ -35,6 +36,16 @@ USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
 
 
 logger = logging.getLogger("parsedmarc")
+
+tempdir = tempfile.mkdtemp()
+
+
+def _cleanup():
+    """Remove temporary files"""
+    shutil.rmtree(tempdir)
+
+
+atexit.register(_cleanup)
 
 
 class EmailParserError(RuntimeError):
@@ -77,7 +88,7 @@ def get_base_domain(domain):
         str: The base domain of the given domain
 
     """
-    psl_path = ".public_suffix_list.dat"
+    psl_path = os.path.join(tempdir, "public_suffix_list.dat")
 
     def download_psl():
         url = "https://publicsuffix.org/list/public_suffix_list.dat"
@@ -252,8 +263,6 @@ def get_ip_address_country(ip_address):
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    db_filename = ".GeoLite2-Country.mmdb"
-
     def download_country_database(location=".GeoLite2-Country.mmdb"):
         """Downloads the MaxMind Geolite2 Country database
 
@@ -275,22 +284,23 @@ def get_ip_address_country(ip_address):
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
                     "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
-    db_path = ""
+    db_path = None
 
     for system_path in system_paths:
         if os.path.exists(system_path):
             db_path = system_path
             break
 
-    if db_path == "":
-        if not os.path.exists(db_filename):
-            download_country_database(db_filename)
+    if db_path is None:
+        db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
+        if not os.path.exists(db_path):
+            download_country_database(db_path)
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
-                os.stat(db_filename).st_mtime)
+                os.stat(db_path).st_mtime)
             if db_age > timedelta(days=60):
                 download_country_database()
-        db_path = db_filename
+        db_path = db_path
 
     db_reader = geoip2.database.Reader(db_path)
 

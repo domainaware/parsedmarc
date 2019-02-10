@@ -1,3 +1,8 @@
+6.0.2
+----
+
+- Use temp directory for temp files (fixes issue #54)
+
 6.0.1
 -----
 
