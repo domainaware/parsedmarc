@@ -133,7 +133,7 @@ The full set of configuration options are:
     - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
     - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
-    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: Cloudflare's public resolvers)
+    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
     - ``debug`` - bool: Print debugging messages
     - ``silent`` - bool: Only print errors (Default: True)
@@ -183,6 +183,16 @@ The full set of configuration options are:
 
 .. warning::
 
+    It is **strongly recommended** to **not** use the ``nameservers`` setting.
+    By default, ``parsedmarc`` uses `Cloudflare's public resolvers`_,
+    which are much faster and more reliable than Google, Cisco OpenDNS, or
+    even most local resolvers.
+
+    The ``nameservers`` option should only be used if your network blocks DNS
+    requests to outside resolvers.
+
+.. warning::
+
     ``save_aggregate`` and ``save_forensic`` are separate options because
     you may not want to save forensic reports (also known as failure reports)
     to your Elasticsearch instance, particularly if you are in a
@@ -199,10 +209,10 @@ The full set of configuration options are:
     it is normal to receive very few forensic reports.
 
    An alternative approach is to still collect forensic/failure/ruf reports
-   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True`` manually on a
-   separate IMAP folder (using the  ``reports_folder`` option), after you have manually
-   moved known samples you want to save to that folder (e.g. malicious
-   samples and non-sensitive legitimate samples).
+   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True``
+   manually on a separate IMAP folder (using the  ``reports_folder`` option),
+   after you have manually moved known samples you want to save to that
+   folder (e.g. malicious samples and non-sensitive legitimate samples).
 
 Sample aggregate report output
 ==============================
@@ -413,3 +423,5 @@ https://github.com/domainaware/parsedmarc/issues
    :target: https://travis-ci.org/domainaware/parsedmarc
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
+
+.. _Cloudflare's public resolvers: https://1.1.1.1/

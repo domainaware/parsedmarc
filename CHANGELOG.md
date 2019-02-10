@@ -1,7 +1,8 @@
 6.0.2
 ----
 
-- Use temp directory for temp files (fixes issue #54)
+- IMAP connectivity improvements (issue #53)
+- Use a temp directory for temp files (issue #54)
 
 6.0.1
 -----
