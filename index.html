@@ -106,7 +106,6 @@
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
-<li><a class="reference internal" href="#dns-performance">DNS performance</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a></li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a><ul>
@@ -735,19 +734,6 @@ sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install libemail-outlook-message-perl
 </pre></div>
-</div>
-</div>
-<div class="section" id="dns-performance">
-<h3>DNS performance<a class="headerlink" href="#dns-performance" title="Permalink to this headline">¶</a></h3>
-<p>You can often improve performance by providing one or more local nameservers
-to the CLI or function calls, as long as those nameservers return the same
-records as the public DNS.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p>If you do not specify any nameservers, Cloudflare’s public nameservers are
-used by default, <strong>not the system’s default nameservers</strong>.</p>
-<p class="last">This is done to avoid a situation where records in a local nameserver do
-not match records in the public DNS.</p>
 </div>
 </div>
 <div class="section" id="testing-multiple-report-analyzers">
