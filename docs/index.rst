@@ -1197,13 +1197,13 @@ If you run a mailing list
 - Add `RFC 2369`_ List-Unsubscribe headers to outgoing messages, instead of
   adding unsubscribe links to the body
 
-   .. code-block::
+   ::
 
       List-Unsubscribe: <https://list.example.com/unsubscribe-link>
 
 - Add `RFC 2919`_ List-Id headers instead of modifying the subject
 
-   .. code-block::
+   ::
 
       List-Id: Example Mailing List <list.example.com>
 
