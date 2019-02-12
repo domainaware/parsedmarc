@@ -1,7 +1,7 @@
 6.0.3
 -----
 
-- Don't assume the report is the last part of the email message (issue #53)
+- Don't assume the report is the last part of the email message (issue #55)
 
 6.0.2
 ----
