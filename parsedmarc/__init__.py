@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.0.2"
+__version__ = "6.0.3"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -712,6 +712,33 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
             sample = payload
         elif content_type == "message/rfc822":
             sample = payload
+        else:
+            try:
+                if not payload.startswith(MAGIC_XML):
+                    payload = b64decode(payload)
+                if payload.startswith(MAGIC_ZIP) or \
+                        payload.startswith(MAGIC_GZIP) or \
+                        payload.startswith(MAGIC_XML):
+                    ns = nameservers
+                    aggregate_report = parse_aggregate_report_file(
+                        payload,
+                        nameservers=ns,
+                        dns_timeout=dns_timeout)
+                    result = OrderedDict([("report_type", "aggregate"),
+                                          ("report", aggregate_report)])
+            except (TypeError, ValueError, binascii.Error):
+                pass
+
+            except InvalidAggregateReport as e:
+                error = 'Message with subject "{0}" ' \
+                        'is not a valid ' \
+                        'aggregate DMARC report: {1}'.format(subject, e)
+                raise InvalidAggregateReport(error)
+
+            except FileNotFoundError as e:
+                error = 'Unable to parse message with ' \
+                        'subject "{0}": {1}'.format(subject, e)
+                raise InvalidDMARCReport(error)
 
     if feedback_report and sample:
         try:
@@ -722,44 +749,17 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
                 strip_attachment_payloads=strip_attachment_payloads)
+        except InvalidForensicReport as e:
+            error = 'Message with subject "{0}" ' \
+                    'is not a valid ' \
+                    'forensic DMARC report: {1}'.format(subject, e)
+            raise InvalidForensicReport(error)
         except Exception as e:
             raise InvalidForensicReport(e.__str__())
 
         result = OrderedDict([("report_type", "forensic"),
                               ("report", forensic_report)])
         return result
-
-    try:
-        payload = b64decode(payload)
-        if payload.startswith(MAGIC_ZIP) or \
-                payload.startswith(MAGIC_GZIP) or \
-                payload.startswith(MAGIC_XML):
-            ns = nameservers
-            aggregate_report = parse_aggregate_report_file(
-                payload,
-                nameservers=ns,
-                dns_timeout=dns_timeout)
-            result = OrderedDict([("report_type", "aggregate"),
-                                  ("report", aggregate_report)])
-    except (TypeError, ValueError, binascii.Error):
-        pass
-
-    except InvalidAggregateReport as e:
-        error = 'Message with subject "{0}" ' \
-                'is not a valid ' \
-                'aggregate DMARC report: {1}'.format(subject, e)
-        raise InvalidAggregateReport(error)
-
-    except InvalidForensicReport as e:
-        error = 'Message with subject "{0}" ' \
-                'is not a valid ' \
-                'forensic DMARC report: {1}'.format(subject, e)
-        raise InvalidForensicReport(error)
-
-    except FileNotFoundError as e:
-        error = 'Unable to parse message with subject "{0}": {1}' .format(
-            subject, e)
-        raise InvalidDMARCReport(error)
 
     if result is None:
         error = 'Message with subject "{0}" is ' \
