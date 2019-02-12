@@ -663,11 +663,14 @@ Run Davmail
 
 
 Because you are interacting with Davmail server over the loopback
-(i.e. 127.0.0.1), pass the following options to ``parsedmarc``:
+(i.e. 127.0.0.1), add the following options to ``parsedmarc.ini`` config file:
 
-.. code-block:: bash
+.. code-block:: ini
 
-      --imap-no-ssl -H 127.0.0.1 --imap-port 1143
+   [imap]
+   host=127.0.0.1
+   port=1143
+   ssl=False
 
 Elasticsearch and Kibana
 ------------------------
