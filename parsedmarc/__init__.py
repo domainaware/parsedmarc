@@ -988,6 +988,7 @@ def get_dmarc_reports_from_inbox(host=None,
                                            ["RFC822"])[msg_uid]
                     msg_keys = [b'RFC822', b'BODY[NULL]']
                     msg_key = ''
+                    logging.debug("msg_keys: {0}".format(",".join(msg_keys)))
                     for key in msg_keys:
                         if key in raw_msg.keys():
                             msg_key = key
