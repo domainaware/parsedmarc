@@ -1,0 +1,111 @@
+Return-Path: <noreply-dmarc-support@google.com>
+Delivered-To: dmarc.reports@twlnet.com
+Received: from mail.twlnet.com (unknown [10.0.0.1])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by mail01.twlnet.com (Postfix) with ESMTPS id 8E73E1FAB7
+	for <dmarc.reports@twlnet.com>; Mon, 11 Feb 2019 11:23:41 +0100 (CET)
+Received: from relay-twl-01.twlnet.com ([87.106.127.28]:58922)
+	by mail.twlnet.com with esmtps (TLSv1.2:DHE-RSA-AES256-GCM-SHA384:256)
+	(Exim 4.82_1-5b7a7c0-XX)
+	(envelope-from <noreply-dmarc-support@google.com>)
+	id 1gt8kN-0003AY-1B
+	for dmarc.reports@twlnet.com; Mon, 11 Feb 2019 11:23:31 +0100
+Received: by relay-twl-01.twlnet.com (Postfix, from userid 112)
+	id 15771A0482; Mon, 11 Feb 2019 11:15:05 +0100 (CET)
+X-CTCH-RefID: str=0001.0A0C0211.5C614D23.00C0,ss=1,re=0.000,recu=0.000,reip=0.000,cl=1,cld=1,fgs=0
+Authentication-Results: relay-twl-01.twlnet.com;
+	dkim=pass (2048-bit key; unprotected) header.d=google.com header.i=@google.com header.b=glE73hE7;
+	dkim-atps=neutral
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on
+	relay-twl-01.twlnet.com
+X-Spam-Level:
+X-Spam-Status: No, score=-14.7 required=3.5 tests=DATE_IN_PAST_06_12,
+	DKIMWL_WL_MED,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,
+	DKIM_VERIFIED,ENV_AND_HDR_SPF_MATCH,RCVD_IN_DNSWL_NONE,SPF_PASS,
+	TVD_SPACE_RATIO,USER_IN_DEF_DKIM_WL,USER_IN_DEF_SPF_WL autolearn=no
+	autolearn_force=no version=3.4.2
+X-Envelope-From: <noreply-dmarc-support@google.com>
+DMARC-Filter: OpenDMARC Filter v1.3.1 relay-twl-01.twlnet.com 52C5FA0288
+Authentication-Results: relay-twl-01.twlnet.com; dmarc=pass header.from=google.com
+Received-SPF: Pass (sender SPF authorized) identity=mailfrom; client-ip=209.85.166.201; helo=mail-it1-f201.google.com; envelope-from=noreply-dmarc-support@google.com; receiver=dmarc.reports@twlnet.com
+Received: from mail-it1-f201.google.com (mail-it1-f201.google.com [209.85.166.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by relay-twl-01.twlnet.com (Postfix) with ESMTPS id 52C5FA0288
+	for <dmarc.reports@twlnet.com>; Mon, 11 Feb 2019 11:14:55 +0100 (CET)
+Received: by mail-it1-f201.google.com with SMTP id j3so21119437itf.5
+        for <dmarc.reports@twlnet.com>; Mon, 11 Feb 2019 02:14:55 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=mime-version:date:message-id:subject:from:to:content-disposition
+         :content-transfer-encoding;
+        bh=Y722jQXFp+v3E+J91/wVzAMn5Tm5ikRl6MINXaKKpB4=;
+        b=glE73hE7yBYYJTH5p90EOeEvrHwSWLFqkpJdh8P4osd43rrYzmQly2oAoyU2VtMUSl
+         lmE4b8m/PsRM7CKBEC1kFp+xpCosqMokDOSBvgQbAZL5EmPvwiXWMJMnaRGLU1eBI4Kw
+         f547ulUk0EilNUZTqrWfdY29+Usm57jONSGNhYFRGdmxe8L5DuAz7ggtYFFAqo6XD6f4
+         uow/ZWCvXt47U8NPQwvt1DH4MWlS3vwvEVQmKrnuwkQq0ykciq1qzax891w3ex83xw1R
+         eCRQpT2tiu9K5HqF+yRCeL+bNakMmcFoqJo/5LaVufbsvLrkcU0+iRcgpm592ZjVmQXm
+         AILA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+         :content-disposition:content-transfer-encoding;
+        bh=Y722jQXFp+v3E+J91/wVzAMn5Tm5ikRl6MINXaKKpB4=;
+        b=knb52YcLt3kUw/tAlhlrRASh37+gYqvBnvJiG4L2YTsUX4R39tZtLKd5cI6SKqCvrD
+         rXjvaV9lelt9hPoxUWCRXMzX0WDFMUvwChzsMMigTbEEOwHXSU0jBz/l9k3j2oEAeTsc
+         1B5FnnQ5DiOVoCNBNv7u60RBkDMrSGchav9oX+gjBkonOMt6lyL9hsvmj5qMkhZDi6M6
+         2LDViKpVvNtdTXikvxAhvrOLP/WDTDGOV+1IeqDLxNrMUGNw7nHeOd8VDybSxx01pncC
+         5OgRyGlFzuRXX4CluLm5RDEEgBwIh71MiIYPlECekN1cXRU5QLEHAnHkemxxaeTxNShY
+         RPnQ==
+X-Gm-Message-State: AHQUAuYMteZYtsvb1pPQWqTQXQH0dJpzc4utPCZ1xpCc+U7Kwhtkkhbs
+	tDGW/14HWdV7sCJ0ItVihA==
+X-Google-Smtp-Source: AHgI3IbnGk4l6Au3/SoJ7ydpCJIZuJIsjo8K+dIi0LepThUGzwtExGj8yY6w9C85rVpZerhSO45zOFIgq7BAsA==
+MIME-Version: 1.0
+X-Received: by 2002:a5e:c80b:: with SMTP id y11mr165512iol.20.1549880090723;
+ Mon, 11 Feb 2019 02:14:50 -0800 (PST)
+Date: Sun, 10 Feb 2019 15:59:59 -0800
+Message-ID: <1627703331531660819@google.com>
+Subject: Report domain: twlnet.com Submitter: google.com Report-ID: 1627703331531660819
+From: noreply-dmarc-support@google.com
+To: dmarc.reports@twlnet.com
+Content-type: multipart/mixed; boundary="----------=_1549880620-12208-0"
+
+This is a multi-part message in MIME format...
+
+------------=_1549880620-12208-0
+Content-Type: application/zip;
+	name="google.com!twlnet.com!1549756800!1549843199.zip"
+Content-Disposition: attachment;
+	filename="google.com!twlnet.com!1549756800!1549843199.zip"
+Content-Transfer-Encoding: base64
+
+UEsDBAoAAAAIAKJQS04KMkMU6wEAAKIEAAAvAAAAZ29vZ2xlLmNvbSF0d2xu
+ZXQuY29tITE1NDk3NTY4MDAhMTU0OTg0MzE5OS54bWylVE1zmzAQvedXML4b
+IbAx7ihKT/0F7ZmRxYLVgKSRRJz8+wpLfMTpTA89Id7uvt33VkBe3oc+eQNj
+hZLPO5xmuwQkV42Q3fPu188f+2qXvNAn0gI0F8Zf6VOSEANaGVcP4FjDHJsw
+jyrT1ZINQDuluh5SrgaCFjDkwMBET6XyDP3HvhmY4Xs76onu+7Ys5MWad2dY
+zZV0jLtayFbRq3PafkMolqZrKWKISXsDg/JDWR6rzHN9rQ/EUYZoKC7z0ykr
+igIfC1yWWYXPBK3hkO6lQm2Y7KIYD12gE5Li4+F8OpZV5psFZI6DbO7R6lDg
+s6ec3gMZ+sy2dNt6SrTqBf+o9Xjphb3CMojy7kjqbr0EF/yKUIiz5lUM1BIU
+DhG0ur1j0zNAmhr4DdwRpCNiV8jOmOaO4knadLiP+rexvJlcmXlCo26LB1aN
+hkMtNK1OKc7KFOenNK98hyUwp3I1St+MoHCY4dgP3lg/eteaOTBZIaxWVjh/
+e/2tkuCd2CCbvMkIzaw3YPUkSm5jYDFmo/Ghp1/TrIyIBqQTrfDfzlJ2BdaA
+qVujhk/r2eKR6Es5YaO71gbs2LuV8WHaf6w+XuuJIoqKLxu90Pv9KkPzDFfY
+r3UBFu3bnmTjyv/335jsb+KD3ik53CGC1t/NH1BLAQIKAAoAAAAIAKJQS04K
+MkMU6wEAAKIEAAAvAAAAAAAAAAAAAAAAAAAAAABnb29nbGUuY29tIXR3bG5l
+dC5jb20hMTU0OTc1NjgwMCExNTQ5ODQzMTk5LnhtbFBLBQYAAAAAAQABAF0A
+AAA4AgAAAAA=
+
+------------=_1549880620-12208-0
+Content-Type: text/plain; charset="utf8"
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+X-Mailer: MIME-tools 5.505 (Entity 5.505)
+
+This email was Virus checked by Sophos UTM 9.
+
+Twilight-Networks https://www.twlnet.com=
+
+------------=_1549880620-12208-0--

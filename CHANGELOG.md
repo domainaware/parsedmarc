@@ -1,3 +1,9 @@
+6.1.0
+-----
+
+- Fix aggregate report email parsing regression introduced in 6.0.3 (closes issues #57 and #58)
+
+
 6.0.3
 -----
 
