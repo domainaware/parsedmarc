@@ -1,8 +1,8 @@
 6.1.0
 -----
 
-- Fix aggregate report email parsing regression introduced in 6.0.3 (closes issues #57 and #58)
-
+- Fix aggregate report email parsing regression introduced in 6.0.3 (closes issue #57)
+- Fix Davmail support (closes issue #56)
 
 6.0.3
 -----
