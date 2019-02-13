@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.0.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.0 documentation</title>
   
 
   
@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -56,7 +58,7 @@
             
             
               <div class="version">
-                6.0.2
+                6.1.0
               </div>
             
           
@@ -821,8 +823,11 @@ as a local EWS/OWA IMAP gateway.</p>
 </pre></div>
 </div>
 <p>Because you are interacting with Davmail server over the loopback
-(i.e. 127.0.0.1), pass the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--imap-no-ssl -H <span class="m">127</span>.0.0.1 --imap-port <span class="m">1143</span>
+(i.e. 127.0.0.1), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code> config file:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span>
+<span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span>
+<span class="na">port</span><span class="o">=</span><span class="s">1143</span>
+<span class="na">ssl</span><span class="o">=</span><span class="s">False</span>
 </pre></div>
 </div>
 </div>
@@ -2196,26 +2201,16 @@ country associated with the given IPv4 or IPv6 address</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>
