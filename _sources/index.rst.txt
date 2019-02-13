@@ -1163,9 +1163,16 @@ What if a sender won't support DKIM/DMARC?
 What about mailing lists?
 =========================
 
-When you deploy DMARC on your domain, you might find that messages relayed by mailing lists are failing DMARC, most likely because the mailing list is spoofing your from address, and modifying the subject, footer, or other part of the message.
+When you deploy DMARC on your domain, you might find that messages relayed by
+mailing lists are failing DMARC, most likely because the mailing list is
+spoofing your from address, and modifying the subject, footer, or other part
+of the message.
 
-To fix this, the mailing list administrator must configure the list to replace the from address of the message (also known as munging) with the address of the mailing list, so they no longer spoof email addresses with domains protected by DMARC. Configuration steps for comon mailing list platforms are listed below.
+To fix this, the mailing list administrator must configure the list to replace
+the from address of the message (also known as munging) with the address of
+the mailing list, so they no longer spoof email addresses with domains
+protected by DMARC. Configuration steps for common mailing list platforms are
+listed below.
 
 Mailman 2
 ----------
