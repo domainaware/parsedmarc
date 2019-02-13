@@ -1163,42 +1163,39 @@ What if a sender won't support DKIM/DMARC?
 What about mailing lists?
 =========================
 
-When you deploy DMARC on your domain, you might find that messages relayed by
-mailing lists are failing DMARC. This has two causes:
+What about mailing lists?
 
-#. You are not DKIM signing your mail like you should be
-#. The mailing list is altering emails in ways that are not DMARC compliant
-   before sending them
+When you deploy DMARC on your domain, you might find that messages relayed by mailing lists are failing DMARC, most likely because the mailing list is spoofing your from address, and modifying the subject, footer, or other part of the message.
 
-`Joe Nelson`_ does a fantastic job of explaining exactly what mailing lists
-should and shouldn't do to be DMARC compliant. Rather than repeat his fine
-work, here's a TL;DR:
+To fix this, the mailing list administrator must configure the list to replace the from address of the message (also known as munging) with the address of the mailing list, so they no longer spoof email addresses with domains protected by DMARC. Configuration steps for comon mailing list platforms are listed below.
 
-If you run a mailing list
--------------------------
+Mailman 2
+----------
 
-**Do**
+Navigate to Privacy Options> Sending Filters, and configure the settings below
 
-- Retain headers from the original message
-- Add `RFC 2369`_ List-Unsubscribe headers to outgoing messages, instead of
-  adding unsubscribe links to the body
+================================== ==========
+Setting                            Value
+dmarc_moderation_action            Munge From
+dmarc_quarentine_moderation_action Yes
+dmarc_none_moderation_action       Yes
+================================== ==========
 
-   ::
+Mailman 3
+---------
 
-      List-Unsubscribe: <https://list.example.com/unsubscribe-link>
+In the DMARC Mitagations tab of the Settings page, configure the settings below
 
-- Add `RFC 2919`_ List-Id headers instead of modifying the subject
+============================== ===============================
+Setting	                       Value
+DMARC mitigation action	       Replace From: with list address
+DMARC Mitigate unconditionally No
+============================== ===============================
 
-   ::
+LISTSERV
+--------
 
-      List-Id: Example Mailing List <list.example.com>
-
-**Do not**
-
-* Remove or modify any existing headers from the original message, including
-  From, Date, Subject, etc.
-* Add to or remove content from the message body, **including traditional
-  disclaimers and unsubscribe footers**
+`LISTSERV 16.0-2017a`_ and higher will rewrite the From header. Some additional steps are needed for Linux hosts.
 
 API
 ===
@@ -1271,8 +1268,4 @@ Indices and tables
 
 .. _XML files: https://github.com/domainaware/parsedmarc/tree/master/splunk
 
-.. _Joe Nelson: https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html
-
-.. _RFC 2369: https://tools.ietf.org/html/rfc2369
-
-.. _RFC 2919: https://tools.ietf.org/html/rfc2919
+.. _LISTSERV 16.0-2017a: https://www.lsoft.com/news/dmarc-issue1-2018.asp

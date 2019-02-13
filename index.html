@@ -127,7 +127,9 @@
 <li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
 <li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
 <li><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
-<li><a class="reference internal" href="#if-you-run-a-mailing-list">If you run a mailing list</a></li>
+<li><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
+<li><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
+<li><a class="reference internal" href="#listserv">LISTSERV</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
@@ -1251,45 +1253,57 @@ your TLD and/or any subdomain.</p>
 </div>
 <div class="section" id="what-about-mailing-lists">
 <h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline">¶</a></h2>
-<p>When you deploy DMARC on your domain, you might find that messages relayed by
-mailing lists are failing DMARC. This has two causes:</p>
-<ol class="arabic simple">
-<li>You are not DKIM signing your mail like you should be</li>
-<li>The mailing list is altering emails in ways that are not DMARC compliant
-before sending them</li>
-</ol>
-<p><a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of explaining exactly what mailing lists
-should and shouldn’t do to be DMARC compliant. Rather than repeat his fine
-work, here’s a TL;DR:</p>
-<div class="section" id="if-you-run-a-mailing-list">
-<h3>If you run a mailing list<a class="headerlink" href="#if-you-run-a-mailing-list" title="Permalink to this headline">¶</a></h3>
-<p><strong>Do</strong></p>
-<ul>
-<li><p class="first">Retain headers from the original message</p>
-</li>
-<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
-adding unsubscribe links to the body</p>
-<blockquote>
-<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Unsubscribe</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">unsubscribe</span><span class="o">-</span><span class="n">link</span><span class="o">&gt;</span>
-</pre></div>
+<p>What about mailing lists?</p>
+<p>When you deploy DMARC on your domain, you might find that messages relayed by mailing lists are failing DMARC, most likely because the mailing list is spoofing your from address, and modifying the subject, footer, or other part of the message.</p>
+<p>To fix this, the mailing list administrator must configure the list to replace the from address of the message (also known as munging) with the address of the mailing list, so they no longer spoof email addresses with domains protected by DMARC. Configuration steps for comon mailing list platforms are listed below.</p>
+<div class="section" id="mailman-2">
+<h3>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this headline">¶</a></h3>
+<p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="77%" />
+<col width="23%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Setting</td>
+<td>Value</td>
+</tr>
+<tr class="row-even"><td>dmarc_moderation_action</td>
+<td>Munge From</td>
+</tr>
+<tr class="row-odd"><td>dmarc_quarentine_moderation_action</td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td>dmarc_none_moderation_action</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
 </div>
-</div></blockquote>
-</li>
-<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2919">RFC 2919</a> List-Id headers instead of modifying the subject</p>
-<blockquote>
-<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Id</span><span class="p">:</span> <span class="n">Example</span> <span class="n">Mailing</span> <span class="n">List</span> <span class="o">&lt;</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>
-</pre></div>
+<div class="section" id="mailman-3">
+<h3>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this headline">¶</a></h3>
+<p>In the DMARC Mitagations tab of the Settings page, configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="51%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Setting</td>
+<td>Value</td>
+</tr>
+<tr class="row-even"><td>DMARC mitigation action</td>
+<td>Replace From: with list address</td>
+</tr>
+<tr class="row-odd"><td>DMARC Mitigate unconditionally</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
 </div>
-</div></blockquote>
-</li>
-</ul>
-<p><strong>Do not</strong></p>
-<ul class="simple">
-<li>Remove or modify any existing headers from the original message, including
-From, Date, Subject, etc.</li>
-<li>Add to or remove content from the message body, <strong>including traditional
-disclaimers and unsubscribe footers</strong></li>
-</ul>
+<div class="section" id="listserv">
+<h3>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header. Some additional steps are needed for Linux hosts.</p>
 </div>
 </div>
 <div class="section" id="module-parsedmarc">
