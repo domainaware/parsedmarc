@@ -1253,7 +1253,6 @@ your TLD and/or any subdomain.</p>
 </div>
 <div class="section" id="what-about-mailing-lists">
 <h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline">¶</a></h2>
-<p>What about mailing lists?</p>
 <p>When you deploy DMARC on your domain, you might find that messages relayed by mailing lists are failing DMARC, most likely because the mailing list is spoofing your from address, and modifying the subject, footer, or other part of the message.</p>
 <p>To fix this, the mailing list administrator must configure the list to replace the from address of the message (also known as munging) with the address of the mailing list, so they no longer spoof email addresses with domains protected by DMARC. Configuration steps for comon mailing list platforms are listed below.</p>
 <div class="section" id="mailman-2">
