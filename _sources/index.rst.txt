@@ -1182,7 +1182,7 @@ Navigate to Privacy Options> Sending Filters, and configure the settings below
 Mailman 3
 ---------
 
-In the DMARC Mitagations tab of the Settings page, configure the settings below
+In the DMARC Mitigations tab of the Settings page, configure the settings below
 
 ================================== ===============================
 **Setting**	                       **Value**
