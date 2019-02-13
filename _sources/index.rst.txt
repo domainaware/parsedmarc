@@ -1174,23 +1174,23 @@ Mailman 2
 
 Navigate to Privacy Options> Sending Filters, and configure the settings below
 
-================================== ==========
-Setting                            Value
-dmarc_moderation_action            Munge From
-dmarc_quarentine_moderation_action Yes
-dmarc_none_moderation_action       Yes
-================================== ==========
+====================================== ==========
+**Setting**                            **Value**
+**dmarc_moderation_action**            Munge From
+**dmarc_quarentine_moderation_action** Yes
+**dmarc_none_moderation_action**       Yes
+====================================== ==========
 
 Mailman 3
 ---------
 
 In the DMARC Mitagations tab of the Settings page, configure the settings below
 
-============================== ===============================
-Setting	                       Value
-DMARC mitigation action	       Replace From: with list address
-DMARC Mitigate unconditionally No
-============================== ===============================
+================================== ===============================
+**Setting**	                       **Value**
+**DMARC mitigation action**	       Replace From: with list address
+**DMARC Mitigate unconditionally** No
+================================== ===============================
 
 LISTSERV
 --------
