@@ -579,7 +579,7 @@ Accessing an inbox using OWA/EWS
 Some organisations do not allow IMAP, and only support Exchange Web Services
 (EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
-` Modern Auth/multi-factor authentication`_ is required.
+`Modern Auth/multi-factor authentication`_ is required.
 
 To do this, download the latest ``davmail-version.zip`` from
 https://sourceforge.net/projects/davmail/files/
@@ -1264,7 +1264,7 @@ Indices and tables
 
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 
-.. _ Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
+.. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 
