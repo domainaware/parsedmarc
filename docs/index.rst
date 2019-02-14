@@ -626,17 +626,18 @@ Configure Davmail by creating a ``davmail.properties`` file
    # proxy exclude list
    davmail.noProxyFor=
 
-   # allow remote connection to DavMail
+   # block remote connection to DavMail
    davmail.allowRemote=false
 
    # bind server sockets to the loopback address
    davmail.bindAddress=127.0.0.1
 
    # disable SSL for specified listeners
-   davmail.ssl.nosecureimap=false
+   davmail.ssl.nosecureimap=true
 
    # Send keepalive character during large folder and messages download
    davmail.enableKeepalive=true
+
    # Message count limit on folder retrieval
    davmail.folderSizeLimit=0
 
