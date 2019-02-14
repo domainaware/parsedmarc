@@ -750,7 +750,8 @@ tags in your DMARC record, separated by commas.</p>
 <h3>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this headline">¶</a></h3>
 <p>Some organisations do not allow IMAP, and only support Exchange Web Services
 (EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
-as a local EWS/OWA IMAP gateway.</p>
+as a local EWS/OWA IMAP gateway. It can even work where
+` Modern Auth/multi-factor authentication`_ is required.</p>
 <p>To do this, download the latest <code class="docutils literal notranslate"><span class="pre">davmail-version.zip</span></code> from
 <a class="reference external" href="https://sourceforge.net/projects/davmail/files/">https://sourceforge.net/projects/davmail/files/</a></p>
 <p>Extract the zip using the <code class="docutils literal notranslate"><span class="pre">unzip</span></code> command.</p>
@@ -790,17 +791,18 @@ as a local EWS/OWA IMAP gateway.</p>
 <span class="c"># proxy exclude list</span>
 <span class="na">davmail.noProxyFor</span><span class="o">=</span>
 
-<span class="c"># allow remote connection to DavMail</span>
+<span class="c"># block remote connection to DavMail</span>
 <span class="na">davmail.allowRemote</span><span class="o">=</span><span class="s">false</span>
 
 <span class="c"># bind server sockets to the loopback address</span>
 <span class="na">davmail.bindAddress</span><span class="o">=</span><span class="s">127.0.0.1</span>
 
 <span class="c"># disable SSL for specified listeners</span>
-<span class="na">davmail.ssl.nosecureimap</span><span class="o">=</span><span class="s">false</span>
+<span class="na">davmail.ssl.nosecureimap</span><span class="o">=</span><span class="s">true</span>
 
 <span class="c"># Send keepalive character during large folder and messages download</span>
 <span class="na">davmail.enableKeepalive</span><span class="o">=</span><span class="s">true</span>
+
 <span class="c"># Message count limit on folder retrieval</span>
 <span class="na">davmail.folderSizeLimit</span><span class="o">=</span><span class="s">0</span>
 
