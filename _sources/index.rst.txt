@@ -653,6 +653,9 @@ Configure Davmail by creating a ``davmail.properties`` file
    # message size for performance reasons
    davmail.imapAlwaysApproxMsgSize=true
 
+   # Client connection timeout in seconds - default 300, 0 to disable
+   davmail.clientSoTimeout=0
+
    #############################################################
 
 Run Davmail
@@ -663,7 +666,8 @@ Run Davmail
 
 
 Because you are interacting with Davmail server over the loopback
-(i.e. 127.0.0.1), add the following options to ``parsedmarc.ini`` config file:
+(i.e. ``127.0.0.1``), add the following options to ``parsedmarc.ini``
+config file:
 
 .. code-block:: ini
 
@@ -671,6 +675,7 @@ Because you are interacting with Davmail server over the loopback
    host=127.0.0.1
    port=1143
    ssl=False
+   watch = True
 
 Elasticsearch and Kibana
 ------------------------

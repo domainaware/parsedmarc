@@ -817,6 +817,9 @@ as a local EWS/OWA IMAP gateway.</p>
 <span class="c"># message size for performance reasons</span>
 <span class="na">davmail.imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="s">true</span>
 
+<span class="c"># Client connection timeout in seconds - default 300, 0 to disable</span>
+<span class="na">davmail.clientSoTimeout</span><span class="o">=</span><span class="s">0</span>
+
 <span class="c">#############################################################</span>
 </pre></div>
 </div>
@@ -825,11 +828,13 @@ as a local EWS/OWA IMAP gateway.</p>
 </pre></div>
 </div>
 <p>Because you are interacting with Davmail server over the loopback
-(i.e. 127.0.0.1), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code> config file:</p>
+(i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
+config file:</p>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span>
 <span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span>
 <span class="na">port</span><span class="o">=</span><span class="s">1143</span>
 <span class="na">ssl</span><span class="o">=</span><span class="s">False</span>
+<span class="na">watch</span> <span class="o">=</span> <span class="s">True</span>
 </pre></div>
 </div>
 </div>
