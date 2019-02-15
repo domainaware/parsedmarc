@@ -768,7 +768,6 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
         raise InvalidDMARCReport(error)
 
 
-
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                       strip_attachment_payloads=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
