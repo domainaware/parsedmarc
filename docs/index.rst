@@ -578,7 +578,8 @@ Accessing an inbox using OWA/EWS
 
 Some organisations do not allow IMAP, and only support Exchange Web Services
 (EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
-as a local EWS/OWA IMAP gateway.
+as a local EWS/OWA IMAP gateway. It can even work where
+`Modern Auth/multi-factor authentication`_ is required.
 
 To do this, download the latest ``davmail-version.zip`` from
 https://sourceforge.net/projects/davmail/files/
@@ -626,17 +627,18 @@ Configure Davmail by creating a ``davmail.properties`` file
    # proxy exclude list
    davmail.noProxyFor=
 
-   # allow remote connection to DavMail
+   # block remote connection to DavMail
    davmail.allowRemote=false
 
    # bind server sockets to the loopback address
    davmail.bindAddress=127.0.0.1
 
    # disable SSL for specified listeners
-   davmail.ssl.nosecureimap=false
+   davmail.ssl.nosecureimap=true
 
    # Send keepalive character during large folder and messages download
    davmail.enableKeepalive=true
+
    # Message count limit on folder retrieval
    davmail.folderSizeLimit=0
 
@@ -653,6 +655,9 @@ Configure Davmail by creating a ``davmail.properties`` file
    # message size for performance reasons
    davmail.imapAlwaysApproxMsgSize=true
 
+   # Client connection timeout in seconds - default 300, 0 to disable
+   davmail.clientSoTimeout=0
+
    #############################################################
 
 Run Davmail
@@ -663,7 +668,8 @@ Run Davmail
 
 
 Because you are interacting with Davmail server over the loopback
-(i.e. 127.0.0.1), add the following options to ``parsedmarc.ini`` config file:
+(i.e. ``127.0.0.1``), add the following options to ``parsedmarc.ini``
+config file:
 
 .. code-block:: ini
 
@@ -671,6 +677,7 @@ Because you are interacting with Davmail server over the loopback
    host=127.0.0.1
    port=1143
    ssl=False
+   watch = True
 
 Elasticsearch and Kibana
 ------------------------
@@ -1164,41 +1171,43 @@ What about mailing lists?
 =========================
 
 When you deploy DMARC on your domain, you might find that messages relayed by
-mailing lists are failing DMARC. This has two causes:
+mailing lists are failing DMARC, most likely because the mailing list is
+spoofing your from address, and modifying the subject, footer, or other part
+of the message.
 
-#. You are not DKIM signing your mail like you should be
-#. The mailing list is altering emails in ways that are not DMARC compliant
-   before sending them
+To fix this, the mailing list administrator must configure the list to replace
+the from address of the message (also known as munging) with the address of
+the mailing list, so they no longer spoof email addresses with domains
+protected by DMARC. Configuration steps for common mailing list platforms are
+listed below.
 
-`Joe Nelson`_ does a fantastic job of explaining exactly what mailing lists
-should and shouldn't do to be DMARC compliant. Rather than repeat his fine
-work, here's a TL;DR:
+Mailman 2
+----------
 
-If you run a mailing list
--------------------------
+Navigate to Privacy Options> Sending Filters, and configure the settings below
 
-**Do**
+====================================== ==========
+**Setting**                            **Value**
+**dmarc_moderation_action**            Munge From
+**dmarc_quarentine_moderation_action** Yes
+**dmarc_none_moderation_action**       Yes
+====================================== ==========
 
-- Retain headers from the original message
-- Add `RFC 2369`_ List-Unsubscribe headers to outgoing messages, instead of
-  adding unsubscribe links to the body
+Mailman 3
+---------
 
-   ::
+In the DMARC Mitigations tab of the Settings page, configure the settings below
 
-      List-Unsubscribe: <https://list.example.com/unsubscribe-link>
+================================== ===============================
+**Setting**	                       **Value**
+**DMARC mitigation action**	       Replace From: with list address
+**DMARC Mitigate unconditionally** No
+================================== ===============================
 
-- Add `RFC 2919`_ List-Id headers instead of modifying the subject
+LISTSERV
+--------
 
-   ::
-
-      List-Id: Example Mailing List <list.example.com>
-
-**Do not**
-
-* Remove or modify any existing headers from the original message, including
-  From, Date, Subject, etc.
-* Add to or remove content from the message body, **including traditional
-  disclaimers and unsubscribe footers**
+`LISTSERV 16.0-2017a`_ and higher will rewrite the From header. Some additional steps are needed for Linux hosts.
 
 API
 ===
@@ -1255,6 +1264,8 @@ Indices and tables
 
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 
+.. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
+
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 
 .. _Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
@@ -1271,8 +1282,4 @@ Indices and tables
 
 .. _XML files: https://github.com/domainaware/parsedmarc/tree/master/splunk
 
-.. _Joe Nelson: https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html
-
-.. _RFC 2369: https://tools.ietf.org/html/rfc2369
-
-.. _RFC 2919: https://tools.ietf.org/html/rfc2919
+.. _LISTSERV 16.0-2017a: https://www.lsoft.com/news/dmarc-issue1-2018.asp

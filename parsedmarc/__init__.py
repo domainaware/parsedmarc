@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.0.3"
+__version__ = "6.1.1"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -714,8 +714,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
             sample = payload
         else:
             try:
-                if not payload.startswith(MAGIC_XML):
-                    payload = b64decode(payload)
+                payload = b64decode(payload)
                 if payload.startswith(MAGIC_ZIP) or \
                         payload.startswith(MAGIC_GZIP) or \
                         payload.startswith(MAGIC_XML):
@@ -726,6 +725,8 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                         dns_timeout=dns_timeout)
                     result = OrderedDict([("report_type", "aggregate"),
                                           ("report", aggregate_report)])
+                    return result
+
             except (TypeError, ValueError, binascii.Error):
                 pass
 
@@ -765,8 +766,6 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
         error = 'Message with subject "{0}" is ' \
                 'not a valid DMARC report'.format(subject)
         raise InvalidDMARCReport(error)
-
-    return result
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,

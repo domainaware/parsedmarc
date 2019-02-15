@@ -1,0 +1,181 @@
+Received: from SN6PR04MB4480.namprd04.prod.outlook.com (2603:10b6:803:41::31)
+ by SN6PR04MB4477.namprd04.prod.outlook.com with HTTPS via
+ SN4PR0501CA0054.NAMPRD05.PROD.OUTLOOK.COM; Wed, 13 Feb 2019 10:48:13 +0000
+Received: from DM5PR04CA0035.namprd04.prod.outlook.com (2603:10b6:3:12b::21)
+ by SN6PR04MB4480.namprd04.prod.outlook.com (2603:10b6:805:a5::17) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.1622.16; Wed, 13 Feb
+ 2019 10:48:12 +0000
+Received: from BY2NAM03FT014.eop-NAM03.prod.protection.outlook.com
+ (2a01:111:f400:7e4a::207) by DM5PR04CA0035.outlook.office365.com
+ (2603:10b6:3:12b::21) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.1622.16 via Frontend
+ Transport; Wed, 13 Feb 2019 10:48:12 +0000
+Authentication-Results: spf=softfail (sender IP is 199.230.200.198)
+ smtp.mailfrom=google.com; cardinalhealth.mail.onmicrosoft.com; dkim=fail
+ (signature did not verify)
+ header.d=google.com;cardinalhealth.mail.onmicrosoft.com; dmarc=fail
+ action=oreject header.from=google.com;
+Received-SPF: SoftFail (protection.outlook.com: domain of transitioning
+ google.com discourages use of 199.230.200.198 as permitted sender)
+Received: from SMTP10.cardinalhealth.com (199.230.200.198) by
+ BY2NAM03FT014.mail.protection.outlook.com (10.152.84.239) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
+ 15.20.1580.10 via Frontend Transport; Wed, 13 Feb 2019 10:48:12 +0000
+Received: from WPOH0019EXHYB01.cardinalhealth.net (10.212.25.115) by
+ smtp10.cardinalhealth.com (10.208.183.149) with Microsoft SMTP Server (TLS)
+ id 14.3.361.1; Wed, 13 Feb 2019 05:47:36 -0500
+Received: from WPIL0210EXCAS23.cardinalhealth.net (161.244.3.66) by
+ WPOH0019EXHYB01.cardinalhealth.net (10.212.25.115) with Microsoft SMTP Server
+ (TLS) id 14.3.361.1; Wed, 13 Feb 2019 05:47:32 -0500
+Received: from smtp2.cardinal.com (198.89.161.108) by
+ WPIL0210EXCAS23.cardinalhealth.net (161.244.3.66) with Microsoft SMTP Server
+ (TLS) id 14.3.361.1; Wed, 13 Feb 2019 04:47:32 -0600
+Authentication-Results-Original: smtp2.cardinal.com; spf=Pass
+ smtp.mailfrom=noreply-dmarc-support@google.com
+Received-SPF: Pass (smtp2.cardinal.com: domain of
+  noreply-dmarc-support@google.com designates 209.85.166.201 as
+  permitted sender) identity=mailfrom;
+  client-ip=209.85.166.201; receiver=smtp2.cardinal.com;
+  envelope-from="noreply-dmarc-support@google.com";
+  x-sender="noreply-dmarc-support@google.com";
+  x-conformance=spf_only; x-record-type="v=spf1"
+X-SenderGrp: None
+X-SBRS: 3.5
+X-ExtWarning: Yes
+X-SLBL-Result: SAFE-LISTED
+X-Amp-Result: UNKNOWN
+X-Amp-Original-Verdict: FILE UNKNOWN
+X-Amp-File-Uploaded: False
+IronPort-PHdr: =?us-ascii?q?9a23=3AQPa/HRJPWXWEsohNPdmcpTZcNBhigK39O0su0rRi?=
+ =?us-ascii?q?jrtPdqq5+JG7Zh7Q4vJiiFKPVoLeuatJ?=
+X-IPAS-Result: =?us-ascii?q?A0HNBQBz9WNch8mmVdFjHAEBAR8EAQEFAQEGEIE2AoJpgQM?=
+ =?us-ascii?q?nh0+FPIsFlRGCXYIygSQDGCoSCAEEGAMTgQKDOQECg1YhATQJDQEDAQEBAQEBA?=
+ =?us-ascii?q?QECAhABAQEKCwkIKSMIBIJ0BE06MAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEUAjM?=
+ =?us-ascii?q?XKQUYGwwBAThiMgEFAYNZAYIBngU8iikBAQGCCxOCeAEBBXSBFzuDPIEdBwgSg?=
+ =?us-ascii?q?luFFIF9gkSCFoFXgkyBJoF4AoF4NoR5GoEshjgJiViIBIhVgQsJgXaBRIEPgRu?=
+ =?us-ascii?q?BVosZGYFeAWOQLRmYRgGDVQ8hgSVugSFwXIESgU4JIxeBczSDIIp0ITCPbwEB?=
+X-IronPort-Outbreak-Status: No, level 0, Unknown - Unknown
+Received: from mail-it1-f201.google.com ([209.85.166.201])  by
+ smtp2.cardinal.com with ESMTP/TLS/AES128-GCM-SHA256; 13 Feb 2019 04:47:15
+ -0600
+Received: by mail-it1-f201.google.com with SMTP id p21so3350239itb.8
+        for <dmarcreports@cardinalhealth.com>; Wed, 13 Feb 2019 02:47:15 -0800
+ (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20161025;
+        h=mime-version:date:message-id:subject:from:to:content-disposition
+         :content-transfer-encoding;
+        bh=9auxxiIHA4359CcIJ8D48sw6ZXttCPhnCsgP3zpHWC4=;
+        b=QSiY0EPGhBY11lvmfniPOmA71xd6uAv17KYGbEtmOtocmGen1BQ96kZA2rNtAtZDUx
+         IfLoJgkzO31GmVXh9k0kBi+r8vR16zXebZHuBgfBesayykHOfSSWOTZtwSukaWV3RChV
+         PPMRPMksnrITfFHNo3u6xbcx6usplxn8XS8XyENgua30BBjweJXYMrQrRkrjgLv+JpoY
+         o6fVvAtcuSnwtm3fv9j1GsqSK05sw2aVFZkJLP9DvMfhW+bXJJ2rVp4MvVqlleua20Ro
+         Y0vbFMWtbvFZseSOc+AYGvv6oL9eBilXal26kS2BrRJQ+B4Yt4GFiRDbjF4QqVSTHOd4
+         YDSw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20161025;
+        h=x-gm-message-state:mime-version:date:message-id:subject:from:to
+         :content-disposition:content-transfer-encoding;
+        bh=9auxxiIHA4359CcIJ8D48sw6ZXttCPhnCsgP3zpHWC4=;
+        b=lqkAygJJ/s8iZJI+AnwWegB47wiLE67qFfi26J+5Uu5lQuObEqK2KTlBZGwnd51c8R
+         A2y47YQ9RqBKWTibQH9pLBKT5ChyxP/+Vk8e3wK+IfU720wG8P2eDXn91rBSBNIXOTOn
+         McNwB/z6Ukurt8GFiy4aMvni0t3yWa4/xL0c5zFQJAgwm01jhxOjgOpnnqF0ppYatzf4
+         5maCMzhvRJ9FFsDhk8sE0pJjdaWS9ybDGKOteSYr1wlGSnydTkt2z6z38IO8fgVJwT3e
+         AUiqhNgNmDdyNI3Aom8dnfJHsyqjKC3iTXGxmqsMDVui4faHwOqMx2lgjuv7bbQFyv1K
+         b//w==
+X-Gm-Message-State: AHQUAubgr+0/AsmLjETdSMNb9+rAZ5j0xlExGd75CusDHQJl4eIy2avN
+	XnhZqrYsvbPhKCNFyDE0KQ==
+X-Google-Smtp-Source: AHgI3IZS0dawFR+Q0mnSaOenxA+M5W6V6z1dMorYgiX855zYf4aqZyS2Jjol+TCgY3f/lSsVDbuiefhqmZNtNA==
+MIME-Version: 1.0
+X-Received: by 2002:a24:1c87:: with SMTP id c129mr1998419itc.11.1550054834929;
+ Wed, 13 Feb 2019 02:47:14 -0800 (PST)
+Date: Tue, 12 Feb 2019 15:59:59 -0800
+Message-ID: <949348866075514174@google.com>
+Subject: Report domain: borschow.com Submitter: google.com Report-ID: 949348866075514174
+From: <noreply-dmarc-support@google.com>
+To: <dmarcreports@cardinalhealth.com>
+	name="google.com!borschow.com!1549929600!1550015999.zip"
+	filename="google.com!borschow.com!1549929600!1550015999.zip"
+Return-Path: noreply-dmarc-support@google.com
+X-OrganizationHeadersPreserved: WPIL0210EXCAS23.cardinalhealth.net
+X-MS-Exchange-Organization-ExpirationStartTime: 13 Feb 2019 10:48:12.5214
+ (UTC)
+X-MS-Exchange-Organization-ExpirationStartTimeReason: OriginalSubmit
+X-MS-Exchange-Organization-ExpirationInterval: 2:00:00:00.0000000
+X-MS-Exchange-Organization-ExpirationIntervalReason: OriginalSubmit
+X-MS-Exchange-Organization-Network-Message-Id:
+ e9371fc9-cf12-4fcb-502a-08d691a0c038
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Organization-MessageDirectionality: Originating
+X-CrossPremisesHeadersPromoted:
+ BY2NAM03FT014.eop-NAM03.prod.protection.outlook.com
+X-CrossPremisesHeadersFiltered:
+ BY2NAM03FT014.eop-NAM03.prod.protection.outlook.com
+X-Forefront-Antispam-Report:
+ CIP:199.230.200.198;IPV:NLI;CTRY:US;EFV:NLI;SFV:SKN;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:SN6PR04MB4480;H:SMTP10.cardinalhealth.com;FPR:;SPF:None;LANG:en;
+X-Microsoft-Exchange-Diagnostics:
+ 1;BY2NAM03FT014;1:9gD0HAosLjXNiAwpOsmGDn2zgTJAIEDY0eKyvNoIEz6oio7FckNeMUQRNa3AUeC/Qil0Sn2rntyy6LjTvutGN6e2BsGQyNaiKEsKI3so3l0Kpb9i3CdYF21/lNVHrjKuxxEJ8F7WUBlR88jcBwDjl6x0CO2FBckAmUnBJOJv2zg=
+X-MS-Exchange-Organization-AuthSource: WPIL0210EXCAS23.cardinalhealth.net
+X-MS-Exchange-Organization-AuthAs: Anonymous
+X-OriginatorOrg: cardinalhealth.onmicrosoft.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id: e9371fc9-cf12-4fcb-502a-08d691a0c038
+X-Microsoft-Antispam:
+ BCL:0;PCL:0;RULEID:(2390118)(7020095)(4652040)(8989299)(4534185)(4627221)(201703031133081)(8559020)(8990200)(5600110)(711020)(4605077)(4710068)(4711035)(2017052603328)(7153060)(49563074);SRVR:SN6PR04MB4480;
+X-MS-TrafficTypeDiagnostic: SN6PR04MB4480:
+X-MS-Exchange-Organization-SCL: -1
+X-Microsoft-Exchange-Diagnostics:
+ 1;SN6PR04MB4480;20:9lFp0O5yeS9rEVtgFCaVjrPpXZAA0REuLHin4MfFWihk274IOvh7BRRMQfNNBwtC3q0+vTeNPc37wIBQlwVq6T7j1bNe06DnEjGgP5GWNU7zOUjt6qeq21ebYk/RV2QcTM85ZcFxr8SF2bGAKcNkj7GQLnnogH5o1GotLtqwXOht4qNZxhp46eCrIt+yQJJHFJyHFoflM9+z2WAYSl6yY8Wauhp05LBIqjduLdEN6MmU7bpPrzOmBrc4nuOmA4s1D8A3KdzBCdx0wIEwBv1zq6RjAB43UrfhpwMmh07U60CU/0QPhSrEBfn19eZLv4eTRJozsA313tp/mPylGCegahxmClixw/ku/GENI6pWxTCz3Jz1x8YCMLqJS7M+UOg7IosLPbUr26Q2CtSduue1vhk6v8peX5c5di6b9WftMKup3YMESA0RrqNbS6HbBCmH+iHSUwWjTBVva4L0fGiG82SbFbkH/UH+ZoFzkFnMtDZwDK+9pK+oHS2k97XwVzzYrzFh98JBdnk6jI/L2MmHWldt75NqJjSifAf2P/PjlploUQ8CAHsZZSRx5cu5tLaptOzUq/NVXF23VavhTslxK5C0/ntAAZAAvhmR8v/FNFU=;23:m8XEp0VuraCd8j9yukaQaVZE+Ufz0qQ9v4369t8CewCI5dikl+UkdVfYaJsMrwHTAtH3it3YrgDXpo7py6m/RDwgDnLGxviIfy/puyEEN3Qq99TJUMn19W9S5U7VJ8DgMZsnEv6RVCrjf05bNshRyA==
+X-Microsoft-Exchange-Diagnostics:
+ 1;SN6PR04MB4480;20:fJacS7QTNHPZGJt2KoBiyZLfHf3R2G+vFZ1EUyyFaqoQUdJU3WDLMmHMUqn36br0oZNxyMkV05SJMoFAz3mVO2hO/nsUX6SR7RMpr5XHYxLD+tPbbTTT2aGzo5IR+GOrJc5l3z4uX34x0WdoggvjUhi6DWaqwMn/OnkEBJ7ozYg=
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 13 Feb 2019 10:48:12.1984
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: e9371fc9-cf12-4fcb-502a-08d691a0c038
+X-MS-Exchange-CrossTenant-Id: a86dc674-e6a2-4c25-b4ba-e36c31382530
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=a86dc674-e6a2-4c25-b4ba-e36c31382530;Ip=[199.230.200.198];Helo=[SMTP10.cardinalhealth.com]
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SN6PR04MB4480
+X-MS-Exchange-Transport-EndToEndLatency: 00:00:01.1339945
+X-MS-Exchange-Processed-By-BccFoldering: 15.20.1601.011
+X-Microsoft-Antispam-Mailbox-Delivery:
+	ucf:0;jmr:0;ex:0;auth:0;dest:I;ENG:(750119)(520011016)(944506303)(944626516);
+X-Microsoft-Antispam-Message-Info:
+	Cqz80Cj8FVW4uTBbPiVvb9OH0/VEl4Uz5BiS+YWHErndckPxKMInYe6J09QImrgTO+t2bYNNpL66Km1sbVKa2o+iWj1pSIxAONbkfZuosS0y7Xbj/NEw1eqGtwavoj5WckV7MfJmBINAEBVg6UPnNhmW5rY8PTa27tmGQgYoE7wm5JLH0EH8ARuebjtTf8j+WuBg/BY6uaK7FLOdAUnnlvAtoHDKTnL/oH5E6GG59HTarZyC4wMl5sN2ibbMqZ80Aj4EczyuoWz1N2thodsW/4yzTk2w2dtHgwMdKgPI+4xALQC81kQAlgVyN9ukvBpJnRKrA4bvx+XhUUsMKsoXmpWdQCIoALqAfXheY/96JepEYN05Fqa7wzDRLkbejIfsfPq16asiX/kw8Dq2N/WG5LeQpC28iOkY4TB/GlI6CQPVd8rMY3DvzBYZPyCAcUdPhXC3nR+qxLea+zH/s1IRKaXolnF0r0zaiCki952hC6UwfdeK9F/nCA75kRb930QXJbmOS9emnEf+xqWhIhJuMdd8gV1NLSz6SDimeHRfDgXMTgNUjkk/BQQ0bCWAEQrRPxdvt/5PEiUZMZzMKZAqYh67j2RpV8FC/qJLjHPljagvtH4bUvGmpn/W9MArWgsUkk2skhNcLVletMwYbVXvJfJPr7K9Pnfpnd4p1ETHwjlzXaKcvlziIE29MYEXPUcg9rnk2t33YTM1NJHhgyiKebbrHC2/BU1O+BNrkZYQhqlkvsAu4JxBdyzld2sDz9CQdvwOSAwOkMpdlkaHV26Y0e6gPLkaprWVqXPr5KFXSUfuz2fvVUNM+FuHGV/fIFkcKdK4lw0MRufwhBz1gqudL/PSQuI8r9lQmuh7K3+gIprdWqOiYlYEELj+TMnSnZaFkbIX70rhAAkB7MoNfs/A38hIooGzxlRYzTrlPqwoIkOpyqQykDzXoNRODHwo7QJx
+Content-type: multipart/mixed;
+	boundary="B_3632898004_720446853"
+
+> This message is in MIME format. Since your mail reader does not understand
+this format, some or all of this message may not be legible.
+
+--B_3632898004_720446853
+Content-type: text/plain;
+	charset="UTF-8"
+Content-transfer-encoding: 7bit
+
+
+
+--B_3632898004_720446853
+Content-type: application/zip; name="google.com!borschow.com!1549929600!1550015999.zip";
+ x-mac-creator="4F50494D"
+Content-ID: <B399946F5954C04A8523535C1E5699A5@namprd04.prod.outlook.com>
+Content-disposition: attachment;
+	filename="google.com!borschow.com!1549929600!1550015999.zip"
+Content-transfer-encoding: base64
+
+
+UEsDBAoAAAAIAPhTTU5+28OP0QEAACgEAAAxAAAAZ29vZ2xlLmNvbSFib3JzY2hvdy5jb20h
+MTU0OTkyOTYwMCExNTUwMDE1OTk5LnhtbI1TwXakIBC85yvmzX1EJ2rGfYTsab9g9+xjoFU2
+CjzATPL3iwHRnexhT2J1d3VXNeCX92k8vIGxQsnnY5HlxwNIpriQ/fPx188fp8vx8EIecAfA
+r5S9kofDARvQyrh2Akc5dXTBPKpM30o6AemV6kfImJowSmDIgYmKkUjlGcaPE5+oYSc764Xu
++74s5MWad2doy5R0lLlWyE6RwTltvyEUS7OtFFFEpb2BQeeyrqtL7rm+1gfiKENw0pTNY3m5
+1HX+VFVFWTyVGG3RkO2VQmuo7KMWD12hF5IUVdk056bOfa+ArHGQ3EerPC+qpmn8JHIlQ3+z
+pW57S7FWo2AfrZ6vo7ADpEGUN0eSqzKWDeoWDItgyKD8VUzEYBQOEbS6+8SWb4A0MfAbmMNI
+R8RukF0xzRwpFnHL4XPYfw3m3WTKrDMadUsuWDUbBq3QpDln1WNWFHVW5GffIQXWVKZm6Zth
+FA4rHPvBGx1n7xtfA4sZwmplhfPXN02+x3aZixWdv1Y+IbkSRXcxkKzZqbzr6le1asOCg3Si
+E/75pLIBKAfTdkZNdyvaRyLVFwJMZze0Buw8uo1zN9b/7D9e7oUj6oo/Sdp2BdB9wyU5LBKj
+7dH/AVBLAQIKAAoAAAAIAPhTTU5+28OP0QEAACgEAAAxAAAAAAAAAAAAAAAAAAAAAABnb29n
+bGUuY29tIWJvcnNjaG93LmNvbSExNTQ5OTI5NjAwITE1NTAwMTU5OTkueG1sUEsFBgAAAAAB
+AAEAXwAAACACAAAAAA==
+--B_3632898004_720446853--
+

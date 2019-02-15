@@ -1,3 +1,17 @@
+6.1.1
+-----
+
+- Fix aggregate report processing
+- Check for the existence of a configuration file if a path is supplied
+- Replace `publicsuffix` with `publicsuffix2`
+- Add minimum versions to requirements
+
+6.1.0
+-----
+
+- Fix aggregate report email parsing regression introduced in 6.0.3 (closes issue #57)
+- Fix Davmail support (closes issue #56)
+
 6.0.3
 -----
 
