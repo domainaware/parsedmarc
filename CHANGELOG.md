@@ -1,3 +1,9 @@
+6.1.1
+-----
+
+- Fix aggregate report processing
+- Check for the existence of a configuration file if a path is supplied
+
 6.1.0
 -----
 

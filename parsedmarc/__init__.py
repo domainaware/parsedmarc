@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.1.0"
+__version__ = "6.1.1"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -725,6 +725,8 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                         dns_timeout=dns_timeout)
                     result = OrderedDict([("report_type", "aggregate"),
                                           ("report", aggregate_report)])
+                    return result
+
             except (TypeError, ValueError, binascii.Error):
                 pass
 
@@ -765,7 +767,6 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                 'not a valid DMARC report'.format(subject)
         raise InvalidDMARCReport(error)
 
-    return result
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,

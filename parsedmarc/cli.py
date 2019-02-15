@@ -4,6 +4,7 @@
 """A CLI for parsing DMARC reports"""
 
 from argparse import Namespace, ArgumentParser
+import os
 from configparser import ConfigParser
 from glob import glob
 import logging
@@ -182,6 +183,10 @@ def _main():
     args = arg_parser.parse_args()
 
     if args.config_file:
+        abs_path = os.path.abspath(args.config_file)
+        if not os.path.exists(abs_path):
+            logger.error("A file does not exist at {0}".format(abs_path))
+            exit(-1)
         opts.silent = True
         config = ConfigParser()
         config.read(args.config_file)

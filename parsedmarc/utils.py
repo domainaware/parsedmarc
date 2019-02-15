@@ -26,7 +26,7 @@ import geoip2.errors
 import requests
 import publicsuffix
 
-__version__ = "6.1.0"
+__version__ = "6.1.1"
 
 USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
             platform.system(),
