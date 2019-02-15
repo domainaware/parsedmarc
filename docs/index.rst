@@ -1041,7 +1041,7 @@ Protect the ``davmail`` configuration file from prying eyes
 
 .. code-block:: bash
 
-    sudo chown root:parsedmarc /opt/davmail/davmail.properties
+    sudo chown root:davmail /opt/davmail/davmail.properties
     sudo chmod u=rw,g=r,o= /opt/davmail/davmail.properties
 
 Create the service configuration file
