@@ -135,7 +135,7 @@ The full set of configuration options are:
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
     - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
-    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
