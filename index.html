@@ -700,11 +700,11 @@ above commands.</p>
 virtualenv. First, <a class="reference external" href="https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux">download the latest portable Linux version of pypy3</a>. Extract it to
 <code class="docutils literal notranslate"><span class="pre">/opt/pypy3</span></code> (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">mkdir</span> <span class="pre">/opt</span></code> if <code class="docutils literal notranslate"><span class="pre">/opt</span></code> does not exist), then create a
 symlink:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-tar -jxf pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
+tar -jxf pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
 rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-sudo chown -R root:root pypy3.5-6.0.0-linux_x86_64-portable
-sudo mv pypy3.5-6.0.0-linux_x86_64-portable /opt/pypy3
+sudo chown -R root:root pypy3.5-7.0.0-linux_x86_64-portable
+sudo mv pypy3.5-7.0.0-linux_x86_64-portable /opt/pypy3
 sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 </pre></div>
 </div>

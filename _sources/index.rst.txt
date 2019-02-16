@@ -509,11 +509,11 @@ symlink:
 
 .. code-block:: bash
 
-    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-    tar -jxf pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
+    tar -jxf pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
     rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-    sudo chown -R root:root pypy3.5-6.0.0-linux_x86_64-portable
-    sudo mv pypy3.5-6.0.0-linux_x86_64-portable /opt/pypy3
+    sudo chown -R root:root pypy3.5-7.0.0-linux_x86_64-portable
+    sudo mv pypy3.5-7.0.0-linux_x86_64-portable /opt/pypy3
     sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 
 Install ``virtualenv`` on your system:
