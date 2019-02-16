@@ -1,3 +1,8 @@
+6.1.2
+-----
+
+- Use local Public Suffix List file instead of downloading it
+
 6.1.1
 -----
 

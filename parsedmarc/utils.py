@@ -26,12 +26,9 @@ import geoip2.errors
 import requests
 import publicsuffix2
 
-__version__ = "6.1.1"
-
-USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc".format(
             platform.system(),
             platform.release(),
-            __version__
         )
 
 
@@ -70,7 +67,7 @@ def decode_base64(data):
     return base64.b64decode(data)
 
 
-def get_base_domain(domain):
+def get_base_domain(domain, use_fresh_psl=False):
     """
     Gets the base domain name for the given domain
 
@@ -78,11 +75,9 @@ def get_base_domain(domain):
         Results are based on a list of public domain suffixes at
         https://publicsuffix.org/list/public_suffix_list.dat.
 
-        This file is saved to the current working directory,
-        where it is used as a cache file for 24 hours.
-
     Args:
         domain (str): A domain or subdomain
+        use_fresh_psl (bool): Download a fresh Public Suffix List
 
     Returns:
         str: The base domain of the given domain
@@ -98,21 +93,24 @@ def get_base_domain(domain):
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
 
-    if not os.path.exists(psl_path):
-        download_psl()
-    else:
-        psl_age = datetime.now() - datetime.fromtimestamp(
-            os.stat(psl_path).st_mtime)
-        if psl_age > timedelta(hours=24):
-            try:
-                download_psl()
-            except Exception as error:
-                logger.warning(
-                    "Failed to download an updated PSL {0}".format(error))
-    with open(psl_path, encoding="utf-8") as psl_file:
-        psl = publicsuffix2.PublicSuffixList(psl_file)
+    if use_fresh_psl:
+        if not os.path.exists(psl_path):
+            download_psl()
+        else:
+            psl_age = datetime.now() - datetime.fromtimestamp(
+                os.stat(psl_path).st_mtime)
+            if psl_age > timedelta(hours=24):
+                try:
+                    download_psl()
+                except Exception as error:
+                    logger.warning(
+                        "Failed to download an updated PSL {0}".format(error))
+        with open(psl_path, encoding="utf-8") as psl_file:
+            psl = publicsuffix2.PublicSuffixList(psl_file)
 
-    return psl.get_public_suffix(domain)
+        return psl.get_public_suffix(domain)
+    else:
+        return publicsuffix2.get_public_suffix(domain)
 
 
 def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
