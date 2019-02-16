@@ -2,6 +2,7 @@
 -----
 
 - Use local Public Suffix List file instead of downloading it
+- Fix argument name for `send_email()` (closes issue #60)
 
 6.1.1
 -----

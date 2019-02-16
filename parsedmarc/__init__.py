@@ -1380,7 +1380,7 @@ def get_report_zip(results):
 
 
 def email_results(results, host, mail_from, mail_to, port=0,
-                  use_ssl=False, user=None, password=None, subject=None,
+                  ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
     Emails parsing results as a zip file
@@ -1391,7 +1391,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
         port (int): Port to use
-        use_ssl (bool): Require a SSL connection from the start
+        ssl (bool): Require a SSL connection from the start
         user: An optional username
         password: An optional password
         subject: Overrides the default message subject
@@ -1428,7 +1428,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
     try:
         if ssl_context is None:
             ssl_context = create_default_context()
-        if use_ssl:
+        if ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
             server.ehlo_or_helo_if_needed()
