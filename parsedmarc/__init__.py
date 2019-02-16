@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.1.4"
+__version__ = "6.1.5"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -98,7 +98,9 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0):
         OrderedDict: The converted record
     """
     if nameservers is None:
-        nameservers = ["8.8.8.8", "4.4.4.4"]
+        nameservers = ["1.1.1.1", "1.0.0.1",
+                       "2606:4700:4700::1111", "2606:4700:4700::1001",
+                       ]
     record = record.copy()
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(record["row"]["source_ip"],

@@ -1,3 +1,10 @@
+6.1.5
+-----
+
+- Always use Cloudflare's nameservers by default instead of Google's
+- Avoid re-downloading the Geolite2 database (and tripping their DDoS protection)
+- Add `geoipupdate` to install instructions
+
 6.1.4
 -----
 

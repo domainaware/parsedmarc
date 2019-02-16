@@ -261,7 +261,7 @@ def get_ip_address_country(ip_address):
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    def download_country_database(location=".GeoLite2-Country.mmdb"):
+    def download_country_database(location="GeoLite2-Country.mmdb"):
         """Downloads the MaxMind Geolite2 Country database
 
         Args:
@@ -281,7 +281,8 @@ def get_ip_address_country(ip_address):
         shutil.rmtree(tar_dir)
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
-                    "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
+                    "/usr/share/GeoIP/GeoLite2-Country.mmdb"
+                    "C:\\GeoIP\\GeoLite2-Country.mmdb"]
     db_path = None
 
     for system_path in system_paths:
@@ -296,7 +297,7 @@ def get_ip_address_country(ip_address):
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_path).st_mtime)
-            if db_age > timedelta(days=60):
+            if db_age > timedelta(days=7):
                 download_country_database()
         db_path = db_path
 

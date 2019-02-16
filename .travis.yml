@@ -10,7 +10,7 @@ python:
 # commands to install dependencies
 before_install:
   - "sudo apt-get update"
-  - "sudo apt-get install -y libemail-outlook-message-perl"
+  - "sudo apt-get install -y libemail-outlook-message-perl geoipupdate"
   - "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.5.1.deb && sudo dpkg -i --force-confnew elasticsearch-6.5.1.deb && sudo service elasticsearch restart"
 
 install:
