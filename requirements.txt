@@ -3,6 +3,7 @@ flake8
 sphinx
 sphinx_rtd_theme
 wheel
+tqdm
 rstcheck>=3.3.1
 pygments
 dnspython>=1.16.0
@@ -18,3 +19,4 @@ dateparser>=0.7.1
 elasticsearch>=6.3.1
 elasticsearch-dsl>=0.0.12
 kafka-python>=1.4.4
+tqdm>=4.31.1
