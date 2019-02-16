@@ -272,13 +272,19 @@ def get_ip_address_country(ip_address):
         # Use a browser-like user agent string to bypass some proxy blocks
         headers = {"User-Agent": USER_AGENT}
         original_filename = "GeoLite2-Country.mmdb"
-        tar_bytes = requests.get(url, headers=headers).content
-        tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
-        tar_dir = tar_file.getnames()[0]
-        tar_path = "{0}/{1}".format(tar_dir, original_filename)
-        tar_file.extract(tar_path)
-        shutil.move(tar_path, location)
-        shutil.rmtree(tar_dir)
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            tar_bytes = response.content
+            tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
+            tar_dir = tar_file.getnames()[0]
+            tar_path = "{0}/{1}".format(tar_dir, original_filename)
+            tar_file.extract(tar_path)
+            shutil.move(tar_path, location)
+            shutil.rmtree(tar_dir)
+        except Exception as e:
+            logging.debug("Error downloading {0}: {1}".format(url,
+                                                              e.__str__()))
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
                     "/usr/share/GeoIP/GeoLite2-Country.mmdb"
@@ -294,6 +300,8 @@ def get_ip_address_country(ip_address):
         db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
         if not os.path.exists(db_path):
             download_country_database(db_path)
+            if not os.path.exists(db_path):
+                return None
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_path).st_mtime)

@@ -1,3 +1,8 @@
+6.1.6
+-----
+
+- Better GeoIP error handling
+
 6.1.5
 -----
 
