@@ -483,6 +483,7 @@ https://www.python.org/downloads/
    Windows users should also download a copy of Maxmind's free
   `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
 
+
 To install or upgrade to the latest stable release of ``parsedmarc`` on
 macOS or Linux, run
 
@@ -1351,7 +1352,7 @@ Indices and tables
 
 .. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
 
-.. _GeoLite2-Country.mmdb:https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
+.. _GeoLite2-Country.mmdb: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 
