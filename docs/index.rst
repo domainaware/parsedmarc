@@ -481,7 +481,7 @@ https://www.python.org/downloads/
 .. note::
 
    Windows users should also download a copy of Maxmind's free
-  `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
+   `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
 
 To install or upgrade to the latest stable release of ``parsedmarc`` on
 macOS or Linux, run
