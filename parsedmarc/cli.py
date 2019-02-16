@@ -11,19 +11,43 @@ import logging
 from collections import OrderedDict
 import json
 from ssl import CERT_NONE, create_default_context
+from multiprocessing import Pool, Value
+from itertools import repeat
+from contextlib import contextmanager
+import time
+from tqdm import tqdm
 
 from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
     parse_report_file, elastic, kafkaclient, splunk, save_output, \
-    watch_inbox, email_results, SMTPError, ParserError, __version__
+    watch_inbox, email_results, SMTPError, ParserError, __version__, \
+    InvalidDMARCReport
 
 logger = logging.getLogger("parsedmarc")
-
 
 def _str_to_list(s):
     """Converts a comma separated string to a list"""
     _list = s.split(",")
     return list(map(lambda i: i.lstrip(), _list))
 
+def cli_parse(file_path, sa, nameservers, dns_timeout, parallel=False):
+    """Separated this function for multiprocessing"""
+    try:
+        file_results = parse_report_file(file_path,
+                                         nameservers=nameservers,
+                                         dns_timeout=dns_timeout,
+                                         strip_attachment_payloads=sa,
+                                         parallel=parallel)
+    except ParserError as error:
+            return (error, file_path)
+    finally:
+        global counter
+        with counter.get_lock():
+            counter.value += 1
+    return (file_results, file_path)
+
+def init(ctr):
+    global counter
+    counter = ctr
 
 def _main():
     """Called when the module is executed"""
@@ -134,7 +158,7 @@ def _main():
 
     args = arg_parser.parse_args()
     opts = Namespace(file_path=args.file_path,
-                     onfig_file=args.config_file,
+                     config_file=args.config_file,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
                      nameservers=args.nameservers,
@@ -211,6 +235,10 @@ def _main():
                 opts.silent = general_config.getboolean("silent")
             if "log_file" in general_config:
                 opts.log_file = general_config["log_file"]
+            if "n_cpus" in general_config:
+                opts.n_cpus = general_config.getint("n_cpus")
+            if "chunksize" in general_config:
+                opts.chunksize = general_config.getint("chunksize")
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
@@ -360,21 +388,31 @@ def _main():
         file_paths += glob(file_path)
     file_paths = list(set(file_paths))
 
-    for file_path in file_paths:
-        try:
-            sa = opts.strip_attachment_payloads
-            file_results = parse_report_file(file_path,
-                                             nameservers=opts.nameservers,
-                                             dns_timeout=opts.dns_timeout,
-                                             strip_attachment_payloads=sa)
-            if file_results["report_type"] == "aggregate":
-                aggregate_reports.append(file_results["report"])
-            elif file_results["report_type"] == "forensic":
-                forensic_reports.append(file_results["report"])
+    counter = Value('i', 0)
+    pool = Pool(opts.n_cpus, initializer=init, initargs=(counter,))
+    results = pool.starmap_async(cli_parse, zip(file_paths, 
+                                        repeat(opts.strip_attachment_payloads), 
+                                        repeat(opts.nameservers), 
+                                        repeat(opts.dns_timeout),
+                                        repeat(opts.n_cpus >= 1)), opts.chunksize)
+    pbar = tqdm(total=len(file_paths))
+    while not results.ready():
+        pbar.update(counter.value - pbar.n)
+        time.sleep(0.1)
+    pbar.close()
+    results = results.get()
+    pool.close()
+    pool.join() 
 
-        except ParserError as error:
-            logger.error("Failed to parse {0} - {1}".format(file_path,
-                                                            error))
+    for result in results:
+        if type(result[0]) is InvalidDMARCReport:
+            logger.error("Failed to parse {0} - {1}".format(result[1],
+                                                            result[0]))
+        else:
+            if result[0]["report_type"] == "aggregate":
+                aggregate_reports.append(result[0]["report"])
+            elif result[0]["report_type"] == "forensic":
+                forensic_reports.append(result[0]["report"])
 
     if opts.imap_host:
         try:

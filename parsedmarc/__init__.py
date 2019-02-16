@@ -83,7 +83,7 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, nameservers=None, dns_timeout=2.0):
+def _parse_report_record(record, nameservers=None, dns_timeout=2.0, parallel=False):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -104,7 +104,8 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0):
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
                                             cache=IP_ADDRESS_CACHE,
                                             nameservers=nameservers,
-                                            timeout=dns_timeout)
+                                            timeout=dns_timeout,
+                                            parallel=parallel)
     new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
     policy_evaluated = record["row"]["policy_evaluated"].copy()
@@ -204,7 +205,7 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0):
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
+def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0, parallel=False):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -303,13 +304,15 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0):
             for record in report["record"]:
                 report_record = _parse_report_record(record,
                                                      nameservers=nameservers,
-                                                     dns_timeout=timeout)
+                                                     dns_timeout=timeout,
+                                                     parallel=parallel)
                 records.append(report_record)
 
         else:
             report_record = _parse_report_record(report["record"],
                                                  nameservers=nameservers,
-                                                 dns_timeout=timeout)
+                                                 dns_timeout=timeout,
+                                                 parallel=parallel)
             records.append(report_record)
 
         new_report["records"] = records
@@ -375,7 +378,7 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0):
+def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0, parallel=False):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -392,7 +395,8 @@ def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0):
 
     return parse_aggregate_report_xml(xml,
                                       nameservers=nameservers,
-                                      timeout=dns_timeout)
+                                      timeout=dns_timeout,
+                                      parallel=parallel)
 
 
 def parsed_aggregate_reports_to_csv(reports):
@@ -507,7 +511,8 @@ def parsed_aggregate_reports_to_csv(reports):
 
 def parse_forensic_report(feedback_report, sample, msg_date,
                           nameservers=None, dns_timeout=2.0,
-                          strip_attachment_payloads=False):
+                          strip_attachment_payloads=False,
+                          parallel=False):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
@@ -551,7 +556,8 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         ip_address = parsed_report["source_ip"]
         parsed_report_source = get_ip_address_info(ip_address,
                                                    nameservers=nameservers,
-                                                   timeout=dns_timeout)
+                                                   timeout=dns_timeout,
+                                                   parallel=parallel)
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
@@ -651,7 +657,7 @@ def parsed_forensic_reports_to_csv(reports):
 
 
 def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
-                       strip_attachment_payloads=False):
+                       strip_attachment_payloads=False, parallel=False):
     """
     Parses a DMARC report from an email
 
@@ -722,7 +728,8 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                     aggregate_report = parse_aggregate_report_file(
                         payload,
                         nameservers=ns,
-                        dns_timeout=dns_timeout)
+                        dns_timeout=dns_timeout,
+                        parallel=parallel)
                     result = OrderedDict([("report_type", "aggregate"),
                                           ("report", aggregate_report)])
                     return result
@@ -749,13 +756,15 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                 date,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
-                strip_attachment_payloads=strip_attachment_payloads)
+                strip_attachment_payloads=strip_attachment_payloads,
+                parallel=parallel)
         except InvalidForensicReport as e:
             error = 'Message with subject "{0}" ' \
                     'is not a valid ' \
                     'forensic DMARC report: {1}'.format(subject, e)
             raise InvalidForensicReport(error)
         except Exception as e:
+            print("DEBUGGGING: {}".format(e))
             raise InvalidForensicReport(e.__str__())
 
         result = OrderedDict([("report_type", "forensic"),
@@ -769,7 +778,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
-                      strip_attachment_payloads=False):
+                      strip_attachment_payloads=False, parallel=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -794,7 +803,8 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     content = file_object.read()
     try:
         report = parse_aggregate_report_file(content, nameservers=nameservers,
-                                             dns_timeout=dns_timeout)
+                                             dns_timeout=dns_timeout,
+                                             parallel=parallel)
         results = OrderedDict([("report_type", "aggregate"),
                                ("report", report)])
     except InvalidAggregateReport:
@@ -803,8 +813,10 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
             results = parse_report_email(content,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
-                                         strip_attachment_payloads=sa)
-        except InvalidDMARCReport:
+                                         strip_attachment_payloads=sa,
+                                         parallel=parallel)
+        except InvalidDMARCReport as e:
+            print("DEBUGGING: {}".format(e))
             raise InvalidDMARCReport("Not a valid aggregate or forensic "
                                      "report")
     return results

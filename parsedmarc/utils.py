@@ -269,6 +269,7 @@ def get_ip_address_country(ip_address):
         Args:
             location (str): Local location for the database file
         """
+        import pdb; pdb.set_trace()
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
         # Use a browser-like user agent string to bypass some proxy blocks
@@ -314,7 +315,7 @@ def get_ip_address_country(ip_address):
     return country
 
 
-def get_ip_address_info(ip_address, cache=None, nameservers=None, timeout=2.0):
+def get_ip_address_info(ip_address, cache=None, nameservers=None, timeout=2.0, parallel=False):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -339,8 +340,11 @@ def get_ip_address_info(ip_address, cache=None, nameservers=None, timeout=2.0):
     reverse_dns = get_reverse_dns(ip_address,
                                   nameservers=nameservers,
                                   timeout=timeout)
-    country = get_ip_address_country(ip_address)
-    info["country"] = country
+    if not parallel:
+        country = get_ip_address_country(ip_address)
+        info["country"] = country
+    else:
+        info["country"] = None
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
     if reverse_dns is not None:
