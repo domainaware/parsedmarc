@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 6.1.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 6.1.2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.1
+                6.1.2
               </div>
             
           
@@ -185,7 +185,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.1.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.1.2&quot;</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:&#39;</span>
@@ -1527,7 +1527,7 @@
 
 
 <div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                  <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">attachment_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Emails parsing results as a zip file</span>
@@ -1538,7 +1538,7 @@
 <span class="sd">        mail_from: The value of the message from header</span>
 <span class="sd">        mail_to : A list of addresses to mail to</span>
 <span class="sd">        port (int): Port to use</span>
-<span class="sd">        use_ssl (bool): Require a SSL connection from the start</span>
+<span class="sd">        ssl (bool): Require a SSL connection from the start</span>
 <span class="sd">        user: An optional username</span>
 <span class="sd">        password: An optional password</span>
 <span class="sd">        subject: Overrides the default message subject</span>
@@ -1575,7 +1575,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ssl_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ssl_context</span> <span class="o">=</span> <span class="n">create_default_context</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ssl</span><span class="p">:</span>
             <span class="n">server</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP_SSL</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ssl_context</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
             <span class="n">server</span><span class="o">.</span><span class="n">ehlo_or_helo_if_needed</span><span class="p">()</span>

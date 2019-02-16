@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.1
+                6.1.2
               </div>
             
           
@@ -109,7 +109,11 @@
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
-<li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a></li>
+<li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a><ul>
+<li><a class="reference internal" href="#running-davmail-as-a-systemd-service">Running DavMail as a systemd service</a></li>
+<li><a class="reference internal" href="#configuring-parsedmarc-for-davmail">Configuring parsedmarc for DavMail</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#elasticsearch-and-kibana">Elasticsearch and Kibana</a><ul>
 <li><a class="reference internal" href="#upgrading-kibana-index-patterns">Upgrading Kibana index patterns</a></li>
 <li><a class="reference internal" href="#records-retention">Records retention</a></li>
@@ -325,7 +329,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <dd><ul class="first last">
 <li><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to the Elasticsearch and/or Splunk</li>
 <li><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to the Elasticsearch and/or Splunk</li>
-<li><code class="docutils literal notranslate"><span class="pre">strip_attachments_payloads</span></code> - bool: Remove attachment payloads from results</li>
+<li><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment payloads from results</li>
 <li><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</li>
 <li><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</li>
 <li><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</li>
@@ -825,19 +829,86 @@ as a local EWS/OWA IMAP gateway. It can even work where
 <span class="c">#############################################################</span>
 </pre></div>
 </div>
-<p>Run Davmail</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./davmail.sh
+<div class="section" id="running-davmail-as-a-systemd-service">
+<h4>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this headline">¶</a></h4>
+<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">davmail</span></code> as a service.</p>
+<p>Create a system user</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo useradd davmail -r -s /bin/false
 </pre></div>
 </div>
-<p>Because you are interacting with Davmail server over the loopback
+<p>Protect the <code class="docutils literal notranslate"><span class="pre">davmail</span></code> configuration file from prying eyes</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:davmail /opt/davmail/davmail.properties
+sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /opt/davmail/davmail.properties
+</pre></div>
+</div>
+<p>Create the service configuration file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/systemd/system/davmail.service
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">DavMail gateway service</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://sourceforge.net/projects/davmail/</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">syslog.target network.target</span>
+
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/davmail/davmail /opt/davmail/davmail.properties</span>
+<span class="na">User</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
+
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</pre></div>
+</div>
+<p>Then, enable the service</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
+sudo systemctl <span class="nb">enable</span> parsedmarc.service
+sudo service davmail restart
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must also run the above commands whenever you edit
+<code class="docutils literal notranslate"><span class="pre">davmail.service</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<blockquote>
+<div>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">davmail</span></code>:</div></blockquote>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service davmail restart
+</pre></div>
+</div>
+</div>
+<p>To check the status of the service, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service davmail status
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>In the event of a crash, systemd will restart the service after 5 minutes,
+but the <cite>service davmail status</cite> command will only show the logs for the
+current process. To vew the logs for previous runs as well as the
+current process (newest to oldest), run:</p>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u davmail.service -r
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="configuring-parsedmarc-for-davmail">
+<h4>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this headline">¶</a></h4>
+<p>Because you are interacting with DavMail server over the loopback
 (i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
 config file:</p>
 <div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span>
 <span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span>
 <span class="na">port</span><span class="o">=</span><span class="s">1143</span>
 <span class="na">ssl</span><span class="o">=</span><span class="s">False</span>
-<span class="na">watch</span> <span class="o">=</span> <span class="s">True</span>
+<span class="na">watch</span><span class="o">=</span><span class="s">True</span>
 </pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="elasticsearch-and-kibana">
@@ -1360,7 +1431,7 @@ listed below.</p>
 
 <dl class="function">
 <dt id="parsedmarc.email_results">
-<code class="descclassname">parsedmarc.</code><code class="descname">email_results</code><span class="sig-paren">(</span><em>results</em>, <em>host</em>, <em>mail_from</em>, <em>mail_to</em>, <em>port=0</em>, <em>use_ssl=False</em>, <em>user=None</em>, <em>password=None</em>, <em>subject=None</em>, <em>attachment_filename=None</em>, <em>message=None</em>, <em>ssl_context=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">email_results</code><span class="sig-paren">(</span><em>results</em>, <em>host</em>, <em>mail_from</em>, <em>mail_to</em>, <em>port=0</em>, <em>ssl=False</em>, <em>user=None</em>, <em>password=None</em>, <em>subject=None</em>, <em>attachment_filename=None</em>, <em>message=None</em>, <em>ssl_context=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
 <dd><p>Emails parsing results as a zip file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1372,7 +1443,7 @@ listed below.</p>
 <li><strong>mail_from</strong> – The value of the message from header</li>
 <li><strong>mail_to</strong> – A list of addresses to mail to</li>
 <li><strong>port</strong> (<em>int</em>) – Port to use</li>
-<li><strong>use_ssl</strong> (<em>bool</em>) – Require a SSL connection from the start</li>
+<li><strong>ssl</strong> (<em>bool</em>) – Require a SSL connection from the start</li>
 <li><strong>user</strong> – An optional username</li>
 <li><strong>password</strong> – An optional password</li>
 <li><strong>subject</strong> – Overrides the default message subject</li>
@@ -1929,24 +2000,28 @@ standard RFC 822 format</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_base_domain">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_base_domain</code><span class="sig-paren">(</span><em>domain</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_base_domain</code><span class="sig-paren">(</span><em>domain</em>, <em>use_fresh_psl=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the base domain name for the given domain</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p>Results are based on a list of public domain suffixes at
+<p class="last">Results are based on a list of public domain suffixes at
 <a class="reference external" href="https://publicsuffix.org/list/public_suffix_list.dat">https://publicsuffix.org/list/public_suffix_list.dat</a>.</p>
-<p class="last">This file is saved to the current working directory,
-where it is used as a cache file for 24 hours.</p>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>domain</strong> (<em>str</em>) – A domain or subdomain</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>domain</strong> (<em>str</em>) – A domain or subdomain</li>
+<li><strong>use_fresh_psl</strong> (<em>bool</em>) – Download a fresh Public Suffix List</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The base domain of the given domain</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The base domain of the given domain</p>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
 </tr>
 </tbody>
 </table>
