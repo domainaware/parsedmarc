@@ -1,3 +1,8 @@
+6.1.3
+-----
+
+- Fix package requirements
+
 6.1.2
 -----
 
