@@ -1,3 +1,8 @@
+6.1.4
+-----
+
+- Actually package requirements
+
 6.1.3
 -----
 
