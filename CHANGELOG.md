@@ -1,3 +1,8 @@
+6.1.8
+-----
+
+- Actually fix GeoIP lookups
+
 6.1.7
 -----
 
