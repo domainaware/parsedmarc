@@ -664,8 +664,7 @@ Configure Davmail by creating a ``davmail.properties`` file
 Running DavMail as a systemd service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use systemd to run ``davmail`` as a service and process reports as they
-arrive.
+Use systemd to run ``davmail`` as a service.
 
 
 Create a system user
