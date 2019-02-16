@@ -135,7 +135,7 @@ The full set of configuration options are:
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
     - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
-    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -1023,6 +1023,89 @@ To check the status of the service, run:
    .. code-block:: bash
 
        journalctl -u parsedmarc.service -r
+       
+Running DavMail as a systemd service
+---------------------------------------
+
+Use systemd to run ``davmail`` as a service and process reports as they
+arrive.
+
+
+Create a system user
+
+.. code-block:: bash
+
+    sudo useradd davmail -r -s /bin/false
+
+Protect the ``davmail`` configuration file from prying eyes
+
+.. code-block:: bash
+
+    sudo chown root:davmail /opt/davmail/davmail.properties
+    sudo chmod u=rw,g=r,o= /opt/davmail/davmail.properties
+
+Create the service configuration file
+
+.. code-block:: bash
+
+    sudo nano /etc/systemd/system/davmail.service
+
+.. code-block:: ini
+
+    [Unit]
+    Description=DavMail gateway service
+    Documentation=https://sourceforge.net/projects/davmail/
+    Wants=network-online.target
+    After=syslog.target network.target
+
+    [Service]
+    ExecStart=/opt/davmail/davmail /opt/davmail/davmail.properties
+    User=davmail
+    Group=davmail
+    Restart=always
+    RestartSec=5m
+
+    [Install]
+    WantedBy=multi-user.target
+
+Then, enable the service
+
+.. code-block:: bash
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable parsedmarc.service
+    sudo service davmail restart
+
+.. note::
+
+    You must also run the above commands whenever you edit
+    ``davmail.service``.
+
+.. warning::
+
+    Always restart the service every time you upgrade to a new version of
+    ``davmail``:
+
+   .. code-block:: bash
+
+       sudo service davmail restart
+
+To check the status of the service, run:
+
+.. code-block:: bash
+
+    service davmail status
+
+.. note::
+
+   In the event of a crash, systemd will restart the service after 10 minutes,
+   but the `service davmail status` command will only show the logs for the
+   current process. To vew the logs for previous runs as well as the
+   current process (newest to oldest), run:
+
+   .. code-block:: bash
+
+       journalctl -u davmail.service -r
 
 
 Using the Kibana dashboards
