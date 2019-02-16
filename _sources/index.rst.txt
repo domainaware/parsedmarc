@@ -465,18 +465,23 @@ On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    sudo apt-get install python3-pip
-
+    sudo apt-get install -y python3-pip geoipupdate
 
 On CentOS systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y python34-setuptools
+   sudo yum install -y python34-setuptools GeoIP-Update
    sudo easy_install-3.4 pip
+   sudo geoipupdate
 
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
+
+.. note::
+
+   Windows users should also download a copy of Maxmind's free
+   `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
 
 To install or upgrade to the latest stable release of ``parsedmarc`` on
 macOS or Linux, run
@@ -1345,6 +1350,8 @@ Indices and tables
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 
 .. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
+
+.. _GeoLite2-Country.mmdb: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 

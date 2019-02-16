@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.5 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.2
+                6.1.5
               </div>
             
           
@@ -669,16 +669,22 @@ least:</p>
 </ul>
 </div>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install python3-pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip geoipupdate
 </pre></div>
 </div>
 <p>On CentOS systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools GeoIP-Update
 sudo easy_install-3.4 pip
+sudo geoipupdate
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Windows users should also download a copy of Maxmind’s free
+<a class="reference external" href="https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz">GeoLite2-Country.mmdb</a> to <code class="docutils literal notranslate"><span class="pre">C:\GeoIP\GeoLite2-Country.mmdb</span></code>.</p>
+</div>
 <p>To install or upgrade to the latest stable release of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> on
 macOS or Linux, run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U parsedmarc
