@@ -283,12 +283,13 @@ def get_ip_address_country(ip_address):
             shutil.move(tar_path, location)
             shutil.rmtree(tar_dir)
         except Exception as e:
-            logging.debug("Error downloading {0}: {1}".format(url,
-                                                              e.__str__()))
+            logger.warning("Error downloading {0}: {1}".format(url,
+                                                               e.__str__()))
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
                     "/usr/share/GeoIP/GeoLite2-Country.mmdb",
                     "/var/lib/GeoIP/GeoLite2-Country.mmdb",
+                    "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
                     "C:\\GeoIP\\GeoLite2-Country.mmdb"]
     db_path = None
 
