@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.1.1"
+__version__ = "6.1.8"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -98,7 +98,9 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0, parallel=Fal
         OrderedDict: The converted record
     """
     if nameservers is None:
-        nameservers = ["8.8.8.8", "4.4.4.4"]
+        nameservers = ["1.1.1.1", "1.0.0.1",
+                       "2606:4700:4700::1111", "2606:4700:4700::1001",
+                       ]
     record = record.copy()
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
@@ -1392,7 +1394,7 @@ def get_report_zip(results):
 
 
 def email_results(results, host, mail_from, mail_to, port=0,
-                  use_ssl=False, user=None, password=None, subject=None,
+                  ssl=False, user=None, password=None, subject=None,
                   attachment_filename=None, message=None, ssl_context=None):
     """
     Emails parsing results as a zip file
@@ -1403,7 +1405,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
         mail_from: The value of the message from header
         mail_to : A list of addresses to mail to
         port (int): Port to use
-        use_ssl (bool): Require a SSL connection from the start
+        ssl (bool): Require a SSL connection from the start
         user: An optional username
         password: An optional password
         subject: Overrides the default message subject
@@ -1440,7 +1442,7 @@ def email_results(results, host, mail_from, mail_to, port=0,
     try:
         if ssl_context is None:
             ssl_context = create_default_context()
-        if use_ssl:
+        if ssl:
             server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
             server.connect(host, port)
             server.ehlo_or_helo_if_needed()

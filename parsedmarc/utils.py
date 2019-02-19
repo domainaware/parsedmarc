@@ -26,12 +26,9 @@ import geoip2.errors
 import requests
 import publicsuffix2
 
-__version__ = "6.1.1"
-
-USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc/{2}".format(
+USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc".format(
             platform.system(),
             platform.release(),
-            __version__
         )
 
 
@@ -70,7 +67,7 @@ def decode_base64(data):
     return base64.b64decode(data)
 
 
-def get_base_domain(domain):
+def get_base_domain(domain, use_fresh_psl=False):
     """
     Gets the base domain name for the given domain
 
@@ -78,11 +75,9 @@ def get_base_domain(domain):
         Results are based on a list of public domain suffixes at
         https://publicsuffix.org/list/public_suffix_list.dat.
 
-        This file is saved to the current working directory,
-        where it is used as a cache file for 24 hours.
-
     Args:
         domain (str): A domain or subdomain
+        use_fresh_psl (bool): Download a fresh Public Suffix List
 
     Returns:
         str: The base domain of the given domain
@@ -98,21 +93,24 @@ def get_base_domain(domain):
         with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
             fresh_psl_file.write(fresh_psl)
 
-    if not os.path.exists(psl_path):
-        download_psl()
-    else:
-        psl_age = datetime.now() - datetime.fromtimestamp(
-            os.stat(psl_path).st_mtime)
-        if psl_age > timedelta(hours=24):
-            try:
-                download_psl()
-            except Exception as error:
-                logger.warning(
-                    "Failed to download an updated PSL {0}".format(error))
-    with open(psl_path, encoding="utf-8") as psl_file:
-        psl = publicsuffix2.PublicSuffixList(psl_file)
+    if use_fresh_psl:
+        if not os.path.exists(psl_path):
+            download_psl()
+        else:
+            psl_age = datetime.now() - datetime.fromtimestamp(
+                os.stat(psl_path).st_mtime)
+            if psl_age > timedelta(hours=24):
+                try:
+                    download_psl()
+                except Exception as error:
+                    logger.warning(
+                        "Failed to download an updated PSL {0}".format(error))
+        with open(psl_path, encoding="utf-8") as psl_file:
+            psl = publicsuffix2.PublicSuffixList(psl_file)
 
-    return psl.get_public_suffix(domain)
+        return psl.get_public_suffix(domain)
+    else:
+        return publicsuffix2.get_public_suffix(domain)
 
 
 def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
@@ -263,7 +261,7 @@ def get_ip_address_country(ip_address):
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    def download_country_database(location=".GeoLite2-Country.mmdb"):
+    def download_country_database(location="GeoLite2-Country.mmdb"):
         """Downloads the MaxMind Geolite2 Country database
 
         Args:
@@ -275,16 +273,25 @@ def get_ip_address_country(ip_address):
         # Use a browser-like user agent string to bypass some proxy blocks
         headers = {"User-Agent": USER_AGENT}
         original_filename = "GeoLite2-Country.mmdb"
-        tar_bytes = requests.get(url, headers=headers).content
-        tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
-        tar_dir = tar_file.getnames()[0]
-        tar_path = "{0}/{1}".format(tar_dir, original_filename)
-        tar_file.extract(tar_path)
-        shutil.move(tar_path, location)
-        shutil.rmtree(tar_dir)
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            tar_bytes = response.content
+            tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
+            tar_dir = tar_file.getnames()[0]
+            tar_path = "{0}/{1}".format(tar_dir, original_filename)
+            tar_file.extract(tar_path)
+            shutil.move(tar_path, location)
+            shutil.rmtree(tar_dir)
+        except Exception as e:
+            logger.warning("Error downloading {0}: {1}".format(url,
+                                                               e.__str__()))
 
     system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
-                    "/usr/share/GeoIP/GeoLite2-Country.mmdb"]
+                    "/usr/share/GeoIP/GeoLite2-Country.mmdb",
+                    "/var/lib/GeoIP/GeoLite2-Country.mmdb",
+                    "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
+                    "C:\\GeoIP\\GeoLite2-Country.mmdb"]
     db_path = None
 
     for system_path in system_paths:
@@ -296,10 +303,12 @@ def get_ip_address_country(ip_address):
         db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
         if not os.path.exists(db_path):
             download_country_database(db_path)
+            if not os.path.exists(db_path):
+                return None
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_path).st_mtime)
-            if db_age > timedelta(days=60):
+            if db_age > timedelta(days=7):
                 download_country_database()
         db_path = db_path
 

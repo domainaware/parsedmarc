@@ -135,7 +135,7 @@ The full set of configuration options are:
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
     - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
-    - ``strip_attachments_payloads`` - bool: Remove attachment payloads from results
+    - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -465,18 +465,23 @@ On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    sudo apt-get install python3-pip
-
+    sudo apt-get install -y python3-pip geoipupdate
 
 On CentOS systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y python34-setuptools
+   sudo yum install -y python34-setuptools GeoIP-Update
    sudo easy_install-3.4 pip
+   sudo geoipupdate
 
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
+
+.. note::
+
+   Windows users should also download a copy of Maxmind's free
+   `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
 
 To install or upgrade to the latest stable release of ``parsedmarc`` on
 macOS or Linux, run
@@ -509,11 +514,11 @@ symlink:
 
 .. code-block:: bash
 
-    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-    tar -jxf pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
+    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
+    tar -jxf pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
     rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-    sudo chown -R root:root pypy3.5-6.0.0-linux_x86_64-portable
-    sudo mv pypy3.5-6.0.0-linux_x86_64-portable /opt/pypy3
+    sudo chown -R root:root pypy3.5-7.0.0-linux_x86_64-portable
+    sudo mv pypy3.5-7.0.0-linux_x86_64-portable /opt/pypy3
     sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
 
 Install ``virtualenv`` on your system:
@@ -660,14 +665,94 @@ Configure Davmail by creating a ``davmail.properties`` file
 
    #############################################################
 
-Run Davmail
+
+Running DavMail as a systemd service
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use systemd to run ``davmail`` as a service.
+
+
+Create a system user
 
 .. code-block:: bash
 
-    ./davmail.sh
+    sudo useradd davmail -r -s /bin/false
+
+Protect the ``davmail`` configuration file from prying eyes
+
+.. code-block:: bash
+
+    sudo chown root:davmail /opt/davmail/davmail.properties
+    sudo chmod u=rw,g=r,o= /opt/davmail/davmail.properties
+
+Create the service configuration file
+
+.. code-block:: bash
+
+    sudo nano /etc/systemd/system/davmail.service
+
+.. code-block:: ini
+
+    [Unit]
+    Description=DavMail gateway service
+    Documentation=https://sourceforge.net/projects/davmail/
+    Wants=network-online.target
+    After=syslog.target network.target
+
+    [Service]
+    ExecStart=/opt/davmail/davmail /opt/davmail/davmail.properties
+    User=davmail
+    Group=davmail
+    Restart=always
+    RestartSec=5m
+
+    [Install]
+    WantedBy=multi-user.target
+
+Then, enable the service
+
+.. code-block:: bash
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable parsedmarc.service
+    sudo service davmail restart
+
+.. note::
+
+    You must also run the above commands whenever you edit
+    ``davmail.service``.
+
+.. warning::
+
+    Always restart the service every time you upgrade to a new version of
+    ``davmail``:
+
+   .. code-block:: bash
+
+       sudo service davmail restart
+
+To check the status of the service, run:
+
+.. code-block:: bash
+
+    service davmail status
+
+.. note::
+
+   In the event of a crash, systemd will restart the service after 5 minutes,
+   but the `service davmail status` command will only show the logs for the
+   current process. To vew the logs for previous runs as well as the
+   current process (newest to oldest), run:
+
+   .. code-block:: bash
+
+       journalctl -u davmail.service -r
 
 
-Because you are interacting with Davmail server over the loopback
+Configuring parsedmarc for DavMail
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because you are interacting with DavMail server over the loopback
 (i.e. ``127.0.0.1``), add the following options to ``parsedmarc.ini``
 config file:
 
@@ -677,7 +762,7 @@ config file:
    host=127.0.0.1
    port=1143
    ssl=False
-   watch = True
+   watch=True
 
 Elasticsearch and Kibana
 ------------------------
@@ -1265,6 +1350,8 @@ Indices and tables
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 
 .. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
+
+.. _GeoLite2-Country.mmdb: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 

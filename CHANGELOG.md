@@ -1,3 +1,41 @@
+6.1.8
+-----
+
+- Actually fix GeoIP lookups
+
+6.1.7
+-----
+
+- Fix GeoIP lookups
+
+6.1.6
+-----
+
+- Better GeoIP error handling
+
+6.1.5
+-----
+
+- Always use Cloudflare's nameservers by default instead of Google's
+- Avoid re-downloading the Geolite2 database (and tripping their DDoS protection)
+- Add `geoipupdate` to install instructions
+
+6.1.4
+-----
+
+- Actually package requirements
+
+6.1.3
+-----
+
+- Fix package requirements
+
+6.1.2
+-----
+
+- Use local Public Suffix List file instead of downloading it
+- Fix argument name for `send_email()` (closes issue #60)
+
 6.1.1
 -----
 
