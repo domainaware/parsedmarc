@@ -83,7 +83,8 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, nameservers=None, dns_timeout=2.0, parallel=False):
+def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
+                         parallel=False):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
@@ -207,7 +208,8 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0, parallel=Fal
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0, parallel=False):
+def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
+                               parallel=False):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -380,7 +382,8 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0, parallel=False):
+def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
+                                parallel=False):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -817,8 +820,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
                                          parallel=parallel)
-        except InvalidDMARCReport as e:
-            print("DEBUGGING: {}".format(e))
+        except InvalidDMARCReport:
             raise InvalidDMARCReport("Not a valid aggregate or forensic "
                                      "report")
     return results

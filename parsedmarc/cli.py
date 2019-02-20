@@ -13,7 +13,6 @@ import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pool, Value
 from itertools import repeat
-from contextlib import contextmanager
 import time
 from tqdm import tqdm
 
@@ -24,10 +23,12 @@ from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
 
 logger = logging.getLogger("parsedmarc")
 
+
 def _str_to_list(s):
     """Converts a comma separated string to a list"""
     _list = s.split(",")
     return list(map(lambda i: i.lstrip(), _list))
+
 
 def cli_parse(file_path, sa, nameservers, dns_timeout, parallel=False):
     """Separated this function for multiprocessing"""
@@ -38,16 +39,18 @@ def cli_parse(file_path, sa, nameservers, dns_timeout, parallel=False):
                                          strip_attachment_payloads=sa,
                                          parallel=parallel)
     except ParserError as error:
-            return (error, file_path)
+        return (error, file_path)
     finally:
         global counter
         with counter.get_lock():
             counter.value += 1
     return (file_results, file_path)
 
+
 def init(ctr):
     global counter
     counter = ctr
+
 
 def _main():
     """Called when the module is executed"""
@@ -235,8 +238,8 @@ def _main():
                 opts.silent = general_config.getboolean("silent")
             if "log_file" in general_config:
                 opts.log_file = general_config["log_file"]
-            if "n_cpus" in general_config:
-                opts.n_cpus = general_config.getint("n_cpus")
+            if "n_procs" in general_config:
+                opts.n_procs = general_config.getint("n_procs")
             if "chunksize" in general_config:
                 opts.chunksize = general_config.getint("chunksize")
         if "imap" in config.sections():
@@ -389,12 +392,13 @@ def _main():
     file_paths = list(set(file_paths))
 
     counter = Value('i', 0)
-    pool = Pool(opts.n_cpus, initializer=init, initargs=(counter,))
-    results = pool.starmap_async(cli_parse, zip(file_paths, 
-                                        repeat(opts.strip_attachment_payloads), 
-                                        repeat(opts.nameservers), 
-                                        repeat(opts.dns_timeout),
-                                        repeat(opts.n_cpus >= 1)), opts.chunksize)
+    pool = Pool(opts.n_procs, initializer=init, initargs=(counter,))
+    results = pool.starmap_async(cli_parse,
+                                 zip(file_paths,
+                                     repeat(opts.strip_attachment_payloads),
+                                     repeat(opts.nameservers),
+                                     repeat(opts.dns_timeout),
+                                     repeat(opts.n_procs >= 1)), opts.chunksize)
     pbar = tqdm(total=len(file_paths))
     while not results.ready():
         pbar.update(counter.value - pbar.n)
@@ -402,7 +406,7 @@ def _main():
     pbar.close()
     results = results.get()
     pool.close()
-    pool.join() 
+    pool.join()
 
     for result in results:
         if type(result[0]) is InvalidDMARCReport:
