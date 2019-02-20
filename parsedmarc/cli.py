@@ -205,7 +205,9 @@ def _main():
                      smtp_to=[],
                      smtp_subject="parsedmarc report",
                      smtp_message="Please see the attached DMARC results.",
-                     log_file=args.log_file
+                     log_file=args.log_file,
+                     n_procs=1,
+                     chunksize=1
                      )
     args = arg_parser.parse_args()
 
@@ -398,7 +400,8 @@ def _main():
                                      repeat(opts.strip_attachment_payloads),
                                      repeat(opts.nameservers),
                                      repeat(opts.dns_timeout),
-                                     repeat(opts.n_procs >= 1)), opts.chunksize)
+                                     repeat(opts.n_procs >= 1)),
+                                 opts.chunksize)
     pbar = tqdm(total=len(file_paths))
     while not results.ready():
         pbar.update(counter.value - pbar.n)
