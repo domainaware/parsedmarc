@@ -595,7 +595,7 @@ Install Java:
 
 .. code-block:: bash
 
-    sudo apt-install default-jre-headless
+    sudo apt-get install default-jre-headless
 
 Configure Davmail by creating a ``davmail.properties`` file
 
