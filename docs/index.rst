@@ -155,7 +155,10 @@ The full set of configuration options are:
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
 - ``elasticsearch``
-    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or https://user:secret@localhost:443)
+    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
+
+      .. note::
+         Special characters in the username or password must be `URL encoded`_.
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
     - ``index_suffix`` - str: A suffix to apply to the index names
@@ -1463,6 +1466,8 @@ Indices and tables
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 
 .. _Cloudflare's public resolvers: https://1.1.1.1/
+
+.. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
 
 .. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
 
