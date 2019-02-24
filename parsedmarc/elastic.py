@@ -102,6 +102,7 @@ class _EmailAddressDoc(InnerDoc):
 class _EmailAttachmentDoc(Document):
     filename = Text()
     content_type = Text()
+    sha256 = Text()
 
 
 class _ForensicSampleDoc(InnerDoc):
@@ -135,9 +136,9 @@ class _ForensicSampleDoc(InnerDoc):
         self.bcc.append(_EmailAddressDoc(display_name=display_name,
                                          address=address))
 
-    def add_attachment(self, filename, content_type):
+    def add_attachment(self, filename, content_type, sha256):
         self.attachments.append(_EmailAttachmentDoc(filename=filename,
-                                content_type=content_type))
+                                content_type=content_type, sha256=sha256))
 
 
 class _ForensicReportDoc(Document):
@@ -467,7 +468,8 @@ def save_forensic_report_to_elasticsearch(forensic_report,
                        address=address["address"])
     for attachment in forensic_report["parsed_sample"]["attachments"]:
         sample.add_attachment(filename=attachment["filename"],
-                              content_type=attachment["mail_content_type"])
+                              content_type=attachment["mail_content_type"],
+                              sha256=attachment["sha256"])
 
     forensic_doc = _ForensicReportDoc(
         feedback_type=forensic_report["feedback_type"],

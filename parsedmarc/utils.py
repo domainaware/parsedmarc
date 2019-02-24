@@ -250,13 +250,14 @@ def human_timestamp_to_timestamp(human_timestamp):
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address):
+def get_ip_address_country(ip_address, parallel=False):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
     country associated with the given IPv4 or IPv6 address
 
     Args:
-        ip_address (str): The IP address to query for
+        ip_address (str): The IP address to query for,
+        parallel (bool): parallel processing
 
     Returns:
         str: And ISO country code associated with the given IP address
@@ -267,6 +268,9 @@ def get_ip_address_country(ip_address):
         Args:
             location (str): Local location for the database file
         """
+        if parallel:
+            logging.warning("Cannot download GeoIP database in parallel mode")
+            return
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"
         # Use a browser-like user agent string to bypass some proxy blocks
@@ -286,11 +290,15 @@ def get_ip_address_country(ip_address):
             logger.warning("Error downloading {0}: {1}".format(url,
                                                                e.__str__()))
 
-    system_paths = ["/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
-                    "/usr/share/GeoIP/GeoLite2-Country.mmdb",
-                    "/var/lib/GeoIP/GeoLite2-Country.mmdb",
-                    "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
-                    "C:\\GeoIP\\GeoLite2-Country.mmdb"]
+    system_paths = [
+        "GeoLite2-Country.mmdb",
+        "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
+        "/usr/share/GeoIP/GeoLite2-Country.mmdb",
+        "/var/lib/GeoIP/GeoLite2-Country.mmdb",
+        "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
+        "C:\\GeoIP\\GeoLite2-Country.mmdb"
+    ]
+
     db_path = None
 
     for system_path in system_paths:
@@ -334,6 +342,7 @@ def get_ip_address_info(ip_address, cache=None, nameservers=None,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        parallel (bool): parallel processing
 
     Returns:
         OrderedDict: ``ip_address``, ``reverse_dns``
@@ -349,11 +358,8 @@ def get_ip_address_info(ip_address, cache=None, nameservers=None,
     reverse_dns = get_reverse_dns(ip_address,
                                   nameservers=nameservers,
                                   timeout=timeout)
-    if not parallel:
-        country = get_ip_address_country(ip_address)
-        info["country"] = country
-    else:
-        info["country"] = None
+    country = get_ip_address_country(ip_address, parallel=parallel)
+    info["country"] = country
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
     if reverse_dns is not None:

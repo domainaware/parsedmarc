@@ -1,3 +1,9 @@
+6.2.0
+-----
+
+- Add support for multi-process parallelized processing via CLI (Thanks zscholl - PR #62)
+- Save sha256 hashes of attachments in forensic samples to Elasticsearch
+
 6.1.8
 -----
 

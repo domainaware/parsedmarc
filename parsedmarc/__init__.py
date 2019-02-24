@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.1.8"
+__version__ = "6.2.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -769,7 +769,6 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                     'forensic DMARC report: {1}'.format(subject, e)
             raise InvalidForensicReport(error)
         except Exception as e:
-            print("DEBUGGGING: {}".format(e))
             raise InvalidForensicReport(e.__str__())
 
         result = OrderedDict([("report_type", "forensic"),
