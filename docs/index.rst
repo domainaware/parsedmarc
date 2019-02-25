@@ -729,7 +729,8 @@ Then, enable the service
 
 .. warning::
 
-  Always restart the service every time you upgrade to a new version of ``davmail``:
+  Always restart the service every time you upgrade to a new version of
+  ``davmail``:
 
   .. code-block:: bash
 
@@ -1089,12 +1090,12 @@ Then, enable the service
 
 .. warning::
 
-    Always restart the service every time you upgrade to a new version of
-    ``parsedmarc``:
+  Always restart the service every time you upgrade to a new version of
+  ``parsedmarc``:
 
-   .. code-block:: bash
+  .. code-block:: bash
 
-       sudo service parsedmarc restart
+   sudo service parsedmarc restart
 
 To check the status of the service, run:
 
