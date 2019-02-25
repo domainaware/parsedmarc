@@ -1346,7 +1346,7 @@ Navigate to Settings> List Identity
 
 Make Subject prefix blank.
 
-Navigate to settings> Alter Messages
+Navigate to Settings> Alter Messages
 
 Configure the settings below
 
@@ -1360,7 +1360,7 @@ Configure the settings below
 **Reply goes to list**                 No munging
 ====================================== ==========
 
-Navigate to Settings>DMARC Mitigation
+Navigate to Settings> DMARC Mitigation
 
 Configure the settings below
 
