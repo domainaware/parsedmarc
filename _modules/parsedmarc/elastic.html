@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 6.1.8 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 6.2.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.8
+                6.2.0
               </div>
             
           
@@ -251,6 +251,7 @@
 <span class="k">class</span> <span class="nc">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
     <span class="n">filename</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">content_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">sha256</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
 <span class="k">class</span> <span class="nc">_ForensicSampleDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -284,9 +285,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">bcc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span>
                                          <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">add_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">content_type</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">content_type</span><span class="p">,</span> <span class="n">sha256</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                                <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">))</span>
+                                <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">,</span> <span class="n">sha256</span><span class="o">=</span><span class="n">sha256</span><span class="p">))</span>
 
 
 <span class="k">class</span> <span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
@@ -616,7 +617,8 @@
                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">attachment</span> <span class="ow">in</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;attachments&quot;</span><span class="p">]:</span>
         <span class="n">sample</span><span class="o">.</span><span class="n">add_attachment</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">],</span>
-                              <span class="n">content_type</span><span class="o">=</span><span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;mail_content_type&quot;</span><span class="p">])</span>
+                              <span class="n">content_type</span><span class="o">=</span><span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;mail_content_type&quot;</span><span class="p">],</span>
+                              <span class="n">sha256</span><span class="o">=</span><span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;sha256&quot;</span><span class="p">])</span>
 
     <span class="n">forensic_doc</span> <span class="o">=</span> <span class="n">_ForensicReportDoc</span><span class="p">(</span>
         <span class="n">feedback_type</span><span class="o">=</span><span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;feedback_type&quot;</span><span class="p">],</span>

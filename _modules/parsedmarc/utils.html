@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.1.8 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.2.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.8
+                6.2.0
               </div>
             
           
@@ -399,13 +399,14 @@
     <span class="k">return</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Uses the MaxMind Geolite2 Country database to return the ISO code for the</span>
 <span class="sd">    country associated with the given IPv4 or IPv6 address</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        ip_address (str): The IP address to query for</span>
+<span class="sd">        ip_address (str): The IP address to query for,</span>
+<span class="sd">        parallel (bool): parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: And ISO country code associated with the given IP address</span>
@@ -416,6 +417,9 @@
 <span class="sd">        Args:</span>
 <span class="sd">            location (str): Local location for the database file</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Cannot download GeoIP database in parallel mode&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
         <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://geolite.maxmind.com/download/geoip/database/&quot;</span> \
               <span class="s2">&quot;GeoLite2-Country.tar.gz&quot;</span>
         <span class="c1"># Use a browser-like user agent string to bypass some proxy blocks</span>
@@ -435,11 +439,15 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Error downloading </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="p">,</span>
                                                                <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
-    <span class="n">system_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;/var/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;/var/local/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;C:</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span><span class="p">]</span>
+    <span class="n">system_paths</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/var/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/var/local/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;C:</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span>
+    <span class="p">]</span>
+
     <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">system_paths</span><span class="p">:</span>
@@ -472,7 +480,8 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
 
@@ -482,6 +491,7 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        parallel (bool): parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: ``ip_address``, ``reverse_dns``</span>
@@ -497,7 +507,7 @@
     <span class="n">reverse_dns</span> <span class="o">=</span> <span class="n">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span>
                                   <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                                   <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-    <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
+    <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">)</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">country</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reverse_dns</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>

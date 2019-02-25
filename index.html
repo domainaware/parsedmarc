@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.1.8 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.2.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.1.8
+                6.2.0
               </div>
             
           
@@ -131,9 +131,17 @@
 <li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
 <li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
 <li><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
+<li><a class="reference internal" href="#mailing-list-list-best-practices">Mailing list list best practices</a><ul>
 <li><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
 <li><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#workarounds">Workarounds</a><ul>
+<li><a class="reference internal" href="#id3">Mailman 2</a></li>
+<li><a class="reference internal" href="#id4">Mailman 3</a></li>
 <li><a class="reference internal" href="#listserv">LISTSERV</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
@@ -323,10 +331,10 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
-<ul class="simple">
+<ul>
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">general</span></code></dt>
-<dd><ul class="first last">
+<dd><ul class="first last simple">
 <li><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to the Elasticsearch and/or Splunk</li>
 <li><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to the Elasticsearch and/or Splunk</li>
 <li><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment payloads from results</li>
@@ -336,13 +344,15 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</li>
 <li><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</li>
 <li><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</li>
+<li><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)</li>
+<li><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files</li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt>
-<dd><ul class="first last">
+<dd><ul class="first last simple">
 <li><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</li>
 <li><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</li>
 <li><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</li>
@@ -361,18 +371,27 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt>
 <dd><ul class="first last">
-<li><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or <a class="reference external" href="https://user:secret&#64;localhost:443">https://user:secret&#64;localhost:443</a>)</li>
-<li><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</li>
-<li><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</li>
-<li><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</li>
-<li><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or <code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Special characters in the username or password must be <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
+</div>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p>
+</li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></dt>
-<dd><ul class="first last">
+<dd><ul class="first last simple">
 <li><code class="docutils literal notranslate"><span class="pre">url</span></code> - str: The URL of the Splunk HTTP Events Collector (HEC)</li>
 <li><code class="docutils literal notranslate"><span class="pre">token</span></code> - str: The HEC token</li>
 <li><code class="docutils literal notranslate"><span class="pre">index</span></code> - str: The Splunk index to use</li>
@@ -383,7 +402,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </li>
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">kafka</span></code></dt>
-<dd><ul class="first last">
+<dd><ul class="first last simple">
 <li><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</li>
 <li><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The Kafka user</li>
 <li><code class="docutils literal notranslate"><span class="pre">passsword</span></code> - str: The Kafka password</li>
@@ -396,7 +415,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </li>
 <li><dl class="first docutils">
 <dt><code class="docutils literal notranslate"><span class="pre">smtp</span></code></dt>
-<dd><ul class="first last">
+<dd><ul class="first last simple">
 <li><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</li>
 <li><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</li>
 <li><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</li>
@@ -423,8 +442,7 @@ requests to outside resolvers.</p>
 </div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<blockquote>
-<div><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
+<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
 you may not want to save forensic reports (also known as failure reports)
 to your Elasticsearch instance, particularly if you are in a
 highly-regulated industry that handles sensitive data, such as healthcare
@@ -436,7 +454,6 @@ depending on the policy of the reporting organization.</p>
 <p>Most reporting organizations do not send forensic reports of any kind for
 privacy reasons. While aggregate DMARC reports are sent at least daily,
 it is normal to receive very few forensic reports.</p>
-</div></blockquote>
 <p class="last">An alternative approach is to still collect forensic/failure/ruf reports
 in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with <code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code>
 manually on a separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option),
@@ -881,9 +898,8 @@ sudo service davmail restart
 </div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<blockquote>
-<div>Always restart the service every time you upgrade to a new version of
-<code class="docutils literal notranslate"><span class="pre">davmail</span></code>:</div></blockquote>
+<p>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">davmail</span></code>:</p>
 <div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service davmail restart
 </pre></div>
 </div>
@@ -1163,9 +1179,8 @@ sudo service parsedmarc restart
 </div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<blockquote>
-<div>Always restart the service every time you upgrade to a new version of
-<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</div></blockquote>
+<p>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</p>
 <div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc restart
 </pre></div>
 </div>
@@ -1326,28 +1341,210 @@ your domain (e.g. <code class="docutils literal notranslate"><span class="pre">n
 separate SPF and DMARC records on <code class="docutils literal notranslate"><span class="pre">news.example.com</span></code>, and set
 <code class="docutils literal notranslate"><span class="pre">p=none</span></code> in that DMARC record.</li>
 </ol>
-<blockquote>
-<div><div class="admonition warning">
+<div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Do not alter the <code class="docutils literal notranslate"><span class="pre">p</span></code> or <code class="docutils literal notranslate"><span class="pre">sp</span></code> values of the DMARC record on the
 Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
 your TLD and/or any subdomain.</p>
 </div>
-</div></blockquote>
 </div>
 <div class="section" id="what-about-mailing-lists">
 <h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline">¶</a></h2>
 <p>When you deploy DMARC on your domain, you might find that messages relayed by
 mailing lists are failing DMARC, most likely because the mailing list is
 spoofing your from address, and modifying the subject, footer, or other part
-of the message.</p>
-<p>To fix this, the mailing list administrator must configure the list to replace
-the from address of the message (also known as munging) with the address of
-the mailing list, so they no longer spoof email addresses with domains
-protected by DMARC. Configuration steps for common mailing list platforms are
-listed below.</p>
+of the message, thereby breaking the DKIM signature.</p>
+<div class="section" id="mailing-list-list-best-practices">
+<h3>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this headline">¶</a></h3>
+<p>Ideally, a mailing list should forward messages without altering the headers
+or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of explaining exactly
+what mailing lists should and shouldn’t do to be fully DMARC compliant.
+Rather than repeat his fine work, here’s a summary:</p>
+<p><strong>Do</strong></p>
+<ul>
+<li><p class="first">Retain headers from the original message</p>
+</li>
+<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
+adding unsubscribe links to the body</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Unsubscribe</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">unsubscribe</span><span class="o">-</span><span class="n">link</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Add <a class="reference external" href="https://tools.ietf.org/html/rfc2919">RFC 2919</a> List-Id headers instead of modifying the subject</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Id</span><span class="p">:</span> <span class="n">Example</span> <span class="n">Mailing</span> <span class="n">List</span> <span class="o">&lt;</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Do not</strong></p>
+<ul class="simple">
+<li>Remove or modify any existing headers from the original message, including
+From, Date, Subject, etc.</li>
+<li>Add to or remove content from the message body, <strong>including traditional
+disclaimers and unsubscribe footers</strong></li>
+</ul>
+<p>In addition to complying with DMARC, this configuration ensures that Reply
+and Reply All actions work like they would with any email message. Reply
+replies to the message sender, and Reply All replies to the sender and the
+list.</p>
+<p>Configuration steps for common mailing list platforms are listed below.</p>
 <div class="section" id="mailman-2">
-<h3>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this headline">¶</a></h3>
+<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this headline">¶</a></h4>
+<p>Navigate to General Settings, and configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="74%" />
+<col width="26%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Setting</strong></td>
+<td><strong>Value</strong></td>
+</tr>
+<tr class="row-even"><td><strong>subject_prefix</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>from_is_list</strong></td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td><strong>first_strip_reply_to</strong></td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td><strong>reply_goes_to_list</strong></td>
+<td>Poster</td>
+</tr>
+<tr class="row-even"><td><strong>include_rfc2369_headers</strong></td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td><strong>include_list_post_header</strong></td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td><strong>include_sender_header</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Navigate to Non-digest options, and configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="66%" />
+<col width="34%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Setting</strong></td>
+<td><strong>Value</strong></td>
+</tr>
+<tr class="row-even"><td><strong>msg_header</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>msg_footer</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>scrub_nondigest</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="79%" />
+<col width="21%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Setting</strong></td>
+<td><strong>Value</strong></td>
+</tr>
+<tr class="row-even"><td><strong>dmarc_moderation_action</strong></td>
+<td>Accept</td>
+</tr>
+<tr class="row-odd"><td><strong>dmarc_quarentine_moderation_action</strong></td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td><strong>dmarc_none_moderation_action</strong></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="mailman-3">
+<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this headline">¶</a></h4>
+<p>Navigate to Settings&gt; List Identity</p>
+<p>Make Subject prefix blank.</p>
+<p>Navigate to Settings&gt; Alter Messages</p>
+<p>Configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="79%" />
+<col width="21%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Setting</strong></td>
+<td><strong>Value</strong></td>
+</tr>
+<tr class="row-even"><td><strong>Convert html to plaintext</strong></td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td><strong>Include RFC2369 headers</strong></td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td><strong>Include the list post header</strong></td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td><strong>Explicit reply-to address</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>First strip replyo</strong></td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td><strong>Reply goes to list</strong></td>
+<td>No munging</td>
+</tr>
+</tbody>
+</table>
+<p>Navigate to Settings&gt; DMARC Mitigation</p>
+<p>Configure the settings below</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="52%" />
+<col width="48%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>Setting</strong></td>
+<td><strong>Value</strong></td>
+</tr>
+<tr class="row-even"><td><strong>DMARC mitigation action</strong></td>
+<td>No DMARC mitigations</td>
+</tr>
+<tr class="row-odd"><td><strong>DMARC mitigate unconditionally</strong></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Create a blank footer template for your mailing list to remove the message
+footer. Unfortunately, the Postorius mailing list admin UI will not allow you
+to create an empty template, so you’ll have to create one using the system’s
+command line instead, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch var/templates/lists/list.example.com/en/list:member:regular:footer
+</pre></div>
+</div>
+<p>Where <code class="docutils literal notranslate"><span class="pre">list.example.com</span></code> the list ID, and <code class="docutils literal notranslate"><span class="pre">en</span></code> is the language.</p>
+<p>Then restart mailman core.</p>
+</div>
+</div>
+<div class="section" id="workarounds">
+<h3>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this headline">¶</a></h3>
+<p>If a mailing list must go <strong>against</strong> best practices and
+modify the message (e.g. to add a required legal footer), the mailing
+list administrator must configure the list to replace the From address of the
+message (also known as munging) with the address of the mailing list, so they
+no longer spoof email addresses with domains protected by DMARC.</p>
+<p>Configuration steps for common mailing list platforms are listed below.</p>
+<div class="section" id="id3">
+<h4>Mailman 2<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -1369,9 +1566,20 @@ listed below.</p>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Message wrapping could be used as the DMARC mitigation action instead. In
+that case, the original message is added as an attachment to the mailing
+list message, but that could interfere with inbox searching, or mobile
+clients.</p>
+<p>On the other hand, replacing the From address might cause users to
+accidentally reply to the entire list, when they only intended to reply to
+the original sender.</p>
+<p class="last">Choose the option that best fits your community.</p>
 </div>
-<div class="section" id="mailman-3">
-<h3>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="id4">
+<h4>Mailman 3<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -1385,15 +1593,28 @@ listed below.</p>
 <tr class="row-even"><td><strong>DMARC mitigation action</strong></td>
 <td>Replace From: with list address</td>
 </tr>
-<tr class="row-odd"><td><strong>DMARC Mitigate unconditionally</strong></td>
+<tr class="row-odd"><td><strong>DMARC mitigate unconditionally</strong></td>
 <td>No</td>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Message wrapping could be used as the DMARC mitigation action instead. In
+that case, the original message is added as an attachment to the mailing
+list message, but that could interfere with inbox searching, or mobile
+clients.</p>
+<p class="last">On the other hand, replacing the From address might cause users to
+accidentally reply to the entire list, when they only intended to reply to
+the original sender.</p>
+</div>
 </div>
 <div class="section" id="listserv">
-<h3>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header. Some additional steps are needed for Linux hosts.</p>
+<h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this headline">¶</a></h4>
+<p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
+that enforce with a DMARC quarantine or reject policy.</p>
+<p>Some additional steps are needed for Linux hosts.</p>
+</div>
 </div>
 </div>
 <div class="section" id="module-parsedmarc">
@@ -1557,7 +1778,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_aggregate_report_file">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em>_input</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em>_input</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
 aggregate DMARC report</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1584,7 +1805,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_aggregate_report_xml">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em>xml</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em>xml</em>, <em>nameservers=None</em>, <em>timeout=2.0</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1610,7 +1831,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_forensic_report">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_forensic_report</code><span class="sig-paren">(</span><em>feedback_report</em>, <em>sample</em>, <em>msg_date</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1640,7 +1861,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_report_email">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_email</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_email</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1671,7 +1892,7 @@ aggregate DMARC report</p>
 
 <dl class="function">
 <dt id="parsedmarc.parse_report_file">
-<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_file</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.</code><code class="descname">parse_report_file</code><span class="sig-paren">(</span><em>input_</em>, <em>nameservers=None</em>, <em>dns_timeout=2.0</em>, <em>strip_attachment_payloads=False</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2053,18 +2274,24 @@ standard RFC 822 format</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_ip_address_country">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_country</code><span class="sig-paren">(</span><em>ip_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_country</code><span class="sig-paren">(</span><em>ip_address</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the MaxMind Geolite2 Country database to return the ISO code for the
 country associated with the given IPv4 or IPv6 address</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ip_address</strong> (<em>str</em>) – The IP address to query for,</li>
+<li><strong>parallel</strong> (<em>bool</em>) – parallel processing</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">And ISO country code associated with the given IP address</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">And ISO country code associated with the given IP address</p>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -2072,7 +2299,7 @@ country associated with the given IPv4 or IPv6 address</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_ip_address_info">
-<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_info</code><span class="sig-paren">(</span><em>ip_address</em>, <em>cache=None</em>, <em>nameservers=None</em>, <em>timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.utils.</code><code class="descname">get_ip_address_info</code><span class="sig-paren">(</span><em>ip_address</em>, <em>cache=None</em>, <em>nameservers=None</em>, <em>timeout=2.0</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns reverse DNS and country information for the given IP address</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2084,6 +2311,7 @@ country associated with the given IPv4 or IPv6 address</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>parallel</strong> (<em>bool</em>) – parallel processing</li>
 </ul>
 </td>
 </tr>
