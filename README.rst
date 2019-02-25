@@ -195,20 +195,20 @@ The full set of configuration options are:
 
 .. warning::
 
-    ``save_aggregate`` and ``save_forensic`` are separate options because
-    you may not want to save forensic reports (also known as failure reports)
-    to your Elasticsearch instance, particularly if you are in a
-    highly-regulated industry that handles sensitive data, such as healthcare
-    or finance. If your legitimate outgoing email fails DMARC, it is possible
-    that email may appear later in a forensic report.
+   ``save_aggregate`` and ``save_forensic`` are separate options because
+   you may not want to save forensic reports (also known as failure reports)
+   to your Elasticsearch instance, particularly if you are in a
+   highly-regulated industry that handles sensitive data, such as healthcare
+   or finance. If your legitimate outgoing email fails DMARC, it is possible
+   that email may appear later in a forensic report.
 
-    Forensic reports contain the original headers of an email that failed a
-    DMARC check, and sometimes may also include the full message body,
-    depending on the policy of the reporting organization.
+   Forensic reports contain the original headers of an email that failed a
+   DMARC check, and sometimes may also include the full message body,
+   depending on the policy of the reporting organization.
 
-    Most reporting organizations do not send forensic reports of any kind for
-    privacy reasons. While aggregate DMARC reports are sent at least daily,
-    it is normal to receive very few forensic reports.
+   Most reporting organizations do not send forensic reports of any kind for
+   privacy reasons. While aggregate DMARC reports are sent at least daily,
+   it is normal to receive very few forensic reports.
 
    An alternative approach is to still collect forensic/failure/ruf reports
    in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True``
