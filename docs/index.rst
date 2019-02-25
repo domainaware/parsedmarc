@@ -1220,20 +1220,20 @@ indicators are also in alignment**.
 +-----------------------+-----------------------+-----------------------+
 |                       | **DKIM**              | **SPF**               |
 +-----------------------+-----------------------+-----------------------+
-| **Passing**           | The signature in the  | The mail server’s IP  |
+| **Passing**           | The signature in the  | The mail server's IP  |
 |                       | DKIM header is        | address is listed in  |
 |                       | validated using a     | the SPF record of the |
 |                       | public key that is    | domain in the SMTP    |
-|                       | published as a DNS    | envelope’s mail from  |
+|                       | published as a DNS    | envelope's mail from  |
 |                       | record of the domain  | header                |
 |                       | name specified in the |                       |
 |                       | signature             |                       |
 +-----------------------+-----------------------+-----------------------+
 | **Alignment**         | The signing domain    | The domain in the     |
-|                       | aligns with the       | SMTP envelope’s mail  |
+|                       | aligns with the       | SMTP envelope's mail  |
 |                       | domain in the         | from header aligns    |
-|                       | message’s from header | with the domain in    |
-|                       |                       | the message’s from    |
+|                       | message's from header | with the domain in    |
+|                       |                       | the message's from    |
 |                       |                       | header                |
 +-----------------------+-----------------------+-----------------------+
 
