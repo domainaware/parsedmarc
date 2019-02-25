@@ -1,3 +1,8 @@
+6.2.1
+-----
+
+- Add missing `tqdm` dependency to `setup.py`
+
 6.2.0
 -----
 
