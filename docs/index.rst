@@ -200,20 +200,20 @@ The full set of configuration options are:
 
 .. warning::
 
-    ``save_aggregate`` and ``save_forensic`` are separate options because
-    you may not want to save forensic reports (also known as failure reports)
-    to your Elasticsearch instance, particularly if you are in a
-    highly-regulated industry that handles sensitive data, such as healthcare
-    or finance. If your legitimate outgoing email fails DMARC, it is possible
-    that email may appear later in a forensic report.
+   ``save_aggregate`` and ``save_forensic`` are separate options because
+   you may not want to save forensic reports (also known as failure reports)
+   to your Elasticsearch instance, particularly if you are in a
+   highly-regulated industry that handles sensitive data, such as healthcare
+   or finance. If your legitimate outgoing email fails DMARC, it is possible
+   that email may appear later in a forensic report.
 
-    Forensic reports contain the original headers of an email that failed a
-    DMARC check, and sometimes may also include the full message body,
-    depending on the policy of the reporting organization.
+   Forensic reports contain the original headers of an email that failed a
+   DMARC check, and sometimes may also include the full message body,
+   depending on the policy of the reporting organization.
 
-    Most reporting organizations do not send forensic reports of any kind for
-    privacy reasons. While aggregate DMARC reports are sent at least daily,
-    it is normal to receive very few forensic reports.
+   Most reporting organizations do not send forensic reports of any kind for
+   privacy reasons. While aggregate DMARC reports are sent at least daily,
+   it is normal to receive very few forensic reports.
 
    An alternative approach is to still collect forensic/failure/ruf reports
    in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True``
@@ -1340,9 +1340,46 @@ Navigate to Privacy Options> Sending Filters, and configure the settings below
 Mailman 3
 ~~~~~~~~~
 
-Mailman 3 does not currently have a easy way of removing the message
-footer, like Mailman 2 did. For now, it is best to use the workaround
-(i.e. DMARC mitigation), as described below.
+Navigate to Settings> List Identity
+
+Make Subject prefix blank.
+
+Navigate to settings> Alter Messages
+
+Configure the settings below
+
+====================================== ==========
+**Setting**                            **Value**
+**Convert html to plaintext**          No
+**Include RFC2369 headers**            Yes
+**Include the list post header**       Yes
+**Explicit reply-to address**
+**First strip replyo**                 No
+**Reply goes to list**                 No munging
+====================================== ==========
+
+Navigate to Settings>DMARC Mitigation
+
+Configure the settings below
+
+================================== ===============================
+**Setting**	                       **Value**
+**DMARC mitigation action**	       No DMARC mitigations
+**DMARC mitigate unconditionally** No
+================================== ===============================
+
+Create a blank footer template for your mailing list to remove the message
+footer. Unfortunately, the Postorius mailing list admin UI will not allow you
+to create an empty template, so you'll have to create one using the system's
+command line instead, for example:
+
+.. code-block:: bash
+
+   touch var/templates/lists/list.example.com/en/list:member:regular:footer
+
+Where ``list.example.com`` the list ID, and ``en`` is the language.
+
+Then restart mailman core.
 
 Workarounds
 -----------
