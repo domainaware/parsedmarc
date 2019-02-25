@@ -1289,6 +1289,9 @@ Rather than repeat his fine work, here's a summary:
 
     List-Id: Example Mailing List <list.example.com>
 
+Modern mail clients and webmail services generate unsubscribe buttons based on
+these headers.
+
 **Do not**
 
 * Remove or modify any existing headers from the original message, including
@@ -1300,6 +1303,10 @@ In addition to complying with DMARC, this configuration ensures that Reply
 and Reply All actions work like they would with any email message. Reply
 replies to the message sender, and Reply All replies to the sender and the
 list.
+
+Even without a subject prefix or body footer, mailing list users can still
+tell that a message came from the mailing list, because the message was sent
+to the mailing list post address, and not their email address.
 
 Configuration steps for common mailing list platforms are listed below.
 
