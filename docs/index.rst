@@ -1251,7 +1251,7 @@ What if a sender won't support DKIM/DMARC?
    separate SPF and DMARC records on ``news.example.com``, and set
    ``p=none`` in that DMARC record.
 
- .. warning ::
+.. warning ::
 
   Do not alter the ``p`` or ``sp`` values of the DMARC record on the
   Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
