@@ -1253,9 +1253,9 @@ What if a sender won't support DKIM/DMARC?
 
  .. warning ::
 
-     Do not alter the ``p`` or ``sp`` values of the DMARC record on the
-     Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
-     your TLD and/or any subdomain.
+  Do not alter the ``p`` or ``sp`` values of the DMARC record on the
+  Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
+  your TLD and/or any subdomain.
 
 What about mailing lists?
 =========================
