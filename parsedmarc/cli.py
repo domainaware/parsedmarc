@@ -207,7 +207,7 @@ def _main():
                      smtp_message="Please see the attached DMARC results.",
                      log_file=args.log_file,
                      n_procs=1,
-                     chunksize=1
+                     chunk_size=1
                      )
     args = arg_parser.parse_args()
 
@@ -242,8 +242,8 @@ def _main():
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
                 opts.n_procs = general_config.getint("n_procs")
-            if "chunksize" in general_config:
-                opts.chunksize = general_config.getint("chunksize")
+            if "chunk_size" in general_config:
+                opts.chunk_size = general_config.getint("chunk_size")
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
@@ -401,7 +401,7 @@ def _main():
                                      repeat(opts.nameservers),
                                      repeat(opts.dns_timeout),
                                      repeat(opts.n_procs >= 1)),
-                                 opts.chunksize)
+                                 opts.chunk_size)
     pbar = tqdm(total=len(file_paths))
     while not results.ready():
         pbar.update(counter.value - pbar.n)

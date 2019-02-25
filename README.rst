@@ -138,8 +138,8 @@ The full set of configuration options are:
     - ``debug`` - bool: Print debugging messages
     - ``silent`` - bool: Only print errors (Default: True)
     - ``log_file`` - str: Write log messages to a file at this path
-    - ``n_procs`` - str: Number of process to run in parallel when parsing in CLI mode (Default: 1)
-    - ``chunksize`` - str: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files
+    - ``n_procs`` - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)
+    - ``chunk_size`` - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993)
