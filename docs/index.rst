@@ -1281,13 +1281,13 @@ Rather than repeat his fine work, here's a summary:
 
    ::
 
-      List-Unsubscribe: <https://list.example.com/unsubscribe-link>
+    List-Unsubscribe: <https://list.example.com/unsubscribe-link>
 
 - Add `RFC 2919`_ List-Id headers instead of modifying the subject
 
    ::
 
-      List-Id: Example Mailing List <list.example.com>
+    List-Id: Example Mailing List <list.example.com>
 
 **Do not**
 
