@@ -724,17 +724,16 @@ Then, enable the service
 
 .. note::
 
-    You must also run the above commands whenever you edit
-    ``davmail.service``.
+  You must also run the above commands whenever you edit
+  ``davmail.service``.
 
 .. warning::
 
-    Always restart the service every time you upgrade to a new version of
-    ``davmail``:
+  Always restart the service every time you upgrade to a new version of ``davmail``:
 
-   .. code-block:: bash
+  .. code-block:: bash
 
-       sudo service davmail restart
+   sudo service davmail restart
 
 To check the status of the service, run:
 
