@@ -1241,7 +1241,7 @@ indicators are also in alignment**.
 What if a sender won't support DKIM/DMARC?
 ==========================================
 
-#. Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
+#. Some vendors don't know about DMARC yet; ask about SPF and DKIM/email
    authentication.
 #. Check if they can send through your email relays instead of theirs.
 #. Do they really need to spoof your domain? Why not use the display
