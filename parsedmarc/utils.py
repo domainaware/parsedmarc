@@ -256,8 +256,8 @@ def get_ip_address_country(ip_address, parallel=False):
     country associated with the given IPv4 or IPv6 address
 
     Args:
-        ip_address (str): The IP address to query for,
-        parallel (bool): parallel processing
+        ip_address (str): The IP address to query for
+        parallel (bool): Parallel processing
 
     Returns:
         str: And ISO country code associated with the given IP address

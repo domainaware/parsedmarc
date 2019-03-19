@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.2.1"
+__version__ = "6.2.2"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -217,6 +217,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: The parsed aggregate DMARC report
@@ -392,6 +393,7 @@ def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: The parsed DMARC aggregate report
@@ -530,6 +532,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: A parsed report and sample
@@ -552,6 +555,9 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         if "user_agent" not in parsed_report:
             parsed_report["user_agent"] = None
+
+        if "delivery_result" not in parsed_report:
+            parsed_report["delivery_result"] = None
 
         arrival_utc = human_timestamp_to_datetime(
             parsed_report["arrival_date"], to_utc=True)
@@ -672,6 +678,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        parallel (bool): Parallel processing
 
     Returns:
         OrderedDict:
@@ -793,6 +800,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: The parsed DMARC report

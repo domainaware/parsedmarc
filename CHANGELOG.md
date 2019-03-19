@@ -1,3 +1,8 @@
+6.2.2
+-----
+
+- Fix crash when trying to save forensic reports with missing fields to Elasticsearch
+
 6.2.1
 -----
 
