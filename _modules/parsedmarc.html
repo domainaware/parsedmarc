@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 6.2.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 6.2.2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.2.1
+                6.2.2
               </div>
             
           
@@ -185,7 +185,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.2.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.2.2&quot;</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:&#39;</span>
@@ -364,6 +364,7 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed aggregate DMARC report</span>
@@ -539,6 +540,7 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed DMARC aggregate report</span>
@@ -677,6 +679,7 @@
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
 <span class="sd">        forensic report results</span>
+<span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: A parsed report and sample</span>
@@ -699,6 +702,9 @@
 
         <span class="k">if</span> <span class="s2">&quot;user_agent&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;user_agent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="s2">&quot;delivery_result&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">arrival_utc</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -819,6 +825,7 @@
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
 <span class="sd">        forensic report results</span>
+<span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict:</span>
@@ -940,6 +947,7 @@
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
 <span class="sd">        forensic report results</span>
+<span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed DMARC report</span>

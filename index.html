@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.2.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.2.2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.2.1
+                6.2.2
               </div>
             
           
@@ -1795,6 +1795,7 @@ aggregate DMARC report</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
@@ -1821,6 +1822,7 @@ aggregate DMARC report</p>
 <li><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</li>
 <li><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </li>
 <li><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
@@ -1851,6 +1853,7 @@ aggregate DMARC report</p>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 <li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
 <li><strong>report results</strong> (<em>forensic</em>) – </li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
@@ -1878,6 +1881,7 @@ aggregate DMARC report</p>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 <li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
 <li><strong>report results</strong> (<em>forensic</em>) – </li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
@@ -1911,6 +1915,7 @@ file-like object. or bytes</p>
 <li><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</li>
 <li><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</li>
 <li><strong>report results</strong> (<em>forensic</em>) – </li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
@@ -2287,8 +2292,8 @@ country associated with the given IPv4 or IPv6 address</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>ip_address</strong> (<em>str</em>) – The IP address to query for,</li>
-<li><strong>parallel</strong> (<em>bool</em>) – parallel processing</li>
+<li><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</li>
+<li><strong>parallel</strong> (<em>bool</em>) – Parallel processing</li>
 </ul>
 </td>
 </tr>
