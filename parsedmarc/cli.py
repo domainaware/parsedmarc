@@ -232,7 +232,7 @@ def _main():
         config.read(args.config_file)
         if "general" in config.sections():
             general_config = config["general"]
-            if "strip_attachments_payloads" in general_config:
+            if "strip_attachment_payloads" in general_config:
                 opts.strip_attachment_payloads = general_config[
                     "strip_attachment_payloads"]
             if "output" in general_config:

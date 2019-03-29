@@ -1,3 +1,8 @@
+6.3.1
+-----
+
+- Fix `strip_attachment_payloads` option
+
 6.3.0
 -----
 
