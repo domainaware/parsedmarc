@@ -2,7 +2,7 @@
 -----
 
 - Fix IMAP IDLE response processing for some mail servers (#67)
-- Exit with a critical error when options are missing (#68)
+- Exit with a critical error when required settings are missing (#68)
 - Add IMAP responses to debug logging
 - Add `smtp` option `skip_certificate_verification`
 - Add `kafka` option `skip_certificate_verification`
