@@ -31,8 +31,10 @@ USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc".format(
             platform.release(),
         )
 
-
+null_file = open(os.devnull, "w")
 logger = logging.getLogger("parsedmarc")
+mailparser_logger = logging.getLogger("mailparser")
+mailparser_logger.setLevel(logging.CRITICAL)
 
 tempdir = tempfile.mkdtemp()
 
@@ -441,7 +443,8 @@ def convert_outlook_msg(msg_bytes):
     with open("sample.msg", "wb") as msg_file:
         msg_file.write(msg_bytes)
     try:
-        subprocess.check_call(["msgconvert", "sample.msg"])
+        subprocess.check_call(["msgconvert", "sample.msg"],
+                              stdout=null_file, stderr=null_file)
         eml_path = "sample.eml"
         with open(eml_path, "rb") as eml_file:
             rfc822 = eml_file.read()

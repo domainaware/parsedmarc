@@ -39,12 +39,12 @@ def cli_parse(file_path, sa, nameservers, dns_timeout, parallel=False):
                                          strip_attachment_payloads=sa,
                                          parallel=parallel)
     except ParserError as error:
-        return (error, file_path)
+        return error, file_path
     finally:
         global counter
         with counter.get_lock():
             counter.value += 1
-    return (file_results, file_path)
+    return file_results, file_path
 
 
 def init(ctr):
@@ -62,10 +62,17 @@ def _main():
             print(output_str)
         if opts.kafka_hosts:
             try:
+                ssl_context = None
+                if opts.kafka_skip_certificate_verification:
+                    logger.debug("Skipping IMAP certificate verification")
+                    ssl_context = create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = CERT_NONE
                 kafka_client = kafkaclient.KafkaClient(
                     opts.kafka_hosts,
                     username=opts.kafka_username,
-                    password=opts.kafka_password
+                    password=opts.kafka_password,
+                    ssl_context=ssl_context
                 )
             except Exception as error_:
                 logger.error("Kafka Error: {0}".format(error_.__str__()))
@@ -198,9 +205,11 @@ def _main():
                      kafka_aggregate_topic=None,
                      kafka_forensic_topic=None,
                      kafka_ssl=False,
+                     kafka_skip_certificate_verification=False,
                      smtp_host=None,
                      smtp_port=25,
                      smtp_ssl=False,
+                     smtp_skip_certificate_verification=False,
                      smtp_user=None,
                      smtp_password=None,
                      smtp_from=None,
@@ -250,6 +259,10 @@ def _main():
             imap_config = config["imap"]
             if "host" in imap_config:
                 opts.imap_host = imap_config["host"]
+            else:
+                logger.error("host setting missing from the "
+                             "imap config section")
+                exit(-1)
             if "port" in imap_config:
                 opts.imap_port = imap_config["port"]
             if "ssl" in imap_config:
@@ -260,8 +273,17 @@ def _main():
                 opts.imap_skip_certificate_verification = imap_verify
             if "user" in imap_config:
                 opts.imap_user = imap_config["user"]
+            else:
+                logger.critical("user setting missing from the "
+                                "imap config section")
+                exit(-1)
             if "password" in imap_config:
                 opts.imap_password = imap_config["password"]
+            else:
+                logger.critical("password setting missing from the "
+                                "imap config section")
+                exit(-1)
+
             if "reports_folder" in imap_config:
                 opts.imap_reports_folder = imap_config["reports_folder"]
             if "archive_folder" in imap_config:
@@ -277,6 +299,10 @@ def _main():
             if "hosts" in elasticsearch_config:
                 opts.elasticsearch_hosts = _str_to_list(elasticsearch_config[
                     "hosts"])
+            else:
+                logger.critical("hosts setting missing from the "
+                                "elasticsearch config section")
+                exit(-1)
             if "index_suffix" in elasticsearch_config:
                 opts.elasticsearch_index_suffix = elasticsearch_config[
                     "index_suffix"]
@@ -293,10 +319,22 @@ def _main():
             hec_config = config["splunk_hec"]
             if "url" in hec_config:
                 opts.hec = hec_config["url"]
+            else:
+                logger.critical("url setting missing from the "
+                                "splunk_hec config section")
+                exit(-1)
             if "token" in hec_config:
                 opts.hec_token = hec_config["token"]
+            else:
+                logger.critical("token setting missing from the "
+                                "splunk_hec config section")
+                exit(-1)
             if "index" in hec_config:
                 opts.hec_index = hec_config["index"]
+            else:
+                logger.critical("index setting missing from the "
+                                "splunk_hec config section")
+                exit(-1)
             if "skip_certificate_verification" in hec_config:
                 opts.hec_skip_certificate_verification = hec_config[
                     "skip_certificate_verification"]
@@ -304,32 +342,77 @@ def _main():
             kafka_config = config["kafka"]
             if "hosts" in kafka_config:
                 opts.kafka_hosts = _str_to_list(kafka_config["hosts"])
+            else:
+                logger.critical("hosts setting missing from the "
+                                "kafka config section")
+                exit(-1)
             if "user" in kafka_config:
                 opts.kafka_username = kafka_config["user"]
+            else:
+                logger.critical("user setting missing from the "
+                                "kafka config section")
+                exit(-1)
             if "password" in kafka_config:
                 opts.kafka_password = kafka_config["password"]
+            else:
+                logger.critical("password setting missing from the "
+                                "kafka config section")
+                exit(-1)
             if "ssl" in kafka_config:
                 opts.kafka_ssl = kafka_config["ssl"].getboolean()
+            if "skip_certificate_verification" in kafka_config:
+                kafka_verify = kafka_config.getboolean(
+                    "skip_certificate_verification")
+                opts.kafka_skip_certificate_verification = kafka_verify
             if "aggregate_topic" in kafka_config:
                 opts.kafka_aggregate = kafka_config["aggregate_topic"]
+            else:
+                logger.critical("aggregate_topic setting missing from the "
+                                "kafka config section")
+                exit(-1)
             if "forensic_topic" in kafka_config:
                 opts.kafka_username = kafka_config["forensic_topic"]
+            else:
+                logger.critical("forensic_topic setting missing from the "
+                                "splunk_hec config section")
         if "smtp" in config.sections():
             smtp_config = config["smtp"]
             if "host" in smtp_config:
                 opts.smtp_host = smtp_config["host"]
+            else:
+                logger.critical("host setting missing from the "
+                                "smtp config section")
+                exit(-1)
             if "port" in smtp_config:
                 opts.smtp_port = smtp_config["port"]
             if "ssl" in smtp_config:
                 opts.smtp_ssl = smtp_config.getboolean("ssl")
+            if "skip_certificate_verification" in smtp_config:
+                smtp_verify = smtp_config.getboolean(
+                    "skip_certificate_verification")
+                opts.smtp_skip_certificate_verification = smtp_verify
             if "user" in smtp_config:
                 opts.smtp_user = smtp_config["user"]
+            else:
+                logger.critical("user setting missing from the "
+                                "smtp config section")
+                exit(-1)
             if "password" in smtp_config:
                 opts.smtp_password = smtp_config["password"]
+            else:
+                logger.critical("password setting missing from the "
+                                "smtp config section")
+                exit(-1)
             if "from" in smtp_config:
                 opts.smtp_from = smtp_config["from"]
+            else:
+                logger.critical("from setting missing from the "
+                                "smtp config section")
             if "to" in smtp_config:
                 opts.smtp_to = _str_to_list(smtp_config["to"])
+            else:
+                logger.critical("to setting missing from the "
+                                "smtp config section")
             if "subject" in smtp_config:
                 opts.smtp_subject = smtp_config["subject"]
             if "attachment" in smtp_config:
@@ -472,16 +555,19 @@ def _main():
     process_reports(results)
 
     if opts.smtp_host:
-        if opts.smtp_from is None or opts.smtp_to is None:
-            logger.error("Missing mail from and/or mail to")
-            exit(1)
-
         try:
+            ssl_context = None
+            if opts.smtp_skip_certificate_verification:
+                logger.debug("Skipping SMTP certificate verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = CERT_NONE
             email_results(results, opts.smtp_host, opts.smtp_from,
                           opts.smtp_to, ssl=opts.smtp_ssl,
                           user=opts.smtp_user,
                           password=opts.smtp_password,
-                          subject=opts.smtp_subject)
+                          subject=opts.smtp_subject,
+                          ssl_context=ssl_context)
         except SMTPError as error:
             logger.error("SMTP Error: {0}".format(error.__str__()))
             exit(1)

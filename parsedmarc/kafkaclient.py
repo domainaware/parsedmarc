@@ -20,7 +20,7 @@ class KafkaError(RuntimeError):
 
 class KafkaClient(object):
     def __init__(self, kafka_hosts, ssl=False, username=None,
-                 password=None):
+                 password=None, ssl_context=None):
         """
         Initializes the Kafka client
         Args:
@@ -29,6 +29,7 @@ class KafkaClient(object):
             ssl (bool): Use a SSL/TLS connection
             username (str): An optional username
             password (str):  An optional password
+            ssl_context: SSL context options
 
         Notes:
             ``use_ssl=True`` is implied when a username or password are
@@ -44,7 +45,7 @@ class KafkaClient(object):
                       client_id="parsedmarc-{0}".format(__version__))
         if ssl or username or password:
             config["security_protocol"] = "SSL"
-            config["ssl_context"] = create_default_context()
+            config["ssl_context"] = ssl_context or create_default_context()
             if username or password:
                 config["sasl_plain_username"] = username or ""
                 config["sasl_plain_password"] = password or ""
