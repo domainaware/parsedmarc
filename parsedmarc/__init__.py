@@ -49,8 +49,8 @@ logger = logging.getLogger("parsedmarc")
 logger.debug("parsedmarc v{0}".format(__version__))
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
-xml_header_regex = re.compile(r"^<\?xml .*$", re.MULTILINE)
-xml_schema_regex = re.compile(r"<\/?xs:schema.>", re.MULTILINE)
+xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
+xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
 
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
@@ -231,10 +231,10 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
 
     try:
         # Replace XML header (sometimes they are invalid)
-        xml = xml_header_regex.sub("", xml)
+        xml = xml_header_regex.sub("<?xml version=\"1.0\"?>", xml)
 
         # Remove invalid schema tags
-        xml = xml_schema_regex.sub('<?xml version="1.0"?>', xml)
+        xml = xml_schema_regex.sub('', xml)
 
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
