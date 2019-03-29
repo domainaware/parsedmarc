@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.2.2 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.3.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.2.2
+                6.3.0
               </div>
             
           
@@ -180,8 +180,10 @@
             <span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
         <span class="p">)</span>
 
-
+<span class="n">null_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
+<span class="n">mailparser_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;mailparser&quot;</span><span class="p">)</span>
+<span class="n">mailparser_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
 
 <span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
 
@@ -590,7 +592,8 @@
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;sample.msg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">msg_file</span><span class="p">:</span>
         <span class="n">msg_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg_bytes</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span><span class="s2">&quot;msgconvert&quot;</span><span class="p">,</span> <span class="s2">&quot;sample.msg&quot;</span><span class="p">])</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span><span class="s2">&quot;msgconvert&quot;</span><span class="p">,</span> <span class="s2">&quot;sample.msg&quot;</span><span class="p">],</span>
+                              <span class="n">stdout</span><span class="o">=</span><span class="n">null_file</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">null_file</span><span class="p">)</span>
         <span class="n">eml_path</span> <span class="o">=</span> <span class="s2">&quot;sample.eml&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">eml_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">eml_file</span><span class="p">:</span>
             <span class="n">rfc822</span> <span class="o">=</span> <span class="n">eml_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>

@@ -175,12 +175,14 @@ The full set of configuration options are:
     - ``user`` - str: The Kafka user
     - ``passsword`` - str: The Kafka password
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``aggregate_topic`` - str: The Kafka topic for aggregate reports
     - ``forensic_topic`` - str: The Kafka topic for forensic reports
 - ``smtp``
     - ``host`` - str: The SMTP hostname
     - ``port`` - int: The SMTP port (Default: 25)
     - ``ssl`` - bool: Require SSL/TLS instead of using STARTTLS
+    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: the SMTP username
     - ``password`` - str: the SMTP password
     - ``from`` - str: The From header to use in the email
