@@ -64,7 +64,7 @@ def _main():
             try:
                 ssl_context = None
                 if opts.kafka_skip_certificate_verification:
-                    logger.debug("Skipping IMAP certificate verification")
+                    logger.debug("Skipping Kafka certificate verification")
                     ssl_context = create_default_context()
                     ssl_context.check_hostname = False
                     ssl_context.verify_mode = CERT_NONE
