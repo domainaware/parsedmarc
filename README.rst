@@ -429,8 +429,8 @@ https://github.com/domainaware/parsedmarc/issues
 .. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
    :target: https://travis-ci.org/domainaware/parsedmarc
 
-.. |Code Coverage| image:: https://codecov.io/gh/domainaware/checkdmarc/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/domainaware/checkdmarc
+.. |Code Coverage| image:: https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/domainaware/parsedmarc
 
 ..  |PyPI Package| image:: https://badge.fury.io/py/parsedmarc.svg
     :target: https://badge.fury.io/py/parsedmarc
