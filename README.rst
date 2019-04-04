@@ -2,7 +2,7 @@
 parsedmarc
 ==========
 
-|Build Status|
+|Build Status| |Code Coverage| |PyPI Package|
 
 .. image:: https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png
    :alt: A screenshot of DMARC summary charts in Kibana
@@ -428,6 +428,12 @@ https://github.com/domainaware/parsedmarc/issues
 
 .. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
    :target: https://travis-ci.org/domainaware/parsedmarc
+
+.. |Code Coverage| image:: https://codecov.io/gh/domainaware/checkdmarc/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/domainaware/checkdmarc
+
+..  |PyPI Package| image:: https://badge.fury.io/py/parsedmarc.svg
+    :target: https://badge.fury.io/py/parsedmarc
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 

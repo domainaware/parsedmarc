@@ -6,6 +6,7 @@ python:
   - '3.4'
   - '3.5'
   - '3.6'
+  - '3.7'
 
 # commands to install dependencies
 before_install:
@@ -29,3 +30,6 @@ script:
   - "parsedmarc -c ci.ini samples/forensic/*"
   - "python setup.py sdist"
   - "python setup.py bdist_wheel"
+
+after_success:
+  - "codecov"
