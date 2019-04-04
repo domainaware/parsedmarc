@@ -26,6 +26,7 @@ script:
   - "make html"
   - "cd .."
   - "python tests.py"
+  -  "codecov run tests.py"
   - "python setup.py install"
   - "parsedmarc -c ci.ini samples/aggregate/*"
   - "parsedmarc -c ci.ini samples/forensic/*"
