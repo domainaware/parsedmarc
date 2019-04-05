@@ -5,9 +5,28 @@ from glob import glob
 import json
 
 import parsedmarc
+import parsedmarc.utils
 
 
 class Test(unittest.TestCase):
+    def testBase64Decoding(self):
+        """Test base64 decoding"""
+        # Example from Wikipedia Base64 article
+        b64_str = "YW55IGNhcm5hbCBwbGVhcw"
+        decoded_str = parsedmarc.utils.decode_base64(b64_str)
+        assert decoded_str == b"any carnal pleas"
+
+    def testPSLDownload(self):
+        subdomain = "foo.example.com"
+        result = parsedmarc.utils.get_base_domain(subdomain,
+                                                  use_fresh_psl=True)
+        assert result == "example.com"
+
+        # Test PSL caching
+        result = parsedmarc.utils.get_base_domain(subdomain,
+                                                  use_fresh_psl=True)
+        assert result == "example.com"
+
     def testAggregateSamples(self):
         """Test sample aggregate/rua DMARC reports"""
         sample_paths = glob("samples/aggregate/*")
