@@ -97,7 +97,7 @@ setup(
                       'urllib3>=1.21.1', 'requests>=2.2.16.0',
                       'imapclient>=2.1.0', 'mail-parser>=3.9.2',
                       'dateparser>=0.7.1',
-                      'elasticsearch>=6.3.1<7.0.0',
+                      'elasticsearch>=6.3.1,<7.0.0',
                       'elasticsearch-dsl>=6.3.1,<7.0.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1'
