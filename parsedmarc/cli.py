@@ -307,8 +307,8 @@ def _main():
                 opts.elasticsearch_index_suffix = elasticsearch_config[
                     "index_suffix"]
             if "monthly_indexes" in elasticsearch_config:
-                opts.elasticsearch_monthly_indexes = elasticsearch_config[
-                    "monthly_indexes"]
+                monthly = elasticsearch_config.getboolean("monthly_indexes")
+                opts.elasticsearch_monthly_indexes = monthly
             if "ssl" in elasticsearch_config:
                 opts.elasticsearch_ssl = elasticsearch_config.getboolean(
                     "ssl")

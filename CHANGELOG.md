@@ -1,3 +1,8 @@
+6.3.2
+-----
+
+- Fix the `monthly_indexes` option in the `elastocsearch` configuration section
+
 6.3.1
 -----
 
