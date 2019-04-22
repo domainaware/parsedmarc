@@ -13,7 +13,7 @@ python:
 before_install:
   - "sudo apt-get update"
   - "sudo apt-get install -y libemail-outlook-message-perl"
-  - "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.5.1.deb && sudo dpkg -i --force-confnew elasticsearch-6.5.1.deb && sudo service elasticsearch restart"
+  - "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.0.0-amd64.debb && sudo dpkg -i --force-confnew elasticsearch-*.deb && sudo service elasticsearch restart"
 
 install:
   - "pip install -r requirements.txt"
