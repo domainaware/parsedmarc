@@ -1,7 +1,12 @@
+6.3.3
+-----
+
+- Set `number_of_shards` and `number_of_replicas` to `1` when creating indexes 
+
 6.3.2
 -----
 
-- Fix the `monthly_indexes` option in the `elastocsearch` configuration section
+- Fix the `monthly_indexes` option in the `elasticsearch` configuration section
 
 6.3.1
 -----
