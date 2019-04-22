@@ -1,7 +1,8 @@
 6.3.3
 -----
 
-- Set `number_of_shards` and `number_of_replicas` to `1` when creating indexes 
+- Set `number_of_shards` and `number_of_replicas` to `1` when creating indexes
+- Fix dependency order
 
 6.3.2
 -----
