@@ -1,3 +1,8 @@
+6.3.4
+-----
+
+- Fix Elasticsearch index creation (closes issue #74)
+
 6.3.3
 -----
 
