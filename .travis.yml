@@ -30,8 +30,8 @@ script:
   - "cd .."
   - "coverage run tests.py"
   - "python setup.py install"
-  - "parsedmarc -c ci.ini samples/aggregate/*"
-  - "parsedmarc -c ci.ini samples/forensic/*"
+  - "parsedmarc --debug -c ci.ini samples/aggregate/*"
+  - "parsedmarc --debug -c ci.ini samples/forensic/*"
   - "python setup.py sdist"
   - "python setup.py bdist_wheel"
 

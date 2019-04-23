@@ -211,7 +211,7 @@ def create_indexes(names, settings=None):
                 if settings is None:
                     settings = dict(number_of_shards=1,
                                     number_of_replicas=1)
-                index.put_settings(settings)
+                index.put_settings(body=settings, preserve_existing=True)
                 index.create()
         except Exception as e:
             raise ElasticsearchError(
