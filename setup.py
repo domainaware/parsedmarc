@@ -94,7 +94,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dnspython>=1.16.0', 'expiringdict>=1.1.4',
                       'publicsuffix2', 'xmltodict>=0.12.0', 'geoip2>=2.9.0',
-                      'requests>=2.2.16.0', 'urllib3>=1.21.1',
+                      'urllib3<1.25,>=1.21.1', 'requests>=2.2.16.0',
                       'imapclient>=2.1.0', 'mail-parser>=3.9.2',
                       'dateparser>=0.7.1',
                       'elasticsearch>=6.3.1,<7.0.0',
