@@ -209,9 +209,10 @@ def create_indexes(names, settings=None):
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
                 if settings is None:
-                    settings = dict(number_of_shards=1,
-                                    number_of_replicas=1)
-                index.put_settings(body=settings, preserve_existing=True)
+                    index.settings(number_of_shards=1,
+                                   number_of_replicas=1)
+                else:
+                    index.settings(**settings)
                 index.create()
         except Exception as e:
             raise ElasticsearchError(
