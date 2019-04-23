@@ -15,7 +15,7 @@ before_install:
   - "sudo apt-get install -y libemail-outlook-message-perl"
   - "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.0.0-amd64.deb"
   - "sudo dpkg -i --force-confnew elasticsearch-*.deb"
-  - "sudo service elasticsearch restart"
+  - "sudo systemctl elasticsearch.service restart"
 
 install:
   - "pip install -r requirements.txt"
