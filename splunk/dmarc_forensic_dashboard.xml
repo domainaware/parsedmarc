@@ -1,4 +1,4 @@
-<form>
+<form theme="dark">
   <label>Forensic DMARC Data</label>
   <fieldset submitButton="false" autoRun="true">
     <input type="text" token="header_from" searchWhenChanged="true">

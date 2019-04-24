@@ -1,4 +1,4 @@
-<form>
+<form theme="dark">
   <label>Aggregate DMARC data</label>
   <description>A summary of aggregate DMARC report data</description>
   <fieldset submitButton="false" autoRun="true">
