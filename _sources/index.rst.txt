@@ -337,7 +337,7 @@ JSON
         "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200",
         "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>",
         "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de",
-        "delivery_result": "smg-policy-action",
+        "delivery_result": "policy",
         "auth_failure": [
           "dmarc"
         ],
@@ -421,7 +421,7 @@ CSV
 ::
 
     feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
-    auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,smg-policy-action,dmarc,domain.de,,False
+    auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,policy,dmarc,domain.de,,False
 
 Bug reports
 ===========
@@ -1514,8 +1514,8 @@ Indices and tables
 .. |Code Coverage| image:: https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/domainaware/parsedmarc
 
-..  |PyPI Package| image:: https://badge.fury.io/py/parsedmarc.svg
-    :target: https://badge.fury.io/py/parsedmarc
+..  |PyPI Package| image:: https://img.shields.io/pypi/v/parsedmarc.svg
+    :target: https://pypi.org/project/parsedmarc/
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 

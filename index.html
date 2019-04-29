@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.3.4 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.3.5 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.3.4
+                6.3.5
               </div>
             
           
@@ -221,7 +221,7 @@
             
   <div class="section" id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
 <h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this headline">¶</a></h1>
-<p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a> <a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="Code Coverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a> <a class="reference external" href="https://badge.fury.io/py/parsedmarc"><img alt="PyPI Package" src="https://badge.fury.io/py/parsedmarc.svg" /></a></p>
+<p><a class="reference external" href="https://travis-ci.org/domainaware/parsedmarc"><img alt="Build Status" src="https://travis-ci.org/domainaware/parsedmarc.svg?branch=master" /></a> <a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="Code Coverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a> <a class="reference external" href="https://pypi.org/project/parsedmarc/"><img alt="PyPI Package" src="https://img.shields.io/pypi/v/parsedmarc.svg" /></a></p>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 754.0px; height: 449.0px;" /></a>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
@@ -554,7 +554,7 @@ schema.</p>
      <span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
      <span class="nt">&quot;message_id&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
      <span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span> <span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span>
-     <span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span> <span class="s2">&quot;smg-policy-action&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span> <span class="s2">&quot;policy&quot;</span><span class="p">,</span>
      <span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span> <span class="p">[</span>
        <span class="s2">&quot;dmarc&quot;</span>
      <span class="p">],</span>
@@ -635,7 +635,7 @@ schema.</p>
 <div class="section" id="id2">
 <h3>CSV<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">feedback_type</span><span class="p">,</span><span class="n">user_agent</span><span class="p">,</span><span class="n">version</span><span class="p">,</span><span class="n">original_envelope_id</span><span class="p">,</span><span class="n">original_mail_from</span><span class="p">,</span><span class="n">original_rcpt_to</span><span class="p">,</span><span class="n">arrival_date</span><span class="p">,</span><span class="n">arrival_date_utc</span><span class="p">,</span><span class="n">subject</span><span class="p">,</span><span class="n">message_id</span><span class="p">,</span><span class="n">authentication_results</span><span class="p">,</span><span class="n">dkim_domain</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">delivery_result</span><span class="p">,</span><span class="n">auth_failure</span><span class="p">,</span><span class="n">reported_domain</span><span class="p">,</span><span class="n">authentication_mechanisms</span><span class="p">,</span><span class="n">sample_headers_only</span>
-<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7</span><span class="o">.</span><span class="mf">30937.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10</span><span class="o">.</span><span class="mf">10.10</span><span class="p">,,,,</span><span class="n">smg</span><span class="o">-</span><span class="n">policy</span><span class="o">-</span><span class="n">action</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
+<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7</span><span class="o">.</span><span class="mf">30937.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10</span><span class="o">.</span><span class="mf">10.10</span><span class="p">,,,,</span><span class="n">policy</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
 </pre></div>
 </div>
 </div>

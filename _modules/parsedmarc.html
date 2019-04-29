@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 6.3.4 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 6.3.5 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.3.4
+                6.3.5
               </div>
             
           
@@ -185,7 +185,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.3.4&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.3.5&quot;</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:&#39;</span>
@@ -684,6 +684,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: A parsed report and sample</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">delivery_results</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;delivered&quot;</span><span class="p">,</span> <span class="s2">&quot;spam&quot;</span><span class="p">,</span> <span class="s2">&quot;policy&quot;</span><span class="p">,</span> <span class="s2">&quot;reject&quot;</span><span class="p">,</span> <span class="s2">&quot;other&quot;</span><span class="p">]</span>
+
     <span class="k">try</span><span class="p">:</span>
         <span class="n">parsed_report</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
         <span class="n">report_values</span> <span class="o">=</span> <span class="n">feedback_report_regex</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">)</span>
@@ -705,6 +707,13 @@
 
         <span class="k">if</span> <span class="s2">&quot;delivery_result&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">delivery_result</span> <span class="ow">in</span> <span class="n">delivery_results</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">delivery_result</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivery_result</span>
+                    <span class="k">break</span>
+        <span class="k">if</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">delivery_results</span><span class="p">:</span>
+            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;delivery_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;other&quot;</span>
 
         <span class="n">arrival_utc</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
