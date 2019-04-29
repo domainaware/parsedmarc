@@ -613,7 +613,6 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         sample_headers_only = False
         number_of_attachments = len(parsed_sample["attachments"])
         if number_of_attachments < 1 and parsed_sample["body"] is None:
-        if number_of_attachments < 1 and parsed_sample["body"] is None:
             sample_headers_only = True
         if sample_headers_only and parsed_sample["has_defects"]:
             del parsed_sample["defects"]
