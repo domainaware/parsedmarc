@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.3.4"
+__version__ = "6.3.5"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -537,6 +537,8 @@ def parse_forensic_report(feedback_report, sample, msg_date,
     Returns:
         OrderedDict: A parsed report and sample
     """
+    delivery_results = ["delivered", "spam", "policy", "reject", "other"]
+
     try:
         parsed_report = OrderedDict()
         report_values = feedback_report_regex.findall(feedback_report)
@@ -558,6 +560,13 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         if "delivery_result" not in parsed_report:
             parsed_report["delivery_result"] = None
+        else:
+            for delivery_result in delivery_results:
+                if delivery_result in parsed_report["delivery_result"].lower():
+                    parsed_report["delivery_result"] = delivery_result
+                    break
+        if parsed_report["delivery_result"] not in delivery_results:
+            parsed_report["delivery_result"] = "other"
 
         arrival_utc = human_timestamp_to_datetime(
             parsed_report["arrival_date"], to_utc=True)
@@ -603,6 +612,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         sample_headers_only = False
         number_of_attachments = len(parsed_sample["attachments"])
+        if number_of_attachments < 1 and parsed_sample["body"] is None:
         if number_of_attachments < 1 and parsed_sample["body"] is None:
             sample_headers_only = True
         if sample_headers_only and parsed_sample["has_defects"]:

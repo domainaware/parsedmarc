@@ -1,3 +1,8 @@
+6.3.5
+-----
+
+- Normalize `Delivery-Result` value in forensic/failure reports (issue #76)
+
 6.3.4
 -----
 

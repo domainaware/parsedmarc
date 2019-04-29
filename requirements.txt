@@ -1,5 +1,11 @@
 nose
 flake8
+doc8
+jinja2
+packaging
+imagesize
+alabaster
+babel
 sphinx
 sphinx_rtd_theme
 wheel
