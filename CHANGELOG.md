@@ -1,3 +1,9 @@
+6.3.6
+-----
+
+- Work around some unexpected IMAP responses reported in issue #70 and issue #75
+- Show correct destination folder in debug logs when moving aggregate reports
+
 6.3.5
 -----
 
