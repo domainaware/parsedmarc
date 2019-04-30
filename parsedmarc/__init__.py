@@ -1130,7 +1130,7 @@ def get_dmarc_reports_from_inbox(host=None,
                 if len(aggregate_report_msg_uids) > 0:
                     log_message = "Moving aggregate report messages from"
                     logger.debug(
-                        "{0} {1} to {1}".format(
+                        "{0} {1} to {2}".format(
                             log_message, reports_folder,
                             aggregate_reports_folder))
                     number_of_agg_report_msgs = len(aggregate_report_msg_uids)

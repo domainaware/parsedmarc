@@ -124,4 +124,6 @@ output/
 tmp/
 
 # Config files
-prod.ini
+prod*.ini
+stage*.ini
+dev*.ini
