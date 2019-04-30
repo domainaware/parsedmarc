@@ -965,7 +965,20 @@ def get_dmarc_reports_from_inbox(host=None,
                     logger.debug("Moving message UID(s) {0} to {1}".format(
                         ",".join(str(uid) for uid in chunk), folder
                     ))
-                    server.move(chunk, folder)
+                    try:
+                        server.move(chunk, folder)
+                    except imapclient.exceptions.IMAPClientError as e:
+                        e = e.__str__().lstrip("b'").rstrip(
+                            "'").rstrip(".")
+                        message = "Error moving message UID"
+                        e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+                        logger.debug("IMAP error: {0}".format(e))
+                        logger.debug(
+                            "Copying message UID(s) {0} to {1}".format(
+                                ",".join(str(uid) for uid in chunk), folder
+                            ))
+                        server.copy(msg_uids, folder)
+                        delete_messages(msg_uids)
                 else:
                     logger.debug("Copying message UID(s) {0} to {1}".format(
                         ",".join(str(uid) for uid in chunk), folder
@@ -1685,7 +1698,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                     idle_start_time = time.monotonic()
                 for response in responses:
                     logging.debug("Received response: {0}".format(response))
-                    if response[0] > 0 and response[1] == b'RECENT':
+                    if int(response[0]) > 0 and response[1] == b'RECENT':
                         server.idle_done()
                         res = get_dmarc_reports_from_inbox(connection=server,
                                                            move_supported=ms,
