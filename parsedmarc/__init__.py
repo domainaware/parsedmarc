@@ -1698,7 +1698,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                     idle_start_time = time.monotonic()
                 for response in responses:
                     logging.debug("Received response: {0}".format(response))
-                    if int(response[0]) > 0 and response[1] == b'RECENT':
+                    if response[0] != 0 and response[1] == b'RECENT':
                         server.idle_done()
                         res = get_dmarc_reports_from_inbox(connection=server,
                                                            move_supported=ms,
