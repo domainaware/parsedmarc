@@ -1,13 +1,19 @@
+6.3.7
+-----
+
+- Work around some unexpected IMAP responses reported in issue #75
+
 6.3.6
 -----
 
-- Work around some unexpected IMAP responses reported in issue #70 and issue #75
+- Work around some unexpected IMAP responses reported in issue #70
 - Show correct destination folder in debug logs when moving aggregate reports
 
 6.3.5
 -----
 
 - Normalize `Delivery-Result` value in forensic/failure reports (issue #76)
+  Thanks Freddie Leeman of URIports for the troubleshooting assistance
 
 6.3.4
 -----
