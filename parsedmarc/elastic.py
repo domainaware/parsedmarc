@@ -271,7 +271,9 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
                                            index_suffix=None,
-                                           monthly_indexes=False):
+                                           monthly_indexes=False,
+                                           number_of_shards=1,
+                                           number_of_replicas=1):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
@@ -279,6 +281,8 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
         aggregate_report (OrderedDict): A parsed forensic report
         index_suffix (str): The suffix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
+        number_of_shards (int): The number of shards to use in the index
+        number_of_replicas (int): The number of replicas to use in the index
 
     Raises:
             AlreadySaved
@@ -374,7 +378,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
         if index_suffix:
             index = "{0}_{1}".format(index, index_suffix)
         index = "{0}-{1}".format(index, index_date)
-        create_indexes([index])
+        index_settings = dict(number_of_shards=number_of_shards,
+                              number_of_replicas=number_of_replicas)
+        create_indexes([index], index_settings)
         agg_doc.meta.index = index
 
         try:
@@ -386,7 +392,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
 def save_forensic_report_to_elasticsearch(forensic_report,
                                           index_suffix=None,
-                                          monthly_indexes=False):
+                                          monthly_indexes=False,
+                                          number_of_shards=1,
+                                          number_of_replicas=1):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 
@@ -395,6 +403,9 @@ def save_forensic_report_to_elasticsearch(forensic_report,
             index_suffix (str): The suffix of the name of the index to save to
             monthly_indexes (bool): Use monthly indexes instead of daily
                                     indexes
+            number_of_shards (int): The number of shards to use in the index
+            number_of_replicas (int): The number of replicas to use in the
+                                      index
 
         Raises:
             AlreadySaved
@@ -505,7 +516,9 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         else:
             index_date = arrival_date.strftime("%Y-%m-%d")
         index = "{0}-{1}".format(index, index_date)
-        create_indexes([index])
+        index_settings = dict(number_of_shards=number_of_shards,
+                              number_of_replicas=number_of_replicas)
+        create_indexes([index], index_settings)
         forensic_doc.meta.index = index
         try:
             forensic_doc.save()

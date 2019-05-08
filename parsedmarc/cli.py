@@ -80,10 +80,15 @@ def _main():
             for report in reports_["aggregate_reports"]:
                 try:
                     if opts.elasticsearch_hosts:
+                        shards = opts.elasticsearch_number_of_shards
+                        replicas = opts.elasticsearch_number_of_replicas
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            monthly_indexes=opts.elasticsearch_monthly_indexes)
+                            monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas
+                        )
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -107,11 +112,15 @@ def _main():
         if opts.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
+                    shards = opts.elasticsearch_number_of_shards
+                    replicas = opts.elasticsearch_number_of_replicas
                     if opts.elasticsearch_hosts:
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            monthly_indexes=opts.elasticsearch_monthly_indexes)
+                            monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas)
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
@@ -195,6 +204,8 @@ def _main():
                      hec_index=None,
                      hec_skip_certificate_verification=False,
                      elasticsearch_hosts=None,
+                     elasticsearch_number_of_shards=1,
+                     elasticsearch_number_of_replicas=1,
                      elasticsearch_index_suffix=None,
                      elasticsearch_ssl=True,
                      elasticsearch_ssl_cert_path=None,
@@ -303,6 +314,14 @@ def _main():
                 logger.critical("hosts setting missing from the "
                                 "elasticsearch config section")
                 exit(-1)
+            if "number_of_shards" in elasticsearch_config:
+                number_of_shards = elasticsearch_config.getint(
+                    "number_of_shards")
+                opts.elasticsearch_number_of_shards = number_of_shards
+                if "number_of_replicas" in elasticsearch_config:
+                    number_of_replicas = elasticsearch_config.getint(
+                        "number_of_replicas")
+                    opts.elasticsearch_number_of_replicas = number_of_replicas
             if "index_suffix" in elasticsearch_config:
                 opts.elasticsearch_index_suffix = elasticsearch_config[
                     "index_suffix"]
