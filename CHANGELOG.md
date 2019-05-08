@@ -1,7 +1,7 @@
 6.4.0
 -----
 
-- Add ``number_of_shards`` and ``number_of_replicas`` to as possible options 
+- Add ``number_of_shards`` and ``number_of_replicas`` as possible options 
 in the ``elasticsearch`` configuration file section (closes issue #78)
 
 6.3.7
