@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.3.7 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.4.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.3.7
+                6.4.0
               </div>
             
           
@@ -378,6 +378,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when creating the index (Default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when creating the index (Default: 1)</p></li>
 </ul>
 </dd>
 </dl>
@@ -2011,7 +2013,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em>aggregate_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em>, <em>number_of_shards=1</em>, <em>number_of_replicas=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2019,6 +2021,8 @@ to a callback function</p>
 <li><p><strong>aggregate_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</p></li>
 <li><p><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</p></li>
 <li><p><strong>monthly_indexes</strong> (<em>bool</em>) – Use monthly indexes instead of daily indexes</p></li>
+<li><p><strong>number_of_shards</strong> (<em>int</em>) – The number of shards to use in the index</p></li>
+<li><p><strong>number_of_replicas</strong> (<em>int</em>) – The number of replicas to use in the index</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
@@ -2029,7 +2033,7 @@ to a callback function</p>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
-<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">parsedmarc.elastic.</code><code class="descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em>forensic_report</em>, <em>index_suffix=None</em>, <em>monthly_indexes=False</em>, <em>number_of_shards=1</em>, <em>number_of_replicas=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2038,6 +2042,9 @@ to a callback function</p>
 <li><p><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</p></li>
 <li><p><strong>monthly_indexes</strong> (<em>bool</em>) – Use monthly indexes instead of daily
 indexes</p></li>
+<li><p><strong>number_of_shards</strong> (<em>int</em>) – The number of shards to use in the index</p></li>
+<li><p><strong>number_of_replicas</strong> (<em>int</em>) – The number of replicas to use in the
+index</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
