@@ -51,6 +51,10 @@ class EmailParserError(RuntimeError):
     """Raised when an error parsing the email occurs"""
 
 
+class DownloadError(RuntimeError):
+    """Rasied when an error occurs when downloading a file"""
+
+
 def decode_base64(data):
     """
     Decodes a base64 string, with padding being optional
@@ -91,9 +95,13 @@ def get_base_domain(domain, use_fresh_psl=False):
         url = "https://publicsuffix.org/list/public_suffix_list.dat"
         # Use a browser-like user agent string to bypass some proxy blocks
         headers = {"User-Agent": USER_AGENT}
-        fresh_psl = requests.get(url, headers=headers).text
-        with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
-            fresh_psl_file.write(fresh_psl)
+        try:
+            fresh_psl = requests.get(url, headers=headers).text
+            with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
+                fresh_psl_file.write(fresh_psl)
+        except Exception as error:
+            raise DownloadError(
+                "Failed to download an updated PSL {0}".format(error))
 
     if use_fresh_psl:
         if not os.path.exists(psl_path):
@@ -102,11 +110,8 @@ def get_base_domain(domain, use_fresh_psl=False):
             psl_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(psl_path).st_mtime)
             if psl_age > timedelta(hours=24):
-                try:
-                    download_psl()
-                except Exception as error:
-                    logger.warning(
-                        "Failed to download an updated PSL {0}".format(error))
+                download_psl()
+
         with open(psl_path, encoding="utf-8") as psl_file:
             psl = publicsuffix2.PublicSuffixList(psl_file)
 
@@ -289,9 +294,9 @@ def get_ip_address_country(ip_address, parallel=False):
             shutil.move(tar_path, location)
             shutil.rmtree(tar_dir)
         except Exception as e:
-            logger.warning("Error downloading {0}: {1}".format(url,
-                                                               e.__str__()))
-
+            raise DownloadError("Error downloading {0}: {1}".format(
+                url,
+                e.__str__()))
     system_paths = [
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",

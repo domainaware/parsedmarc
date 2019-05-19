@@ -1,3 +1,9 @@
+6.4.1
+-----
+
+- Raise `utils.DownloadError` exception when a GeoIP database or Public 
+  Suffix List (PSL) download fails (closes issue #73)
+
 6.4.0
 -----
 
