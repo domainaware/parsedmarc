@@ -32,7 +32,6 @@ import xmltodict
 import imapclient
 import imapclient.exceptions
 import mailparser
-import timeout_decorator
 
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
@@ -949,20 +948,6 @@ def get_dmarc_reports_from_inbox(host=None,
             server_capabilities = get_imap_capabilities(server)
             move_supported = "MOVE" in server_capabilities
 
-        @timeout_decorator.timeout(5)
-        def fetch_message(msg_uid):
-            raw_msg = server.fetch(msg_uid,
-                                   ["RFC822"])[msg_uid]
-            msg_keys = [b'RFC822', b'BODY[NULL]', b'BODY[]']
-            msg_key = ''
-            for key in msg_keys:
-                if key in raw_msg.keys():
-                    msg_key = key
-                    break
-            raw_msg = raw_msg[msg_key]
-
-            return raw_msg
-
         def delete_messages(msg_uids):
             logger.debug("Deleting message UID(s) {0}".format(",".join(
                 str(uid) for uid in msg_uids)))
@@ -1043,10 +1028,16 @@ def get_dmarc_reports_from_inbox(host=None,
             ))
             try:
                 try:
-                    raw_msg = fetch_message(msg_uid)
+                    raw_msg = server.fetch(msg_uid,
+                                           ["RFC822"])[msg_uid]
+                    msg_keys = [b'RFC822', b'BODY[NULL]', b'BODY[]']
+                    msg_key = ''
+                    for key in msg_keys:
+                        if key in raw_msg.keys():
+                            msg_key = key
+                            break
+                    raw_msg = raw_msg[msg_key]
 
-                except timeout_decorator.timeout_decorator.TimeoutError:
-                    logger.debug("Download timed out. Retrying...")
                 except (ConnectionResetError, socket.error,
                         TimeoutError,
                         imapclient.exceptions.IMAPClientError) as error:
