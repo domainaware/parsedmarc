@@ -1,3 +1,12 @@
+6.4.2
+-----
+
+- Do not attempt to convert `org_name` to a base domain if `org_name` contains 
+  a space (closes issue #94)
+- Always lowercase the `header_from`
+- Provide a more helpful warning message when `GeoLite2-Country.mmdb` is 
+  missing
+
 6.4.1
 -----
 

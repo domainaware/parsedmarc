@@ -276,7 +276,9 @@ def get_ip_address_country(ip_address, parallel=False):
             location (str): Local location for the database file
         """
         if parallel:
-            logging.warning("Cannot download GeoIP database in parallel mode")
+            logging.warning("GeoLite2-Country.mmdb is missing."
+                            "please install and run geoipupdate as root to "
+                            "get the latest version.")
             return
         url = "https://geolite.maxmind.com/download/geoip/database/" \
               "GeoLite2-Country.tar.gz"

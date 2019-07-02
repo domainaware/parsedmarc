@@ -38,7 +38,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.4.1"
+__version__ = "6.4.2"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -145,6 +145,8 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
+    lowered_from = new_record["identifiers"]["header_from"].lower()
+    new_record["identifiers"]["header_from"] = lowered_from
     if record["auth_results"] is not None:
         auth_results = record["auth_results"].copy()
         if "spf" not in auth_results:
@@ -248,7 +250,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
                 report_metadata["org_name"] = report_metadata[
                     "email"].split("@")[-1]
         org_name = report_metadata["org_name"]
-        if org_name is not None:
+        if org_name is not None and " " not in org_name:
             org_name = get_base_domain(org_name)
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]

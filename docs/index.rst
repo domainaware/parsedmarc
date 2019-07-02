@@ -475,6 +475,7 @@ On Debian or Ubuntu systems, run:
 .. code-block:: bash
 
     sudo apt-get install -y python3-pip geoipupdate
+    sudo geoipupdate
 
 On CentOS systems, run:
 
