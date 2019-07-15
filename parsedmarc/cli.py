@@ -16,9 +16,9 @@ from itertools import repeat
 import time
 from tqdm import tqdm
 
-from parsedmarc import IMAPError, get_dmarc_reports_from_inbox, \
+from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, elastic, kafkaclient, splunk, save_output, \
-    watch_inbox, email_results, SMTPError, ParserError, __version__, \
+    email_results, ParserError, __version__, \
     InvalidDMARCReport
 
 logger = logging.getLogger("parsedmarc")
@@ -536,18 +536,16 @@ def _main():
             ns = opts.nameservers
             sa = opts.strip_attachment_payloads
             ssl = True
-            ssl_context = None
+            verify = True
             if opts.imap_skip_certificate_verification:
                 logger.debug("Skipping IMAP certificate verification")
-                ssl_context = create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = CERT_NONE
+                verify=False
             if opts.imap_ssl is False:
                 ssl = False
             reports = get_dmarc_reports_from_inbox(host=opts.imap_host,
                                                    port=opts.imap_port,
                                                    ssl=ssl,
-                                                   ssl_context=ssl_context,
+                                                   verify=verify,
                                                    user=opts.imap_user,
                                                    password=opts.imap_password,
                                                    reports_folder=rf,
@@ -561,7 +559,7 @@ def _main():
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
 
-        except IMAPError as error:
+        except Exception as error:
             logger.error("IMAP Error: {0}".format(error.__str__()))
             exit(1)
 
@@ -575,46 +573,46 @@ def _main():
 
     if opts.smtp_host:
         try:
-            ssl_context = None
+            verify = True
             if opts.smtp_skip_certificate_verification:
-                logger.debug("Skipping SMTP certificate verification")
-                ssl_context = create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = CERT_NONE
+                verify = False
             email_results(results, opts.smtp_host, opts.smtp_from,
-                          opts.smtp_to, ssl=opts.smtp_ssl,
+                          opts.smtp_to, verify=verify,
                           user=opts.smtp_user,
                           password=opts.smtp_password,
-                          subject=opts.smtp_subject,
-                          ssl_context=ssl_context)
-        except SMTPError as error:
-            logger.error("SMTP Error: {0}".format(error.__str__()))
+                          subject=opts.smtp_subject)
+        except Exception as error:
+            logger.error("S{0}".format(error.__str__()))
             exit(1)
 
     if opts.imap_host and opts.imap_watch:
         logger.info("Watching for email - Quit with ctrl-c")
         ssl = True
-        ssl_context = None
+        verify = True
         if opts.imap_skip_certificate_verification:
             logger.debug("Skipping IMAP certificate verification")
-            ssl_context = create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = CERT_NONE
+            verify = False
         if opts.imap_ssl is False:
             ssl = False
         try:
             sa = opts.strip_attachment_payloads
-            watch_inbox(opts.imap_host, opts.imap_user, opts.imap_password,
-                        process_reports, port=opts.imap_port, ssl=ssl,
-                        ssl_context=ssl_context,
-                        reports_folder=opts.imap_reports_folder,
-                        archive_folder=opts.imap_archive_folder,
-                        delete=opts.imap_delete,
-                        test=opts.imap_test, nameservers=opts.nameservers,
-                        dns_timeout=opts.dns_timeout,
-                        strip_attachment_payloads=sa)
-        except IMAPError as error:
-            logger.error("IMAP error: {0}".format(error.__str__()))
+            watch_inbox(
+                opts.imap_host,
+                opts.imap_user,
+                opts.imap_password,
+                process_reports,
+                port=opts.imap_port,
+                ssl=ssl,
+                verify=verify,
+                reports_folder=opts.imap_reports_folder,
+                archive_folder=opts.imap_archive_folder,
+                delete=opts.imap_delete,
+                test=opts.imap_test,
+                nameservers=opts.nameservers,
+                dns_timeout=opts.dns_timeout,
+                strip_attachment_payloads=sa)
+        except FileExistsError as error:
+            logger.error("{0}".format(error.__str__()))
             exit(1)
 
 

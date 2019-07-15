@@ -155,7 +155,7 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     if record_type == "TXT":
         resource_records = list(map(
             lambda r: r.strings,
-            resolver.query(domain, record_type, tcp=True)))
+            resolver.query(domain, record_type, tcp=True, lifetime=timeout)))
         _resource_record = [
             resource_record[0][:0].join(resource_record)
             for resource_record in resource_records if resource_record]
@@ -163,7 +163,7 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     else:
         records = list(map(
             lambda r: r.to_text().replace('"', '').rstrip("."),
-            resolver.query(domain, record_type, tcp=True)))
+            resolver.query(domain, record_type, tcp=True, lifetime=timeout)))
     if cache:
         cache[cache_key] = records
 
