@@ -162,9 +162,9 @@ def _main():
                                  "(default is Cloudflare's nameservers)")
     arg_parser.add_argument("-t", "--dns_timeout",
                             help="number of seconds to wait for an answer "
-                                 "from DNS (default: 6.0)",
+                                 "from DNS (default: 2.0)",
                             type=float,
-                            default=6.0)
+                            default=2.0)
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",

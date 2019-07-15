@@ -960,48 +960,48 @@ def get_dmarc_reports_from_inbox(connection=None,
                         message = "Error deleting message UID"
                         e = "{0} {1}: " "{2}".format(message, msg_uid, e)
                         logger.error("IMAP error: {0}".format(e))
-        else:
-            if len(aggregate_report_msg_uids) > 0:
-                log_message = "Moving aggregate report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(
-                        log_message, reports_folder,
-                        aggregate_reports_folder))
-                number_of_agg_report_msgs = len(aggregate_report_msg_uids)
-                for i in range(number_of_agg_report_msgs):
-                    msg_uid = aggregate_report_msg_uids[i]
+            else:
+                if len(aggregate_report_msg_uids) > 0:
+                    log_message = "Moving aggregate report messages from"
                     logger.debug(
-                        "Moving message {0} of {1}: UID {2}".format(
-                            i+1, number_of_agg_report_msgs, msg_uid))
-                    try:
-                        server.move_messages([msg_uid],
-                                             aggregate_reports_folder)
-                    except Exception as e:
-                        message = "Error moving message UID"
-                        e = "{0} {1}: {2}".format(message, msg_uid, e)
-                        logger.error("IMAP error: {0}".format(e))
-            if len(forensic_report_msg_uids) > 0:
-                message = "Moving forensic report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(message,
-                                            reports_folder,
-                                            forensic_reports_folder))
-                number_of_forensic_msgs = len(forensic_report_msg_uids)
-                for i in range(number_of_forensic_msgs):
-                    msg_uid = forensic_report_msg_uids[i]
-                    message = "Moving message"
-                    logger.debug("{0} {1} of {2}: UID {2}".format(
-                        message,
-                        i + 1, number_of_forensic_msgs, msg_uid))
-                    try:
-                        server.move_messages([msg_uid],
-                                             forensic_reports_folder)
-                    except Exception as e:
-                        e = "Error moving message UID {0}: {1}".format(
-                            msg_uid, e)
-                        logger.error("IMAP error: {0}".format(e))
-    results = OrderedDict([("aggregate_reports", aggregate_reports),
-                           ("forensic_reports", forensic_reports)])
+                        "{0} {1} to {2}".format(
+                            log_message, reports_folder,
+                            aggregate_reports_folder))
+                    number_of_agg_report_msgs = len(aggregate_report_msg_uids)
+                    for i in range(number_of_agg_report_msgs):
+                        msg_uid = aggregate_report_msg_uids[i]
+                        logger.debug(
+                            "Moving message {0} of {1}: UID {2}".format(
+                                i+1, number_of_agg_report_msgs, msg_uid))
+                        try:
+                            server.move_messages([msg_uid],
+                                                 aggregate_reports_folder)
+                        except Exception as e:
+                            message = "Error moving message UID"
+                            e = "{0} {1}: {2}".format(message, msg_uid, e)
+                            logger.error("IMAP error: {0}".format(e))
+                if len(forensic_report_msg_uids) > 0:
+                    message = "Moving forensic report messages from"
+                    logger.debug(
+                        "{0} {1} to {2}".format(message,
+                                                reports_folder,
+                                                forensic_reports_folder))
+                    number_of_forensic_msgs = len(forensic_report_msg_uids)
+                    for i in range(number_of_forensic_msgs):
+                        msg_uid = forensic_report_msg_uids[i]
+                        message = "Moving message"
+                        logger.debug("{0} {1} of {2}: UID {2}".format(
+                            message,
+                            i + 1, number_of_forensic_msgs, msg_uid))
+                        try:
+                            server.move_messages([msg_uid],
+                                                 forensic_reports_folder)
+                        except Exception as e:
+                            e = "Error moving message UID {0}: {1}".format(
+                                msg_uid, e)
+                            logger.error("IMAP error: {0}".format(e))
+        results = OrderedDict([("aggregate_reports", aggregate_reports),
+                               ("forensic_reports", forensic_reports)])
 
     total_messages = len(server.search())
 
