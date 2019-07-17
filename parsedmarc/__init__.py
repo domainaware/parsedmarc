@@ -68,14 +68,15 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
-                         parallel=False):
+def _parse_report_record(record, offline=False, nameservers=None,
+                         dns_timeout=2.0, parallel=False):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
 
     Args:
         record (OrderedDict): The record to convert
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -91,6 +92,7 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
                                             cache=IP_ADDRESS_CACHE,
+                                            offline=offline,
                                             nameservers=nameservers,
                                             timeout=dns_timeout,
                                             parallel=parallel)
@@ -195,12 +197,13 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
-                               parallel=False):
+def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
+                               timeout=2.0, parallel=False):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
         xml (str): A string of DMARC aggregate report XML
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
@@ -295,6 +298,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
         if type(report["record"]) == list:
             for record in report["record"]:
                 report_record = _parse_report_record(record,
+                                                     offline=offline,
                                                      nameservers=nameservers,
                                                      dns_timeout=timeout,
                                                      parallel=parallel)
@@ -302,6 +306,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
 
         else:
             report_record = _parse_report_record(report["record"],
+                                                 offline=offline,
                                                  nameservers=nameservers,
                                                  dns_timeout=timeout,
                                                  parallel=parallel)
@@ -370,13 +375,15 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
+def parse_aggregate_report_file(_input, offline=False, nameservers=None,
+                                dns_timeout=2.0,
                                 parallel=False):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
     Args:
         _input: A path to a file, a file like object, or bytes
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -388,6 +395,7 @@ def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
     xml = extract_xml(_input)
 
     return parse_aggregate_report_xml(xml,
+                                      offline=offline,
                                       nameservers=nameservers,
                                       timeout=dns_timeout,
                                       parallel=parallel)
@@ -504,7 +512,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          nameservers=None, dns_timeout=2.0,
+                          offline=False, nameservers=None, dns_timeout=2.0,
                           strip_attachment_payloads=False,
                           parallel=False):
     """
@@ -512,6 +520,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
     Args:
         feedback_report (str): A message's feedback report as a string
+        offline (bool): Do not query online for geolocation or DNS
         sample (str): The RFC 822 headers or RFC 822 message sample
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
@@ -562,6 +571,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         ip_address = parsed_report["source_ip"]
         parsed_report_source = get_ip_address_info(ip_address,
+                                                   offline=offline,
                                                    nameservers=nameservers,
                                                    timeout=dns_timeout,
                                                    parallel=parallel)
@@ -663,13 +673,15 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
-                       strip_attachment_payloads=False, parallel=False):
+def parse_report_email(input_, offline=False, nameservers=None,
+                       dns_timeout=2.0, strip_attachment_payloads=False,
+                       parallel=False):
     """
     Parses a DMARC report from an email
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
+        offline (bool): Do not query online for geolocation on DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
@@ -735,6 +747,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                     ns = nameservers
                     aggregate_report = parse_aggregate_report_file(
                         payload,
+                        offline=offline,
                         nameservers=ns,
                         dns_timeout=dns_timeout,
                         parallel=parallel)
@@ -762,6 +775,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                 feedback_report,
                 sample,
                 date,
+                offline=offline,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
                 strip_attachment_payloads=strip_attachment_payloads,
@@ -813,7 +827,9 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
 
     content = file_object.read()
     try:
-        report = parse_aggregate_report_file(content, nameservers=nameservers,
+        report = parse_aggregate_report_file(content,
+                                             offline=offline,
+                                             nameservers=nameservers,
                                              dns_timeout=dns_timeout,
                                              parallel=parallel)
         results = OrderedDict([("report_type", "aggregate"),
@@ -822,6 +838,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         try:
             sa = strip_attachment_payloads
             results = parse_report_email(content,
+                                         offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
@@ -863,6 +880,7 @@ def get_dmarc_reports_from_inbox(connection=None,
                                  archive_folder="Archive",
                                  delete=False,
                                  test=False,
+                                 offline=False,
                                  nameservers=None,
                                  dns_timeout=6.0,
                                  strip_attachment_payloads=False,
@@ -882,6 +900,7 @@ def get_dmarc_reports_from_inbox(connection=None,
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
+        offline (bool): Do not query onfline for geolocation or DNS
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
@@ -938,6 +957,7 @@ def get_dmarc_reports_from_inbox(connection=None,
             parsed_email = parse_report_email(msg_content,
                                               nameservers=nameservers,
                                               dns_timeout=dns_timeout,
+                                              offline=offline,
                                               strip_attachment_payloads=sa)
             if parsed_email["report_type"] == "aggregate":
                 aggregate_reports.append(parsed_email["report"])
@@ -1041,8 +1061,8 @@ def get_dmarc_reports_from_inbox(connection=None,
 def watch_inbox(host, username, password, callback, port=None, ssl=True,
                 verify=True, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False,
-                idle_timeout=30, nameservers=None, dns_timeout=6.0,
-                strip_attachment_payloads=False):
+                idle_timeout=30, offline=False, nameservers=None,
+                dns_timeout=6.0, strip_attachment_payloads=False):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
@@ -1059,32 +1079,30 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
         idle_timeout (int): Number of seconds to wait for a IMAP IDLE response
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Replace attachment payloads in
         forensic report samples with None
     """
-    rf = reports_folder
-    af = archive_folder
-    ns = nameservers
-    dt = dns_timeout
     sa = strip_attachment_payloads
 
     def idle_callback(connection):
         res = get_dmarc_reports_from_inbox(connection=connection,
-                                           reports_folder=rf,
-                                           archive_folder=af,
+                                           reports_folder=reports_folder,
+                                           archive_folder=archive_folder,
                                            delete=delete,
                                            test=test,
-                                           nameservers=ns,
-                                           dns_timeout=dt,
+                                           offline=offline,
+                                           nameservers=nameservers,
+                                           dns_timeout=dns_timeout,
                                            strip_attachment_payloads=sa)
         callback(res)
 
     IMAPClient(host=host, username=username, password=password,
                port=port, ssl=ssl, verify=verify,
-               initial_folder=rf,
+               initial_folder=reports_folder,
                idle_callback=idle_callback,
                idle_timeout=idle_timeout)
 

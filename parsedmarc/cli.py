@@ -30,15 +30,15 @@ def _str_to_list(s):
     return list(map(lambda i: i.lstrip(), _list))
 
 
-def cli_parse(file_path, sa, nameservers, dns_timeout, offline=False,
+def cli_parse(file_path, sa, nameservers, dns_timeout, offline,
               parallel=False):
     """Separated this function for multiprocessing"""
     try:
         file_results = parse_report_file(file_path,
+                                         offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
-                                         offline=offline,
                                          parallel=parallel)
     except ParserError as error:
         return error, file_path
@@ -512,6 +512,7 @@ def _main():
                                      repeat(opts.strip_attachment_payloads),
                                      repeat(opts.nameservers),
                                      repeat(opts.dns_timeout),
+                                     repeat(opts.offline),
                                      repeat(opts.n_procs >= 1)),
                                  opts.chunk_size)
     pbar = tqdm(total=len(file_paths))
@@ -559,6 +560,7 @@ def _main():
                                                    reports_folder=rf,
                                                    archive_folder=af,
                                                    delete=opts.imap_delete,
+                                                   offline=opts.offline,
                                                    nameservers=ns,
                                                    test=opts.imap_test,
                                                    strip_attachment_payloads=sa
