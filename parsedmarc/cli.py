@@ -586,7 +586,7 @@ def _main():
                 verify = False
             email_results(results, opts.smtp_host, opts.smtp_from,
                           opts.smtp_to, verify=verify,
-                          user=opts.smtp_user,
+                          username=opts.smtp_user,
                           password=opts.smtp_password,
                           subject=opts.smtp_subject)
         except Exception as error:

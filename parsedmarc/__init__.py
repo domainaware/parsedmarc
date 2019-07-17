@@ -1199,7 +1199,7 @@ def get_report_zip(results):
 def email_results(results, host, mail_from, mail_to,
                   mail_cc=None, mail_bcc=None, port=0,
                   require_encryption=False, verify=True,
-                  user=None, password=None, subject=None,
+                  username=None, password=None, subject=None,
                   attachment_filename=None, message=None):
     """
     Emails parsing results as a zip file
@@ -1214,7 +1214,7 @@ def email_results(results, host, mail_from, mail_to,
         port (int): Port to use
         require_encryption (bool): Require a secure connection from the start
         verify (bool): verify the SSL/TLS certificate
-        user (str): An optional username
+        username (str): An optional username
         password (str): An optional password
         subject (str): Overrides the default message subject
         attachment_filename (str): Override the default attachment filename
@@ -1238,8 +1238,8 @@ def email_results(results, host, mail_from, mail_to,
     zip_bytes = get_report_zip(results)
     attachments = [(filename, zip_bytes)]
 
-    send_email(host, mail_from, mail_to,  message_cc=mail_cc,
+    send_email(host, mail_from, mail_to, message_cc=mail_cc,
                message_bcc=mail_bcc, port=port,
                require_encryption=require_encryption, verify=verify,
-               user=user, password=password, subject=subject,
+               username=username, password=password, subject=subject,
                attachments=attachments, plain_message=message)
