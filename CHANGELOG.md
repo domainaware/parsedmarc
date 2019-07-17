@@ -1,3 +1,9 @@
+6.5.0
+-----
+
+- Move mail processing functions to `mailsuite` package
+- Properly set timeout when querying DNS (closes issue #79 and #92)
+
 6.4.2
 -----
 
