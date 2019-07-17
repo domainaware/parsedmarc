@@ -548,7 +548,7 @@ def _main():
             verify = True
             if opts.imap_skip_certificate_verification:
                 logger.debug("Skipping IMAP certificate verification")
-                verify=False
+                verify = False
             if opts.imap_ssl is False:
                 ssl = False
             reports = get_dmarc_reports_from_inbox(host=opts.imap_host,
