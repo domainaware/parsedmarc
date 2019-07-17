@@ -785,7 +785,8 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
-                      strip_attachment_payloads=False, parallel=False):
+                      strip_attachment_payloads=False,
+                      offline=False, parallel=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -796,12 +797,14 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: The parsed DMARC report
     """
     if type(input_) == str:
+        logger.debug("Parsing {0}".format(input_))
         file_object = open(input_, "rb")
     elif type(input_) == bytes:
         file_object = BytesIO(input_)

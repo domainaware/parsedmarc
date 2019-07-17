@@ -30,13 +30,15 @@ def _str_to_list(s):
     return list(map(lambda i: i.lstrip(), _list))
 
 
-def cli_parse(file_path, sa, nameservers, dns_timeout, parallel=False):
+def cli_parse(file_path, sa, nameservers, dns_timeout, offline=False,
+              parallel=False):
     """Separated this function for multiprocessing"""
     try:
         file_results = parse_report_file(file_path,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
+                                         offline=offline,
                                          parallel=parallel)
     except ParserError as error:
         return error, file_path
@@ -165,6 +167,9 @@ def _main():
                                  "from DNS (default: 2.0)",
                             type=float,
                             default=2.0)
+    arg_parser.add_argument("--offline", action="store_true",
+                            help="Do not make online queries for geolocation "
+                                 " or  DNS")
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors and warnings")
     arg_parser.add_argument("--debug", action="store_true",
@@ -180,6 +185,7 @@ def _main():
     args = arg_parser.parse_args()
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
+                     offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
                      nameservers=args.nameservers,
@@ -243,6 +249,8 @@ def _main():
         config.read(args.config_file)
         if "general" in config.sections():
             general_config = config["general"]
+            if "offline" in general_config:
+                opts.offline = general_config["offline"]
             if "strip_attachment_payloads" in general_config:
                 opts.strip_attachment_payloads = general_config[
                     "strip_attachment_payloads"]
