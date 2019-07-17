@@ -58,35 +58,37 @@ CLI help
 
 ::
 
-   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
-                  [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                  [-t DNS_TIMEOUT] [-s] [--debug] [--log-file LOG_FILE] [-v]
-                  [file_path [file_path ...]]
+    usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
+                      [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
+                      [-t DNS_TIMEOUT] [--offline] [-s] [--debug]
+                      [--log-file LOG_FILE] [-v]
+                      [file_path [file_path ...]]
 
-   Parses DMARC reports
+    Parses DMARC reports
 
-   positional arguments:
-     file_path             one or more paths to aggregate or forensic report
-                           files or emails
+    positional arguments:
+      file_path             one or more paths to aggregate or forensic report
+                            files or emails
 
-   optional arguments:
-     -h, --help            show this help message and exit
-     -c CONFIG_FILE, --config-file CONFIG_FILE
-                           A path to a configuration file (--silent implied)
-     --strip-attachment-payloads
-                           remove attachment payloads from forensic report output
-     -o OUTPUT, --output OUTPUT
-                           write output files to the given directory
-     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query (default is Cloudflare's
-                           nameservers)
-     -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
-                           number of seconds to wait for an answer from DNS
-                           (default: 6.0)
-     -s, --silent          only print errors and warnings
-     --debug               print debugging information
-     --log-file LOG_FILE   output logging to a file
-     -v, --version         show program's version number and exit
+    optional arguments:
+      -h, --help            show this help message and exit
+      -c CONFIG_FILE, --config-file CONFIG_FILE
+                            A path to a configuration file (--silent implied)
+      --strip-attachment-payloads
+                            remove attachment payloads from forensic report output
+      -o OUTPUT, --output OUTPUT
+                            write output files to the given directory
+      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                            nameservers to query (default is Cloudflare's
+                            nameservers)
+      -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                            number of seconds to wait for an answer from DNS
+                            (default: 2.0)
+      --offline             Do not make online queries for geolocation or DNS
+      -s, --silent          only print errors and warnings
+      --debug               print debugging information
+      --log-file LOG_FILE   output logging to a file
+      -v, --version         show program's version number and exit
 
 .. note::
 
@@ -133,6 +135,7 @@ The full set of configuration options are:
     - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
     - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
+    - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
     - ``debug`` - bool: Print debugging messages
