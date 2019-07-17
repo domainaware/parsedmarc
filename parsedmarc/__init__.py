@@ -687,7 +687,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
         if type(input_) == bytes:
-            input_ = input_.decode(encoding="utf8", errors="ignore")
+            input_ = input_.decode(encoding="utf8", errors="replace")
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
         date = email.utils.format_datetime(datetime.utcnow())
