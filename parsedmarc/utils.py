@@ -155,7 +155,7 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     if record_type == "TXT":
         resource_records = list(map(
             lambda r: r.strings,
-            resolver.query(domain, record_type, tcp=True)))
+            resolver.query(domain, record_type, lifetime=timeout)))
         _resource_record = [
             resource_record[0][:0].join(resource_record)
             for resource_record in resource_records if resource_record]
@@ -163,7 +163,7 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     else:
         records = list(map(
             lambda r: r.to_text().replace('"', '').rstrip("."),
-            resolver.query(domain, record_type, tcp=True)))
+            resolver.query(domain, record_type, lifetime=timeout)))
     if cache:
         cache[cache_key] = records
 
@@ -257,7 +257,7 @@ def human_timestamp_to_timestamp(human_timestamp):
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address, parallel=False):
+def get_ip_address_country(ip_address, parallel=False, offline=False):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
     country associated with the given IPv4 or IPv6 address
@@ -265,6 +265,7 @@ def get_ip_address_country(ip_address, parallel=False):
     Args:
         ip_address (str): The IP address to query for
         parallel (bool): Parallel processing
+        offline (bool): Do not make online queries for geolocation and DNS
 
     Returns:
         str: And ISO country code associated with the given IP address
@@ -275,7 +276,7 @@ def get_ip_address_country(ip_address, parallel=False):
         Args:
             location (str): Local location for the database file
         """
-        if parallel:
+        if parallel or offline:
             logging.warning("GeoLite2-Country.mmdb is missing."
                             "please install and run geoipupdate as root to "
                             "get the latest version.")
@@ -340,14 +341,15 @@ def get_ip_address_country(ip_address, parallel=False):
     return country
 
 
-def get_ip_address_info(ip_address, cache=None, nameservers=None,
-                        timeout=2.0, parallel=False):
+def get_ip_address_info(ip_address, cache=None, offline=False,
+                        nameservers=None, timeout=2.0, parallel=False):
     """
     Returns reverse DNS and country information for the given IP address
 
     Args:
         ip_address (str): The IP address to check
         cache (ExpiringDict): Cache storage
+        offline (bool): Do not make online queries for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
@@ -364,9 +366,12 @@ def get_ip_address_info(ip_address, cache=None, nameservers=None,
             return info
     info = OrderedDict()
     info["ip_address"] = ip_address
-    reverse_dns = get_reverse_dns(ip_address,
-                                  nameservers=nameservers,
-                                  timeout=timeout)
+    if offline:
+        reverse_dns = None
+    else:
+        reverse_dns = get_reverse_dns(ip_address,
+                                      nameservers=nameservers,
+                                      timeout=timeout)
     country = get_ip_address_country(ip_address, parallel=parallel)
     info["country"] = country
     info["reverse_dns"] = reverse_dns

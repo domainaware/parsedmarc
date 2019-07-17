@@ -18,27 +18,20 @@ from base64 import b64decode
 import binascii
 import email
 import tempfile
-import socket
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import email.utils
-import smtplib
-from ssl import SSLError, CertificateError, create_default_context
-import time
 
+import mailparser
 from expiringdict import ExpiringDict
 import xmltodict
-import imapclient
-import imapclient.exceptions
-import mailparser
+from mailsuite.imap import IMAPClient
+from mailsuite.smtp import send_email
 
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.4.2"
+__version__ = "6.5.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -63,14 +56,6 @@ class ParserError(RuntimeError):
     """Raised whenever the parser fails for some reason"""
 
 
-class IMAPError(RuntimeError):
-    """Raised when an IMAP error occurs"""
-
-
-class SMTPError(RuntimeError):
-    """Raised when a SMTP error occurs"""
-
-
 class InvalidDMARCReport(ParserError):
     """Raised when an invalid DMARC report is encountered"""
 
@@ -83,14 +68,15 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
-                         parallel=False):
+def _parse_report_record(record, offline=False, nameservers=None,
+                         dns_timeout=2.0, parallel=False):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
 
     Args:
         record (OrderedDict): The record to convert
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -106,6 +92,7 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
                                             cache=IP_ADDRESS_CACHE,
+                                            offline=offline,
                                             nameservers=nameservers,
                                             timeout=dns_timeout,
                                             parallel=parallel)
@@ -210,12 +197,13 @@ def _parse_report_record(record, nameservers=None, dns_timeout=2.0,
     return new_record
 
 
-def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
-                               parallel=False):
+def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
+                               timeout=2.0, parallel=False):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
         xml (str): A string of DMARC aggregate report XML
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
@@ -310,6 +298,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
         if type(report["record"]) == list:
             for record in report["record"]:
                 report_record = _parse_report_record(record,
+                                                     offline=offline,
                                                      nameservers=nameservers,
                                                      dns_timeout=timeout,
                                                      parallel=parallel)
@@ -317,6 +306,7 @@ def parse_aggregate_report_xml(xml, nameservers=None, timeout=2.0,
 
         else:
             report_record = _parse_report_record(report["record"],
+                                                 offline=offline,
                                                  nameservers=nameservers,
                                                  dns_timeout=timeout,
                                                  parallel=parallel)
@@ -385,13 +375,15 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
+def parse_aggregate_report_file(_input, offline=False, nameservers=None,
+                                dns_timeout=2.0,
                                 parallel=False):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
     Args:
         _input: A path to a file, a file like object, or bytes
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -403,6 +395,7 @@ def parse_aggregate_report_file(_input, nameservers=None, dns_timeout=2.0,
     xml = extract_xml(_input)
 
     return parse_aggregate_report_xml(xml,
+                                      offline=offline,
                                       nameservers=nameservers,
                                       timeout=dns_timeout,
                                       parallel=parallel)
@@ -519,7 +512,7 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          nameservers=None, dns_timeout=2.0,
+                          offline=False, nameservers=None, dns_timeout=2.0,
                           strip_attachment_payloads=False,
                           parallel=False):
     """
@@ -527,6 +520,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
     Args:
         feedback_report (str): A message's feedback report as a string
+        offline (bool): Do not query online for geolocation or DNS
         sample (str): The RFC 822 headers or RFC 822 message sample
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
@@ -577,6 +571,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         ip_address = parsed_report["source_ip"]
         parsed_report_source = get_ip_address_info(ip_address,
+                                                   offline=offline,
                                                    nameservers=nameservers,
                                                    timeout=dns_timeout,
                                                    parallel=parallel)
@@ -678,13 +673,15 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
-                       strip_attachment_payloads=False, parallel=False):
+def parse_report_email(input_, offline=False, nameservers=None,
+                       dns_timeout=2.0, strip_attachment_payloads=False,
+                       parallel=False):
     """
     Parses a DMARC report from an email
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
+        offline (bool): Do not query online for geolocation on DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
@@ -702,7 +699,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
         if type(input_) == bytes:
-            input_ = input_.decode(encoding="utf8")
+            input_ = input_.decode(encoding="utf8", errors="replace")
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
         date = email.utils.format_datetime(datetime.utcnow())
@@ -750,6 +747,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                     ns = nameservers
                     aggregate_report = parse_aggregate_report_file(
                         payload,
+                        offline=offline,
                         nameservers=ns,
                         dns_timeout=dns_timeout,
                         parallel=parallel)
@@ -777,6 +775,7 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
                 feedback_report,
                 sample,
                 date,
+                offline=offline,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
                 strip_attachment_payloads=strip_attachment_payloads,
@@ -800,7 +799,8 @@ def parse_report_email(input_, nameservers=None, dns_timeout=2.0,
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
-                      strip_attachment_payloads=False, parallel=False):
+                      strip_attachment_payloads=False,
+                      offline=False, parallel=False):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -811,12 +811,14 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
 
     Returns:
         OrderedDict: The parsed DMARC report
     """
     if type(input_) == str:
+        logger.debug("Parsing {0}".format(input_))
         file_object = open(input_, "rb")
     elif type(input_) == bytes:
         file_object = BytesIO(input_)
@@ -825,7 +827,9 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
 
     content = file_object.read()
     try:
-        report = parse_aggregate_report_file(content, nameservers=nameservers,
+        report = parse_aggregate_report_file(content,
+                                             offline=offline,
+                                             nameservers=nameservers,
                                              dns_timeout=dns_timeout,
                                              parallel=parallel)
         results = OrderedDict([("report_type", "aggregate"),
@@ -834,6 +838,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         try:
             sa = strip_attachment_payloads
             results = parse_report_email(content,
+                                         offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
@@ -864,39 +869,38 @@ def get_imap_capabilities(server):
     return capabilities
 
 
-def get_dmarc_reports_from_inbox(host=None,
+def get_dmarc_reports_from_inbox(connection=None,
+                                 host=None,
                                  user=None,
                                  password=None,
-                                 connection=None,
                                  port=None,
                                  ssl=True,
-                                 ssl_context=None,
-                                 move_supported=None,
+                                 verify=True,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
                                  delete=False,
                                  test=False,
+                                 offline=False,
                                  nameservers=None,
                                  dns_timeout=6.0,
                                  strip_attachment_payloads=False,
                                  results=None):
     """
-    Fetches and parses DMARC reports from sn inbox
+    Fetches and parses DMARC reports from an inbox
 
     Args:
+        connection: An IMAPClient connection to reuse
         host: The mail server hostname or IP address
         user: The mail server user
         password: The mail server password
-        connection: An IMAPCLient connection to reuse
         port: The mail server port
         ssl (bool): Use SSL/TLS
-        ssl_context (SSLContext): A SSL context
-        move_supported: Indicate if the IMAP server supports the MOVE command
-        (autodetect if None)
+        verify (bool): Verify SSL/TLS certificate
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
+        offline (bool): Do not query onfline for geolocation or DNS
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
@@ -906,12 +910,6 @@ def get_dmarc_reports_from_inbox(host=None,
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
     """
-
-    def chunks(l, n):
-        """Yield successive n-sized chunks from l."""
-        for i in range(0, len(l), n):
-            yield l[i:i + n]
-
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
 
@@ -931,373 +929,122 @@ def get_dmarc_reports_from_inbox(host=None,
         aggregate_reports = results["aggregate_reports"].copy()
         forensic_reports = results["forensic_reports"].copy()
 
-    try:
-        if connection:
-            server = connection
-        else:
-            if not ssl:
-                logger.debug("Connecting to IMAP over plain text")
-            if ssl_context is None:
-                ssl_context = create_default_context()
-            server = imapclient.IMAPClient(host,
-                                           port=port,
-                                           ssl=ssl,
-                                           ssl_context=ssl_context,
-                                           use_uid=True)
-            server.login(user, password)
+    if connection:
+        server = connection
+    else:
+        server = IMAPClient(host, user, password, port=port,
+                            ssl=ssl, verify=verify,
+                            initial_folder=reports_folder)
 
-        if move_supported is None:
-            server_capabilities = get_imap_capabilities(server)
-            move_supported = "MOVE" in server_capabilities
+    server.create_folder(archive_folder)
+    server.create_folder(aggregate_reports_folder)
+    server.create_folder(forensic_reports_folder)
+    server.create_folder(invalid_reports_folder)
 
-        def delete_messages(msg_uids):
-            logger.debug("Deleting message UID(s) {0}".format(",".join(
-                str(uid) for uid in msg_uids)))
-            if type(msg_uids) == str or type(msg_uids) == int:
-                msg_uids = [int(msg_uids)]
+    messages = server.search()
+    total_messages = len(messages)
+    logger.debug("Found {0} messages in {1}".format(len(messages),
+                                                    reports_folder))
+    for i in range(len(messages)):
+        msg_uid = messages[i]
+        logger.debug("Processing message {0} of {1}: UID {2}".format(
+            i+1, total_messages, msg_uid
 
-            server.delete_messages(msg_uids, silent=True)
-            server.expunge(msg_uids)
-
-        def move_messages(msg_uids, folder):
-            if type(msg_uids) == str or type(msg_uids) == int:
-                msg_uids = [int(msg_uids)]
-            for chunk in chunks(msg_uids, 100):
-                if move_supported:
-                    logger.debug("Moving message UID(s) {0} to {1}".format(
-                        ",".join(str(uid) for uid in chunk), folder
-                    ))
-                    try:
-                        server.move(chunk, folder)
-                    except imapclient.exceptions.IMAPClientError as e:
-                        e = e.__str__().lstrip("b'").rstrip(
-                            "'").rstrip(".")
-                        message = "Error moving message UID"
-                        e = "{0} {1}: " "{2}".format(message, msg_uid, e)
-                        logger.debug("IMAP error: {0}".format(e))
-                        logger.debug(
-                            "Copying message UID(s) {0} to {1}".format(
-                                ",".join(str(uid) for uid in chunk), folder
-                            ))
-                        server.copy(msg_uids, folder)
-                        delete_messages(msg_uids)
-                else:
-                    logger.debug("Copying message UID(s) {0} to {1}".format(
-                        ",".join(str(uid) for uid in chunk), folder
-                    ))
-                    server.copy(msg_uids, folder)
-                    delete_messages(msg_uids)
-
-        if not server.folder_exists(archive_folder):
-            logger.debug("Creating IMAP folder: {0}".format(archive_folder))
-            server.create_folder(archive_folder)
+        ))
+        msg_content = server.fetch_message(msg_uid, parse=False)
+        sa = strip_attachment_payloads
         try:
-            # Test subfolder creation
-            if not server.folder_exists(aggregate_reports_folder):
-                server.create_folder(aggregate_reports_folder)
-                logger.debug(
-                    "Creating IMAP folder: {0}".format(
-                        aggregate_reports_folder))
-        except imapclient.exceptions.IMAPClientError:
-            #  Only replace / with . when . doesn't work
-            # This usually indicates a dovecot IMAP server
-            aggregate_reports_folder = aggregate_reports_folder.replace("/",
-                                                                        ".")
-            forensic_reports_folder = forensic_reports_folder.replace("/",
-                                                                      ".")
-            invalid_reports_folder = invalid_reports_folder.replace("/",
-                                                                    ".")
-        subfolders = [aggregate_reports_folder,
-                      forensic_reports_folder,
-                      invalid_reports_folder]
+            parsed_email = parse_report_email(msg_content,
+                                              nameservers=nameservers,
+                                              dns_timeout=dns_timeout,
+                                              offline=offline,
+                                              strip_attachment_payloads=sa)
+            if parsed_email["report_type"] == "aggregate":
+                aggregate_reports.append(parsed_email["report"])
+                aggregate_report_msg_uids.append(msg_uid)
+            elif parsed_email["report_type"] == "forensic":
+                forensic_reports.append(parsed_email["report"])
+                forensic_report_msg_uids.append(msg_uid)
+        except InvalidDMARCReport as error:
+            logger.warning(error.__str__())
+            if not test:
+                if delete:
+                    logger.debug(
+                        "Deleting message UID {0}".format(msg_uid))
+                    server.delete_messages([msg_uid])
+                else:
+                    logger.debug(
+                        "Moving message UID {0} to {1}".format(
+                            msg_uid, invalid_reports_folder))
+                    server.move_messages([msg_uid], invalid_reports_folder)
 
-        for subfolder in subfolders:
-            if not server.folder_exists(subfolder):
+    if not test:
+        if delete:
+            processed_messages = aggregate_report_msg_uids + \
+                                 forensic_report_msg_uids
+
+            number_of_processed_msgs = len(processed_messages)
+            for i in range(number_of_processed_msgs):
+                msg_uid = processed_messages[i]
                 logger.debug(
-                    "Creating IMAP folder: {0}".format(subfolder))
-                server.create_folder(subfolder)
-        server.select_folder(reports_folder)
-        messages = server.search()
-        total_messages = len(messages)
-        logger.debug("Found {0} messages in IMAP folder {1}".format(
-            len(messages), reports_folder))
-        for i in range(len(messages)):
-            msg_uid = messages[i]
-            logger.debug("Processing message {0} of {1}: UID {2}".format(
-                i+1,
-                total_messages,
-                msg_uid
-            ))
-            try:
+                    "Deleting message {0} of {1}: UID {2}".format(
+                        i + 1, number_of_processed_msgs, msg_uid))
                 try:
-                    raw_msg = server.fetch(msg_uid,
-                                           ["RFC822"])[msg_uid]
-                    msg_keys = [b'RFC822', b'BODY[NULL]', b'BODY[]']
-                    msg_key = ''
-                    for key in msg_keys:
-                        if key in raw_msg.keys():
-                            msg_key = key
-                            break
-                    raw_msg = raw_msg[msg_key]
+                    server.delete_messages([msg_uid])
 
-                except (ConnectionResetError, socket.error,
-                        TimeoutError,
-                        imapclient.exceptions.IMAPClientError) as error:
-                    error = error.__str__().lstrip("b'").rstrip("'").rstrip(
-                        ".")
-                    logger.debug("IMAP error: {0}".format(error.__str__()))
-                    logger.debug("Reconnecting to IMAP")
+                except Exception as e:
+                    message = "Error deleting message UID"
+                    e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+                    logger.error("IMAP error: {0}".format(e))
+        else:
+            if len(aggregate_report_msg_uids) > 0:
+                log_message = "Moving aggregate report messages from"
+                logger.debug(
+                    "{0} {1} to {2}".format(
+                        log_message, reports_folder,
+                        aggregate_reports_folder))
+                number_of_agg_report_msgs = len(aggregate_report_msg_uids)
+                for i in range(number_of_agg_report_msgs):
+                    msg_uid = aggregate_report_msg_uids[i]
+                    logger.debug(
+                        "Moving message {0} of {1}: UID {2}".format(
+                            i+1, number_of_agg_report_msgs, msg_uid))
                     try:
-                        server.shutdown()
+                        server.move_messages([msg_uid],
+                                             aggregate_reports_folder)
                     except Exception as e:
-                        logger.debug(
-                            "Failed to log out: {0}".format(e.__str__()))
-                    if not ssl:
-                        logger.debug("Connecting to IMAP over plain text")
-                    server = imapclient.IMAPClient(host,
-                                                   port=port,
-                                                   ssl=ssl,
-                                                   ssl_context=ssl_context,
-                                                   use_uid=True)
-                    server.login(user, password)
-                    server.select_folder(reports_folder)
-                    raw_msg = server.fetch(msg_uid,
-                                           ["RFC822"])[msg_uid][b"RFC822"]
-
-                msg_content = raw_msg.decode("utf-8", errors="replace")
-                sa = strip_attachment_payloads
-                parsed_email = parse_report_email(msg_content,
-                                                  nameservers=nameservers,
-                                                  dns_timeout=dns_timeout,
-                                                  strip_attachment_payloads=sa)
-                if parsed_email["report_type"] == "aggregate":
-                    aggregate_reports.append(parsed_email["report"])
-                    aggregate_report_msg_uids.append(msg_uid)
-                elif parsed_email["report_type"] == "forensic":
-                    forensic_reports.append(parsed_email["report"])
-                    forensic_report_msg_uids.append(msg_uid)
-            except InvalidDMARCReport as error:
-                logger.warning(error.__str__())
-                if not test:
-                    if delete:
-                        logger.debug(
-                            "Deleting message UID {0}".format(msg_uid))
-                        delete_messages([msg_uid])
-                    else:
-                        logger.debug(
-                            "Moving message UID {0} to {1}".format(
-                                msg_uid, invalid_reports_folder))
-                        move_messages([msg_uid], invalid_reports_folder)
-
-        if not test:
-            if delete:
-                processed_messages = aggregate_report_msg_uids + \
-                                     forensic_report_msg_uids
-
-                number_of_processed_msgs = len(processed_messages)
-                for i in range(number_of_processed_msgs):
-                    msg_uid = processed_messages[i]
-                    logger.debug(
-                        "Deleting message {0} of {1}: UID {2}".format(
-                            i + 1, number_of_processed_msgs, msg_uid))
-                    try:
-                        delete_messages([msg_uid])
-
-                    except imapclient.exceptions.IMAPClientError as e:
-                        e = e.__str__().lstrip("b'").rstrip(
-                            "'").rstrip(".")
-                        message = "Error deleting message UID"
-                        e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+                        message = "Error moving message UID"
+                        e = "{0} {1}: {2}".format(message, msg_uid, e)
                         logger.error("IMAP error: {0}".format(e))
-                    except (ConnectionResetError, socket.error,
-                            TimeoutError) as e:
-                        logger.debug("IMAP error: {0}".format(e.__str__()))
-                        logger.debug("Reconnecting to IMAP")
-                        try:
-                            server.shutdown()
-                        except Exception as e:
-                            logger.debug(
-                                "Failed to log out: {0}".format(e.__str__()))
-                        if not ssl:
-                            logger.debug("Connecting to IMAP over plain text")
-                        server = imapclient.IMAPClient(host,
-                                                       port=port,
-                                                       ssl=ssl,
-                                                       ssl_context=ssl_context,
-                                                       use_uid=True)
-                        server.login(user, password)
-                        server.select_folder(reports_folder)
-                        delete_messages([msg_uid])
-            else:
-                if len(aggregate_report_msg_uids) > 0:
-                    log_message = "Moving aggregate report messages from"
-                    logger.debug(
-                        "{0} {1} to {2}".format(
-                            log_message, reports_folder,
-                            aggregate_reports_folder))
-                    number_of_agg_report_msgs = len(aggregate_report_msg_uids)
-                    for i in range(number_of_agg_report_msgs):
-                        msg_uid = aggregate_report_msg_uids[i]
-                        logger.debug(
-                            "Moving message {0} of {1}: UID {2}".format(
-                                i+1, number_of_agg_report_msgs, msg_uid))
-                        try:
-                            move_messages([msg_uid],
-                                          aggregate_reports_folder)
-                        except imapclient.exceptions.IMAPClientError as e:
-                            e = e.__str__().lstrip("b'").rstrip(
-                                "'").rstrip(".")
-                            message = "Error moving message UID"
-                            e = "{0} {1}: {2}".format(message, msg_uid, e)
-                            logger.error("IMAP error: {0}".format(e))
-                        except (ConnectionResetError, socket.error,
-                                TimeoutError) as error:
-                            logger.debug("IMAP error: {0}".format(
-                                error.__str__()))
-                            logger.debug("Reconnecting to IMAP")
-                            try:
-                                server.shutdown()
-                            except Exception as e:
-                                logger.debug("Failed to log out: {0}".format(
-                                    e.__str__()))
-                            if not ssl:
-                                logger.debug(
-                                    "Connecting to IMAP over plain text")
-                            server = imapclient.IMAPClient(
-                                host,
-                                port=port,
-                                ssl=ssl,
-                                ssl_context=ssl_context,
-                                use_uid=True
-                            )
-                            server.login(user, password)
-                            server.select_folder(reports_folder)
-                            move_messages([msg_uid],
-                                          aggregate_reports_folder)
+            if len(forensic_report_msg_uids) > 0:
+                message = "Moving forensic report messages from"
+                logger.debug(
+                    "{0} {1} to {2}".format(message,
+                                            reports_folder,
+                                            forensic_reports_folder))
+                number_of_forensic_msgs = len(forensic_report_msg_uids)
+                for i in range(number_of_forensic_msgs):
+                    msg_uid = forensic_report_msg_uids[i]
+                    message = "Moving message"
+                    logger.debug("{0} {1} of {2}: UID {2}".format(
+                        message,
+                        i + 1, number_of_forensic_msgs, msg_uid))
+                    try:
+                        server.move_messages([msg_uid],
+                                             forensic_reports_folder)
+                    except Exception as e:
+                        e = "Error moving message UID {0}: {1}".format(
+                            msg_uid, e)
+                        logger.error("IMAP error: {0}".format(e))
+    results = OrderedDict([("aggregate_reports", aggregate_reports),
+                           ("forensic_reports", forensic_reports)])
 
-                if len(forensic_report_msg_uids) > 0:
-                    message = "Moving forensic report messages from"
-                    logger.debug(
-                        "{0} {1} to {2}".format(message,
-                                                reports_folder,
-                                                forensic_reports_folder))
-                    number_of_forensic_msgs = len(forensic_report_msg_uids)
-                    for i in range(number_of_forensic_msgs):
-                        msg_uid = forensic_report_msg_uids[i]
-                        message = "Moving message"
-                        logger.debug("{0} {1} of {2}: UID {2}".format(
-                            message,
-                            i + 1, number_of_forensic_msgs, msg_uid))
-                        try:
-                            move_messages([msg_uid],
-                                          forensic_reports_folder)
-                        except imapclient.exceptions.IMAPClientError as e:
-                            e = e.__str__().lstrip("b'").rstrip(
-                                "'").rstrip(".")
-                            e = "Error moving message UID {0}: {1}".format(
-                                msg_uid, e)
-                            logger.error("IMAP error: {0}".format(e))
-                        except (ConnectionResetError, TimeoutError) as error:
-                            logger.debug("IMAP error: {0}".format(
-                                error.__str__()))
-                            logger.debug("Reconnecting to IMAP")
-                            try:
-                                server.shutdown()
-                            except Exception as e:
-                                logger.debug("Failed to "
-                                             "disconnect: {0}".format(
-                                                               e.__str__()))
-                            if not ssl:
-                                logger.debug(
-                                    "Connecting to IMAP over plain text")
-                            server = imapclient.IMAPClient(
-                                host,
-                                port=port,
-                                ssl=ssl,
-                                ssl_context=ssl_context,
-                                use_uid=True)
-                            server.login(user, password)
-                            server.select_folder(reports_folder)
-                            move_messages([msg_uid],
-                                          forensic_reports_folder)
+    total_messages = len(server.search())
 
-        results = OrderedDict([("aggregate_reports", aggregate_reports),
-                               ("forensic_reports", forensic_reports)])
-
-        if not test and total_messages > 0:
-            # Process emails that came in during the last run
-            results = get_dmarc_reports_from_inbox(
-                host=host,
-                user=user,
-                password=password,
-                connection=connection,
-                port=port,
-                ssl=ssl,
-                ssl_context=ssl_context,
-                move_supported=move_supported,
-                reports_folder=reports_folder,
-                archive_folder=archive_folder,
-                delete=delete,
-                test=test,
-                nameservers=nameservers,
-                dns_timeout=dns_timeout,
-                strip_attachment_payloads=strip_attachment_payloads,
-                results=results
-            )
-
-        return results
-    except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        # Workaround for random Exchange/Office365 IMAP errors
-        if "unexpected response" in error or "BAD" in error:
-            sleep_minutes = 5
-            logger.debug(
-                "{0}. "
-                "Waiting {1} minutes before trying again".format(
-                    error,
-                    sleep_minutes))
-            time.sleep(sleep_minutes * 60)
-            results = get_dmarc_reports_from_inbox(
-                host=host,
-                user=user,
-                password=password,
-                connection=connection,
-                port=port,
-                ssl=ssl,
-                ssl_context=ssl_context,
-                move_supported=move_supported,
-                reports_folder=reports_folder,
-                archive_folder=archive_folder,
-                delete=delete,
-                test=test,
-                nameservers=nameservers,
-                dns_timeout=dns_timeout,
-                strip_attachment_payloads=strip_attachment_payloads,
-                results=results
-            )
-
-            return results
-
-        raise IMAPError(error)
-    except socket.gaierror:
-        raise IMAPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise IMAPError("Connection refused")
-    except ConnectionResetError:
-        sleep_minutes = 5
-        logger.debug(
-            "Connection reset. "
-            "Waiting {0} minutes before trying again".format(sleep_minutes))
-        time.sleep(sleep_minutes * 60)
+    if not test and total_messages > 0:
+        # Process emails that came in during the last run
         results = get_dmarc_reports_from_inbox(
-            host=host,
-            user=user,
-            password=password,
-            connection=connection,
-            port=port,
-            ssl=ssl,
-            ssl_context=ssl_context,
-            move_supported=move_supported,
+            connection=server,
             reports_folder=reports_folder,
             archive_folder=archive_folder,
             delete=delete,
@@ -1308,15 +1055,56 @@ def get_dmarc_reports_from_inbox(host=None,
             results=results
         )
 
-        return results
-    except ConnectionAbortedError:
-        raise IMAPError("Connection aborted")
-    except TimeoutError:
-        raise IMAPError("Connection timed out")
-    except SSLError as error:
-        raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except CertificateError as error:
-        raise IMAPError("Certificate error: {0}".format(error.__str__()))
+    return results
+
+
+def watch_inbox(host, username, password, callback, port=None, ssl=True,
+                verify=True, reports_folder="INBOX",
+                archive_folder="Archive", delete=False, test=False,
+                idle_timeout=30, offline=False, nameservers=None,
+                dns_timeout=6.0, strip_attachment_payloads=False):
+    """
+    Use an IDLE IMAP connection to parse incoming emails, and pass the results
+    to a callback function
+    Args:
+        host: The mail server hostname or IP address
+        username: The mail server username
+        password: The mail server password
+        callback: The callback function to receive the parsing results
+        port: The mail server port
+        ssl (bool): Use SSL/TLS
+        verify (bool): Verify the TLS/SSL certificate
+        reports_folder: The IMAP folder where reports can be found
+        archive_folder: The folder to move processed mail to
+        delete (bool): Delete  messages after processing them
+        test (bool): Do not move or delete messages after processing them
+        idle_timeout (int): Number of seconds to wait for a IMAP IDLE response
+        offline (bool): Do not query online for geolocation or DNS
+        nameservers (list): A list of one or more nameservers to use
+        (Cloudflare's public DNS resolvers by default)
+        dns_timeout (float): Set the DNS query timeout
+        strip_attachment_payloads (bool): Replace attachment payloads in
+        forensic report samples with None
+    """
+    sa = strip_attachment_payloads
+
+    def idle_callback(connection):
+        res = get_dmarc_reports_from_inbox(connection=connection,
+                                           reports_folder=reports_folder,
+                                           archive_folder=archive_folder,
+                                           delete=delete,
+                                           test=test,
+                                           offline=offline,
+                                           nameservers=nameservers,
+                                           dns_timeout=dns_timeout,
+                                           strip_attachment_payloads=sa)
+        callback(res)
+
+    IMAPClient(host=host, username=username, password=password,
+               port=port, ssl=ssl, verify=verify,
+               initial_folder=reports_folder,
+               idle_callback=idle_callback,
+               idle_timeout=idle_timeout)
 
 
 def save_output(results, output_directory="output"):
@@ -1426,9 +1214,11 @@ def get_report_zip(results):
     return storage.getvalue()
 
 
-def email_results(results, host, mail_from, mail_to, port=0,
-                  ssl=False, user=None, password=None, subject=None,
-                  attachment_filename=None, message=None, ssl_context=None):
+def email_results(results, host, mail_from, mail_to,
+                  mail_cc=None, mail_bcc=None, port=0,
+                  require_encryption=False, verify=True,
+                  username=None, password=None, subject=None,
+                  attachment_filename=None, message=None):
     """
     Emails parsing results as a zip file
 
@@ -1436,15 +1226,17 @@ def email_results(results, host, mail_from, mail_to, port=0,
         results (OrderedDict): Parsing results
         host: Mail server hostname or IP address
         mail_from: The value of the message from header
-        mail_to : A list of addresses to mail to
+        mail_to (list): A list of addresses to mail to
+        mail_cc (list): A list of addresses to CC
+        mail_bcc (list): A list addresses to BCC
         port (int): Port to use
-        ssl (bool): Require a SSL connection from the start
-        user: An optional username
-        password: An optional password
-        subject: Overrides the default message subject
-        attachment_filename: Override the default attachment filename
-        message: Override the default plain text body
-        ssl_context: SSL context options
+        require_encryption (bool): Require a secure connection from the start
+        verify (bool): verify the SSL/TLS certificate
+        username (str): An optional username
+        password (str): An optional password
+        subject (str): Overrides the default message subject
+        attachment_filename (str): Override the default attachment filename
+        message (str: Override the default plain text body
     """
     logging.debug("Emailing report to: {0}".format(",".join(mail_to)))
     date_string = datetime.now().strftime("%Y-%m-%d")
@@ -1457,377 +1249,15 @@ def email_results(results, host, mail_from, mail_to, port=0,
 
     assert isinstance(mail_to, list)
 
-    msg = MIMEMultipart()
-    msg['From'] = mail_from
-    msg['To'] = ", ".join(mail_to)
-    msg['Date'] = email.utils.formatdate(localtime=True)
-    msg['Subject'] = subject or "DMARC results for {0}".format(date_string)
-    text = message or "Please see the attached zip file\n"
-
-    msg.attach(MIMEText(text))
-
+    if subject is None:
+        subject = "DMARC results for {0}".format(date_string)
+    if message is None:
+        message = "DMARC results for {0}".format(date_string)
     zip_bytes = get_report_zip(results)
-    part = MIMEApplication(zip_bytes, Name=filename)
+    attachments = [(filename, zip_bytes)]
 
-    part['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
-    msg.attach(part)
-
-    try:
-        if ssl_context is None:
-            ssl_context = create_default_context()
-        if ssl:
-            server = smtplib.SMTP_SSL(host, port=port, context=ssl_context)
-            server.connect(host, port)
-            server.ehlo_or_helo_if_needed()
-        else:
-            server = smtplib.SMTP(host, port=port)
-            server.connect(host, port)
-            server.ehlo_or_helo_if_needed()
-            if server.has_extn("starttls"):
-                server.starttls(context=ssl_context)
-                server.ehlo()
-            else:
-                logger.warning("SMTP server does not support STARTTLS. "
-                               "Proceeding in plain text!")
-        if user and password:
-            server.login(user, password)
-        server.sendmail(mail_from, mail_to, msg.as_string())
-    except smtplib.SMTPException as error:
-        error = error.__str__().lstrip("b'").rstrip("'").rstrip(".")
-        raise SMTPError(error)
-    except socket.gaierror:
-        raise SMTPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise SMTPError("Connection refused")
-    except ConnectionResetError:
-        raise SMTPError("Connection reset")
-    except ConnectionAbortedError:
-        raise SMTPError("Connection aborted")
-    except TimeoutError:
-        raise SMTPError("Connection timed out")
-    except SSLError as error:
-        raise SMTPError("SSL error: {0}".format(error.__str__()))
-    except CertificateError as error:
-        raise SMTPError("Certificate error: {0}".format(error.__str__()))
-
-
-def watch_inbox(host, username, password, callback, port=None, ssl=True,
-                ssl_context=None, reports_folder="INBOX",
-                archive_folder="Archive", delete=False, test=False, wait=30,
-                nameservers=None, dns_timeout=6.0,
-                strip_attachment_payloads=False):
-    """
-    Use an IDLE IMAP connection to parse incoming emails, and pass the results
-    to a callback function
-
-    Args:
-        host: The mail server hostname or IP address
-        username: The mail server username
-        password: The mail server password
-        callback: The callback function to receive the parsing results
-        port: The mail server port
-        ssl (bool): Use SSL/TLS
-        ssl_context (SSLContext): A SSL context
-        reports_folder: The IMAP folder where reports can be found
-        archive_folder: The folder to move processed mail to
-        delete (bool): Delete  messages after processing them
-        test (bool): Do not move or delete messages after processing them
-        wait (int): Number of seconds to wait for a IMAP IDLE response
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        dns_timeout (float): Set the DNS query timeout
-        strip_attachment_payloads (bool): Replace attachment payloads in
-        forensic report samples with None
-    """
-    rf = reports_folder
-    af = archive_folder
-    ns = nameservers
-    dt = dns_timeout
-    if ssl_context is None:
-        ssl_context = create_default_context()
-    server = imapclient.IMAPClient(host, port=port, ssl=ssl,
-                                   ssl_context=ssl_context,
-                                   use_uid=True)
-
-    try:
-        server.login(username, password)
-        imap_capabilities = get_imap_capabilities(server)
-        if "IDLE" not in imap_capabilities:
-            raise IMAPError("Cannot watch inbox: IMAP server does not support "
-                            "the IDLE command")
-
-        ms = "MOVE" in imap_capabilities
-        server.select_folder(rf)
-        idle_start_time = time.monotonic()
-        server.idle()
-
-    except imapclient.exceptions.IMAPClientError as error:
-        error = error.__str__().replace("b'", "").replace("'", "")
-        # Workaround for random Exchange/Office365 IMAP errors
-        if "unexpected response" in error or "BAD" in error:
-            sleep_minutes = 5
-            logger.debug(
-                "{0}. "
-                "Waiting {1} minutes before trying again".format(
-                    error,
-                    sleep_minutes))
-            logger.debug("Reconnecting watcher")
-            try:
-                server.logout()
-            except Exception as e:
-                logger.debug("Failed to log out: {0}".format(e.__str__()))
-            server = imapclient.IMAPClient(host)
-            server.login(username, password)
-            server.select_folder(rf)
-            idle_start_time = time.monotonic()
-            ms = "MOVE" in get_imap_capabilities(server)
-            sa = strip_attachment_payloads
-            res = get_dmarc_reports_from_inbox(connection=server,
-                                               move_supported=ms,
-                                               reports_folder=rf,
-                                               archive_folder=af,
-                                               delete=delete,
-                                               test=test,
-                                               nameservers=ns,
-                                               dns_timeout=dt,
-                                               strip_attachment_payloads=sa)
-            callback(res)
-            server.idle()
-        else:
-            raise IMAPError(error)
-    except socket.gaierror:
-        raise IMAPError("DNS resolution failed")
-    except ConnectionRefusedError:
-        raise IMAPError("Connection refused")
-    except ConnectionResetError:
-        logger.debug("IMAP error: Connection reset")
-        logger.debug("Reconnecting watcher")
-        try:
-            server.shutdown()
-        except Exception as e:
-            logger.debug("Failed to disconnect: {0}".format(e.__str__()))
-        server = imapclient.IMAPClient(host)
-        server.login(username, password)
-        server.select_folder(rf)
-        idle_start_time = time.monotonic()
-        ms = "MOVE" in get_imap_capabilities(server)
-        res = get_dmarc_reports_from_inbox(connection=server,
-                                           move_supported=ms,
-                                           reports_folder=rf,
-                                           archive_folder=af,
-                                           delete=delete,
-                                           test=test,
-                                           nameservers=ns,
-                                           dns_timeout=dt)
-        callback(res)
-        server.idle()
-    except KeyError:
-        logger.debug("IMAP error: Server returned unexpected result")
-        logger.debug("Reconnecting watcher")
-        try:
-            server.logout()
-        except Exception as e:
-            logger.debug("Failed to log out: {0}".format(e.__str__()))
-        server = imapclient.IMAPClient(host)
-        server.login(username, password)
-        server.select_folder(rf)
-        idle_start_time = time.monotonic()
-        ms = "MOVE" in get_imap_capabilities(server)
-        res = get_dmarc_reports_from_inbox(connection=server,
-                                           move_supported=ms,
-                                           reports_folder=rf,
-                                           archive_folder=af,
-                                           delete=delete,
-                                           test=test,
-                                           nameservers=ns,
-                                           dns_timeout=dt)
-        callback(res)
-        server.idle()
-    except ConnectionAbortedError:
-        raise IMAPError("Connection aborted")
-    except TimeoutError:
-        raise IMAPError("Connection timed out")
-    except SSLError as error:
-        raise IMAPError("SSL error: {0}".format(error.__str__()))
-    except CertificateError as error:
-        raise IMAPError("Certificate error: {0}".format(error.__str__()))
-    except BrokenPipeError:
-        logger.debug("IMAP error: Broken pipe")
-        logger.debug("Reconnecting watcher")
-        try:
-            server.shutdown()
-        except Exception as e:
-            logger.debug("Failed to disconnect: {0}".format(e.__str__()))
-        server = imapclient.IMAPClient(host)
-        server.login(username, password)
-        server.select_folder(rf)
-        idle_start_time = time.monotonic()
-        ms = "MOVE" in get_imap_capabilities(server)
-        res = get_dmarc_reports_from_inbox(connection=server,
-                                           move_supported=ms,
-                                           reports_folder=rf,
-                                           archive_folder=af,
-                                           delete=delete,
-                                           test=test,
-                                           nameservers=ns,
-                                           dns_timeout=dt)
-        callback(res)
-        server.idle()
-
-    while True:
-        try:
-            # Refresh the IDLE session every 5 minutes to stay connected
-            if time.monotonic() - idle_start_time > 5 * 60:
-                logger.debug("IMAP: Refreshing IDLE session")
-                server.idle_done()
-                server.idle()
-                idle_start_time = time.monotonic()
-            responses = server.idle_check(timeout=wait)
-            if responses is not None:
-                if len(responses) == 0:
-                    # Gmail/G-Suite does not generate anything in the responses
-                    server.idle_done()
-                    res = get_dmarc_reports_from_inbox(connection=server,
-                                                       move_supported=ms,
-                                                       reports_folder=rf,
-                                                       archive_folder=af,
-                                                       delete=delete,
-                                                       test=test,
-                                                       nameservers=ns,
-                                                       dns_timeout=dt)
-                    callback(res)
-                    server.idle()
-                    idle_start_time = time.monotonic()
-                for response in responses:
-                    logging.debug("Received response: {0}".format(response))
-                    if response[0] != 0 and response[1] == b'RECENT':
-                        server.idle_done()
-                        res = get_dmarc_reports_from_inbox(connection=server,
-                                                           move_supported=ms,
-                                                           reports_folder=rf,
-                                                           archive_folder=af,
-                                                           delete=delete,
-                                                           test=test,
-                                                           nameservers=ns,
-                                                           dns_timeout=dt)
-                        callback(res)
-                        server.idle()
-                        idle_start_time = time.monotonic()
-                        break
-        except imapclient.exceptions.IMAPClientError as error:
-            error = error.__str__().replace("b'", "").replace("'", "")
-            # Workaround for random Exchange/Office365 IMAP errors
-            if "unexpected response" in error or "BAD" in error:
-                sleep_minutes = 5
-                logger.debug(
-                    "{0}. "
-                    "Waiting {1} minutes before trying again".format(
-                        error,
-                        sleep_minutes))
-                logger.debug("Reconnecting watcher")
-                try:
-                    server.logout()
-                except Exception as e:
-                    logger.debug("Failed to disconnect: {0}".format(
-                        e.__str__()))
-                server = imapclient.IMAPClient(host)
-                server.login(username, password)
-                server.select_folder(rf)
-                idle_start_time = time.monotonic()
-                ms = "MOVE" in get_imap_capabilities(server)
-                res = get_dmarc_reports_from_inbox(connection=server,
-                                                   move_supported=ms,
-                                                   reports_folder=rf,
-                                                   archive_folder=af,
-                                                   delete=delete,
-                                                   test=test,
-                                                   nameservers=ns,
-                                                   dns_timeout=dt)
-                callback(res)
-                server.idle()
-            else:
-                raise IMAPError(error)
-        except socket.gaierror:
-            raise IMAPError("DNS resolution failed")
-        except ConnectionRefusedError:
-            raise IMAPError("Connection refused")
-        except (KeyError, socket.error, BrokenPipeError, ConnectionResetError):
-            logger.debug("IMAP error: Connection reset")
-            logger.debug("Reconnecting watcher")
-            try:
-                server.logout()
-            except Exception as e:
-                logger.debug("Failed to disconnect: {0}".format(e.__str__()))
-            server = imapclient.IMAPClient(host)
-            server.login(username, password)
-            server.select_folder(rf)
-            idle_start_time = time.monotonic()
-            ms = "MOVE" in get_imap_capabilities(server)
-            res = get_dmarc_reports_from_inbox(connection=server,
-                                               move_supported=ms,
-                                               reports_folder=rf,
-                                               archive_folder=af,
-                                               delete=delete,
-                                               test=test,
-                                               nameservers=ns,
-                                               dns_timeout=dt)
-            callback(res)
-            server.idle()
-        except KeyError:
-            logger.debug("IMAP error: Server returned unexpected result")
-            logger.debug("Reconnecting watcher")
-            try:
-                server.logout()
-            except Exception as e:
-                logger.debug("Failed to log out: {0}".format(e.__str__()))
-            server = imapclient.IMAPClient(host)
-            server.login(username, password)
-            server.select_folder(rf)
-            idle_start_time = time.monotonic()
-            ms = "MOVE" in get_imap_capabilities(server)
-            res = get_dmarc_reports_from_inbox(connection=server,
-                                               move_supported=ms,
-                                               reports_folder=rf,
-                                               archive_folder=af,
-                                               delete=delete,
-                                               test=test,
-                                               nameservers=ns,
-                                               dns_timeout=dt)
-            callback(res)
-            server.idle()
-        except ConnectionAbortedError:
-            raise IMAPError("Connection aborted")
-        except TimeoutError:
-            raise IMAPError("Connection timed out")
-        except SSLError as error:
-            raise IMAPError("SSL error: {0}".format(error.__str__()))
-        except CertificateError as error:
-            raise IMAPError("Certificate error: {0}".format(error.__str__()))
-        except BrokenPipeError:
-            logger.debug("IMAP error: Broken pipe")
-            logger.debug("Reconnecting watcher")
-            try:
-                server.shutdown()
-            except Exception as e:
-                logger.debug("Failed to disconnect: {0}".format(e.__str__()))
-            server = imapclient.IMAPClient(host)
-            server.login(username, password)
-            server.select_folder(rf)
-            idle_start_time = time.monotonic()
-            res = get_dmarc_reports_from_inbox(connection=server,
-                                               move_supported=ms,
-                                               reports_folder=rf,
-                                               archive_folder=af,
-                                               delete=delete,
-                                               test=test,
-                                               nameservers=ns,
-                                               dns_timeout=dt)
-            callback(res)
-            server.idle()
-        except KeyboardInterrupt:
-            break
-
-    try:
-        server.idle_done()
-    except BrokenPipeError:
-        pass
+    send_email(host, mail_from, mail_to, message_cc=mail_cc,
+               message_bcc=mail_bcc, port=port,
+               require_encryption=require_encryption, verify=verify,
+               username=username, password=password, subject=subject,
+               attachments=attachments, plain_message=message)
