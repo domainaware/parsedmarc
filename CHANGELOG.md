@@ -1,7 +1,7 @@
 6.5.0
 -----
 
-- Move mail processing functions to `mailsuite` package
+- Move mail processing functions to [`mailsuite`](https://seanthegeek.github.io/mailsuite/) package
 - Add offline option (closes issue #90)
 - Use UDP instead of TCP, and properly set the timeout when querying DNS (closes issue #79 and #92)
 - Log the current file path being processed when `--debug` is used (closes issue #95)
