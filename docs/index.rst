@@ -1486,10 +1486,6 @@ parsedmarc.elastic
 parsedmarc.splunk
 -----------------
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
 .. automodule:: parsedmarc.splunk
    :members:
 

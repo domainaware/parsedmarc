@@ -2,7 +2,10 @@
 -----
 
 - Move mail processing functions to `mailsuite` package
+- Add offline option (closes issue #90)
 - Properly set timeout when querying DNS (closes issue #79 and #92)
+- Log the current file path being processed when `--debug` is used (closes issue #95)
+
 
 6.4.2
 -----
