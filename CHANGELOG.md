@@ -1,10 +1,21 @@
+6.5.1
+-----
+
+- Merge PR #98 from michaeldavie
+  - Add functions
+    - `parsed_aggregate_reports_to_csv_row(reports)`
+    - `parsed_forensic_reports_to_csv_row(reports)` 
+
 6.5.0
 -----
 
-- Move mail processing functions to [`mailsuite`](https://seanthegeek.github.io/mailsuite/) package
+- Move mail processing functions to the
+  [`mailsuite`](https://seanthegeek.github.io/mailsuite/) package
 - Add offline option (closes issue #90)
-- Use UDP instead of TCP, and properly set the timeout when querying DNS (closes issue #79 and #92)
-- Log the current file path being processed when `--debug` is used (closes issue #95)
+- Use UDP instead of TCP, and properly set the timeout when querying DNS 
+  (closes issue #79 and #92)
+- Log the current file path being processed when `--debug` is used 
+  (closes issue #95)
 
 
 6.4.2
@@ -30,191 +41,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 
 6.3.7
 -----
-
-- Work around some unexpected IMAP responses reported in issue #75
-
-6.3.6
------
-
-- Work around some unexpected IMAP responses reported in issue #70
-- Show correct destination folder in debug logs when moving aggregate reports
-
-6.3.5
------
-
-- Normalize `Delivery-Result` value in forensic/failure reports (issue #76)
-  Thanks Freddie Leeman of URIports for the troubleshooting assistance
-
-6.3.4
------
-
-- Fix Elasticsearch index creation (closes issue #74)
-
-6.3.3
------
-
-- Set `number_of_shards` and `number_of_replicas` to `1` when creating indexes
-- Fix dependency conflict
-
-6.3.2
------
-
-- Fix the `monthly_indexes` option in the `elasticsearch` configuration section
-
-6.3.1
------
-
-- Fix `strip_attachment_payloads` option
-
-6.3.0
------
-
-- Fix IMAP IDLE response processing for some mail servers (#67)
-- Exit with a critical error when required settings are missing (#68)
-- XML parsing fixes (#69)
-- Add IMAP responses to debug logging
-- Add `smtp` option `skip_certificate_verification`
-- Add `kafka` option `skip_certificate_verification`
-- Suppress `mailparser` logging output
-- Suppress `msgconvert` warnings
-
-6.2.2
------
-
-- Fix crash when trying to save forensic reports with missing fields to Elasticsearch
-
-6.2.1
------
-
-- Add missing `tqdm` dependency to `setup.py`
-
-6.2.0
------
-
-- Add support for multi-process parallelized processing via CLI (Thanks zscholl - PR #62)
-- Save sha256 hashes of attachments in forensic samples to Elasticsearch
-
-6.1.8
------
-
-- Actually fix GeoIP lookups
-
-6.1.7
------
-
-- Fix GeoIP lookups
-
-6.1.6
------
-
-- Better GeoIP error handling
-
-6.1.5
------
-
-- Always use Cloudflare's nameservers by default instead of Google's
-- Avoid re-downloading the Geolite2 database (and tripping their DDoS protection)
-- Add `geoipupdate` to install instructions
-
-6.1.4
------
-
-- Actually package requirements
-
-6.1.3
------
-
-- Fix package requirements
-
-6.1.2
------
-
-- Use local Public Suffix List file instead of downloading it
-- Fix argument name for `send_email()` (closes issue #60)
-
-6.1.1
------
-
-- Fix aggregate report processing
-- Check for the existence of a configuration file if a path is supplied
-- Replace `publicsuffix` with `publicsuffix2`
-- Add minimum versions to requirements
-
-6.1.0
------
-
-- Fix aggregate report email parsing regression introduced in 6.0.3 (closes issue #57)
-- Fix Davmail support (closes issue #56)
-
-6.0.3
------
-
-- Don't assume the report is the last part of the email message (issue #55)
-
-6.0.2
-----
-
-- IMAP connectivity improvements (issue #53)
-- Use a temp directory for temp files (issue #54)
-
-6.0.1
------
-
-- Fix Elasticsearch output (PR #50 - andrewmcgilvray)
-
-6.0.0
------
-
-- Move options from CLI to a config file (see updated installation documentation)
-- Refactoring to make argument names consistent 
-
-5.3.0
------
-
-- Fix crash on invalid forensic report sample (Issue #47)
-- Fix DavMail support (Issue #45)
-
-5.2.1
------
-
-- Remove unnecessary debugging code
-
-5.2.0
------
-- Add filename and line number to logging output
-- Improved IMAP error handling  
-- Add CLI options
-  ```
-  --elasticsearch-use-ssl
-                        Use SSL when connecting to Elasticsearch
-  --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
-                        Path to the Elasticsearch SSL certificate
-  --elasticsearch-monthly-indexes
-                        Use monthly Elasticsearch indexes instead of daily
-                        indexes
-  --log-file LOG_FILE   output logging to a file
-  ```
-
-5.1.3
------
-
-- Remove `urllib3` version upper limit
-
-5.1.2
------
-
-- Workaround unexpected Office365/Exchange IMAP responses
-
-5.1.1
------
-
-- Bugfix: Crash when parsing invalid forensic report samples (#38)
-- Bugfix: Crash when IMAP connection is lost
-- Increase default Splunk HEC response timeout to 60 seconds
-
-5.1.0
------
-
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++g
 - Bugfix: Submit aggregate dates to Elasticsearch as lists, not tuples
 - Support `elasticsearch-dsl<=6.3.0`
 - Add support for TLS/SSL and username/password auth to Kafka 
