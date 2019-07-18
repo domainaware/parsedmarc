@@ -401,37 +401,26 @@ def parse_aggregate_report_file(_input, offline=False, nameservers=None,
                                       parallel=parallel)
 
 
-def parsed_aggregate_reports_to_csv(reports):
+def parsed_aggregate_reports_to_csv_rows(reports):
     """
-    Converts one or more parsed aggregate reports to flat CSV format, including
-    headers
+    Converts one or more parsed aggregate reports to list of dicts in flat CSV
+    format
 
     Args:
         reports: A parsed aggregate report or list of parsed aggregate reports
 
     Returns:
-        str: Parsed aggregate report data in flat CSV format, including headers
+        list: Parsed aggregate report data as a list of dicts in flat CSV
+        format
     """
 
     def to_str(obj):
         return str(obj).lower()
 
-    fields = ["xml_schema", "org_name", "org_email",
-              "org_extra_contact_info", "report_id", "begin_date", "end_date",
-              "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
-              "source_ip_address", "source_country", "source_reverse_dns",
-              "source_base_domain", "count", "disposition", "dkim_alignment",
-              "spf_alignment", "policy_override_reasons",
-              "policy_override_comments", "envelope_from", "header_from",
-              "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
-              "spf_domains", "spf_scopes", "spf_results"]
-
-    csv_file_object = StringIO(newline="\n")
-    writer = DictWriter(csv_file_object, fields)
-    writer.writeheader()
-
     if type(reports) == OrderedDict:
         reports = [reports]
+
+    rows = []
 
     for report in reports:
         xml_schema = report["xml_schema"]
@@ -504,9 +493,42 @@ def parsed_aggregate_reports_to_csv(reports):
             row["spf_domains"] = ",".join(map(to_str, spf_domains))
             row["spf_scopes"] = ",".join(map(to_str, spf_scopes))
             row["spf_results"] = ",".join(map(to_str, dkim_results))
+            rows.append(row)
 
-            writer.writerow(row)
-            csv_file_object.flush()
+    return rows
+
+
+def parsed_aggregate_reports_to_csv(reports):
+    """
+    Converts one or more parsed aggregate reports to flat CSV format, including
+    headers
+
+    Args:
+        reports: A parsed aggregate report or list of parsed aggregate reports
+
+    Returns:
+        str: Parsed aggregate report data in flat CSV format, including headers
+    """
+
+    fields = ["xml_schema", "org_name", "org_email",
+              "org_extra_contact_info", "report_id", "begin_date", "end_date",
+              "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
+              "source_ip_address", "source_country", "source_reverse_dns",
+              "source_base_domain", "count", "disposition", "dkim_alignment",
+              "spf_alignment", "policy_override_reasons",
+              "policy_override_comments", "envelope_from", "header_from",
+              "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
+              "spf_domains", "spf_scopes", "spf_results"]
+
+    csv_file_object = StringIO(newline="\n")
+    writer = DictWriter(csv_file_object, fields)
+    writer.writeheader()
+
+    rows = parsed_aggregate_reports_to_csv_rows(reports)
+
+    for row in rows:
+        writer.writerow(row)
+        csv_file_object.flush()
 
     return csv_file_object.getvalue()
 
@@ -630,30 +652,22 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             "Unexpected error: {0}".format(error.__str__()))
 
 
-def parsed_forensic_reports_to_csv(reports):
+def parsed_forensic_reports_to_csv_rows(reports):
     """
-    Converts one or more parsed forensic reports to flat CSV format, including
-    headers
+    Converts one or more parsed forensic reports to a list of dicts in flat CSV
+    format
 
     Args:
         reports: A parsed forensic report or list of parsed forensic reports
 
     Returns:
-        str: Parsed forensic report data in flat CSV format, including headers
-        """
-    fields = ["feedback_type", "user_agent", "version", "original_envelope_id",
-              "original_mail_from", "original_rcpt_to", "arrival_date",
-              "arrival_date_utc", "subject", "message_id",
-              "authentication_results", "dkim_domain", "source_ip_address",
-              "source_country", "source_reverse_dns", "source_base_domain",
-              "delivery_result", "auth_failure", "reported_domain",
-              "authentication_mechanisms", "sample_headers_only"]
-
+        list: Parsed forensic report data as a list of dicts in flat CSV format
+    """
     if type(reports) == OrderedDict:
         reports = [reports]
-    csv_file = StringIO()
-    csv_writer = DictWriter(csv_file, fieldnames=fields)
-    csv_writer.writeheader()
+
+    rows = []
+
     for report in reports:
         row = report.copy()
         row["source_ip_address"] = report["source"]["ip_address"]
@@ -668,6 +682,37 @@ def parsed_forensic_reports_to_csv(reports):
             authentication_mechanisms)
         del row["sample"]
         del row["parsed_sample"]
+        rows.append(row)
+
+    return rows
+
+
+def parsed_forensic_reports_to_csv(reports):
+    """
+    Converts one or more parsed forensic reports to flat CSV format, including
+    headers
+
+    Args:
+        reports: A parsed forensic report or list of parsed forensic reports
+
+    Returns:
+        str: Parsed forensic report data in flat CSV format, including headers
+    """
+    fields = ["feedback_type", "user_agent", "version", "original_envelope_id",
+              "original_mail_from", "original_rcpt_to", "arrival_date",
+              "arrival_date_utc", "subject", "message_id",
+              "authentication_results", "dkim_domain", "source_ip_address",
+              "source_country", "source_reverse_dns", "source_base_domain",
+              "delivery_result", "auth_failure", "reported_domain",
+              "authentication_mechanisms", "sample_headers_only"]
+
+    csv_file = StringIO()
+    csv_writer = DictWriter(csv_file, fieldnames=fields)
+    csv_writer.writeheader()
+
+    rows = parsed_forensic_reports_to_csv_rows(reports)
+
+    for row in rows:
         csv_writer.writerow(row)
 
     return csv_file.getvalue()
