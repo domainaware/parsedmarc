@@ -41,7 +41,6 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 
 6.3.7
 -----
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++g
 - Bugfix: Submit aggregate dates to Elasticsearch as lists, not tuples
 - Support `elasticsearch-dsl<=6.3.0`
 - Add support for TLS/SSL and username/password auth to Kafka 
