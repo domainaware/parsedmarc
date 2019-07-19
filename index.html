@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.5.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.5.1 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.5.0
+                6.5.1
               </div>
             
           
@@ -1904,6 +1904,25 @@ headers</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="parsedmarc.parsed_aggregate_reports_to_csv_rows">
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts one or more parsed aggregate reports to list of dicts in flat CSV
+format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reports</strong> – A parsed aggregate report or list of parsed aggregate reports</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parsed aggregate report data as a list of dicts in flat CSV
+format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="parsedmarc.parsed_forensic_reports_to_csv">
 <code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed forensic reports to flat CSV format, including
@@ -1917,6 +1936,24 @@ headers</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.parsed_forensic_reports_to_csv_rows">
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts one or more parsed forensic reports to a list of dicts in flat CSV
+format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reports</strong> – A parsed forensic report or list of parsed forensic reports</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parsed forensic report data as a list of dicts in flat CSV format</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
