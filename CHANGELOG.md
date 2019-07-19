@@ -5,6 +5,7 @@
   - Add functions
     - `parsed_aggregate_reports_to_csv_row(reports)`
     - `parsed_forensic_reports_to_csv_row(reports)` 
+- Require `dnspython>=1.16.0`
 
 6.5.0
 -----
