@@ -447,7 +447,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
                            adkim=adkim, aspf=aspf, p=p, sp=sp, pct=pct, fo=fo)
 
         for record in report["records"]:
-            row = report_dict
+            row = report_dict.copy()
             row["source_ip_address"] = record["source"]["ip_address"]
             row["source_country"] = record["source"]["country"]
             row["source_reverse_dns"] = record["source"]["reverse_dns"]
