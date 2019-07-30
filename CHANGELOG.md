@@ -1,3 +1,16 @@
+6.5.2
+-----
+
+- Merge PR #100 from michaeldavie
+  - Correct a bug introduced in 6.5.1 that caused only the last record's data
+  to be used for each row in an aggregate report's CSV version.
+- Use `mailsuite` 1.1.0 to fix issues with some IMAP servers (closes issue 103)
+  - Always use ``/`` as the folder hierarchy separator, and convert to the
+  server's hierarchy separator in the background
+  - Always remove folder name characters that conflict with the server's
+  hierarchy separators
+  - Prepend the namespace to the folder path when required
+
 6.5.1
 -----
 
