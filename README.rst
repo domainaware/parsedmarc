@@ -73,7 +73,7 @@ CLI help
     optional arguments:
       -h, --help            show this help message and exit
       -c CONFIG_FILE, --config-file CONFIG_FILE
-                            A path to a configuration file (--silent implied)
+                            a path to a configuration file (--silent implied)
       --strip-attachment-payloads
                             remove attachment payloads from forensic report output
       -o OUTPUT, --output OUTPUT
@@ -84,7 +84,7 @@ CLI help
       -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                             number of seconds to wait for an answer from DNS
                             (default: 2.0)
-      --offline             Do not make online queries for geolocation or DNS
+      --offline             do not make online queries for geolocation or DNS
       -s, --silent          only print errors and warnings
       --debug               print debugging information
       --log-file LOG_FILE   output logging to a file

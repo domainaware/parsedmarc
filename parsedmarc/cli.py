@@ -148,7 +148,7 @@ def _main():
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("-c", "--config-file",
-                            help="A path to a configuration file "
+                            help="a path to a configuration file "
                                  "(--silent implied)")
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
@@ -168,7 +168,7 @@ def _main():
                             type=float,
                             default=2.0)
     arg_parser.add_argument("--offline", action="store_true",
-                            help="Do not make online queries for geolocation "
+                            help="do not make online queries for geolocation "
                                  " or  DNS")
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors and warnings")
@@ -592,7 +592,7 @@ def _main():
                           password=opts.smtp_password,
                           subject=opts.smtp_subject)
         except Exception as error:
-            logger.error("S{0}".format(error.__str__()))
+            logger.error("{0}".format(error.__str__()))
             exit(1)
 
     if opts.imap_host and opts.imap_watch:

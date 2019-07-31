@@ -1,3 +1,9 @@
+6.5.3
+-----
+
+- Fix typos in the CLI documentation
+- Bump required `mailsuite` version to `1.1.1`
+
 6.5.2
 -----
 
