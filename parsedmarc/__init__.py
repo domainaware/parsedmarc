@@ -894,6 +894,60 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     return results
 
 
+def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
+                                strip_attachment_payloads=False,
+                                offline=False, parallel=False):
+    """Parses a mailbox in mbox format containing e-mails with attached
+    DMARC reports
+
+    Args:
+        input_: A path to a mbox file
+        nameservers (list): A list of one or more nameservers to use
+        (Cloudflare's public DNS resolvers by default)
+        dns_timeout (float): Sets the DNS timeout in seconds
+        strip_attachment_payloads (bool): Remove attachment payloads from
+        forensic report results
+        offline (bool): Do not make online queries for geolocation or DNS
+        parallel (bool): Parallel processing
+
+    Returns:
+        OrderedDict: Lists of  ``aggregate_reports`` and ``forensic_reports``
+
+    """
+    import mailbox
+    aggregate_reports = []
+    forensic_reports = []
+    try:
+        mbox = mailbox.mbox(input_)
+        message_keys = mbox.keys()
+        total_messages = len(message_keys)
+        logger.debug("Found {0} messages in {1}".format(total_messages, input_))
+        for i in range(len(message_keys)):
+            message_key = message_keys[i]
+            logger.debug("Processing message {0} of {1}".format(
+                i+1, total_messages
+            ))
+            msg_content = mbox.get_string(message_key)
+            try:
+                parsed_email = parse_report_email(msg_content,
+                                                  offline=offline,
+                                                  nameservers=nameservers,
+                                                  dns_timeout=dns_timeout,
+                                                  strip_attachment_payloads=\
+                                                  strip_attachment_payloads,
+                                                  parallel=parallel)
+                if parsed_email["report_type"] == "aggregate":
+                    aggregate_reports.append(parsed_email["report"])
+                elif parsed_email["report_type"] == "forensic":
+                    forensic_reports.append(parsed_email["report"])
+            except InvalidDMARCReport as error:
+                logger.warning(error.__str__())
+    except mailbox.NoSuchMailboxError:
+        raise InvalidDMARCReport("Mailbox {0} does not exist".format(input_))
+    return OrderedDict([("aggregate_reports", aggregate_reports),
+                        ("forensic_reports", forensic_reports)])
+
+
 def get_imap_capabilities(server):
     """
     Returns a list of an IMAP server's capabilities
