@@ -921,7 +921,8 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
         mbox = mailbox.mbox(input_)
         message_keys = mbox.keys()
         total_messages = len(message_keys)
-        logger.debug("Found {0} messages in {1}".format(total_messages, input_))
+        logger.debug("Found {0} messages in {1}".format(total_messages,
+                                                        input_))
         for i in range(len(message_keys)):
             message_key = message_keys[i]
             logger.debug("Processing message {0} of {1}".format(
@@ -929,12 +930,12 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
             ))
             msg_content = mbox.get_string(message_key)
             try:
+                sa = strip_attachment_payloads
                 parsed_email = parse_report_email(msg_content,
                                                   offline=offline,
                                                   nameservers=nameservers,
                                                   dns_timeout=dns_timeout,
-                                                  strip_attachment_payloads=\
-                                                  strip_attachment_payloads,
+                                                  strip_attachment_payloads=sa,
                                                   parallel=parallel)
                 if parsed_email["report_type"] == "aggregate":
                     aggregate_reports.append(parsed_email["report"])

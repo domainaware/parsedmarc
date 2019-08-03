@@ -548,7 +548,7 @@ def _main():
                                               opts.offline, False)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
-                
+
     if opts.imap_host:
         try:
             if opts.imap_user is None or opts.imap_password is None:
