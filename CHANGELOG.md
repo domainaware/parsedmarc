@@ -1,3 +1,8 @@
+6.5.4
+-----
+
+- Bump required `mailsuite` version to `1.2.1`
+
 6.5.3
 -----
 
