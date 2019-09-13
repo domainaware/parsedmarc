@@ -117,7 +117,7 @@ def get_base_domain(domain, use_fresh_psl=False):
 
         return psl.get_public_suffix(domain)
     else:
-        return publicsuffix2.get_public_suffix(domain)
+        return publicsuffix2.get_sld(domain)
 
 
 def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):

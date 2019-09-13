@@ -1,3 +1,8 @@
+6.5.5
+-----
+
+- Set set minimum `publicsuffix2` version
+
 6.5.4
 -----
 
