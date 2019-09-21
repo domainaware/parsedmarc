@@ -17,8 +17,8 @@ import time
 from tqdm import tqdm
 
 from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
-    parse_report_file, elastic, kafkaclient, splunk, save_output, \
-    email_results, ParserError, __version__, \
+    parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
+    splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport
 
 logger = logging.getLogger("parsedmarc")
@@ -152,7 +152,8 @@ def _main():
                                  "(--silent implied)")
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
-                                 "report files or emails")
+                                 "report files or emails; prepend "
+                                 "mailboxes with 'mbox:' ")
     strip_attachment_help = "remove attachment payloads from forensic " \
                             "report output"
     arg_parser.add_argument("--strip-attachment-payloads",
@@ -501,9 +502,15 @@ def _main():
     kafka_forensic_topic = opts.kafka_forensic_topic
 
     file_paths = []
+    mbox_paths = []
     for file_path in args.file_path:
-        file_paths += glob(file_path)
+        if not file_path.startswith("mbox:"):
+            file_paths += glob(file_path)
+        else:
+            mbox_paths += glob(file_path[5:])
+
     file_paths = list(set(file_paths))
+    mbox_paths = list(set(mbox_paths))
 
     counter = Value('i', 0)
     pool = Pool(opts.n_procs, initializer=init, initargs=(counter,))
@@ -533,6 +540,14 @@ def _main():
                 aggregate_reports.append(result[0]["report"])
             elif result[0]["report_type"] == "forensic":
                 forensic_reports.append(result[0]["report"])
+
+    for mbox_path in mbox_paths:
+        reports = get_dmarc_reports_from_mbox(mbox_path, opts.nameservers,
+                                              opts.dns_timeout,
+                                              opts.strip_attachment_payloads,
+                                              opts.offline, False)
+        aggregate_reports += reports["aggregate_reports"]
+        forensic_reports += reports["forensic_reports"]
 
     if opts.imap_host:
         try:
