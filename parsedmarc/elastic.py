@@ -169,7 +169,7 @@ class AlreadySaved(ValueError):
     """Raised when a report to be saved matches an existing report"""
 
 
-def set_hosts(hosts, use_ssl=False, ssl_cert_path=None):
+def set_hosts(hosts, use_ssl=False, ssl_cert_path=None, timeout=60.0):
     """
     Sets the Elasticsearch hosts to use
 
@@ -177,12 +177,13 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None):
         hosts (str): A single hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use a HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
+        timeout (float): Timeout in seconds
     """
     if type(hosts) != list:
         hosts = [hosts]
     conn_params = {
         "hosts": hosts,
-        "timeout": 20
+        "timeout": timeout
     }
     if use_ssl:
         conn_params['use_ssl'] = True

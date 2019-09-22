@@ -19,6 +19,7 @@ import binascii
 import email
 import tempfile
 import email.utils
+import mailbox
 
 import mailparser
 from expiringdict import ExpiringDict
@@ -31,7 +32,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.5.4"
+__version__ = "6.6.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -914,7 +915,6 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
         OrderedDict: Lists of  ``aggregate_reports`` and ``forensic_reports``
 
     """
-    import mailbox
     aggregate_reports = []
     forensic_reports = []
     try:
