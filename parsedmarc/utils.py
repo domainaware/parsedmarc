@@ -422,6 +422,20 @@ def get_filename_safe_string(string):
     return string
 
 
+def is_mbox(content):
+    """
+    Checks if the given content is a MBOX mailbox file
+
+    Args:
+        content: Content to check
+
+    Returns:
+        bool: A flag the indicates if a file is a MBOX mailbox file
+    """
+    return type(content) == bytes and content.startswith(
+        b"\xD0\x0D\xBB\xAD")
+
+
 def is_outlook_msg(content):
     """
     Checks if the given content is a Outlook msg OLE file
