@@ -4,7 +4,7 @@
 - Set a configurable default IMAP timeout of 30 seconds
 - Set a configurable maximum of 4 IMAP timeout retry attempts
 - Add support for reading ``MBOX`` files
-- Set a configurable elasticsearch timeout of 60 seconds
+- Set a configurable Elasticsearch timeout of 60 seconds
 
 6.5.5
 -----
