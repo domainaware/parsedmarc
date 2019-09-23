@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.5.4 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.6.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.5.4
+                6.6.0
               </div>
             
           
@@ -165,6 +165,7 @@
 <span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">atexit</span>
+<span class="kn">import</span> <span class="nn">mailbox</span>
 
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
@@ -569,6 +570,27 @@
     <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">string</span></div>
+
+
+<div class="viewcode-block" id="is_mbox"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.is_mbox">[docs]</a><span class="k">def</span> <span class="nf">is_mbox</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks if the given content is a MBOX mailbox file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Content to check</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: A flag the indicates if a file is a MBOX mailbox file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_is_mbox</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">mbox</span> <span class="o">=</span> <span class="n">mailbox</span><span class="o">.</span><span class="n">mbox</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mbox</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">_is_mbox</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Error checking for MBOX file: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+
+    <span class="k">return</span> <span class="n">_is_mbox</span></div>
 
 
 <div class="viewcode-block" id="is_outlook_msg"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.is_outlook_msg">[docs]</a><span class="k">def</span> <span class="nf">is_outlook_msg</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>

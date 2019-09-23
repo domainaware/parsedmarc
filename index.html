@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.5.4 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.6.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.5.4
+                6.6.0
               </div>
             
           
@@ -356,6 +356,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_retries</span></code> - int: The maximum number of retries after a timeout</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The IMAP folder where the incoming reports can be found (Default: INBOX)</p></li>
@@ -377,6 +379,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when creating the index (Default: 1)</p></li>
@@ -1690,7 +1693,7 @@ or bytes.</p>
 
 <dl class="function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em class="sig-param">connection=None</em>, <em class="sig-param">host=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">password=None</em>, <em class="sig-param">port=None</em>, <em class="sig-param">ssl=True</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">reports_folder='INBOX'</em>, <em class="sig-param">archive_folder='Archive'</em>, <em class="sig-param">delete=False</em>, <em class="sig-param">test=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=6.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">results=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em class="sig-param">connection=None</em>, <em class="sig-param">host=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">password=None</em>, <em class="sig-param">port=None</em>, <em class="sig-param">ssl=True</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">timeout=30</em>, <em class="sig-param">max_retries=4</em>, <em class="sig-param">reports_folder='INBOX'</em>, <em class="sig-param">archive_folder='Archive'</em>, <em class="sig-param">delete=False</em>, <em class="sig-param">test=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=6.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">results=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from an inbox</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1702,6 +1705,8 @@ or bytes.</p>
 <li><p><strong>port</strong> – The mail server port</p></li>
 <li><p><strong>ssl</strong> (<em>bool</em>) – Use SSL/TLS</p></li>
 <li><p><strong>verify</strong> (<em>bool</em>) – Verify SSL/TLS certificate</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – IMAP timeout in seconds</p></li>
+<li><p><strong>max_retries</strong> (<em>int</em>) – The maximum number of retries after a timeout</p></li>
 <li><p><strong>reports_folder</strong> – The IMAP folder where reports can be found</p></li>
 <li><p><strong>archive_folder</strong> – The folder to move processed mail to</p></li>
 <li><p><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</p></li>
@@ -1716,6 +1721,33 @@ or bytes.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Lists of <code class="docutils literal notranslate"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal notranslate"><span class="pre">forensic_reports</span></code></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>OrderedDict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.get_dmarc_reports_from_mbox">
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_mbox</code><span class="sig-paren">(</span><em class="sig-param">input_</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a mailbox in mbox format containing e-mails with attached
+DMARC reports</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_</strong> – A path to a mbox file</p></li>
+<li><p><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</p></li>
+<li><p><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </p></li>
+<li><p><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
+<li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</p></li>
+<li><p><strong>report results</strong> (<em>forensic</em>) – </p></li>
+<li><p><strong>offline</strong> (<em>bool</em>) – Do not make online queries for geolocation or DNS</p></li>
+<li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Lists of  <code class="docutils literal notranslate"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal notranslate"><span class="pre">forensic_reports</span></code></p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
@@ -2092,7 +2124,7 @@ index</p></li>
 
 <dl class="function">
 <dt id="parsedmarc.elastic.set_hosts">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param">hosts</em>, <em class="sig-param">use_ssl=False</em>, <em class="sig-param">ssl_cert_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param">hosts</em>, <em class="sig-param">use_ssl=False</em>, <em class="sig-param">ssl_cert_path=None</em>, <em class="sig-param">timeout=60.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2100,6 +2132,7 @@ index</p></li>
 <li><p><strong>hosts</strong> (<em>str</em>) – A single hostname or URL, or list of hostnames or URLs</p></li>
 <li><p><strong>use_ssl</strong> (<em>bool</em>) – Use a HTTPS connection to the server</p></li>
 <li><p><strong>ssl_cert_path</strong> (<em>str</em>) – Path to the certificate chain</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Timeout in seconds</p></li>
 </ul>
 </dd>
 </dl>
@@ -2344,6 +2377,23 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="parsedmarc.utils.is_mbox">
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_mbox</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the given content is a MBOX mailbox file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – Content to check</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A flag the indicates if a file is a MBOX mailbox file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>

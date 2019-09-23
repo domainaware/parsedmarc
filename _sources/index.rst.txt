@@ -153,6 +153,8 @@ The full set of configuration options are:
     - ``port`` - int: The IMAP server port (Default: 993)
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``timeout`` - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)
+    - ``max_retries`` - int: The maximum number of retries after a timeout
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
@@ -167,6 +169,7 @@ The full set of configuration options are:
          Special characters in the username or password must be `URL encoded`_.
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
+    - ``timeout`` - float: Timeout in seconds (Default: 60)
     - ``index_suffix`` - str: A suffix to apply to the index names
     - ``monthly_indexes`` - bool: Use monthly indexes instead of daily indexes
     - ``number_of_shards`` - int: The number of shards to use when creating the index (Default: 1)
