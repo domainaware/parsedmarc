@@ -1,3 +1,8 @@
+6.6.1
+-----
+
+- Close files after reading them
+
 6.6.0
 -----
 

@@ -32,7 +32,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.6.0"
+__version__ = "6.6.1"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -872,6 +872,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         file_object = input_
 
     content = file_object.read()
+    file_object.close()
     try:
         report = parse_aggregate_report_file(content,
                                              offline=offline,
