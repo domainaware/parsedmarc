@@ -16,7 +16,6 @@ import hashlib
 import base64
 import platform
 import atexit
-import io
 import mailbox
 
 import dateparser
