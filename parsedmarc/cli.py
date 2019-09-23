@@ -20,6 +20,7 @@ from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport
+from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
 
@@ -152,8 +153,7 @@ def _main():
                                  "(--silent implied)")
     arg_parser.add_argument("file_path", nargs="*",
                             help="one or more paths to aggregate or forensic "
-                                 "report files or emails; prepend "
-                                 "mailboxes with 'mbox:' ")
+                                 "report files, emails, or mbox files'")
     strip_attachment_help = "remove attachment payloads from forensic " \
                             "report output"
     arg_parser.add_argument("--strip-attachment-payloads",
@@ -199,6 +199,8 @@ def _main():
                      imap_skip_certificate_verification=False,
                      imap_ssl=True,
                      imap_port=993,
+                     imap_timeout=30,
+                     imap_max_retries=4,
                      imap_user=None,
                      imap_password=None,
                      imap_reports_folder="INBOX",
@@ -211,6 +213,7 @@ def _main():
                      hec_index=None,
                      hec_skip_certificate_verification=False,
                      elasticsearch_hosts=None,
+                     elasticsearch_timeout=60,
                      elasticsearch_number_of_shards=1,
                      elasticsearch_number_of_replicas=1,
                      elasticsearch_index_suffix=None,
@@ -284,7 +287,11 @@ def _main():
                              "imap config section")
                 exit(-1)
             if "port" in imap_config:
-                opts.imap_port = imap_config["port"]
+                opts.imap_port = imap_config.getint("port")
+            if "timeout" in imap_config:
+                opts.imap_timeout = imap_config.getfloat("timeout")
+            if "max_retries" in imap_config:
+                opts.imap_port = imap_config.getint("max_retries")
             if "ssl" in imap_config:
                 opts.imap_ssl = imap_config.getboolean("ssl")
             if "skip_certificate_verification" in imap_config:
@@ -323,6 +330,9 @@ def _main():
                 logger.critical("hosts setting missing from the "
                                 "elasticsearch config section")
                 exit(-1)
+            if "timeout" in elasticsearch_config:
+                timeout = elasticsearch_config.getfloat("timeout")
+                opts.elasticsearch_timeout = timeout
             if "number_of_shards" in elasticsearch_config:
                 number_of_shards = elasticsearch_config.getint(
                     "number_of_shards")
@@ -478,7 +488,8 @@ def _main():
                         es_forensic_index, suffix)
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
-                                  opts.elasticsearch_ssl_cert_path)
+                                  opts.elasticsearch_ssl_cert_path,
+                                  timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:
@@ -503,14 +514,18 @@ def _main():
 
     file_paths = []
     mbox_paths = []
+
     for file_path in args.file_path:
-        if not file_path.startswith("mbox:"):
-            file_paths += glob(file_path)
-        else:
-            mbox_paths += glob(file_path[5:])
+        file_paths += glob(file_path)
+    for file_path in file_paths:
+        if is_mbox(file_path):
+            mbox_paths.append(file_path)
 
     file_paths = list(set(file_paths))
     mbox_paths = list(set(mbox_paths))
+
+    for mbox_path in mbox_paths:
+        file_paths.remove(mbox_path)
 
     counter = Value('i', 0)
     pool = Pool(opts.n_procs, initializer=init, initargs=(counter,))
@@ -566,19 +581,22 @@ def _main():
                 verify = False
             if opts.imap_ssl is False:
                 ssl = False
-            reports = get_dmarc_reports_from_inbox(host=opts.imap_host,
-                                                   port=opts.imap_port,
-                                                   ssl=ssl,
-                                                   verify=verify,
-                                                   user=opts.imap_user,
-                                                   password=opts.imap_password,
-                                                   reports_folder=rf,
-                                                   archive_folder=af,
-                                                   delete=opts.imap_delete,
-                                                   offline=opts.offline,
-                                                   nameservers=ns,
-                                                   test=opts.imap_test,
-                                                   strip_attachment_payloads=sa
+            reports = get_dmarc_reports_from_inbox(
+                host=opts.imap_host,
+                port=opts.imap_port,
+                ssl=ssl,
+                verify=verify,
+                timeout=opts.imap_timeout,
+                max_retries=opts.imap_max_retries,
+                user=opts.imap_user,
+                password=opts.imap_password,
+                reports_folder=rf,
+                archive_folder=af,
+                delete=opts.imap_delete,
+                offline=opts.offline,
+                nameservers=ns,
+                test=opts.imap_test,
+                strip_attachment_payloads=sa
                                                    )
 
             aggregate_reports += reports["aggregate_reports"]

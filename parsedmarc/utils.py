@@ -16,6 +16,8 @@ import hashlib
 import base64
 import platform
 import atexit
+import io
+import mailbox
 
 import dateparser
 import dns.reversename
@@ -422,18 +424,25 @@ def get_filename_safe_string(string):
     return string
 
 
-def is_mbox(content):
+def is_mbox(path):
     """
     Checks if the given content is a MBOX mailbox file
 
     Args:
-        content: Content to check
+        path: Content to check
 
     Returns:
         bool: A flag the indicates if a file is a MBOX mailbox file
     """
-    return type(content) == bytes and content.startswith(
-        b"\xD0\x0D\xBB\xAD")
+    _is_mbox = False
+    try:
+        mbox = mailbox.mbox(path)
+        if len(mbox.keys()) > 0:
+            _is_mbox = True
+    except Exception as e:
+        logger.debug("Error checking for MBOX file: {0}".format(e.__str__()))
+
+    return _is_mbox
 
 
 def is_outlook_msg(content):

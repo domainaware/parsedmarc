@@ -976,6 +976,8 @@ def get_dmarc_reports_from_inbox(connection=None,
                                  port=None,
                                  ssl=True,
                                  verify=True,
+                                 timeout=30,
+                                 max_retries=4,
                                  reports_folder="INBOX",
                                  archive_folder="Archive",
                                  delete=False,
@@ -996,6 +998,8 @@ def get_dmarc_reports_from_inbox(connection=None,
         port: The mail server port
         ssl (bool): Use SSL/TLS
         verify (bool): Verify SSL/TLS certificate
+        timeout (float): IMAP timeout in seconds
+        max_retries (int): The maximum number of retries after a timeout
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -1034,6 +1038,8 @@ def get_dmarc_reports_from_inbox(connection=None,
     else:
         server = IMAPClient(host, user, password, port=port,
                             ssl=ssl, verify=verify,
+                            timeout=timeout,
+                            max_retries=max_retries,
                             initial_folder=reports_folder)
 
     server.create_folder(archive_folder)
