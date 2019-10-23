@@ -38,11 +38,12 @@
       <title>Forensic samples</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | fillnull value="none" | stats count by arrival_date_utc,parsed_sample.headers.From,parsed_sample.headers.To,parsed_sample.headers.Reply-To,parsed_sample.headers.Subject | sort -arrival_date_utc</query>
+          <query>index="email" sourcetype="dmarc:forensic" | spath "parsed_sample.from.address" | search "parsed_sample.from.address"=$header_from$ | spath "parsed_sample.to{}.address" | search "parsed_sample.to{}.address"=$header_to$ | spath "parsed_sample.subject" | search "parsed_sample.subject"=$header_subject$ | spath "source.ip_address" | search "source.ip_address"=$source_ip_address$ | spath "source.reverse_dns" | search "source.reverse_dns"=$source_reverse_dns$| spath "source.country" | search "source.country"=$source_country$ | fillnull value="none" | stats count by arrival_date_utc, parsed_sample.from.address, parsed_sample.to{}.address, parsed_sample.subject  | sort -arrival_date_utc</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
         <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
         <option name="totalsRow">false</option>
         <format type="number" field="count">
           <option name="precision">0</option>
@@ -55,7 +56,7 @@
       <title>Forensic samples by country</title>
       <map>
         <search>
-          <query>index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | iplocation source.ip_address | stats count by Country | geom geo_countries featureIdField="Country"</query>
+          <query>index="email" sourcetype="dmarc:forensic" | spath "parsed_sample.from.address" | search "parsed_sample.from.address"=$header_from$ | spath "parsed_sample.to{}.address" | search "parsed_sample.to{}.address"=$header_to$ | spath "parsed_sample.subject" | search "parsed_sample.subject"=$header_subject$ | spath "source.ip_address" | search "source.ip_address"=$source_ip_address$ | spath "source.reverse_dns" | search "source.reverse_dns"=$source_reverse_dns$| spath "source.country" | search "source.country"=$source_country$ | iplocation source.ip_address | stats count by Country | geom geo_countries featureIdField="Country"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -70,7 +71,7 @@
       <title>Forensic samples by IP address</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:forensic" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | fillnull value="none" | iplocation source.ip_address | stats count by source.ip_address,source.reverse_dns,Country | sort -count</query>
+          <query>index="email" sourcetype="dmarc:forensic" sourcetype="dmarc:forensic" | spath "parsed_sample.from.address" | search "parsed_sample.from.address"=$header_from$ | spath "parsed_sample.to{}.address" | search "parsed_sample.to{}.address"=$header_to$ | spath "parsed_sample.subject" | search "parsed_sample.subject"=$header_subject$ | spath "source.ip_address" | search "source.ip_address"=$source_ip_address$ | spath "source.reverse_dns" | search "source.reverse_dns"=$source_reverse_dns$| spath "source.country" | search "source.country"=$source_country$ | fillnull value="none" | iplocation source.ip_address | stats count by source.ip_address,source.reverse_dns,Country | sort -count</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -84,7 +85,7 @@
       <title>Forensic samples by country ISO code</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$ | stats count by source.country | sort - count</query>
+          <query>index="email" sourcetype="dmarc:forensic" | spath "parsed_sample.from.address" | search "parsed_sample.from.address"=$header_from$ | spath "parsed_sample.to{}.address" | search "parsed_sample.to{}.address"=$header_to$ | spath "parsed_sample.subject" | search "parsed_sample.subject"=$header_subject$ | spath "source.ip_address" | search "source.ip_address"=$source_ip_address$ | spath "source.reverse_dns" | search "source.reverse_dns"=$source_reverse_dns$| spath "source.country" | search "source.country"=$source_country$ | stats count by source.country | sort - count</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
