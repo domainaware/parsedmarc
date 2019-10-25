@@ -488,7 +488,7 @@ On CentOS systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y python34-setuptools GeoIP-Update
+   sudo yum install -y python34-setuptools python34-devel geoipupdate
    sudo easy_install-3.4 pip
    sudo geoipupdate
 
