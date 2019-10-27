@@ -340,7 +340,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
     for record in aggregate_report["records"]:
         agg_doc = _AggregateReportDoc(
-            xml_schemea=aggregate_report["xml_schema"],
+            xml_schema=aggregate_report["xml_schema"],
             org_name=metadata["org_name"],
             org_email=metadata["org_email"],
             org_extra_contact_info=metadata["org_extra_contact_info"],
