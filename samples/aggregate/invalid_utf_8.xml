@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+ <report_metadata>
+  <org_name></org_name>
+  <email>administrator@accurateplastics.com</email>
+  <report_id>example.com:1538463741</report_id>
+  <date_range>
+   <begin>1538413632</begin>
+   <end>1538413632</end>
+  </date_range>
+ </report_metadata>
+ <policy_published>
+  <domain>example.com</domain>
+  <adkim>r</adkim>
+  <aspf>r</aspf>
+  <p>none</p>
+  <sp>reject</sp>
+  <pct>100</pct>
+ </policy_published>
+ <record>
+  <row>
+   <source_ip>12.20.127.122</source_ip>
+   <count>1</count>
+   <policy_evaluated>
+    <disposition>none</disposition>
+    <dkim>fail</dkim>
+    <spf>fail</spf>
+   </policy_evaluated>
+  </row>
+  <identifiers>
+   <header_from>bad_byte‘</header_from>
+  </identifiers>
+  <auth_results>
+   <spf>
+    <domain></domain>
+    <result>none</result>
+   </spf>
+  </auth_results>
+ </record>
+</feedback>

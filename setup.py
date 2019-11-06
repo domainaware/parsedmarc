@@ -104,7 +104,7 @@ setup(
                       'elasticsearch>=6.3.1,<7.0.0',
                       'elasticsearch-dsl>=6.3.1,<7.0.0',
                       'kafka-python>=1.4.4',
-                      'tqdm>=4.31.1'
+                      'tqdm>=4.31.1', 'lxml>=4.4.1'
                       ],
 
     entry_points={

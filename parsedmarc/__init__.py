@@ -24,6 +24,7 @@ import mailbox
 import mailparser
 from expiringdict import ExpiringDict
 import xmltodict
+from lxml import etree
 from mailsuite.imap import IMAPClient
 from mailsuite.smtp import send_email
 
@@ -355,11 +356,11 @@ def extract_xml(input_):
         file_object.seek(0)
         if header.startswith(MAGIC_ZIP):
             _zip = zipfile.ZipFile(file_object)
-            xml = _zip.open(_zip.namelist()[0]).read().decode()
+            xml = _zip.open(_zip.namelist()[0]).read().decode(errors='ignore')
         elif header.startswith(MAGIC_GZIP):
-            xml = GzipFile(fileobj=file_object).read().decode()
+            xml = GzipFile(fileobj=file_object).read().decode(errors='ignore')
         elif header.startswith(MAGIC_XML):
-            xml = file_object.read().decode()
+            xml = file_object.read().decode(errors='ignore')
         else:
             file_object.close()
             raise InvalidAggregateReport("Not a valid zip, gzip, or xml file")
@@ -419,7 +420,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
         return str(obj).lower()
 
     if type(reports) == OrderedDict:
-        reports = [reports]
+        reports = [reports['report']]
 
     rows = []
 
