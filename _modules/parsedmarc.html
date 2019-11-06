@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 6.6.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 6.7.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.6.1
+                6.7.0
               </div>
             
           
@@ -171,6 +171,7 @@
 <span class="kn">import</span> <span class="nn">mailparser</span>
 <span class="kn">from</span> <span class="nn">expiringdict</span> <span class="k">import</span> <span class="n">ExpiringDict</span>
 <span class="kn">import</span> <span class="nn">xmltodict</span>
+<span class="kn">from</span> <span class="nn">lxml</span> <span class="k">import</span> <span class="n">etree</span>
 <span class="kn">from</span> <span class="nn">mailsuite.imap</span> <span class="k">import</span> <span class="n">IMAPClient</span>
 <span class="kn">from</span> <span class="nn">mailsuite.smtp</span> <span class="k">import</span> <span class="n">send_email</span>
 
@@ -179,7 +180,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.6.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.7.0&quot;</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:&#39;</span>
@@ -280,7 +281,10 @@
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_policy_evaluated</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;dkim&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="p">(</span><span class="s2">&quot;spf&quot;</span><span class="p">,</span> <span class="p">[])])</span>
-    <span class="n">lowered_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">lowered_from</span> <span class="o">=</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lowered_from</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lowered_from</span>
     <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">auth_results</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -361,11 +365,14 @@
 <span class="sd">        OrderedDict: The parsed aggregate DMARC report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
-
+    <span class="c1"># Parse XML and recover from errors</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Invalid XML: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)),</span>
+                           <span class="n">etree</span><span class="o">.</span><span class="n">XMLParser</span><span class="p">(</span><span class="n">recover</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="n">xml</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Replace XML header (sometimes they are invalid)</span>
@@ -502,11 +509,11 @@
         <span class="n">file_object</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">):</span>
             <span class="n">_zip</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file_object</span><span class="p">)</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">_zip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">_zip</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="n">xml</span> <span class="o">=</span> <span class="n">_zip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">_zip</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_GZIP</span><span class="p">):</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">file_object</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="n">xml</span> <span class="o">=</span> <span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">file_object</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_XML</span><span class="p">):</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="n">xml</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Not a valid zip, gzip, or xml file&quot;</span><span class="p">)</span>
@@ -601,9 +608,10 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dmarc_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
             <span class="n">policy_override_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
                 <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
                 <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
@@ -643,6 +651,11 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_results</span><span class="p">))</span>
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">r</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
     <span class="k">return</span> <span class="n">rows</span></div>
 
 
@@ -662,9 +675,10 @@
               <span class="s2">&quot;org_extra_contact_info&quot;</span><span class="p">,</span> <span class="s2">&quot;report_id&quot;</span><span class="p">,</span> <span class="s2">&quot;begin_date&quot;</span><span class="p">,</span> <span class="s2">&quot;end_date&quot;</span><span class="p">,</span>
               <span class="s2">&quot;errors&quot;</span><span class="p">,</span> <span class="s2">&quot;domain&quot;</span><span class="p">,</span> <span class="s2">&quot;adkim&quot;</span><span class="p">,</span> <span class="s2">&quot;aspf&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="s2">&quot;sp&quot;</span><span class="p">,</span> <span class="s2">&quot;pct&quot;</span><span class="p">,</span> <span class="s2">&quot;fo&quot;</span><span class="p">,</span>
               <span class="s2">&quot;source_ip_address&quot;</span><span class="p">,</span> <span class="s2">&quot;source_country&quot;</span><span class="p">,</span> <span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">,</span>
-              <span class="s2">&quot;source_base_domain&quot;</span><span class="p">,</span> <span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="s2">&quot;disposition&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_alignment&quot;</span><span class="p">,</span>
-              <span class="s2">&quot;spf_alignment&quot;</span><span class="p">,</span> <span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">,</span>
-              <span class="s2">&quot;policy_override_comments&quot;</span><span class="p">,</span> <span class="s2">&quot;envelope_from&quot;</span><span class="p">,</span> <span class="s2">&quot;header_from&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;source_base_domain&quot;</span><span class="p">,</span> <span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="s2">&quot;spf_aligned&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;dkim_aligned&quot;</span><span class="p">,</span> <span class="s2">&quot;dmarc_aligned&quot;</span><span class="p">,</span> <span class="s2">&quot;disposition&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">,</span>  <span class="s2">&quot;policy_override_comments&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;envelope_from&quot;</span><span class="p">,</span> <span class="s2">&quot;header_from&quot;</span><span class="p">,</span>
               <span class="s2">&quot;envelope_to&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_domains&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_selectors&quot;</span><span class="p">,</span> <span class="s2">&quot;dkim_results&quot;</span><span class="p">,</span>
               <span class="s2">&quot;spf_domains&quot;</span><span class="p">,</span> <span class="s2">&quot;spf_scopes&quot;</span><span class="p">,</span> <span class="s2">&quot;spf_results&quot;</span><span class="p">]</span>
 
