@@ -28,7 +28,7 @@
    </policy_evaluated>
   </row>
   <identifiers>
-   <header_from>example.com</header_from>
+   <header_from>bad<xml.net</header_from>
   </identifiers>
   <auth_results>
    <spf>

@@ -134,7 +134,10 @@ def _parse_report_record(record, offline=False, nameservers=None,
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
-    lowered_from = new_record["identifiers"]["header_from"].lower()
+    if type(new_record["identifiers"]["header_from"]) == str:
+        lowered_from = new_record["identifiers"]["header_from"].lower()
+    else:
+        lowered_from = ''
     new_record["identifiers"]["header_from"] = lowered_from
     if record["auth_results"] is not None:
         auth_results = record["auth_results"].copy()
@@ -216,10 +219,13 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
     """
     errors = []
 
+    # Parse XML and recover from errors
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
-        errors.append(e.__str__())
+        tree = etree.parse(BytesIO(xml.encode('utf-8')),
+                           etree.XMLParser(recover=True))
+        xml = etree.tostring(tree).decode('utf-8')
 
     try:
         # Replace XML header (sometimes they are invalid)
@@ -496,6 +502,11 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["spf_scopes"] = ",".join(map(to_str, spf_scopes))
             row["spf_results"] = ",".join(map(to_str, dkim_results))
             rows.append(row)
+
+    for r in rows:
+        for k, v in r.items():
+            if type(v) is not str:
+                r[k] = ''
 
     return rows
 
