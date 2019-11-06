@@ -1,3 +1,10 @@
+6.7.0
+-----
+
+- Fix typos (PR #119)
+- Make CSV output match JSON output (Issue # 22)
+- Graceful proccessing of invalid aggregate DMARC reports (PR #122)
+
 6.6.1
 -----
 

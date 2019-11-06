@@ -32,7 +32,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.6.1"
+__version__ = "6.7.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -517,8 +517,9 @@ def parsed_aggregate_reports_to_csv(reports):
               "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
               "source_ip_address", "source_country", "source_reverse_dns",
               "source_base_domain", "count", "spf_aligned",
-              "dkim_aligned", "dmarc_aligned", "disposition", "policy_override_reasons",
-              "policy_override_comments", "envelope_from", "header_from",
+              "dkim_aligned", "dmarc_aligned", "disposition",
+              "policy_override_reasons",  "policy_override_comments",
+              "envelope_from", "header_from",
               "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
               "spf_domains", "spf_scopes", "spf_results"]
 
