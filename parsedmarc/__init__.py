@@ -454,9 +454,10 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["source_reverse_dns"] = record["source"]["reverse_dns"]
             row["source_base_domain"] = record["source"]["base_domain"]
             row["count"] = record["count"]
+            row["spf_aligned"] = record["alignment"]["spf"]
+            row["dkim_aligned"] = record["alignment"]["dkim"]
+            row["dmarc_aligned"] = record["alignment"]["dmarc"]
             row["disposition"] = record["policy_evaluated"]["disposition"]
-            row["spf_alignment"] = record["policy_evaluated"]["spf"]
-            row["dkim_alignment"] = record["policy_evaluated"]["dkim"]
             policy_override_reasons = list(map(
                 lambda r: r["type"],
                 record["policy_evaluated"]
@@ -515,8 +516,8 @@ def parsed_aggregate_reports_to_csv(reports):
               "org_extra_contact_info", "report_id", "begin_date", "end_date",
               "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
               "source_ip_address", "source_country", "source_reverse_dns",
-              "source_base_domain", "count", "disposition", "dkim_alignment",
-              "spf_alignment", "policy_override_reasons",
+              "source_base_domain", "count", "spf_aligned",
+              "dkim_aligned", "dmarc_aligned", "disposition", "policy_override_reasons",
               "policy_override_comments", "envelope_from", "header_from",
               "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
               "spf_domains", "spf_scopes", "spf_results"]
