@@ -426,7 +426,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
         return str(obj).lower()
 
     if type(reports) == OrderedDict:
-        reports = [reports['report']]
+        reports = [reports]
 
     rows = []
 
