@@ -218,11 +218,11 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
         OrderedDict: The parsed aggregate DMARC report
     """
     errors = []
-
     # Parse XML and recover from errors
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
+        errors.append("Invalid XML: {0}".format(e.__str__()))
         tree = etree.parse(BytesIO(xml.encode('utf-8')),
                            etree.XMLParser(recover=True))
         xml = etree.tostring(tree).decode('utf-8')
