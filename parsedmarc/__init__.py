@@ -24,6 +24,7 @@ import mailbox
 import mailparser
 from expiringdict import ExpiringDict
 import xmltodict
+from lxml import etree
 from mailsuite.imap import IMAPClient
 from mailsuite.smtp import send_email
 
@@ -133,7 +134,10 @@ def _parse_report_record(record, offline=False, nameservers=None,
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
-    lowered_from = new_record["identifiers"]["header_from"].lower()
+    if type(new_record["identifiers"]["header_from"]) == str:
+        lowered_from = new_record["identifiers"]["header_from"].lower()
+    else:
+        lowered_from = ''
     new_record["identifiers"]["header_from"] = lowered_from
     if record["auth_results"] is not None:
         auth_results = record["auth_results"].copy()
@@ -215,10 +219,13 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
     """
     errors = []
 
+    # Parse XML and recover from errors
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
-        errors.append(e.__str__())
+        tree = etree.parse(BytesIO(xml.encode('utf-8')),
+                           etree.XMLParser(recover=True))
+        xml = etree.tostring(tree).decode('utf-8')
 
     try:
         # Replace XML header (sometimes they are invalid)
@@ -355,11 +362,11 @@ def extract_xml(input_):
         file_object.seek(0)
         if header.startswith(MAGIC_ZIP):
             _zip = zipfile.ZipFile(file_object)
-            xml = _zip.open(_zip.namelist()[0]).read().decode()
+            xml = _zip.open(_zip.namelist()[0]).read().decode(errors='ignore')
         elif header.startswith(MAGIC_GZIP):
-            xml = GzipFile(fileobj=file_object).read().decode()
+            xml = GzipFile(fileobj=file_object).read().decode(errors='ignore')
         elif header.startswith(MAGIC_XML):
-            xml = file_object.read().decode()
+            xml = file_object.read().decode(errors='ignore')
         else:
             file_object.close()
             raise InvalidAggregateReport("Not a valid zip, gzip, or xml file")
@@ -419,7 +426,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
         return str(obj).lower()
 
     if type(reports) == OrderedDict:
-        reports = [reports]
+        reports = [reports['report']]
 
     rows = []
 
@@ -496,6 +503,11 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["spf_scopes"] = ",".join(map(to_str, spf_scopes))
             row["spf_results"] = ",".join(map(to_str, dkim_results))
             rows.append(row)
+
+    for r in rows:
+        for k, v in r.items():
+            if type(v) is not str:
+                r[k] = ''
 
     return rows
 
