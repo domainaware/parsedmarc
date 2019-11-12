@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.7.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.7.1 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.7.0
+                6.7.1
               </div>
             
           
@@ -166,6 +166,7 @@
 <span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
+<span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
@@ -180,6 +181,8 @@
             <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
             <span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
         <span class="p">)</span>
+
+<span class="n">parenthesis_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s*\(.*\)\s*&#39;</span><span class="p">)</span>
 
 <span class="n">null_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
@@ -385,6 +388,8 @@
 <span class="sd">        DateTime: The converted timestamp</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">human_timestamp</span> <span class="o">=</span> <span class="n">human_timestamp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-0000&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">human_timestamp</span> <span class="o">=</span> <span class="n">parenthesis_regex</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">human_timestamp</span><span class="p">)</span>
     <span class="n">settings</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">if</span> <span class="n">to_utc</span><span class="p">:</span>
@@ -469,14 +474,22 @@
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">db_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
-            <span class="n">download_country_database</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">download_country_database</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                <span class="k">return</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
                 <span class="k">return</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">):</span>
-                <span class="n">download_country_database</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">download_country_database</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                    <span class="k">return</span> <span class="kc">None</span>
         <span class="n">db_path</span> <span class="o">=</span> <span class="n">db_path</span>
 
     <span class="n">db_reader</span> <span class="o">=</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
