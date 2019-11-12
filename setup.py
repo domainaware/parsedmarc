@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "6.7.0"
+__version__ = "6.7.1"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
@@ -99,7 +99,7 @@ setup(
                       'geoip2>=2.9.0', 'urllib3<1.25,>=1.21.1',
                       'requests>=2.2.16.0', 'imapclient>=2.1.0',
                       'mail-parser>=3.9.2',
-                      'dateparser>=0.7.1',
+                      'dateparser>=0.7.2',
                       'mailsuite>=1.3.0',
                       'elasticsearch>=6.3.1,<7.0.0',
                       'elasticsearch-dsl>=6.3.1,<7.0.0',

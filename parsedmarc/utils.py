@@ -17,6 +17,7 @@ import base64
 import platform
 import atexit
 import mailbox
+import re
 
 import dateparser
 import dns.reversename
@@ -31,6 +32,8 @@ USER_AGENT = "Mozilla/5.0 ((0 {1})) parsedmarc".format(
             platform.system(),
             platform.release(),
         )
+
+parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 
 null_file = open(os.devnull, "w")
 logger = logging.getLogger("parsedmarc")
@@ -236,6 +239,8 @@ def human_timestamp_to_datetime(human_timestamp, to_utc=False):
         DateTime: The converted timestamp
     """
 
+    human_timestamp = human_timestamp.replace("-0000", "")
+    human_timestamp = parenthesis_regex.sub("", human_timestamp)
     settings = {}
 
     if to_utc:
@@ -320,14 +325,22 @@ def get_ip_address_country(ip_address, parallel=False, offline=False):
     if db_path is None:
         db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
         if not os.path.exists(db_path):
-            download_country_database(db_path)
+            try:
+                download_country_database()
+            except Exception as e:
+                logger.error(e.__str__())
+                return None
             if not os.path.exists(db_path):
                 return None
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_path).st_mtime)
             if db_age > timedelta(days=7):
-                download_country_database()
+                try:
+                    download_country_database()
+                except Exception as e:
+                    logger.error(e.__str__())
+                    return None
         db_path = db_path
 
     db_reader = geoip2.database.Reader(db_path)

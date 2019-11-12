@@ -1,3 +1,9 @@
+6.7.1
+-----
+
+- Parse forensic email samples with non-standard date headers
+- Graceful handling of a failure to download the GeoIP database (issue #123) 
+
 6.7.0
 -----
 
