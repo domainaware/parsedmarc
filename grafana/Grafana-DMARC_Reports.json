@@ -1,22 +1,5 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_ELASTICSEARCH-DMARC-AG",
-      "label": "Elasticsearch-dmarc-ag",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "elasticsearch",
-      "pluginName": "Elasticsearch"
-    },
-    {
-      "name": "DS_ELASTICSEARCH-DMARC-FO",
-      "label": "Elasticsearch-dmarc-fo",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "elasticsearch",
-      "pluginName": "Elasticsearch"
-    }
-  ],
+  "__inputs": [],
   "__requires": [
     {
       "type": "datasource",
@@ -28,24 +11,30 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "6.1.4"
+      "version": "6.4.4"
     },
     {
       "type": "panel",
       "id": "grafana-piechart-panel",
       "name": "Pie Chart",
-      "version": "1.3.6"
+      "version": "1.3.9"
     },
     {
       "type": "panel",
       "id": "grafana-worldmap-panel",
       "name": "Worldmap Panel",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "type": "panel",
       "id": "graph",
       "name": "Graph",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "singlestat",
+      "name": "Singlestat",
       "version": ""
     },
     {
@@ -78,11 +67,12 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1556527571208,
+  "iteration": 1574163167756,
   "links": [],
   "panels": [
     {
-      "collapsed": true,
+      "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -90,35 +80,37 @@
         "y": 0
       },
       "id": 28,
-      "panels": [
-        {
-          "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on our filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\nFurther down the dashboard, you can filter by source country or source IP address.\r\n\r\nTables showing SPF and DKIM alignment details are located under the IP address table.\r\n\r\n***Note***\r\nPreviously, the alignment tables were included in a separate dashboard called DMARC Alignment Failures. That dashboard has been consolidated into the DMARC Summary dashboard. To view failures only, use the pie chart.\r\n\r\nAny other filters work the same way. You can also add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Forensic Samples\r\nThe DMARC Forensic Samples dashboard contains information on DMARC forensic reports (also known as failure reports or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send forensic/failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|",
-          "gridPos": {
-            "h": 9,
-            "w": 24,
-            "x": 0,
-            "y": 1
-          },
-          "id": 26,
-          "links": [],
-          "mode": "markdown",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "",
-          "transparent": true,
-          "type": "text"
-        }
-      ],
+      "panels": [],
       "title": "Guide",
       "type": "row"
     },
     {
+      "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\nFurther down the dashboard, you can filter by source country or source IP address.\r\n\r\nTables showing SPF and DKIM alignment details are located under the IP address table.\r\n\r\n***Note***\r\nPreviously, the alignment tables were included in a separate dashboard called DMARC Alignment Failures. That dashboard has been consolidated into the DMARC Summary dashboard. To view failures only, use the pie chart.\r\n\r\nAny other filters work the same way. You can also add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Forensic Samples\r\nThe DMARC Forensic Samples dashboard contains information on DMARC forensic reports (also known as failure reports or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send forensic/failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
+      "datasource": null,
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 26,
+      "links": [],
+      "mode": "markdown",
+      "options": {},
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 10
       },
       "id": 30,
       "panels": [],
@@ -127,6 +119,7 @@
     },
     {
       "aliasColors": {
+        "false": "#E0B400",
         "true": "#37872D"
       },
       "breakPoint": "50%",
@@ -135,28 +128,29 @@
         "label": "Others",
         "threshold": 0
       },
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
-      "fontSize": "100%",
+      "datasource": "$datasourceag",
+      "fontSize": "120%",
       "format": "none",
       "gridPos": {
         "h": 9,
         "w": 8,
         "x": 0,
-        "y": 2
+        "y": 11
       },
       "id": 6,
       "interval": null,
       "legend": {
-        "percentage": true,
+        "percentage": false,
         "show": true,
-        "values": true
+        "values": false
       },
-      "legendType": "On graph",
+      "legendType": "Right side",
       "links": [],
       "maxDataPoints": 3,
       "nullPointMode": "connected",
+      "options": {},
       "pieType": "donut",
-      "strokeWidth": 1,
+      "strokeWidth": "4",
       "targets": [
         {
           "bucketAggs": [
@@ -194,6 +188,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -206,6 +201,7 @@
     },
     {
       "aliasColors": {
+        "false": "#E0B400",
         "true": "#37872D"
       },
       "breakPoint": "50%",
@@ -214,28 +210,29 @@
         "label": "Others",
         "threshold": 0
       },
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
-      "fontSize": "100%",
+      "datasource": "$datasourceag",
+      "fontSize": "120%",
       "format": "none",
       "gridPos": {
         "h": 9,
         "w": 8,
         "x": 8,
-        "y": 2
+        "y": 11
       },
       "id": 2,
       "interval": null,
       "legend": {
-        "percentage": true,
+        "percentage": false,
         "show": true,
-        "values": true
+        "values": false
       },
-      "legendType": "On graph",
+      "legendType": "Right side",
       "links": [],
       "maxDataPoints": 3,
       "nullPointMode": "connected",
+      "options": {},
       "pieType": "donut",
-      "strokeWidth": 1,
+      "strokeWidth": "4",
       "targets": [
         {
           "bucketAggs": [
@@ -273,6 +270,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -285,7 +283,7 @@
     },
     {
       "aliasColors": {
-        "false": "#E02F44",
+        "false": "#C4162A",
         "true": "#37872D"
       },
       "breakPoint": "50%",
@@ -294,30 +292,31 @@
         "label": "Others",
         "threshold": 0
       },
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "description": "",
-      "fontSize": "100%",
+      "fontSize": "120%",
       "format": "none",
       "gridPos": {
         "h": 9,
         "w": 8,
         "x": 16,
-        "y": 2
+        "y": 11
       },
       "id": 5,
       "interval": null,
       "legend": {
         "header": "",
-        "percentage": true,
+        "percentage": false,
         "show": true,
-        "values": true
+        "values": false
       },
-      "legendType": "On graph",
+      "legendType": "Right side",
       "links": [],
       "maxDataPoints": 3,
       "nullPointMode": "connected",
+      "options": {},
       "pieType": "donut",
-      "strokeWidth": 1,
+      "strokeWidth": "4",
       "targets": [
         {
           "bucketAggs": [
@@ -355,45 +354,8 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
-        },
-        {
-          "bucketAggs": [
-            {
-              "fake": true,
-              "field": "dkim_aligned",
-              "id": "3",
-              "settings": {
-                "min_doc_count": 1,
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "field": "date_range",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": 0,
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "hide": true,
-          "metrics": [
-            {
-              "field": "message_count",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "sum"
-            }
-          ],
-          "refId": "B",
           "timeField": "date_range"
         }
       ],
@@ -405,22 +367,28 @@
     },
     {
       "aliasColors": {
-        "false": "dark-yellow"
+        "fail": "dark-red",
+        "false": "dark-yellow",
+        "none": "dark-yellow",
+        "pass": "dark-green",
+        "true": "dark-green"
       },
       "bars": false,
       "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "decimals": null,
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 11
+        "y": 20
       },
-      "id": 18,
+      "hiddenSeries": false,
+      "id": 33,
       "legend": {
         "alignAsTable": true,
         "avg": false,
@@ -438,31 +406,29 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [
         {
-          "alias": "true",
-          "fill": 2,
-          "linewidth": 2
-        },
-        {
-          "alias": "false",
+          "alias": "/.*/",
           "fill": 2,
           "linewidth": 2
         }
       ],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
             {
               "fake": true,
-              "field": "spf_aligned",
+              "field": "spf_results.result.keyword",
               "id": "3",
               "settings": {
                 "min_doc_count": 1,
@@ -490,12 +456,11 @@
               "field": "message_count",
               "id": "1",
               "meta": {},
-              "settings": {
-                "missing": null
-              },
+              "settings": {},
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -504,7 +469,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "SPF Passage Over Time",
+      "title": "SPF Results Over Time",
       "tooltip": {
         "shared": true,
         "sort": 2,
@@ -543,21 +508,28 @@
     },
     {
       "aliasColors": {
-        "false": "dark-yellow"
+        "fail": "dark-red",
+        "false": "dark-yellow",
+        "none": "dark-yellow",
+        "pass": "dark-green",
+        "permerror": "dark-orange",
+        "true": "dark-green"
       },
       "bars": false,
       "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "decimals": null,
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 11
+        "y": 20
       },
+      "hiddenSeries": false,
       "id": 19,
       "legend": {
         "alignAsTable": true,
@@ -576,6 +548,292 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "/.*/",
+          "fill": 2,
+          "linewidth": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "fake": true,
+              "field": "dkim_results.result.keyword",
+              "id": "3",
+              "settings": {
+                "min_doc_count": 1,
+                "missing": null,
+                "order": "desc",
+                "orderBy": "_term",
+                "size": "0"
+              },
+              "type": "terms"
+            },
+            {
+              "field": "date_range",
+              "id": "2",
+              "settings": {
+                "interval": "86399s",
+                "min_doc_count": 0,
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "hide": false,
+          "metrics": [
+            {
+              "field": "message_count",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "sum"
+            }
+          ],
+          "query": "header_from.keyword:$fromdomain",
+          "refId": "A",
+          "timeField": "date_range"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "DKIM Results Over Time",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "none",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "false": "dark-yellow",
+        "true": "dark-green"
+      },
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "$datasourceag",
+      "decimals": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 18,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "true",
+          "fill": 2,
+          "linewidth": 2
+        },
+        {
+          "alias": "false",
+          "fill": 2,
+          "linewidth": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "fake": true,
+              "field": "spf_aligned",
+              "id": "3",
+              "settings": {
+                "min_doc_count": 1,
+                "missing": null,
+                "order": "desc",
+                "orderBy": "_term",
+                "size": "0"
+              },
+              "type": "terms"
+            },
+            {
+              "field": "date_range",
+              "id": "2",
+              "settings": {
+                "interval": "86399s",
+                "min_doc_count": 0,
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "hide": false,
+          "metrics": [
+            {
+              "field": "message_count",
+              "id": "1",
+              "meta": {},
+              "settings": {
+                "missing": null
+              },
+              "type": "sum"
+            }
+          ],
+          "query": "header_from.keyword:$fromdomain",
+          "refId": "A",
+          "timeField": "date_range"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "SPF Alignment Over Time",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "none",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "false": "dark-yellow",
+        "true": "dark-green"
+      },
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "$datasourceag",
+      "decimals": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 34,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -634,6 +892,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -642,7 +901,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "DKIM Passage Over Time",
+      "title": "DKIM Alignment Over Time",
       "tooltip": {
         "shared": true,
         "sort": 2,
@@ -681,22 +940,24 @@
     },
     {
       "aliasColors": {
-        "false": "semi-dark-red",
+        "false": "dark-red",
         "true": "dark-green"
       },
       "bars": false,
       "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "decimals": null,
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 38
       },
+      "hiddenSeries": false,
       "id": 7,
       "legend": {
         "alignAsTable": true,
@@ -715,6 +976,9 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -773,6 +1037,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -820,20 +1085,23 @@
     },
     {
       "aliasColors": {
-        "none": "semi-dark-orange"
+        "none": "dark-green",
+        "quarantine": "dark-orange"
       },
       "bars": false,
       "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 38
       },
+      "hiddenSeries": false,
       "id": 8,
       "legend": {
         "alignAsTable": true,
@@ -850,6 +1118,9 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
       "percentage": false,
       "pointradius": 2,
       "points": false,
@@ -901,6 +1172,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -947,17 +1219,125 @@
       }
     },
     {
+      "cacheTimeout": null,
+      "colorBackground": false,
+      "colorValue": false,
+      "colors": [
+        "#299c46",
+        "rgba(237, 129, 40, 0.89)",
+        "#d44a3a"
+      ],
+      "datasource": "$datasourceag",
+      "format": "none",
+      "gauge": {
+        "maxValue": 100,
+        "minValue": 0,
+        "show": false,
+        "thresholdLabels": false,
+        "thresholdMarkers": true
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 0,
+        "y": 47
+      },
+      "id": 36,
+      "interval": null,
+      "links": [],
+      "mappingType": 1,
+      "mappingTypes": [
+        {
+          "name": "value to text",
+          "value": 1
+        },
+        {
+          "name": "range to text",
+          "value": 2
+        }
+      ],
+      "maxDataPoints": 100,
+      "nullPointMode": "connected",
+      "nullText": null,
+      "options": {},
+      "postfix": "<br>Emails Sent",
+      "postfixFontSize": "50%",
+      "prefix": "",
+      "prefixFontSize": "50%",
+      "rangeMaps": [
+        {
+          "from": "null",
+          "text": "N/A",
+          "to": "null"
+        }
+      ],
+      "sparkline": {
+        "fillColor": "rgba(31, 118, 189, 0.18)",
+        "full": false,
+        "lineColor": "rgb(31, 120, 193)",
+        "show": false,
+        "ymax": null,
+        "ymin": null
+      },
+      "tableColumn": "",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "fake": true,
+              "field": "date_range",
+              "id": "6",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": 0,
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "hide": false,
+          "metrics": [
+            {
+              "field": "message_count",
+              "id": "4",
+              "meta": {},
+              "settings": {},
+              "type": "sum"
+            }
+          ],
+          "query": "header_from.keyword:$fromdomain",
+          "refId": "A",
+          "timeField": "date_range"
+        }
+      ],
+      "thresholds": "",
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Email Count",
+      "type": "singlestat",
+      "valueFontSize": "80%",
+      "valueMaps": [
+        {
+          "op": "=",
+          "text": "N/A",
+          "value": "null"
+        }
+      ],
+      "valueName": "total"
+    },
+    {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
-        "w": 8,
-        "x": 0,
-        "y": 29
+        "w": 7,
+        "x": 5,
+        "y": 47
       },
       "id": 9,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1046,6 +1426,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         },
@@ -1075,6 +1456,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "B",
           "timeField": "date_range"
         }
@@ -1087,16 +1469,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
-        "w": 8,
-        "x": 8,
-        "y": 29
+        "w": 6,
+        "x": 12,
+        "y": 47
       },
       "id": 10,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1169,6 +1552,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -1181,16 +1565,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 29
+        "w": 6,
+        "x": 18,
+        "y": 47
       },
       "id": 11,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1263,6 +1648,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -1281,17 +1667,17 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "decimals": 0,
       "esMetric": "Count",
       "gridPos": {
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 39
+        "y": 57
       },
-      "hideEmpty": false,
-      "hideZero": false,
+      "hideEmpty": true,
+      "hideZero": true,
       "id": 12,
       "initialZoom": "1",
       "links": [],
@@ -1300,9 +1686,10 @@
       "mapCenterLatitude": 0,
       "mapCenterLongitude": 0,
       "maxDataPoints": 1,
-      "mouseWheelZoom": false,
+      "mouseWheelZoom": true,
+      "options": {},
       "showLegend": true,
-      "stickyLabels": false,
+      "stickyLabels": true,
       "tableQueryOptions": {
         "geohashField": "geohash",
         "latitudeField": "latitude",
@@ -1347,31 +1734,34 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
       ],
-      "thresholds": "0,10",
+      "thresholds": "1000,0",
       "timeFrom": null,
       "timeShift": null,
       "title": "Map of Message Source Countries",
       "type": "grafana-worldmap-panel",
       "unitPlural": "",
       "unitSingle": "",
+      "unitSingular": "",
       "valueName": "total"
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 39
+        "y": 57
       },
-      "id": 13,
+      "id": 39,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1456,6 +1846,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -1468,16 +1859,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 67
       },
       "id": 14,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1653,6 +2045,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -1665,16 +2058,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 76
       },
       "id": 16,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1871,6 +2265,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -1883,16 +2278,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-AG}",
+      "datasource": "$datasourceag",
       "fontSize": "100%",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 85
       },
       "id": 15,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -1914,7 +2310,7 @@
           "mappingType": 1,
           "pattern": "header_from.keyword",
           "thresholds": [],
-          "type": "number",
+          "type": "string",
           "unit": "short"
         },
         {
@@ -1930,7 +2326,7 @@
           "mappingType": 1,
           "pattern": "dkim_results.selector.keyword",
           "thresholds": [],
-          "type": "number",
+          "type": "string",
           "unit": "short"
         },
         {
@@ -1950,7 +2346,7 @@
           "mappingType": 1,
           "pattern": "dkim_results.domain.keyword",
           "thresholds": [],
-          "type": "number",
+          "type": "string",
           "unit": "short"
         },
         {
@@ -1965,13 +2361,16 @@
           "decimals": 2,
           "mappingType": 1,
           "pattern": "dkim_results.result.keyword",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
+          "thresholds": [
+            ""
+          ],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": []
         },
         {
           "alias": "DKIM Aligned",
-          "colorMode": "cell",
+          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "#E02F44",
@@ -1982,21 +2381,11 @@
           "mappingType": 1,
           "pattern": "dkim_aligned",
           "thresholds": [
-            "0",
-            "1"
+            ""
           ],
           "type": "string",
           "unit": "short",
-          "valueMaps": [
-            {
-              "text": "True",
-              "value": "1"
-            },
-            {
-              "text": "False",
-              "value": "0"
-            }
-          ]
+          "valueMaps": []
         },
         {
           "alias": "Messages",
@@ -2026,11 +2415,12 @@
           "decimals": 2,
           "link": true,
           "linkTargetBlank": true,
+          "linkTooltip": "https://${__cell:raw}",
           "linkUrl": "https://${__cell:raw}",
           "mappingType": 1,
           "pattern": "source_base_domain.keyword",
           "thresholds": [],
-          "type": "number",
+          "type": "string",
           "unit": "short"
         }
       ],
@@ -2126,6 +2516,7 @@
               "type": "sum"
             }
           ],
+          "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
         }
@@ -2138,11 +2529,12 @@
     },
     {
       "collapsed": false,
+      "datasource": null,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 94
       },
       "id": 32,
       "panels": [],
@@ -2151,16 +2543,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-FO}",
+      "datasource": "$datasourcefo",
       "fontSize": "100%",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 95
       },
       "id": 20,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -2186,7 +2579,7 @@
           "unit": "none"
         },
         {
-          "alias": "Arrival Date (UTC)",
+          "alias": "Arrival_Date_(UTC)",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2234,7 +2627,7 @@
           "unit": "short"
         },
         {
-          "alias": "Reply To",
+          "alias": "Reply_To",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2285,7 +2678,7 @@
           "unit": "short"
         },
         {
-          "alias": "Auth Failure",
+          "alias": "Auth_Failure",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2301,25 +2694,7 @@
           "unit": "short"
         },
         {
-          "alias": "",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.body",
-          "preserveFormat": true,
-          "sanitize": false,
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Delivery Result",
+          "alias": "Delivery_Result",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2335,7 +2710,7 @@
           "unit": "short"
         },
         {
-          "alias": "Auth Results",
+          "alias": "Auth_Results",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2476,7 +2851,7 @@
               "type": "count"
             }
           ],
-          "query": "",
+          "query": "domain.keyword:$fromdomain",
           "refId": "A",
           "timeField": "arrival_date"
         }
@@ -2488,373 +2863,6 @@
       "type": "table"
     },
     {
-      "columns": [
-        {
-          "text": "arrival_date",
-          "value": "arrival_date"
-        },
-        {
-          "text": "sample.headers.from",
-          "value": "sample.headers.from"
-        },
-        {
-          "text": "sample.headers.to",
-          "value": "sample.headers.to"
-        },
-        {
-          "text": "sample.headers.reply-to",
-          "value": "sample.headers.reply-to"
-        },
-        {
-          "text": "delivery_results",
-          "value": "delivery_results"
-        },
-        {
-          "text": "sample.headers.return-path",
-          "value": "sample.headers.return-path"
-        },
-        {
-          "text": "auth_failure",
-          "value": "auth_failure"
-        },
-        {
-          "text": "sample.subject",
-          "value": "sample.subject"
-        },
-        {
-          "text": "sample.headers.received",
-          "value": "sample.headers.received"
-        }
-      ],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-FO}",
-      "fontSize": "100%",
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 86
-      },
-      "id": 21,
-      "links": [],
-      "pageSize": 20,
-      "scroll": true,
-      "showHeader": true,
-      "sort": {
-        "col": null,
-        "desc": false
-      },
-      "styles": [
-        {
-          "alias": "Messages",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": null,
-          "mappingType": 1,
-          "pattern": "Sum",
-          "thresholds": [],
-          "type": "number",
-          "unit": "none"
-        },
-        {
-          "alias": "Arrival_Date_(UTC)",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "arrival_date",
-          "thresholds": [],
-          "type": "date",
-          "unit": "short"
-        },
-        {
-          "alias": "From",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.headers.from",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "To",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.headers.to",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Reply To",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.headers.reply-to",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Subject",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.subject",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Received",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "link": false,
-          "mappingType": 1,
-          "pattern": "sample.headers.received",
-          "preserveFormat": false,
-          "sanitize": true,
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Auth_Failure",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "auth_failure",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Body",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.body",
-          "preserveFormat": true,
-          "sanitize": false,
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Delivery_Result",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "delivery_results",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "Return-Path",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.headers.return-path",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        }
-      ],
-      "targets": [
-        {
-          "bucketAggs": [
-            {
-              "fake": true,
-              "field": "arrival_date",
-              "id": "6",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": 0,
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            },
-            {
-              "fake": true,
-              "field": "sample.headers.from.keyword",
-              "id": "7",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "fake": true,
-              "field": "sample.headers.to.keyword",
-              "id": "8",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "fake": true,
-              "field": "sample.reply_to.address.keyword",
-              "id": "10",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "fake": true,
-              "field": "auth_failure.keyword",
-              "id": "11",
-              "settings": {
-                "min_doc_count": 1,
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "fake": true,
-              "field": "sample.subject.keyword",
-              "id": "12",
-              "settings": {
-                "min_doc_count": 1,
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "fake": true,
-              "field": "sample.headers.received.keyword",
-              "id": "13",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "_count",
-                "size": "0"
-              },
-              "type": "terms"
-            }
-          ],
-          "hide": true,
-          "metrics": [
-            {
-              "field": "message_count",
-              "id": "4",
-              "meta": {},
-              "settings": {},
-              "type": "count"
-            }
-          ],
-          "query": "",
-          "refId": "A",
-          "timeField": "arrival_date"
-        },
-        {
-          "bucketAggs": [],
-          "metrics": [
-            {
-              "field": "select field",
-              "id": "1",
-              "meta": {},
-              "settings": {
-                "size": 500
-              },
-              "type": "raw_document"
-            }
-          ],
-          "refId": "B",
-          "timeField": "arrival_date"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Forensic Samples",
-      "transform": "json",
-      "type": "table"
-    },
-    {
       "circleMaxSize": 30,
       "circleMinSize": 2,
       "colors": [
@@ -2862,14 +2870,14 @@
         "rgba(237, 129, 40, 0.89)",
         "rgba(50, 172, 45, 0.97)"
       ],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-FO}",
+      "datasource": "$datasourcefo",
       "decimals": 0,
       "esMetric": "Count",
       "gridPos": {
         "h": 11,
         "w": 8,
         "x": 0,
-        "y": 95
+        "y": 104
       },
       "hideEmpty": true,
       "hideZero": true,
@@ -2881,9 +2889,10 @@
       "mapCenterLatitude": 0,
       "mapCenterLongitude": 0,
       "maxDataPoints": 1,
-      "mouseWheelZoom": false,
+      "mouseWheelZoom": true,
+      "options": {},
       "showLegend": true,
-      "stickyLabels": false,
+      "stickyLabels": true,
       "tableQueryOptions": {
         "geohashField": "geohash",
         "labelField": "",
@@ -2929,11 +2938,12 @@
               "type": "count"
             }
           ],
+          "query": "domain.keyword:$fromdomain",
           "refId": "A",
           "timeField": "arrival_date"
         }
       ],
-      "thresholds": "0,10",
+      "thresholds": "100,0",
       "timeFrom": null,
       "timeShift": null,
       "title": "Forensic Sample Sources by Country",
@@ -2944,16 +2954,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-FO}",
+      "datasource": "$datasourcefo",
       "fontSize": "100%",
       "gridPos": {
         "h": 11,
         "w": 5,
         "x": 8,
-        "y": 95
+        "y": 104
       },
       "id": 23,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -3038,6 +3049,7 @@
               "type": "count"
             }
           ],
+          "query": "domain.keyword:$fromdomain",
           "refId": "A",
           "timeField": "arrival_date"
         }
@@ -3050,16 +3062,17 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_ELASTICSEARCH-DMARC-FO}",
+      "datasource": "$datasourcefo",
       "fontSize": "100%",
       "gridPos": {
         "h": 11,
         "w": 11,
         "x": 13,
-        "y": 95
+        "y": 104
       },
       "id": 24,
       "links": [],
+      "options": {},
       "pageSize": 20,
       "scroll": true,
       "showHeader": true,
@@ -3235,6 +3248,7 @@
               "type": "count"
             }
           ],
+          "query": "domain.keyword:$fromdomain",
           "refId": "A",
           "timeField": "arrival_date"
         }
@@ -3247,7 +3261,7 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 18,
+  "schemaVersion": 21,
   "style": "dark",
   "tags": [
     "DKIM",
@@ -3259,21 +3273,78 @@
   "templating": {
     "list": [
       {
-        "datasource": "Elasticsearch-dmarc-ag",
+        "datasource": "$datasourceag",
         "filters": [],
         "hide": 0,
         "label": "",
         "name": "Filters",
         "skipUrlSync": false,
         "type": "adhoc"
+      },
+      {
+        "current": {
+          "text": "Elasticsearch-dmarc-ag",
+          "value": "Elasticsearch-dmarc-ag"
+        },
+        "hide": 2,
+        "includeAll": false,
+        "label": "Datasource: Aggregate",
+        "multi": false,
+        "name": "datasourceag",
+        "options": [],
+        "query": "elasticsearch",
+        "refresh": 1,
+        "regex": "/.*dmarc-ag/",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "Elasticsearch-dmarc-fo",
+          "value": "Elasticsearch-dmarc-fo"
+        },
+        "hide": 2,
+        "includeAll": false,
+        "label": "Datasource: Forensic",
+        "multi": false,
+        "name": "datasourcefo",
+        "options": [],
+        "query": "elasticsearch",
+        "refresh": 1,
+        "regex": "/.*dmarc-fo/",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "$datasourceag",
+        "definition": "{\"find\":\"terms\",\"field\":\"header_from.keyword\"}",
+        "hide": 0,
+        "includeAll": true,
+        "label": "From Domain",
+        "multi": true,
+        "name": "fromdomain",
+        "options": [],
+        "query": "{\"find\":\"terms\",\"field\":\"header_from.keyword\"}",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
   "time": {
-    "from": "now-2d",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {
+    "hidden": false,
     "refresh_intervals": [
       "5s",
       "10s",
@@ -3301,5 +3372,5 @@
   "timezone": "",
   "title": "DMARC Reports",
   "uid": "SDksirRWz",
-  "version": 55
+  "version": 76
 }
