@@ -1,3 +1,8 @@
+6.7.2
+-----
+
+- Fix SPF results field in CSV output (closes issue #128)
+
 6.7.1
 -----
 

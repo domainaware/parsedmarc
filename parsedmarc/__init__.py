@@ -33,7 +33,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.7.1"
+__version__ = "6.7.2"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -501,12 +501,12 @@ def parsed_aggregate_reports_to_csv_rows(reports):
                 spf_results.append(spf_result["result"])
             row["spf_domains"] = ",".join(map(to_str, spf_domains))
             row["spf_scopes"] = ",".join(map(to_str, spf_scopes))
-            row["spf_results"] = ",".join(map(to_str, dkim_results))
+            row["spf_results"] = ",".join(map(to_str, spf_results))
             rows.append(row)
 
     for r in rows:
         for k, v in r.items():
-            if type(v) is not str:
+            if type(v) not in [str, int, bool]:
                 r[k] = ''
 
     return rows
