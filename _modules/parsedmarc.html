@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc &mdash; parsedmarc 6.7.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 6.7.2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.7.1
+                6.7.2
               </div>
             
           
@@ -180,7 +180,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.7.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.7.2&quot;</span>
 
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
     <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:&#39;</span>
@@ -648,12 +648,12 @@
                 <span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spf_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_domains&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">spf_domains</span><span class="p">))</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_scopes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">spf_scopes</span><span class="p">))</span>
-            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">dkim_results</span><span class="p">))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">to_str</span><span class="p">,</span> <span class="n">spf_results</span><span class="p">))</span>
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
                 <span class="n">r</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
     <span class="k">return</span> <span class="n">rows</span></div>
