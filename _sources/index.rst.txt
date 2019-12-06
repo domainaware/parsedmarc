@@ -972,9 +972,9 @@ Now that Elasticsearch is up and running, use ``parsedmarc`` to send data to
 it.
 
 
-Download (right click the link and click save as) kibana_saved_objects.json_.
+Download (right click the link and click save as) export.ndjson_.
 
-Import ``kibana_saved_objects.json`` the Saved Objects tab of the management
+Import ``export.ndjson`` the Saved Objects tab of the management
 page of Kibana.
 
 It will give you the option to overwrite existing saved dashboards or
@@ -1007,8 +1007,8 @@ Kibana index patterns with versions that match the upgraded indexes:
 4. Click Delete
 5. Click Delete on the conformation message
 6. Download (right click the link and click save as)
-   the latest version of kibana_saved_objects.json_
-7. Import ``kibana_saved_objects.json`` by clicking Import from the Kibana
+   the latest version of export.ndjson_
+7. Import ``export.ndjson`` by clicking Import from the Kibana
    Saved Objects page
 
 
@@ -1543,7 +1543,7 @@ Indices and tables
 
 .. _ReadonlyREST: https://readonlyrest.com/
 
-.. _kibana_saved_objects.json: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/kibana_saved_objects.json
+.. _export.ndjson: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson
 
 .. _HTTP Event collector (HEC): http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
 

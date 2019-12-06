@@ -154,14 +154,14 @@
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">xml.parsers.expat</span> <span class="k">as</span> <span class="nn">expat</span>
 <span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
-<span class="kn">from</span> <span class="nn">gzip</span> <span class="k">import</span> <span class="n">GzipFile</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">gzip</span> <span class="kn">import</span> <span class="n">GzipFile</span>
 <span class="kn">import</span> <span class="nn">zipfile</span>
-<span class="kn">from</span> <span class="nn">csv</span> <span class="k">import</span> <span class="n">DictWriter</span>
+<span class="kn">from</span> <span class="nn">csv</span> <span class="kn">import</span> <span class="n">DictWriter</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">base64</span> <span class="k">import</span> <span class="n">b64decode</span>
+<span class="kn">from</span> <span class="nn">base64</span> <span class="kn">import</span> <span class="n">b64decode</span>
 <span class="kn">import</span> <span class="nn">binascii</span>
 <span class="kn">import</span> <span class="nn">email</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
@@ -169,16 +169,16 @@
 <span class="kn">import</span> <span class="nn">mailbox</span>
 
 <span class="kn">import</span> <span class="nn">mailparser</span>
-<span class="kn">from</span> <span class="nn">expiringdict</span> <span class="k">import</span> <span class="n">ExpiringDict</span>
+<span class="kn">from</span> <span class="nn">expiringdict</span> <span class="kn">import</span> <span class="n">ExpiringDict</span>
 <span class="kn">import</span> <span class="nn">xmltodict</span>
-<span class="kn">from</span> <span class="nn">lxml</span> <span class="k">import</span> <span class="n">etree</span>
-<span class="kn">from</span> <span class="nn">mailsuite.imap</span> <span class="k">import</span> <span class="n">IMAPClient</span>
-<span class="kn">from</span> <span class="nn">mailsuite.smtp</span> <span class="k">import</span> <span class="n">send_email</span>
+<span class="kn">from</span> <span class="nn">lxml</span> <span class="kn">import</span> <span class="n">etree</span>
+<span class="kn">from</span> <span class="nn">mailsuite.imap</span> <span class="kn">import</span> <span class="n">IMAPClient</span>
+<span class="kn">from</span> <span class="nn">mailsuite.smtp</span> <span class="kn">import</span> <span class="n">send_email</span>
 
-<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">get_base_domain</span><span class="p">,</span> <span class="n">get_ip_address_info</span>
-<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">is_outlook_msg</span><span class="p">,</span> <span class="n">convert_outlook_msg</span>
-<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
-<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="k">import</span> <span class="n">parse_email</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">get_base_domain</span><span class="p">,</span> <span class="n">get_ip_address_info</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">is_outlook_msg</span><span class="p">,</span> <span class="n">convert_outlook_msg</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 
 <span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;6.7.2&quot;</span>
 
