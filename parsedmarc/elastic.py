@@ -355,9 +355,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
             message_count=record["count"],
             disposition=record["policy_evaluated"]["disposition"],
             dkim_aligned=record["policy_evaluated"]["dkim"] is not None and
-                         record["policy_evaluated"]["dkim"].lower() == "pass",
+            record["policy_evaluated"]["dkim"].lower() == "pass",
             spf_aligned=record["policy_evaluated"]["spf"] is not None and
-                        record["policy_evaluated"]["spf"].lower() == "pass",
+            record["policy_evaluated"]["spf"].lower() == "pass",
             header_from=record["identifiers"]["header_from"],
             envelope_from=record["identifiers"]["envelope_from"],
             envelope_to=record["identifiers"]["envelope_to"]

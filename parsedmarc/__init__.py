@@ -115,8 +115,10 @@ def _parse_report_record(record, offline=False, nameservers=None,
     if "spf" in policy_evaluated:
         new_policy_evaluated["spf"] = policy_evaluated["spf"]
     reasons = []
-    spf_aligned = policy_evaluated["spf"] is not None and policy_evaluated["spf"].lower() == "pass"
-    dkim_aligned = policy_evaluated["dkim"] is not None and policy_evaluated["dkim"].lower() == "pass"
+    spf_aligned = policy_evaluated["spf"] is not None and policy_evaluated[
+        "spf"].lower() == "pass"
+    dkim_aligned = policy_evaluated["dkim"] is not None and policy_evaluated[
+        "dkim"].lower() == "pass"
     dmarc_aligned = spf_aligned or dkim_aligned
     new_record["alignment"] = dict()
     new_record["alignment"]["spf"] = spf_aligned
