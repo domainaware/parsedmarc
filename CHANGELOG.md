@@ -1,3 +1,7 @@
+6.7.3
+-----
+- Make `dkim_aligned` and `spf_aligned` case insensitive (PR #132)
+
 6.7.2
 -----
 
