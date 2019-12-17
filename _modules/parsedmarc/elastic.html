@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 6.7.2 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 6.7.3 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.7.2
+                6.7.3
               </div>
             
           
@@ -503,8 +503,10 @@
             <span class="n">source_base_domain</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">],</span>
             <span class="n">message_count</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">],</span>
             <span class="n">disposition</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">],</span>
-            <span class="n">dkim_aligned</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span><span class="p">,</span>
-            <span class="n">spf_aligned</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span><span class="p">,</span>
+            <span class="n">dkim_aligned</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span><span class="p">,</span>
+            <span class="n">spf_aligned</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span><span class="p">,</span>
             <span class="n">header_from</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">],</span>
             <span class="n">envelope_from</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">],</span>
             <span class="n">envelope_to</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_to&quot;</span><span class="p">]</span>
