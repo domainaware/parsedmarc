@@ -7,7 +7,7 @@ urllib3<1.25,>=1.21.1
 requests>=2.2.16.0
 publicsuffix2>=2.20190812
 xmltodict>=0.12.0
-geoip2>=2.9.0
+geoip2==2.9.0
 imapclient>=2.1.0
 mail-parser>=3.9.2
 dateparser>=0.7.2
