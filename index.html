@@ -687,8 +687,14 @@ least:</p>
 </div>
 <div class="section" id="geoipupdate-setup">
 <h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this headline">¶</a></h3>
-<p>On Debian or Ubuntu systems, run:</p>
+<p>On Debian 10 (Buster) or later, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
+</pre></div>
+</div>
+<p>On Ubuntu systems run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo add-apt-repository ppa:maxmind/ppa
+sudo apt update
+sudo apt install -y geoipupdate
 </pre></div>
 </div>
 <p>On CentOS or RHEL systems, run:</p>
@@ -699,8 +705,16 @@ least:</p>
 <p>On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
 comply with various privacy regulations</a>.</p>
 <p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite account</a>, and signing in.</p>
-<p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account, and create a new license key for geoipupdate &gt;=3.1.1.
-You can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description for the key.</p>
+<p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account, and create a new license key for the version of
+<cite>geoipupdate</cite> that was installed.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To check the version of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that is installed, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>geoipupdate -V
+</pre></div>
+</div>
+</div>
+<p>You can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description for the key.</p>
 <p>Once you have generated a key, download the config pre-filled configuration file.
 This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code> on Linux or macOS systems, or at
 <code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on Windows systems.</p>
