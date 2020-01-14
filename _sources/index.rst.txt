@@ -518,7 +518,7 @@ To download the databases for the first time.
 The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
 ``geoipupdate`` can be run weekly by adding a cron job or scheduled task.
 
-More information about ``geoipupdate`` can be found at the `MaxMind geoipupdate page`_
+More information about ``geoipupdate`` can be found at the `MaxMind geoipupdate page`_.
 
 Installing parsedmarc
 ---------------------
