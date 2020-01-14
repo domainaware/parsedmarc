@@ -505,10 +505,10 @@ The latest builds for Linux, macOS, and Windows can be downloaded from the `geoi
 On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order `to
 comply with various privacy regulations`_.
 
-Start by `registering for a free GeoLite account`_, and signing in.
+Start by `registering for a free GeoLite2 account`_, and signing in.
 
 Then, navigate the to the `License Keys`_ page under your account, and create a new license key for the version of
-`geoipupdate` that was installed.
+``geoipupdate`` that was installed.
 
 .. warning::
 
@@ -1593,7 +1593,7 @@ Indices and tables
 
 .. _to comply with various privacy regulations: https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/
 
-.. _registering for a free GeoLite account: https://www.maxmind.com/en/geolite2/signup
+.. _registering for a free GeoLite2 account: https://www.maxmind.com/en/geolite2/signup
 
 .. _License Keys: https://www.maxmind.com/en/accounts/current/license-key
 
