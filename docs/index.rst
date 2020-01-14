@@ -501,11 +501,11 @@ comply with various privacy regulations`_.
 Start by `registering for a free GeoLite account`_, and signing in.
 
 Then, navigate the to the `License Keys`_ page under your account, and create a new license key for geoipupdate >=3.1.1.
-You can use `parsedmarc` as the description for they key.
+You can use ``parsedmarc`` as the description for the key.
 
 Once you have generated a key, download the config pre-filled configuration file.
 This file should be saved at ``/etc/GeoIP.conf`` on Linux or macOS systems, or at
-`%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf` on Windows systems.
+``%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf`` on Windows systems.
 
 Then run
 
