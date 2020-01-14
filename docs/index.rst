@@ -512,7 +512,7 @@ Then, navigate the to the `License Keys`_ page under your account, and create a 
 
 .. warning::
 
-   The configuration file `format is different for older (i.e. <=3.1.1) and newer (i.e. >=3.1.1) versions
+   The configuration file format is different for older (i.e. <=3.1.1) and newer (i.e. >=3.1.1) versions
    of ``geoipupdate``. Be sure to select the correct version for your system.
 
 .. note::
