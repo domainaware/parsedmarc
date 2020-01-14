@@ -5,8 +5,6 @@ import os
 from datetime import datetime
 from datetime import timedelta
 from collections import OrderedDict
-from io import BytesIO
-import tarfile
 import tempfile
 import subprocess
 import shutil
@@ -280,7 +278,8 @@ def get_ip_address_country(ip_address):
         "/usr/share/GeoIP/GeoLite2-Country.mmdb",
         "/var/lib/GeoIP/GeoLite2-Country.mmdb",
         "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
-        "%SystemDrive%\\ProgramData\\MaxMind\\GeoIPUpdate\\GeoIP\\GeoLite2-Country.mmdb"
+        "%SystemDrive%\\ProgramData\\"
+        "MaxMind\\GeoIPUpdate\\GeoIP\\GeoLite2-Country.mmdb"
         "C:\\GeoIP\\GeoLite2-Country.mmdb"
     ]
 

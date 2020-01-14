@@ -493,7 +493,7 @@ On CentOS or RHEL systems, run:
 
    sudo yum install -y geoipupdate
 
-Windows releases can be downloaded from the `releases page on GitHub`_.
+The latest builds for Linux, macOS, and Windows can be downloaded from the `geoipupdate releases page on GitHub`_.
 
 On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order `to
 comply with various privacy regulations`_.
@@ -516,7 +516,7 @@ Then run
 To download the databases for the first time.
 
 The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
-``geoipupdate`` can be run weekly by adding a cron job.
+``geoipupdate`` can be run weekly by adding a cron job or scheduled task.
 
 More information about ``geoipupdate`` can be found at the `MaxMind geoipupdate page`_
 
@@ -1576,6 +1576,8 @@ Indices and tables
 .. _License Keys: https://www.maxmind.com/en/accounts/current/license-key
 
 .. _MaxMind geoipupdate page: https://dev.maxmind.com/geoip/geoipupdate/
+
+.. _geoipupdate releases page on GitHub: https://github.com/maxmind/geoipupdate/releases
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 
