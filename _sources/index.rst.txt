@@ -510,7 +510,13 @@ Start by `registering for a free GeoLite account`_, and signing in.
 Then, navigate the to the `License Keys`_ page under your account, and create a new license key for the version of
 `geoipupdate` that was installed.
 
+.. warning::
+
+   The configuration file `format is different for older (i.e. <=3.1.1) and newer (i.e. >=3.1.1) versions
+   of ``geoipupdate``. Be sure to select the correct version for your system.
+
 .. note::
+
    To check the version of ``geoipupdate`` that is installed, run:
 
    .. code-block:: bash
