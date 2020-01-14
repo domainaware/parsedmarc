@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.7.4 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.8.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.7.4
+                6.8.0
               </div>
             
           
@@ -106,6 +106,8 @@
 </li>
 <li><a class="reference internal" href="#bug-reports">Bug reports</a></li>
 <li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#geoipupdate-setup">geoipupdate setup</a></li>
+<li><a class="reference internal" href="#installing-parsedmarc">Installing parsedmarc</a></li>
 <li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
@@ -683,26 +685,47 @@ least:</p>
 <li><p>Exchange Server 2016 Cumulative Update 11 (<a class="reference external" href="https://support.microsoft.com/kb/4134118">KB4134118</a>)</p></li>
 </ul>
 </div>
+<div class="section" id="geoipupdate-setup">
+<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this headline">¶</a></h3>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip geoipupdate
-sudo geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
 </pre></div>
 </div>
-<p>On CentOS systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools python34-devel geoipupdate
+<p>On CentOS or RHEL systems, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y geoipupdate
+</pre></div>
+</div>
+<p>The latest builds for Linux, macOS, and Windows can be downloaded from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
+<p>On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
+comply with various privacy regulations</a>.</p>
+<p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite account</a>, and signing in.</p>
+<p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account, and create a new license key for geoipupdate &gt;=3.1.1.
+You can use <cite>parsedmarc</cite> as the description for they key.</p>
+<p>Once you have generated a key, download the config pre-filled configuration file.
+This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code> on Linux or macOS systems, or at
+<cite>%SystemDrive%ProgramDataMaxMindGeoIPUpdateGeoIP.conf</cite> on Windows systems.</p>
+<p>Then run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo geoipupdate
+</pre></div>
+</div>
+<p>To download the databases for the first time.</p>
+<p>The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
+<code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be run weekly by adding a cron job or scheduled task.</p>
+<p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the <a class="reference external" href="https://dev.maxmind.com/geoip/geoipupdate/">MaxMind geoipupdate page</a></p>
+</div>
+<div class="section" id="installing-parsedmarc">
+<h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this headline">¶</a></h3>
+<p>On Debian or Ubuntu systems, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip
+</pre></div>
+</div>
+<p>On CentOS or RHEL systems, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools python34-devel
 sudo easy_install-3.4 pip
-sudo geoipupdate
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Windows users should also download a copy of Maxmind’s free
-<a class="reference external" href="https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz">GeoLite2-Country.mmdb</a> to <code class="docutils literal notranslate"><span class="pre">C:\GeoIP\GeoLite2-Country.mmdb</span></code>.</p>
-</div>
-<p>To install or upgrade to the latest stable release of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> on
-macOS or Linux, run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U parsedmarc
 </pre></div>
 </div>
@@ -715,6 +738,7 @@ macOS or Linux, run</p>
 <p>On Windows, <code class="docutils literal notranslate"><span class="pre">pip3</span></code> is <code class="docutils literal notranslate"><span class="pre">pip</span></code>, even with Python 3. So on Windows,
 substitute <code class="docutils literal notranslate"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
 above commands.</p>
+</div>
 </div>
 <div class="section" id="installation-using-pypy3">
 <h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline">¶</a></h3>
@@ -2276,16 +2300,12 @@ standard RFC 822 format</p>
 
 <dl class="function">
 <dt id="parsedmarc.utils.get_ip_address_country">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_country</code><span class="sig-paren">(</span><em class="sig-param">ip_address</em>, <em class="sig-param">parallel=False</em>, <em class="sig-param">offline=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_country</code><span class="sig-paren">(</span><em class="sig-param">ip_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the MaxMind Geolite2 Country database to return the ISO code for the
 country associated with the given IPv4 or IPv6 address</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</p></li>
-<li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
-<li><p><strong>offline</strong> (<em>bool</em>) – Do not make online queries for geolocation and DNS</p></li>
-</ul>
+<dd class="field-odd"><p><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>And ISO country code associated with the given IP address</p>

@@ -477,31 +477,69 @@ Installation
    - Exchange Server 2016 Cumulative Update 11 (`KB4134118 <https://support.microsoft.com/kb/4134118>`_)
 
 
+geoipupdate setup
+-----------------
+
 On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    sudo apt-get install -y python3-pip geoipupdate
-    sudo geoipupdate
+    sudo apt-get install -y geoipupdate
 
-On CentOS systems, run:
+
+On CentOS or RHEL systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y python34-setuptools python34-devel geoipupdate
-   sudo easy_install-3.4 pip
+   sudo yum install -y geoipupdate
+
+The latest builds for Linux, macOS, and Windows can be downloaded from the `geoipupdate releases page on GitHub`_.
+
+On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order `to
+comply with various privacy regulations`_.
+
+Start by `registering for a free GeoLite account`_, and signing in.
+
+Then, navigate the to the `License Keys`_ page under your account, and create a new license key for geoipupdate >=3.1.1.
+You can use `parsedmarc` as the description for they key.
+
+Once you have generated a key, download the config pre-filled configuration file.
+This file should be saved at ``/etc/GeoIP.conf`` on Linux or macOS systems, or at
+`%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf` on Windows systems.
+
+Then run
+
+.. code-block:: bash
+
    sudo geoipupdate
+
+To download the databases for the first time.
+
+The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
+``geoipupdate`` can be run weekly by adding a cron job or scheduled task.
+
+More information about ``geoipupdate`` can be found at the `MaxMind geoipupdate page`_
+
+Installing parsedmarc
+---------------------
+
+On Debian or Ubuntu systems, run:
+
+.. code-block:: bash
+
+    sudo apt-get install -y python3-pip
+
+
+On CentOS or RHEL systems, run:
+
+.. code-block:: bash
+
+   sudo yum install -y python34-setuptools python34-devel
+   sudo easy_install-3.4 pip
+
 
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
-
-.. note::
-
-   Windows users should also download a copy of Maxmind's free
-   `GeoLite2-Country.mmdb`_ to ``C:\GeoIP\GeoLite2-Country.mmdb``.
-
-To install or upgrade to the latest stable release of ``parsedmarc`` on
-macOS or Linux, run
 
 .. code-block:: bash
 
@@ -1531,7 +1569,15 @@ Indices and tables
 
 .. _Modern Auth/multi-factor authentication: http://davmail.sourceforge.net/faq.html
 
-.. _GeoLite2-Country.mmdb: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
+.. _to comply with various privacy regulations: https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/
+
+.. _registering for a free GeoLite account: https://www.maxmind.com/en/geolite2/signup
+
+.. _License Keys: https://www.maxmind.com/en/accounts/current/license-key
+
+.. _MaxMind geoipupdate page: https://dev.maxmind.com/geoip/geoipupdate/
+
+.. _geoipupdate releases page on GitHub: https://github.com/maxmind/geoipupdate/releases
 
 .. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
 
