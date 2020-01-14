@@ -493,6 +493,8 @@ On CentOS or RHEL systems, run:
 
    sudo yum install -y geoipupdate
 
+Windows releases can be downloaded from the `releases page on GitHub`_.
+
 On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order `to
 comply with various privacy regulations`_.
 
@@ -502,7 +504,8 @@ Then, navigate the to the `License Keys`_ page under your account, and create a 
 You can use `parsedmarc` as the description for they key.
 
 Once you have generated a key, download the config pre-filled configuration file.
-This file should be saved at ``/etc/GeoIP.conf``.
+This file should be saved at ``/etc/GeoIP.conf`` on Linux or macOS systems, or at
+`%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf` on Windows systems.
 
 Then run
 

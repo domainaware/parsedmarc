@@ -1,3 +1,9 @@
+6.8.0
+-----
+
+- Display warning when `GeoLite2-Country.mmdb` is missing, instead of trying to download it
+- Add documentation for MaxMind `geoipupdate` changes on January 30th, 2019 (closes issues #137 and #139)
+
 6.7.4
 -----
 

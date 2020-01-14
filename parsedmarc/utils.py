@@ -263,55 +263,24 @@ def human_timestamp_to_timestamp(human_timestamp):
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address, parallel=False, offline=False):
+def get_ip_address_country(ip_address):
     """
     Uses the MaxMind Geolite2 Country database to return the ISO code for the
     country associated with the given IPv4 or IPv6 address
 
     Args:
         ip_address (str): The IP address to query for
-        parallel (bool): Parallel processing
-        offline (bool): Do not make online queries for geolocation and DNS
 
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    def download_country_database(location="GeoLite2-Country.mmdb"):
-        """Downloads the MaxMind Geolite2 Country database
-
-        Args:
-            location (str): Local location for the database file
-        """
-        if parallel or offline:
-            logging.warning("GeoLite2-Country.mmdb is missing."
-                            "please install and run geoipupdate as root to "
-                            "get the latest version.")
-            return
-        url = "https://geolite.maxmind.com/download/geoip/database/" \
-              "GeoLite2-Country.tar.gz"
-        # Use a browser-like user agent string to bypass some proxy blocks
-        headers = {"User-Agent": USER_AGENT}
-        original_filename = "GeoLite2-Country.mmdb"
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            tar_bytes = response.content
-            tar_file = tarfile.open(fileobj=BytesIO(tar_bytes), mode="r:gz")
-            tar_dir = tar_file.getnames()[0]
-            tar_path = "{0}/{1}".format(tar_dir, original_filename)
-            tar_file.extract(tar_path)
-            shutil.move(tar_path, location)
-            shutil.rmtree(tar_dir)
-        except Exception as e:
-            raise DownloadError("Error downloading {0}: {1}".format(
-                url,
-                e.__str__()))
     system_paths = [
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
         "/usr/share/GeoIP/GeoLite2-Country.mmdb",
         "/var/lib/GeoIP/GeoLite2-Country.mmdb",
         "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
+        "%SystemDrive%\\ProgramData\\MaxMind\\GeoIPUpdate\\GeoIP\\GeoLite2-Country.mmdb"
         "C:\\GeoIP\\GeoLite2-Country.mmdb"
     ]
 
@@ -325,22 +294,16 @@ def get_ip_address_country(ip_address, parallel=False, offline=False):
     if db_path is None:
         db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
         if not os.path.exists(db_path):
-            try:
-                download_country_database()
-            except Exception as e:
-                logger.error(e.__str__())
-                return None
-            if not os.path.exists(db_path):
-                return None
+            logging.warning("GeoLite2-Country.mmdb is missing. "
+                            "Please follow the instructions at "
+                            "https://dev.maxmind.com/geoip/geoipupdate/ "
+                            "to get the latest version.")
+            return None
         else:
             db_age = datetime.now() - datetime.fromtimestamp(
                 os.stat(db_path).st_mtime)
             if db_age > timedelta(days=7):
-                try:
-                    download_country_database()
-                except Exception as e:
-                    logger.error(e.__str__())
-                    return None
+                logger.warning("GeoLite2-Country.mmdb is more than a week old")
         db_path = db_path
 
     db_reader = geoip2.database.Reader(db_path)
@@ -386,7 +349,7 @@ def get_ip_address_info(ip_address, cache=None, offline=False,
         reverse_dns = get_reverse_dns(ip_address,
                                       nameservers=nameservers,
                                       timeout=timeout)
-    country = get_ip_address_country(ip_address, parallel=parallel)
+    country = get_ip_address_country(ip_address)
     info["country"] = country
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
