@@ -3,6 +3,7 @@
 
 - Display warning when `GeoLite2-Country.mmdb` is missing, instead of trying to download it
 - Add documentation for MaxMind `geoipupdate` changes on January 30th, 2019 (closes issues #137 and #139)
+- Require `mail-parser>=3.11.0`
 
 6.7.4
 -----
