@@ -19,6 +19,7 @@ before_install:
   - "sudo systemctl --no-pager status elasticsearch"
 
 install:
+  - "pip install --upgrade pip tox six"
   - "pip install -r requirements.txt"
 
 # commands to run samples
