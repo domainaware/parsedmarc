@@ -480,12 +480,19 @@ Installation
 geoipupdate setup
 -----------------
 
-On Debian or Ubuntu systems, run:
+On Debian 10 (Buster) or later, run:
 
 .. code-block:: bash
 
     sudo apt-get install -y geoipupdate
 
+On Ubuntu systems run:
+
+.. code-block:: bash
+
+   sudo add-apt-repository ppa:maxmind/ppa
+   sudo apt update
+   sudo apt install -y geoipupdate
 
 On CentOS or RHEL systems, run:
 
@@ -500,7 +507,16 @@ comply with various privacy regulations`_.
 
 Start by `registering for a free GeoLite account`_, and signing in.
 
-Then, navigate the to the `License Keys`_ page under your account, and create a new license key for geoipupdate >=3.1.1.
+Then, navigate the to the `License Keys`_ page under your account, and create a new license key for the version of
+`geoipupdate` that was installed.
+
+.. note::
+   To check the version of ``geoipupdate`` that is installed, run:
+
+   .. code-block:: bash
+
+      geoipupdate -V
+
 You can use ``parsedmarc`` as the description for the key.
 
 Once you have generated a key, download the config pre-filled configuration file.
