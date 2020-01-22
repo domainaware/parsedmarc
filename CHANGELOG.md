@@ -1,3 +1,8 @@
+6.8.1
+-----
+
+- Use `match_phrase` instead of `match` when looking for existing strings in Elasticsearch 
+
 6.8.0
 -----
 

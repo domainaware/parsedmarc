@@ -307,9 +307,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     date_range = [aggregate_report["begin_date"],
                   aggregate_report["end_date"]]
 
-    org_name_query = Q(dict(match=dict(org_name=org_name)))
-    report_id_query = Q(dict(match=dict(report_id=report_id)))
-    domain_query = Q(dict(match={"published_policy.domain": domain}))
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
+    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
+    domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
     begin_date_query = Q(dict(match=dict(date_range=begin_date)))
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
@@ -437,15 +437,15 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     subject = None
     if "from" in headers:
         from_ = headers["from"]
-        from_query = {"match": {"sample.headers.from": from_}}
+        from_query = {"match_phrase": {"sample.headers.from": from_}}
         q = q & Q(from_query)
     if "to" in headers:
         to_ = headers["to"]
-        to_query = {"match": {"sample.headers.to": to_}}
+        to_query = {"match_phrase": {"sample.headers.to": to_}}
         q = q & Q(to_query)
     if "subject" in headers:
         subject = headers["subject"]
-        subject_query = {"match": {"sample.headers.subject": subject}}
+        subject_query = {"match_phrase": {"sample.headers.subject": subject}}
         q = q & Q(subject_query)
 
     search.query = q
