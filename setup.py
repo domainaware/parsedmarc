@@ -100,7 +100,7 @@ setup(
                       'requests>=2.22.0', 'imapclient>=2.1.0',
                       'mail-parser>=3.11.0',
                       'dateparser>=0.7.2',
-                      'mailsuite>=1.5.1',
+                      'mailsuite>=1.5.3',
                       'elasticsearch>=6.3.1,<7.0.0',
                       'elasticsearch-dsl>=6.3.1,<7.0.0',
                       'kafka-python>=1.4.4',
