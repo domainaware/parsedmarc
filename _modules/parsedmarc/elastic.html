@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 6.8.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 6.8.1 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.8.0
+                6.8.1
               </div>
             
           
@@ -456,9 +456,9 @@
     <span class="n">date_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
                   <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]]</span>
 
-    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
-    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
-    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;published_policy.domain&quot;</span><span class="p">:</span> <span class="n">domain</span><span class="p">}))</span>
+    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
+    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
+    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;published_policy.domain&quot;</span><span class="p">:</span> <span class="n">domain</span><span class="p">}))</span>
     <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_range</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
 
@@ -586,15 +586,15 @@
     <span class="n">subject</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s2">&quot;from&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="n">from_</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span>
-        <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">from_</span><span class="p">}}</span>
+        <span class="n">from_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">:</span> <span class="n">from_</span><span class="p">}}</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">from_query</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="n">to_</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]</span>
-        <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">to_</span><span class="p">}}</span>
+        <span class="n">to_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">:</span> <span class="n">to_</span><span class="p">}}</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">to_query</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">&quot;subject&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span>
-        <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
+        <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span>
 
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>
