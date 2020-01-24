@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "6.8.1"
+__version__ = "6.8.2"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
@@ -100,7 +100,7 @@ setup(
                       'requests>=2.22.0', 'imapclient>=2.1.0',
                       'mail-parser>=3.11.0',
                       'dateparser>=0.7.2',
-                      'mailsuite>=1.5.3',
+                      'mailsuite>=1.5.4',
                       'elasticsearch>=6.3.1,<7.0.0',
                       'elasticsearch-dsl>=6.3.1,<7.0.0',
                       'kafka-python>=1.4.4',
