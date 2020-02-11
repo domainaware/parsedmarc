@@ -11,13 +11,13 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "6.4.4"
+      "version": "6.6.1"
     },
     {
       "type": "panel",
       "id": "grafana-piechart-panel",
       "name": "Pie Chart",
-      "version": "1.3.9"
+      "version": "1.4.0"
     },
     {
       "type": "panel",
@@ -33,8 +33,8 @@
     },
     {
       "type": "panel",
-      "id": "singlestat",
-      "name": "Singlestat",
+      "id": "stat",
+      "name": "Stat",
       "version": ""
     },
     {
@@ -63,15 +63,16 @@
       }
     ]
   },
+  "description": "Dashboard for reviewing reports from ParseDMARC",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1574163167756,
+  "iteration": 1581460929581,
   "links": [],
   "panels": [
     {
-      "collapsed": false,
+      "collapsed": true,
       "datasource": null,
       "gridPos": {
         "h": 1,
@@ -80,28 +81,29 @@
         "y": 0
       },
       "id": 28,
-      "panels": [],
+      "panels": [
+        {
+          "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\n***Note***\r\nYou can add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Forensic Samples\r\nThe DMARC Forensic Samples section contains information on DMARC forensic reports (also known as failure reports or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send forensic/failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
+          "datasource": null,
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 26,
+          "links": [],
+          "mode": "markdown",
+          "options": {},
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "",
+          "transparent": true,
+          "type": "text"
+        }
+      ],
       "title": "Guide",
       "type": "row"
-    },
-    {
-      "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\nFurther down the dashboard, you can filter by source country or source IP address.\r\n\r\nTables showing SPF and DKIM alignment details are located under the IP address table.\r\n\r\n***Note***\r\nPreviously, the alignment tables were included in a separate dashboard called DMARC Alignment Failures. That dashboard has been consolidated into the DMARC Summary dashboard. To view failures only, use the pie chart.\r\n\r\nAny other filters work the same way. You can also add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Forensic Samples\r\nThe DMARC Forensic Samples dashboard contains information on DMARC forensic reports (also known as failure reports or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send forensic/failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
-      "datasource": null,
-      "gridPos": {
-        "h": 9,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "id": 26,
-      "links": [],
-      "mode": "markdown",
-      "options": {},
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
-      "transparent": true,
-      "type": "text"
     },
     {
       "collapsed": false,
@@ -110,7 +112,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 1
       },
       "id": 30,
       "panels": [],
@@ -135,7 +137,7 @@
         "h": 9,
         "w": 8,
         "x": 0,
-        "y": 11
+        "y": 2
       },
       "id": 6,
       "interval": null,
@@ -153,6 +155,7 @@
       "strokeWidth": "4",
       "targets": [
         {
+          "alias": "",
           "bucketAggs": [
             {
               "fake": true,
@@ -196,6 +199,7 @@
       "timeFrom": null,
       "timeShift": null,
       "title": "SPF Alignment",
+      "transparent": true,
       "type": "grafana-piechart-panel",
       "valueName": "total"
     },
@@ -217,7 +221,7 @@
         "h": 9,
         "w": 8,
         "x": 8,
-        "y": 11
+        "y": 2
       },
       "id": 2,
       "interval": null,
@@ -278,6 +282,7 @@
       "timeFrom": null,
       "timeShift": null,
       "title": "DKIM Alignment",
+      "transparent": true,
       "type": "grafana-piechart-panel",
       "valueName": "total"
     },
@@ -300,7 +305,7 @@
         "h": 9,
         "w": 8,
         "x": 16,
-        "y": 11
+        "y": 2
       },
       "id": 5,
       "interval": null,
@@ -362,15 +367,21 @@
       "timeFrom": null,
       "timeShift": null,
       "title": "DMARC Passage",
+      "transparent": true,
       "type": "grafana-piechart-panel",
       "valueName": "total"
     },
     {
       "aliasColors": {
+        "Pass": "dark-green",
         "fail": "dark-red",
         "false": "dark-yellow",
+        "neutral": "super-light-blue",
         "none": "dark-yellow",
         "pass": "dark-green",
+        "permerror": "dark-orange",
+        "softfail": "super-light-green",
+        "temperror": "semi-dark-yellow",
         "true": "dark-green"
       },
       "bars": false,
@@ -379,13 +390,13 @@
       "dashes": false,
       "datasource": "$datasourceag",
       "decimals": null,
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 11
       },
       "hiddenSeries": false,
       "id": 33,
@@ -403,23 +414,22 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
-        "dataLinks": []
+        "dataLinks": [
+          {
+            "title": "",
+            "url": ""
+          }
+        ]
       },
       "percentage": false,
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "/.*/",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": true,
       "steppedLine": false,
@@ -508,11 +518,14 @@
     },
     {
       "aliasColors": {
+        "Pass": "dark-green",
         "fail": "dark-red",
         "false": "dark-yellow",
+        "neutral": "super-light-blue",
         "none": "dark-yellow",
         "pass": "dark-green",
         "permerror": "dark-orange",
+        "temperror": "semi-dark-yellow",
         "true": "dark-green"
       },
       "bars": false,
@@ -521,13 +534,13 @@
       "dashes": false,
       "datasource": "$datasourceag",
       "decimals": null,
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 11
       },
       "hiddenSeries": false,
       "id": 19,
@@ -545,7 +558,7 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
@@ -555,13 +568,7 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "/.*/",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": true,
       "steppedLine": false,
@@ -659,13 +666,13 @@
       "dashes": false,
       "datasource": "$datasourceag",
       "decimals": null,
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 20
       },
       "hiddenSeries": false,
       "id": 18,
@@ -683,7 +690,7 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
@@ -693,18 +700,7 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "true",
-          "fill": 2,
-          "linewidth": 2
-        },
-        {
-          "alias": "false",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -804,13 +800,13 @@
       "dashes": false,
       "datasource": "$datasourceag",
       "decimals": null,
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 20
       },
       "hiddenSeries": false,
       "id": 34,
@@ -828,7 +824,7 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
@@ -838,18 +834,7 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "true",
-          "fill": 2,
-          "linewidth": 2
-        },
-        {
-          "alias": "false",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -949,13 +934,13 @@
       "dashes": false,
       "datasource": "$datasourceag",
       "decimals": null,
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 38
+        "y": 29
       },
       "hiddenSeries": false,
       "id": 7,
@@ -973,7 +958,7 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
@@ -983,18 +968,7 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "true",
-          "fill": 2,
-          "linewidth": 2
-        },
-        {
-          "alias": "false",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -1086,20 +1060,21 @@
     {
       "aliasColors": {
         "none": "dark-green",
-        "quarantine": "dark-orange"
+        "quarantine": "semi-dark-orange",
+        "reject": "red"
       },
       "bars": false,
       "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
       "datasource": "$datasourceag",
-      "fill": 1,
-      "fillGradient": 0,
+      "fill": 2,
+      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 38
+        "y": 29
       },
       "hiddenSeries": false,
       "id": 8,
@@ -1115,7 +1090,7 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
+      "linewidth": 2,
       "links": [],
       "nullPointMode": "null",
       "options": {
@@ -1125,13 +1100,7 @@
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "/.*/",
-          "fill": 2,
-          "linewidth": 2
-        }
-      ],
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -1220,66 +1189,53 @@
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "#299c46",
-        "rgba(237, 129, 40, 0.89)",
-        "#d44a3a"
-      ],
       "datasource": "$datasourceag",
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
-      },
       "gridPos": {
-        "h": 5,
+        "h": 10,
         "w": 5,
         "x": 0,
-        "y": 47
+        "y": 38
       },
       "id": 36,
-      "interval": null,
+      "interval": "86399s",
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
+      "options": {
+        "colorMode": "background",
+        "fieldOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "defaults": {
+            "mappings": [
+              {
+                "id": 0,
+                "op": "=",
+                "text": "N/A",
+                "type": 1,
+                "value": "null"
+              }
+            ],
+            "nullValueMode": "connected",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "blue",
+                  "value": null
+                }
+              ]
+            },
+            "title": "Total Email Count",
+            "unit": "none"
+          },
+          "overrides": [],
+          "values": false
         },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
-      "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "options": {},
-      "postfix": "<br>Emails Sent",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": false,
-        "ymax": null,
-        "ymin": null
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "6.6.1",
       "targets": [
         {
           "bucketAggs": [
@@ -1310,20 +1266,11 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": "",
       "timeFrom": null,
       "timeShift": null,
-      "title": "Email Count",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "total"
+      "title": "",
+      "transparent": true,
+      "type": "stat"
     },
     {
       "columns": [],
@@ -1333,7 +1280,7 @@
         "h": 10,
         "w": 7,
         "x": 5,
-        "y": 47
+        "y": 38
       },
       "id": 9,
       "links": [],
@@ -1348,6 +1295,7 @@
       "styles": [
         {
           "alias": "Reporting Organisation",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1368,6 +1316,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1384,6 +1333,7 @@
         },
         {
           "alias": "Org Extra Contact Info",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1475,7 +1425,7 @@
         "h": 10,
         "w": 6,
         "x": 12,
-        "y": 47
+        "y": 38
       },
       "id": 10,
       "links": [],
@@ -1490,6 +1440,7 @@
       "styles": [
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1506,6 +1457,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1571,7 +1523,7 @@
         "h": 10,
         "w": 6,
         "x": 18,
-        "y": 47
+        "y": 38
       },
       "id": 11,
       "links": [],
@@ -1586,6 +1538,7 @@
       "styles": [
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1602,6 +1555,7 @@
         },
         {
           "alias": "Header From",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1674,7 +1628,7 @@
         "h": 10,
         "w": 16,
         "x": 0,
-        "y": 57
+        "y": 48
       },
       "hideEmpty": true,
       "hideZero": true,
@@ -1739,7 +1693,7 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": "1000,0",
+      "thresholds": "10,500",
       "timeFrom": null,
       "timeShift": null,
       "title": "Map of Message Source Countries",
@@ -1757,7 +1711,7 @@
         "h": 10,
         "w": 8,
         "x": 16,
-        "y": 57
+        "y": 48
       },
       "id": 39,
       "links": [],
@@ -1772,6 +1726,7 @@
       "styles": [
         {
           "alias": "Country",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1788,6 +1743,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1804,6 +1760,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1865,7 +1822,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 58
       },
       "id": 14,
       "links": [],
@@ -1880,6 +1837,7 @@
       "styles": [
         {
           "alias": "IP Address",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1896,6 +1854,7 @@
         },
         {
           "alias": "Reverse DNS",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1912,6 +1871,7 @@
         },
         {
           "alias": "Base Domain",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1932,6 +1892,7 @@
         },
         {
           "alias": "Country",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1948,6 +1909,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -1964,6 +1926,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2064,7 +2027,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 67
       },
       "id": 16,
       "links": [],
@@ -2079,6 +2042,7 @@
       "styles": [
         {
           "alias": "Header From",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2095,6 +2059,7 @@
         },
         {
           "alias": "Envelope From",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2115,6 +2080,7 @@
         },
         {
           "alias": "SPF Result",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2131,6 +2097,7 @@
         },
         {
           "alias": "SPF Aligned",
+          "align": "auto",
           "colorMode": "cell",
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2151,6 +2118,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2167,6 +2135,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2284,7 +2253,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 76
       },
       "id": 15,
       "links": [],
@@ -2299,6 +2268,7 @@
       "styles": [
         {
           "alias": "Header From",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2315,6 +2285,7 @@
         },
         {
           "alias": "DKIM Selector",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2331,6 +2302,7 @@
         },
         {
           "alias": "DKIM Domain",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2351,6 +2323,7 @@
         },
         {
           "alias": "DKIM Result",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2370,6 +2343,7 @@
         },
         {
           "alias": "DKIM Aligned",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2389,6 +2363,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2405,6 +2380,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2534,7 +2510,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 85
       },
       "id": 32,
       "panels": [],
@@ -2549,7 +2525,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 86
       },
       "id": 20,
       "links": [],
@@ -2564,6 +2540,7 @@
       "styles": [
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2579,7 +2556,8 @@
           "unit": "none"
         },
         {
-          "alias": "Arrival_Date",
+          "alias": "ArrivalDate(UTC)",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2596,6 +2574,7 @@
         },
         {
           "alias": "From",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2610,24 +2589,9 @@
           "type": "number",
           "unit": "short"
         },
-         {
-          "alias": "Sender",
-          "colorMode": null,
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "sample.headers.sender.keyword",
-          "thresholds": [],
-          "type": "number",
-          "unit": "short"
-        },
         {
           "alias": "To",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2643,7 +2607,8 @@
           "unit": "short"
         },
         {
-          "alias": "Reply_To",
+          "alias": "ReplyTo",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2660,6 +2625,7 @@
         },
         {
           "alias": "Subject",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2676,6 +2642,7 @@
         },
         {
           "alias": "Received",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2694,7 +2661,8 @@
           "unit": "short"
         },
         {
-          "alias": "Auth_Failure",
+          "alias": "AuthFailure",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2710,7 +2678,8 @@
           "unit": "short"
         },
         {
-          "alias": "Delivery_Result",
+          "alias": "DeliveryResult",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2726,7 +2695,8 @@
           "unit": "short"
         },
         {
-          "alias": "Auth_Results",
+          "alias": "AuthResults",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -2751,7 +2721,7 @@
               "id": "6",
               "settings": {
                 "interval": "auto",
-                "min_doc_count": 0,
+                "min_doc_count": 1,
                 "trimEdges": 0
               },
               "type": "date_histogram"
@@ -2893,7 +2863,7 @@
         "h": 11,
         "w": 8,
         "x": 0,
-        "y": 104
+        "y": 95
       },
       "hideEmpty": true,
       "hideZero": true,
@@ -2976,7 +2946,7 @@
         "h": 11,
         "w": 5,
         "x": 8,
-        "y": 104
+        "y": 95
       },
       "id": 23,
       "links": [],
@@ -2991,6 +2961,7 @@
       "styles": [
         {
           "alias": "Country",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3007,6 +2978,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3023,6 +2995,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3084,7 +3057,7 @@
         "h": 11,
         "w": 11,
         "x": 13,
-        "y": 104
+        "y": 95
       },
       "id": 24,
       "links": [],
@@ -3099,6 +3072,7 @@
       "styles": [
         {
           "alias": "IP Address",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3115,6 +3089,7 @@
         },
         {
           "alias": "Reverse DNS",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3131,6 +3106,7 @@
         },
         {
           "alias": "Base Domain",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3151,6 +3127,7 @@
         },
         {
           "alias": "Country",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3167,6 +3144,7 @@
         },
         {
           "alias": "Messages",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3183,6 +3161,7 @@
         },
         {
           "alias": "Reverse DNS Base",
+          "align": "auto",
           "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
@@ -3277,11 +3256,10 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 21,
+  "schemaVersion": 22,
   "style": "dark",
   "tags": [
     "DKIM",
-    "Experimental",
     "SPF",
     "DMARC",
     "Email"
@@ -3290,7 +3268,12 @@
     "list": [
       {
         "datasource": "$datasourceag",
-        "filters": [],
+        "filters": [
+          {
+            "condition": "",
+            "key": ""
+          }
+        ],
         "hide": 0,
         "label": "",
         "name": "Filters",
@@ -3356,7 +3339,7 @@
     ]
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {
@@ -3388,5 +3371,5 @@
   "timezone": "",
   "title": "DMARC Reports",
   "uid": "SDksirRWz",
-  "version": 76
+  "version": 87
 }
