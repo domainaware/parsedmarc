@@ -192,17 +192,6 @@ The full set of configuration options are:
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
 
-
-.. warning::
-
-    It is **strongly recommended** to **not** use the ``nameservers`` setting.
-    By default, ``parsedmarc`` uses `Cloudflare's public resolvers`_,
-    which are much faster and more reliable than Google, Cisco OpenDNS, or
-    even most local resolvers.
-
-    The ``nameservers`` option should only be used if your network blocks DNS
-    requests to outside resolvers.
-
 .. warning::
 
    ``save_aggregate`` and ``save_forensic`` are separate options because
