@@ -1,3 +1,9 @@
+6.9.0
+-----
+
+- Use system nameservers instead of Cloudflare by default
+- Parse aggregate report records with missing SPF domains
+
 6.8.2
 -----
 

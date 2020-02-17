@@ -83,8 +83,7 @@ CLI help
      -o OUTPUT, --output OUTPUT
                            write output files to the given directory
      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query (default is Cloudflare's
-                           nameservers)
+                           nameservers to query
      -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                            number of seconds to wait for an answer from DNS
                            (default: 2.0)
@@ -200,16 +199,6 @@ The full set of configuration options are:
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
 
-
-.. warning::
-
-    It is **strongly recommended** to **not** use the ``nameservers`` setting.
-    By default, ``parsedmarc`` uses `Cloudflare's public resolvers`_,
-    which are much faster and more reliable than Google, Cisco OpenDNS, or
-    even most local resolvers.
-
-    The ``nameservers`` option should only be used if your network blocks DNS
-    requests to outside resolvers.
 
 .. warning::
 

@@ -161,8 +161,7 @@ def _main():
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
-                            help="nameservers to query "
-                                 "(default is Cloudflare's nameservers)")
+                            help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
                             help="number of seconds to wait for an answer "
                                  "from DNS (default: 2.0)",
