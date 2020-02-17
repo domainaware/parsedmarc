@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.8.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.9.0 documentation</title>
   
 
   
@@ -21,10 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.8.2
+                6.9.0
               </div>
             
           
@@ -286,8 +286,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
   <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
                         <span class="n">write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
   <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span> <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="n">Cloudflare</span><span class="s1">&#39;s</span>
-                        <span class="n">nameservers</span><span class="p">)</span>
+                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
   <span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">dns_timeout</span> <span class="n">DNS_TIMEOUT</span>
                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
                         <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
@@ -431,15 +430,6 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </dl>
 </li>
 </ul>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> setting.
-By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>,
-which are much faster and more reliable than Google, Cisco OpenDNS, or
-even most local resolvers.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network blocks DNS
-requests to outside resolvers.</p>
-</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
