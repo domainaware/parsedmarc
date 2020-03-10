@@ -619,7 +619,7 @@ def _main():
             if opts.smtp_skip_certificate_verification:
                 verify = False
             email_results(results, opts.smtp_host, opts.smtp_from,
-                          opts.smtp_to, verify=verify,
+                          opts.smtp_to, opts.smtp_port, verify=verify,
                           username=opts.smtp_user,
                           password=opts.smtp_password,
                           subject=opts.smtp_subject)
