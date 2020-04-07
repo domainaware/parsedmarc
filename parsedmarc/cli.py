@@ -290,7 +290,7 @@ def _main():
             if "timeout" in imap_config:
                 opts.imap_timeout = imap_config.getfloat("timeout")
             if "max_retries" in imap_config:
-                opts.imap_port = imap_config.getint("max_retries")
+                opts.imap_max_retries = imap_config.getint("max_retries")
             if "ssl" in imap_config:
                 opts.imap_ssl = imap_config.getboolean("ssl")
             if "skip_certificate_verification" in imap_config:
