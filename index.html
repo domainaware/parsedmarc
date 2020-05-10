@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.9.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.10.0 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                6.9.0
+                6.10.0
               </div>
             
           
@@ -360,7 +360,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">max_retries</span></code> - int: The maximum number of retries after a timeout</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password (escape <code class="docutils literal notranslate"><span class="pre">%</span></code> with a second <code class="docutils literal notranslate"><span class="pre">%</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The IMAP folder where the incoming reports can be found (Default: INBOX)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The IMAP folder to sort processed emails into (Default: Archive)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process messages as they arrive</p></li>
@@ -1656,33 +1656,33 @@ that enforce with a DMARC quarantine or reject policy.</p>
 <div class="section" id="module-parsedmarc">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
 <p>A Python package for parsing DMARC reports</p>
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.InvalidAggregateReport">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidAggregateReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidAggregateReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidAggregateReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC aggregate report is encountered</p>
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.InvalidDMARCReport">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidDMARCReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidDMARCReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidDMARCReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC report is encountered</p>
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.InvalidForensicReport">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidForensicReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidForensicReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidForensicReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC forensic report is encountered</p>
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.ParserError">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">ParserError</code><a class="reference internal" href="_modules/parsedmarc.html#ParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.ParserError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised whenever the parser fails for some reason</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.email_results">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">email_results</code><span class="sig-paren">(</span><em class="sig-param">results</em>, <em class="sig-param">host</em>, <em class="sig-param">mail_from</em>, <em class="sig-param">mail_to</em>, <em class="sig-param">mail_cc=None</em>, <em class="sig-param">mail_bcc=None</em>, <em class="sig-param">port=0</em>, <em class="sig-param">require_encryption=False</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">username=None</em>, <em class="sig-param">password=None</em>, <em class="sig-param">subject=None</em>, <em class="sig-param">attachment_filename=None</em>, <em class="sig-param">message=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">email_results</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em>, <em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">mail_from</span></em>, <em class="sig-param"><span class="n">mail_to</span></em>, <em class="sig-param"><span class="n">mail_cc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mail_bcc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">require_encryption</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">subject</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">attachment_filename</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">message</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
 <dd><p>Emails parsing results as a zip file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1706,9 +1706,9 @@ that enforce with a DMARC quarantine or reject policy.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.extract_xml">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">extract_xml</code><span class="sig-paren">(</span><em class="sig-param">input_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">extract_xml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
 or bytes.</p>
 <dl class="field-list simple">
@@ -1724,9 +1724,9 @@ or bytes.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em class="sig-param">connection=None</em>, <em class="sig-param">host=None</em>, <em class="sig-param">user=None</em>, <em class="sig-param">password=None</em>, <em class="sig-param">port=None</em>, <em class="sig-param">ssl=True</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">timeout=30</em>, <em class="sig-param">max_retries=4</em>, <em class="sig-param">reports_folder='INBOX'</em>, <em class="sig-param">archive_folder='Archive'</em>, <em class="sig-param">delete=False</em>, <em class="sig-param">test=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=6.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">results=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">connection</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">host</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">user</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ssl</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">30</span></em>, <em class="sig-param"><span class="n">max_retries</span><span class="o">=</span><span class="default_value">4</span></em>, <em class="sig-param"><span class="n">reports_folder</span><span class="o">=</span><span class="default_value">'INBOX'</span></em>, <em class="sig-param"><span class="n">archive_folder</span><span class="o">=</span><span class="default_value">'Archive'</span></em>, <em class="sig-param"><span class="n">delete</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">test</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">results</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from an inbox</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1761,9 +1761,9 @@ or bytes.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.get_dmarc_reports_from_mbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_mbox</code><span class="sig-paren">(</span><em class="sig-param">input_</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mbox" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_mbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a mailbox in mbox format containing e-mails with attached
 DMARC reports</p>
 <dl class="field-list simple">
@@ -1788,9 +1788,9 @@ DMARC reports</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.get_imap_capabilities">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_imap_capabilities</code><span class="sig-paren">(</span><em class="sig-param">server</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_imap_capabilities</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">server</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of an IMAP server’s capabilities</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1800,9 +1800,9 @@ DMARC reports</p>
 <p>Returns (list): A list of capabilities</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.get_report_zip">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_report_zip</code><span class="sig-paren">(</span><em class="sig-param">results</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_report_zip</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a zip file of parsed report output</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1817,9 +1817,9 @@ DMARC reports</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parse_aggregate_report_file">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em class="sig-param">_input</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_input</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
 aggregate DMARC report</p>
 <dl class="field-list simple">
@@ -1842,9 +1842,9 @@ aggregate DMARC report</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parse_aggregate_report_xml">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em class="sig-param">xml</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">timeout=2.0</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xml</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1866,9 +1866,9 @@ aggregate DMARC report</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parse_forensic_report">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_forensic_report</code><span class="sig-paren">(</span><em class="sig-param">feedback_report</em>, <em class="sig-param">sample</em>, <em class="sig-param">msg_date</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_forensic_report</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">feedback_report</span></em>, <em class="sig-param"><span class="n">sample</span></em>, <em class="sig-param"><span class="n">msg_date</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1894,9 +1894,9 @@ aggregate DMARC report</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parse_report_email">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_email</code><span class="sig-paren">(</span><em class="sig-param">input_</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_email</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1923,9 +1923,9 @@ aggregate DMARC report</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parse_report_file">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_file</code><span class="sig-paren">(</span><em class="sig-param">input_</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=2.0</em>, <em class="sig-param">strip_attachment_payloads=False</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <dl class="field-list simple">
@@ -1950,9 +1950,9 @@ file-like object. or bytes</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parsed_aggregate_reports_to_csv">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
@@ -1968,9 +1968,9 @@ headers</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parsed_aggregate_reports_to_csv_rows">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
@@ -1987,9 +1987,9 @@ format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parsed_forensic_reports_to_csv">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed forensic reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
@@ -2005,9 +2005,9 @@ headers</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.parsed_forensic_reports_to_csv_rows">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param">reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed forensic reports to a list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
@@ -2023,9 +2023,9 @@ format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.save_output">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">save_output</code><span class="sig-paren">(</span><em class="sig-param">results</em>, <em class="sig-param">output_directory='output'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">save_output</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em>, <em class="sig-param"><span class="n">output_directory</span><span class="o">=</span><span class="default_value">'output'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save report data in the given directory</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2037,9 +2037,9 @@ format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.watch_inbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">watch_inbox</code><span class="sig-paren">(</span><em class="sig-param">host</em>, <em class="sig-param">username</em>, <em class="sig-param">password</em>, <em class="sig-param">callback</em>, <em class="sig-param">port=None</em>, <em class="sig-param">ssl=True</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">reports_folder='INBOX'</em>, <em class="sig-param">archive_folder='Archive'</em>, <em class="sig-param">delete=False</em>, <em class="sig-param">test=False</em>, <em class="sig-param">idle_timeout=30</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">dns_timeout=6.0</em>, <em class="sig-param">strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">watch_inbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">username</span></em>, <em class="sig-param"><span class="n">password</span></em>, <em class="sig-param"><span class="n">callback</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ssl</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">reports_folder</span><span class="o">=</span><span class="default_value">'INBOX'</span></em>, <em class="sig-param"><span class="n">archive_folder</span><span class="o">=</span><span class="default_value">'Archive'</span></em>, <em class="sig-param"><span class="n">delete</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">test</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">idle_timeout</span><span class="o">=</span><span class="default_value">30</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
 to a callback function
 :param host: The mail server hostname or IP address
@@ -2073,21 +2073,21 @@ to a callback function
 
 <div class="section" id="module-parsedmarc.elastic">
 <span id="parsedmarc-elastic"></span><h3>parsedmarc.elastic<a class="headerlink" href="#module-parsedmarc.elastic" title="Permalink to this headline">¶</a></h3>
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.elastic.AlreadySaved">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">AlreadySaved</code><a class="reference internal" href="_modules/parsedmarc/elastic.html#AlreadySaved"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.AlreadySaved" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when a report to be saved matches an existing report</p>
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.elastic.ElasticsearchError">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">ElasticsearchError</code><a class="reference internal" href="_modules/parsedmarc/elastic.html#ElasticsearchError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.ElasticsearchError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an Elasticsearch error occurs</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.elastic.create_indexes">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">create_indexes</code><span class="sig-paren">(</span><em class="sig-param">names</em>, <em class="sig-param">settings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">create_indexes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">names</span></em>, <em class="sig-param"><span class="n">settings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create Elasticsearch indexes</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2099,9 +2099,9 @@ to a callback function
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.elastic.migrate_indexes">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">migrate_indexes</code><span class="sig-paren">(</span><em class="sig-param">aggregate_indexes=None</em>, <em class="sig-param">forensic_indexes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">migrate_indexes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_indexes</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">forensic_indexes</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates index mappings</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2113,9 +2113,9 @@ to a callback function
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param">aggregate_report</em>, <em class="sig-param">index_suffix=None</em>, <em class="sig-param">monthly_indexes=False</em>, <em class="sig-param">number_of_shards=1</em>, <em class="sig-param">number_of_replicas=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_report</span></em>, <em class="sig-param"><span class="n">index_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">monthly_indexes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">number_of_shards</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">number_of_replicas</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2133,9 +2133,9 @@ to a callback function
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param">forensic_report</em>, <em class="sig-param">index_suffix=None</em>, <em class="sig-param">monthly_indexes=False</em>, <em class="sig-param">number_of_shards=1</em>, <em class="sig-param">number_of_replicas=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">forensic_report</span></em>, <em class="sig-param"><span class="n">index_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">monthly_indexes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">number_of_shards</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">number_of_replicas</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2155,9 +2155,9 @@ index</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.elastic.set_hosts">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param">hosts</em>, <em class="sig-param">use_ssl=False</em>, <em class="sig-param">ssl_cert_path=None</em>, <em class="sig-param">timeout=60.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hosts</span></em>, <em class="sig-param"><span class="n">use_ssl</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ssl_cert_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2176,13 +2176,13 @@ index</p></li>
 </div>
 <div class="section" id="module-parsedmarc.splunk">
 <span id="parsedmarc-splunk"></span><h3>parsedmarc.splunk<a class="headerlink" href="#module-parsedmarc.splunk" title="Permalink to this headline">¶</a></h3>
-<dl class="class">
+<dl class="py class">
 <dt id="parsedmarc.splunk.HECClient">
-<em class="property">class </em><code class="sig-prename descclassname">parsedmarc.splunk.</code><code class="sig-name descname">HECClient</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">access_token</em>, <em class="sig-param">index</em>, <em class="sig-param">source='parsedmarc'</em>, <em class="sig-param">verify=True</em>, <em class="sig-param">timeout=60</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">parsedmarc.splunk.</code><code class="sig-name descname">HECClient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">url</span></em>, <em class="sig-param"><span class="n">access_token</span></em>, <em class="sig-param"><span class="n">index</span></em>, <em class="sig-param"><span class="n">source</span><span class="o">=</span><span class="default_value">'parsedmarc'</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>A client for a Splunk HTTP Events Collector (HEC)</p>
-<dl class="method">
+<dl class="py method">
 <dt id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
-<code class="sig-name descname">save_aggregate_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param">aggregate_reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">save_aggregate_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves aggregate DMARC reports to Splunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2194,9 +2194,9 @@ index</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">
-<code class="sig-name descname">save_forensic_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param">forensic_reports</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">save_forensic_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">forensic_reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves forensic DMARC reports to Splunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2210,7 +2210,7 @@ index</p></li>
 
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.splunk.SplunkError">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.splunk.</code><code class="sig-name descname">SplunkError</code><a class="reference internal" href="_modules/parsedmarc/splunk.html#SplunkError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.SplunkError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when a Splunk API error occurs</p>
@@ -2222,21 +2222,21 @@ index</p></li>
 <div class="section" id="module-parsedmarc.utils">
 <span id="parsedmarc-utils"></span><h3>parsedmarc.utils<a class="headerlink" href="#module-parsedmarc.utils" title="Permalink to this headline">¶</a></h3>
 <p>Utility functions that might be useful for other projects</p>
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.utils.DownloadError">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">DownloadError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#DownloadError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.DownloadError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rasied when an error occurs when downloading a file</p>
 </dd></dl>
 
-<dl class="exception">
+<dl class="py exception">
 <dt id="parsedmarc.utils.EmailParserError">
 <em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">EmailParserError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#EmailParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.EmailParserError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an error parsing the email occurs</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.convert_outlook_msg">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">convert_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param">msg_bytes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#convert_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.convert_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">convert_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg_bytes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#convert_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.convert_outlook_msg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code> Perl utility to convert an Outlook MS file to
 standard RFC 822 format</p>
 <dl class="field-list simple">
@@ -2249,9 +2249,9 @@ standard RFC 822 format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.decode_base64">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">decode_base64</code><span class="sig-paren">(</span><em class="sig-param">data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">decode_base64</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes a base64 string, with padding being optional</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2266,9 +2266,9 @@ standard RFC 822 format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.get_base_domain">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_base_domain</code><span class="sig-paren">(</span><em class="sig-param">domain</em>, <em class="sig-param">use_fresh_psl=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_base_domain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">domain</span></em>, <em class="sig-param"><span class="n">use_fresh_psl</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the base domain name for the given domain</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2291,9 +2291,9 @@ standard RFC 822 format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.get_filename_safe_string">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_filename_safe_string</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_filename_safe_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_filename_safe_string" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_filename_safe_string</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_filename_safe_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_filename_safe_string" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a string to a string that is safe for a filename
 :param string: A string to make safe for a filename
 :type string: str</p>
@@ -2307,9 +2307,9 @@ standard RFC 822 format</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.get_ip_address_country">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_country</code><span class="sig-paren">(</span><em class="sig-param">ip_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_country</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the MaxMind Geolite2 Country database to return the ISO code for the
 country associated with the given IPv4 or IPv6 address</p>
 <dl class="field-list simple">
@@ -2325,9 +2325,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.get_ip_address_info">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_info</code><span class="sig-paren">(</span><em class="sig-param">ip_address</em>, <em class="sig-param">cache=None</em>, <em class="sig-param">offline=False</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">timeout=2.0</em>, <em class="sig-param">parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_info</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns reverse DNS and country information for the given IP address</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2350,9 +2350,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.get_reverse_dns">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_reverse_dns</code><span class="sig-paren">(</span><em class="sig-param">ip_address</em>, <em class="sig-param">cache=None</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_reverse_dns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolves an IP address to a hostname using a reverse DNS query</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2373,9 +2373,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.human_timestamp_to_datetime">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param">human_timestamp</em>, <em class="sig-param">to_utc=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">human_timestamp</span></em>, <em class="sig-param"><span class="n">to_utc</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2393,9 +2393,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.human_timestamp_to_timestamp">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_timestamp</code><span class="sig-paren">(</span><em class="sig-param">human_timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_timestamp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">human_timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a human-readable timestamp into a into a UNIX timestamp</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2410,9 +2410,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.is_mbox">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_mbox</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_mbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if the given content is a MBOX mailbox file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2427,9 +2427,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.is_outlook_msg">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param">content</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">content</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if the given content is a Outlook msg OLE file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2444,9 +2444,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.parse_email">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">parse_email</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">strip_attachment_payloads=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">parse_email</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>A simplified email parser</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2459,9 +2459,9 @@ country associated with the given IPv4 or IPv6 address</p>
 <p>Returns (dict): Parsed email data</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.query_dns">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">query_dns</code><span class="sig-paren">(</span><em class="sig-param">domain</em>, <em class="sig-param">record_type</em>, <em class="sig-param">cache=None</em>, <em class="sig-param">nameservers=None</em>, <em class="sig-param">timeout=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">query_dns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">domain</span></em>, <em class="sig-param"><span class="n">record_type</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries DNS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2483,9 +2483,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.timestamp_to_datetime">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param">timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2500,9 +2500,9 @@ country associated with the given IPv4 or IPv6 address</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="parsedmarc.utils.timestamp_to_human">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_human</code><span class="sig-paren">(</span><em class="sig-param">timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_human</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
