@@ -11,6 +11,7 @@ from datetime import datetime
 from collections import OrderedDict
 from io import BytesIO, StringIO
 from gzip import GzipFile
+from socket import timeout
 import zipfile
 from csv import DictWriter
 import re
@@ -1221,11 +1222,15 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                            strip_attachment_payloads=sa)
         callback(res)
 
-    IMAPClient(host=host, username=username, password=password,
-               port=port, ssl=ssl, verify=verify,
-               initial_folder=reports_folder,
-               idle_callback=idle_callback,
-               idle_timeout=idle_timeout)
+    while True:
+        try:
+            IMAPClient(host=host, username=username, password=password,
+                       port=port, ssl=ssl, verify=verify,
+                       initial_folder=reports_folder,
+                       idle_callback=idle_callback,
+                       idle_timeout=idle_timeout)
+        except timeout:
+            logger.warning("IMAP connection timeout. Reconnecting...")
 
 
 def save_output(results, output_directory="output"):
