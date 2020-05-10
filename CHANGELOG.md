@@ -1,3 +1,15 @@
+Changelog
+=========
+
+6.10.0
+------
+
+- Ignore unknown forensic report fields when generating CSVs (Closes issue #148)
+- Fix crash on IMAP timeout (PR #164 - closes issue #163)
+- Use SMTP port from the config file when sending emails (PR #151)
+- Add support for Elasticsearch 7.0 (PR #161 - closes issue #149)
+- Remove temporary workaround for DMARC aggregate report records missing a SPF domain fields
+
 6.9.0
 -----
 

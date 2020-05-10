@@ -155,7 +155,7 @@ The full set of configuration options are:
     - ``timeout`` - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)
     - ``max_retries`` - int: The maximum number of retries after a timeout
     - ``user`` - str: The IMAP user
-    - ``password`` - str: The IMAP password
+    - ``password`` - str: The IMAP password (escape ``%`` with a second ``%``)
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
     - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive

@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.9.0"
+__version__ = "6.10.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -165,8 +165,6 @@ def _parse_report_record(record, offline=False, nameservers=None,
     if type(auth_results["spf"]) != list:
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
-        if "domain" not in result:
-            result["domain"] = None
         new_result = OrderedDict([("domain", result["domain"])])
         if "scope" in result and result["scope"] is not None:
             new_result["scope"] = result["scope"]
@@ -729,7 +727,10 @@ def parsed_forensic_reports_to_csv(reports):
     rows = parsed_forensic_reports_to_csv_rows(reports)
 
     for row in rows:
-        csv_writer.writerow(row)
+        new_row = {}
+        for key in new_row.keys():
+            new_row[key] = row[key]
+        csv_writer.writerow(new_row)
 
     return csv_file.getvalue()
 
