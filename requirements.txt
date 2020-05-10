@@ -10,8 +10,8 @@ xmltodict>=0.12.0
 geoip2>=3.0.0
 imapclient>=2.1.0
 dateparser>=0.7.2
-elasticsearch>=6.3.1,<7.0.0
-elasticsearch-dsl>=6.3.1,<7.0.0
+elasticsearch>=7.6.0,<8.0.0
+elasticsearch-dsl>=7.2.0,<8.0.0
 kafka-python>=1.4.4
 six==1.13.0
 mailsuite>=1.5.4
