@@ -101,7 +101,6 @@ setup(
                       'mail-parser>=3.11.0',
                       'dateparser>=0.7.2',
                       'mailsuite>=1.5.4',
-                      'elasticsearch>=7.6.0,<8.0.0',
                       'elasticsearch-dsl>=7.2.0,<8.0.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
