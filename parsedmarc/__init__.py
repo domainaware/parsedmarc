@@ -605,7 +605,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
-        ip_address = parsed_report["source_ip"]
+        ip_address = re.split('\s', parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(ip_address,
                                                    offline=offline,
                                                    nameservers=nameservers,
