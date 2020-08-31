@@ -606,7 +606,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
-        ip_address = re.split('\s', parsed_report["source_ip"]).pop(0)
+        ip_address = re.split(r'\s', parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(ip_address,
                                                    offline=offline,
                                                    nameservers=nameservers,
@@ -1150,7 +1150,7 @@ def get_dmarc_reports_from_inbox(connection=None,
                 for i in range(number_of_forensic_msgs):
                     msg_uid = forensic_report_msg_uids[i]
                     message = "Moving message"
-                    logger.debug("{0} {1} of {2}: UID {2}".format(
+                    logger.debug("{0} {1} of {2}: UID {3}".format(
                         message,
                         i + 1, number_of_forensic_msgs, msg_uid))
                     try:

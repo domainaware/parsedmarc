@@ -8,6 +8,8 @@ Changelog
 - Fix double count of messages in the Grafana dashboard (PR #182)
 - Add begin and end date fields for aggregate DMARC reports in Elasticsearch (PR #183 fixes issue #162)
 - Fix crash on IMAP timeout (PR #186 fixes issue #163)
+- Fix IMAP debugging output
+- Fix `User-Agent` string
 
 
 6.10.0
