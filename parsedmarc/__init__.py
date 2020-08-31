@@ -28,6 +28,7 @@ import xmltodict
 from lxml import etree
 from mailsuite.imap import IMAPClient
 from mailsuite.smtp import send_email
+from imapclient.exceptions import IMAPClientError
 
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
@@ -1230,7 +1231,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                        initial_folder=reports_folder,
                        idle_callback=idle_callback,
                        idle_timeout=idle_timeout)
-        except timeout:
+        except (timeout, IMAPClientError):
             logger.warning("IMAP connection timeout. Reconnecting...")
 
 
