@@ -1,6 +1,15 @@
 Changelog
 =========
 
+6.11.0
+------
+
+- Fix parsing failure for some valid forensic reports (PR #170)
+- Fix double count of messages in the Grafana dashboard (PR #182)
+- Add begin and end date fields for aggregate DMARC reports in Elasticsearch (PR #183 fixes issue #162)
+- Fix crash on IMAP timeout (PR #186 fixes issue #163)
+
+
 6.10.0
 ------
 
