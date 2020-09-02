@@ -277,6 +277,8 @@ def _main():
                 opts.n_procs = general_config.getint("n_procs")
             if "chunk_size" in general_config:
                 opts.chunk_size = general_config.getint("chunk_size")
+            if "use_freegeoip" in general_config:
+                opts.use_freegeoip = general_config.getboolean("use_freegeoip")
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:

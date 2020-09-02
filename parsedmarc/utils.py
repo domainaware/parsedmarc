@@ -40,6 +40,8 @@ mailparser_logger.setLevel(logging.CRITICAL)
 
 tempdir = tempfile.mkdtemp()
 
+use_freegeoip = False
+
 
 def _cleanup():
     """Remove temporary files"""
@@ -56,6 +58,8 @@ class EmailParserError(RuntimeError):
 class DownloadError(RuntimeError):
     """Rasied when an error occurs when downloading a file"""
 
+def set_use_freegeoip(data :bool):
+    use_freegeoip = data
 
 def decode_base64(data):
     """
@@ -272,6 +276,16 @@ def get_ip_address_country(ip_address):
     Returns:
         str: And ISO country code associated with the given IP address
     """
+
+    if use_freegeoip:
+        r = requests.get('https://freegeoip.live/json/%s' % ip_address)
+
+        if r.status_code == 200:
+
+            return r.json()["country_code"]
+        else:
+            return None
+
     system_paths = [
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
