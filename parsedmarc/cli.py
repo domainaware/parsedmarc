@@ -20,7 +20,7 @@ from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport
-from parsedmarc.utils import is_mbox
+from parsedmarc.utils import is_mbox, set_use_freegeoip
 
 logger = logging.getLogger("parsedmarc")
 
@@ -194,6 +194,7 @@ def _main():
                      debug=args.debug,
                      save_aggregate=False,
                      save_forensic=False,
+                     use_freegeoip=False,
                      imap_host=None,
                      imap_skip_certificate_verification=False,
                      imap_ssl=True,
@@ -279,6 +280,7 @@ def _main():
                 opts.chunk_size = general_config.getint("chunk_size")
             if "use_freegeoip" in general_config:
                 opts.use_freegeoip = general_config.getboolean("use_freegeoip")
+                set_use_freegeoip(opts.use_freegeoip)
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:

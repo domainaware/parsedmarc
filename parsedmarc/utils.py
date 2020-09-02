@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from datetime import datetime
 from datetime import timedelta
 from collections import OrderedDict
@@ -40,7 +41,18 @@ mailparser_logger.setLevel(logging.CRITICAL)
 
 tempdir = tempfile.mkdtemp()
 
-use_freegeoip = False
+this = sys.modules[__name__]
+this.use_freegeoip = False
+
+
+def set_use_freegeoip(data):
+    """
+    Set whether to use freegeoip.live or not
+
+    Args:
+        data: True or False
+    """
+    this.use_freegeoip = data
 
 
 def _cleanup():
@@ -58,8 +70,6 @@ class EmailParserError(RuntimeError):
 class DownloadError(RuntimeError):
     """Rasied when an error occurs when downloading a file"""
 
-def set_use_freegeoip(data :bool):
-    use_freegeoip = data
 
 def decode_base64(data):
     """
@@ -277,11 +287,10 @@ def get_ip_address_country(ip_address):
         str: And ISO country code associated with the given IP address
     """
 
-    if use_freegeoip:
+    if this.use_freegeoip:
         r = requests.get('https://freegeoip.live/json/%s' % ip_address)
 
         if r.status_code == 200:
-
             return r.json()["country_code"]
         else:
             return None
