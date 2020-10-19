@@ -195,8 +195,7 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None, username=None, password=
         else:
             conn_params['verify_certs'] = False
     if username:
-	conn_params['http_auth']=(username+":"+password)
-
+        conn_params['http_auth']=(username+":"+password)
     connections.create_connection(**conn_params)
 
 
