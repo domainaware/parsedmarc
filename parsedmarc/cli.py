@@ -496,7 +496,9 @@ def _main():
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path,
-                                  timeout=opts.elasticsearch_timeout,elesticsearch_username,elasticsearch_password)
+				  opts.elesticsearch_username,
+				  opts.elasticsearch_password,
+                                  timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:
