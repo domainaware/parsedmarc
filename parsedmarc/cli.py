@@ -496,7 +496,7 @@ def _main():
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path,
-				  opts.elesticsearch_username,
+				  opts.elasticsearch_username,
 				  opts.elasticsearch_password,
                                   timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
