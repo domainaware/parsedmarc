@@ -171,7 +171,7 @@ class AlreadySaved(ValueError):
     """Raised when a report to be saved matches an existing report"""
 
 
-def set_hosts(hosts, use_ssl=False, ssl_cert_path=None, timeout=60.0, username=None, password=None):
+def set_hosts(hosts, use_ssl=False, ssl_cert_path=None, timeout=60.0, username, password):
     """
     Sets the Elasticsearch hosts to use
 
