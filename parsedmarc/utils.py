@@ -395,6 +395,8 @@ def get_filename_safe_string(string):
         string = string.replace(char, "")
     string = string.rstrip(".")
 
+    string = (string[:100]) if len(string) > 100 else string
+
     return string
 
 
