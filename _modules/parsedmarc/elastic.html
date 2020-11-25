@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.elastic &mdash; parsedmarc 6.11.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 6.12.0 documentation</title>
   
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                6.11.0
+                6.12.0
               </div>
             
           
@@ -323,7 +323,8 @@
     <span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
+<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
 
@@ -331,6 +332,8 @@
 <span class="sd">        hosts (str): A single hostname or URL, or list of hostnames or URLs</span>
 <span class="sd">        use_ssl (bool): Use a HTTPS connection to the server</span>
 <span class="sd">        ssl_cert_path (str): Path to the certificate chain</span>
+<span class="sd">        username (str): The username to use for authentication</span>
+<span class="sd">        password (str): The password to use for authentication</span>
 <span class="sd">        timeout (float): Timeout in seconds</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">hosts</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
@@ -346,6 +349,8 @@
             <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;ca_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssl_cert_path</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">username</span><span class="p">:</span>
+        <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;http_auth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="o">+</span><span class="s2">&quot;:&quot;</span><span class="o">+</span><span class="n">password</span><span class="p">)</span>
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 

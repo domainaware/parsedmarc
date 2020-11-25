@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.11.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.12.0 documentation</title>
   
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                6.11.0
+                6.12.0
               </div>
             
           
@@ -382,6 +382,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
@@ -2160,7 +2162,7 @@ index</p></li>
 
 <dl class="py function">
 <dt id="parsedmarc.elastic.set_hosts">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hosts</span></em>, <em class="sig-param"><span class="n">use_ssl</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ssl_cert_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hosts</span></em>, <em class="sig-param"><span class="n">use_ssl</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ssl_cert_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2168,6 +2170,8 @@ index</p></li>
 <li><p><strong>hosts</strong> (<em>str</em>) – A single hostname or URL, or list of hostnames or URLs</p></li>
 <li><p><strong>use_ssl</strong> (<em>bool</em>) – Use a HTTPS connection to the server</p></li>
 <li><p><strong>ssl_cert_path</strong> (<em>str</em>) – Path to the certificate chain</p></li>
+<li><p><strong>username</strong> (<em>str</em>) – The username to use for authentication</p></li>
+<li><p><strong>password</strong> (<em>str</em>) – The password to use for authentication</p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Timeout in seconds</p></li>
 </ul>
 </dd>

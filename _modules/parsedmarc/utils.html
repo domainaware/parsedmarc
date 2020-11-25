@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>parsedmarc.utils &mdash; parsedmarc 6.11.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 6.12.0 documentation</title>
   
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                6.11.0
+                6.12.0
               </div>
             
           
@@ -430,8 +430,8 @@
         <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/var/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/var/local/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;%SystemDrive%</span><span class="se">\\</span><span class="s2">ProgramData</span><span class="se">\\</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;MaxMind</span><span class="se">\\</span><span class="s2">GeoIPUpdate</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span>
+        <span class="s2">&quot;%SystemDrive%</span><span class="se">\\</span><span class="s2">ProgramData</span><span class="se">\\</span><span class="s2">MaxMind</span><span class="se">\\</span><span class="s2">GeoIPUpdate</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;C:</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span>
     <span class="p">]</span>
 
@@ -546,6 +546,8 @@
     <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">invalid_filename_chars</span><span class="p">:</span>
         <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">char</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+
+    <span class="n">string</span> <span class="o">=</span> <span class="p">(</span><span class="n">string</span><span class="p">[:</span><span class="mi">100</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span> <span class="k">else</span> <span class="n">string</span>
 
     <span class="k">return</span> <span class="n">string</span></div>
 
