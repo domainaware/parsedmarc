@@ -1,13 +1,14 @@
 language: python
 
-dist: xenial
-sudo: true
+os: linux
+dist: focal
 
 python:
   - '3.5'
   - '3.6'
   - '3.7'
   - '3.8'
+  - '3.9'
 
 # commands to install dependencies
 before_install:
