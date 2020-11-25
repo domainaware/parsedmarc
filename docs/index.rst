@@ -168,7 +168,7 @@ The full set of configuration options are:
          Special characters in the username or password must be `URL encoded`_.
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``user`` - str: Basic auth username
-    - ``password` - str: Basic auth password
+    - ``password`` - str: Basic auth password
     - ``cert_path`` - str: Path to a trusted certificates
     - ``timeout`` - float: Timeout in seconds (Default: 60)
     - ``index_suffix`` - str: A suffix to apply to the index names
