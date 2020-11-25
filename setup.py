@@ -94,13 +94,12 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['dnspython>=1.16.0', 'expiringdict>=1.1.4',
+    install_requires=['dnspython>=2.0.0', 'expiringdict>=1.1.4',
                       'publicsuffix2>=2.20190812', 'xmltodict>=0.12.0',
                       'geoip2>=3.0.0', 'urllib3>=1.25.7',
                       'requests>=2.22.0', 'imapclient>=2.1.0',
-                      'mail-parser>=3.11.0',
                       'dateparser>=0.7.2',
-                      'mailsuite>=1.5.4',
+                      'mailsuite>=1.6.1',
                       'elasticsearch-dsl>=7.2.0,<8.0.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',

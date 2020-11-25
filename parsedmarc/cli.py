@@ -219,7 +219,7 @@ def _main():
                      elasticsearch_ssl=True,
                      elasticsearch_ssl_cert_path=None,
                      elasticsearch_monthly_indexes=False,
-		     elasticsearch_username=None,
+                     elasticsearch_username=None,
                      elasticsearch_password=None,
                      kafka_hosts=None,
                      kafka_username=None,
@@ -496,8 +496,8 @@ def _main():
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path,
-				  opts.elasticsearch_username,
-				  opts.elasticsearch_password,
+                                  opts.elasticsearch_username,
+                                  opts.elasticsearch_password,
                                   timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
