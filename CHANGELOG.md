@@ -4,12 +4,13 @@ Changelog
 6.12.0
 ------
 
-- Limit output filename length to 100 charcters (PR #199)
+- Limit output filename length to 100 characters (PR #199)
 - Add basic auth support for Elasticsearch (PR #191)
 - Fix Windows paths when searching for the GeoIP database (PR #190)
 - Remove `six` requirement
 - Require `mailsuite>=1.6.1`
 - Require `dnspython>=2.0.0`
+  - Drop Python 3.5 support
 
 6.11.0
 ------
