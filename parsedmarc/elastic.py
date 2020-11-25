@@ -179,6 +179,8 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None, username=None, password=
         hosts (str): A single hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use a HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
+        username (str): The username to use for authentication
+        password (str): The password to use for authentication
         timeout (float): Timeout in seconds
     """
     if type(hosts) != list:
