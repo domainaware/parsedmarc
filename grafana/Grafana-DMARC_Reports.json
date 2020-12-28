@@ -1798,9 +1798,9 @@
       "circleMaxSize": 30,
       "circleMinSize": 2,
       "colors": [
-        "#C4162A",
+        "#37872D",
         "#FA6400",
-        "#37872D"
+        "#C4162A"
       ],
       "datasource": "$datasourceag",
       "decimals": 0,
@@ -1882,7 +1882,7 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": "500,10",
+      "thresholds": "10,500",
       "timeFrom": null,
       "timeShift": null,
       "title": "Map of Message Source Countries",
