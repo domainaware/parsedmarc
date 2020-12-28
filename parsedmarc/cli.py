@@ -82,7 +82,7 @@ def _main():
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
-                    if opts.elasticsearch_hosts:
+                   opts.elasticsearch_hosts:
                         shards = opts.elasticsearch_number_of_shards
                         replicas = opts.elasticsearch_number_of_replicas
                         elastic.save_aggregate_report_to_elasticsearch(
@@ -160,6 +160,14 @@ def _main():
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
+    arg_parser.add_argument("--output-json-aggregate-file",
+                            help="output aggregate JSON file")
+    arg_parser.add_argument("--output-json-forensic-file",
+                            help="output forensic JSON file")
+    arg_parser.add_argument("--output-csv-aggregate-file",
+                            help="output aggregate CSV file")
+    arg_parser.add_argument("--output-csv-forensic-file",
+                            help="output forensic CSV file")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -188,6 +196,10 @@ def _main():
                      offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
+                     output_json_aggregate_file=args.output_json_aggregate_file,
+                     output_json_forensic_file=args.output_json_forensic_file,
+                     output_csv_aggregate_file=args.output_csv_aggregate_file,
+                     output_csv_forensic_file=args.output_csv_forensic_file,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
