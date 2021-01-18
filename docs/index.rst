@@ -1025,7 +1025,7 @@ it.
 
 Download (right click the link and click save as) export.ndjson_.
 
-Import ``export.ndjson`` the Saved Objects tab of the management
+Import ``export.ndjson`` the Saved Objects tab of the Stack management
 page of Kibana.
 
 It will give you the option to overwrite existing saved dashboards or
@@ -1034,7 +1034,7 @@ breaks them, as there are no permissions/access controls in Kibana without
 the commercial X-Pack_.
 
 .. image:: _static/screenshots/saved-objects.png
-   :alt: A screenshot of setting the Saved Objects management UI in Kibana
+   :alt: A screenshot of setting the Saved Objects Stack management UI in Kibana
    :align: center
    :target: _static/screenshots/saved-objects.png
 
