@@ -670,6 +670,7 @@ def _main():
                 test=opts.imap_test,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
+                offline=opts.offline,
                 strip_attachment_payloads=sa)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
