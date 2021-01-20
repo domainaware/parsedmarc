@@ -1176,7 +1176,8 @@ def get_dmarc_reports_from_inbox(connection=None,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
             strip_attachment_payloads=strip_attachment_payloads,
-            results=results
+            results=results,
+            offline=offline
         )
 
     return results
