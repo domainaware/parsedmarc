@@ -172,6 +172,8 @@ def _main():
                                  " or  DNS")
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors and warnings")
+    arg_parser.add_argument("--verbose", action="store_true",
+                            help="more verbose output")
     arg_parser.add_argument("--debug", action="store_true",
                             help="print debugging information")
     arg_parser.add_argument("--log-file", default=None,
@@ -192,6 +194,7 @@ def _main():
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
                      debug=args.debug,
+                     verbose=args.verbose,
                      save_aggregate=False,
                      save_forensic=False,
                      imap_host=None,
@@ -271,6 +274,8 @@ def _main():
                 opts.save_forensic = general_config["save_forensic"]
             if "debug" in general_config:
                 opts.debug = general_config.getboolean("debug")
+            if "verbose" in general_config:
+                opts.verbose = general_config.getboolean("verbose")
             if "silent" in general_config:
                 opts.silent = general_config.getboolean("silent")
             if "log_file" in general_config:
@@ -468,6 +473,9 @@ def _main():
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
 
+    if opts.verbose:
+        logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
     if opts.debug:
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
