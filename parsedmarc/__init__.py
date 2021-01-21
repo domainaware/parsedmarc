@@ -1237,7 +1237,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
             logger.warning("IMAP connection timeout. Reconnecting...")
             sleep(5)
         except Exception as e:
-            logger.warning("IMAP connection error. {0}. Reconnecting...".format(e))
+            logger.warning("IMAP connection error. {0}. "
+                           "Reconnecting...".format(e))
             sleep(5)
 
 
