@@ -490,6 +490,8 @@ def _main():
         logger.error("You must supply input files, or an IMAP configuration")
         exit(1)
 
+    logger.info("Starting dmarcparse")
+
     if opts.save_aggregate or opts.save_forensic:
         try:
             if opts.elasticsearch_hosts:
