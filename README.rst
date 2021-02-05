@@ -145,7 +145,7 @@ The full set of configuration options are:
     - ``chunk_size`` - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
-    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``port`` - int: The IMAP server port (Default: 993) If your Hoster publishes another port, still try 993. Otherwise Error:"wrong SSL version" 
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
