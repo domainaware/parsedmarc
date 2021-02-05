@@ -19,7 +19,7 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport
+    InvalidDMARCReport, s3
 from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
@@ -79,6 +79,14 @@ def _main():
                 )
             except Exception as error_:
                 logger.error("Kafka Error: {0}".format(error_.__str__()))
+        if opts.s3_bucket:
+            try:
+                s3_client = s3.S3Client(
+                    bucket_name=opts.s3_bucket,
+                    bucket_path=opts.s3_path,
+                )
+            except Exception as error_:
+                logger.error("S3 Error: {0}".format(error_.__str__()))
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -104,6 +112,11 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                          error_.__str__()))
+                try:
+                    if opts.s3_bucket:
+                        s3_client.save_aggregate_report_to_s3(report)
+                except Exception as error_:
+                    logger.error("S3 Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -138,6 +151,11 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
+                try:
+                    if opts.s3_bucket:
+                        s3_client.save_forensic_report_to_s3(report)
+                except Exception as error_:
+                    logger.error("S3 Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
