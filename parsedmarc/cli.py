@@ -241,6 +241,8 @@ def _main():
                      smtp_to=[],
                      smtp_subject="parsedmarc report",
                      smtp_message="Please see the attached DMARC results.",
+                     s3_bucket=None,
+                     s3_path=None,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1
@@ -469,6 +471,22 @@ def _main():
                 opts.smtp_attachment = smtp_config["attachment"]
             if "message" in smtp_config:
                 opts.smtp_message = smtp_config["message"]
+        if "s3" in config.sections():
+            s3_config = config["s3"]
+            if "bucket" in s3_config:
+                opts.s3_bucket = s3_config["bucket"]
+            else:
+                logger.critical("bucket setting missing from the "
+                                "s3 config section")
+                exit(-1)
+            if "path" in s3_config:
+                opts.s3_path = s3_config["path"]
+                if opts.s3_path.startswith("/"):
+                    opts.s3_path = opts.s3_path[1:]
+                if opts.s3_path.endswith("/"):
+                    opts.s3_path = opts.s3_path[:-1]
+            else:
+                opts.s3_path = ""
 
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
