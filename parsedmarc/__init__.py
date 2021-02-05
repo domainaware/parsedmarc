@@ -1073,7 +1073,7 @@ def get_dmarc_reports_from_inbox(connection=None,
                                                     reports_folder))
 
     if batch_size:
-        message_limit = batch_size
+        message_limit = min(total_messages, batch_size)
     else:
         message_limit = total_messages
 
