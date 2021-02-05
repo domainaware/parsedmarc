@@ -134,7 +134,7 @@ For example
 
    [s3]
    bucket = my-bucket
-   path = /parsedmarc
+   path = parsedmarc
 
 The full set of configuration options are:
 
