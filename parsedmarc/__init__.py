@@ -1196,7 +1196,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                 verify=True, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False,
                 idle_timeout=30, offline=False, nameservers=None,
-                dns_timeout=6.0, strip_attachment_payloads=False, batch_size=None):
+                dns_timeout=6.0, strip_attachment_payloads=False,
+                batch_size=None):
     """
     Use an IDLE IMAP connection to parse incoming emails, and pass the results
     to a callback function
