@@ -1234,7 +1234,6 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except (timeout, IMAPClientError):
             logger.warning("IMAP connection timeout. Reconnecting...")
 
-
 def save_output(results, output_directory="output", \
                 output_json_aggregate_file="aggregate.json", \
                 output_json_forensic_file="forensic.json", \

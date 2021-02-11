@@ -82,7 +82,7 @@ def _main():
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
-                   opts.elasticsearch_hosts:
+                    if opts.elasticsearch_hosts:
                         shards = opts.elasticsearch_number_of_shards
                         replicas = opts.elasticsearch_number_of_replicas
                         elastic.save_aggregate_report_to_elasticsearch(
@@ -161,13 +161,13 @@ def _main():
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
     arg_parser.add_argument("--output-json-aggregate-file",
-                            help="output aggregate JSON file")
+                            help="output aggregate JSON file", default="aggregate.json")
     arg_parser.add_argument("--output-json-forensic-file",
-                            help="output forensic JSON file")
+                            help="output forensic JSON file", default="forensic.json")
     arg_parser.add_argument("--output-csv-aggregate-file",
-                            help="output aggregate CSV file")
+                            help="output aggregate CSV file", default="aggregate.csv")
     arg_parser.add_argument("--output-csv-forensic-file",
-                            help="output forensic CSV file")
+                            help="output forensic CSV file", default="forensic.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -191,6 +191,7 @@ def _main():
     forensic_reports = []
 
     args = arg_parser.parse_args()
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
@@ -631,7 +632,11 @@ def _main():
                            ("forensic_reports", forensic_reports)])
 
     if opts.output:
-        save_output(results, output_directory=opts.output)
+        save_output(results, output_directory=opts.output, \
+                    output_json_aggregate_file=opts.output_json_aggregate_file, \
+                    output_json_forensic_file=opts.output_json_forensic_file, \
+                    output_csv_aggregate_file=opts.output_csv_aggregate_file, \
+                    output_csv_forensic_file=opts.output_csv_forensic_file)
 
     process_reports(results)
 
