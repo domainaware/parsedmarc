@@ -1234,11 +1234,12 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         except (timeout, IMAPClientError):
             logger.warning("IMAP connection timeout. Reconnecting...")
 
-def save_output(results, output_directory="output", \
-                output_json_aggregate_file="aggregate.json", \
-                output_json_forensic_file="forensic.json", \
-                output_csv_aggregate_file="aggregate.csv", \
-                output_csv_forensic_file="forensic.csv"):
+
+def save_output(results, output_directory="output",
+                output_json_aggregate="aggregate.json",
+                output_json_forensic="forensic.json",
+                output_csv_aggregate="aggregate.csv",
+                output_csv_forensic="forensic.csv"):
     """
     Save report data in the given directory
 
@@ -1256,22 +1257,30 @@ def save_output(results, output_directory="output", \
     else:
         os.makedirs(output_directory)
 
-    with open("{0}".format(os.path.join(output_directory, output_json_aggregate_file)),
+    with open("{0}"
+              .format(os.path.join(output_directory,
+                                   output_json_aggregate)),
               "w", newline="\n", encoding="utf-8") as agg_json:
         agg_json.write(json.dumps(aggregate_reports, ensure_ascii=False,
                                   indent=2))
 
-    with open("{0}".format(os.path.join(output_directory, output_csv_aggregate_file)),
+    with open("{0}"
+              .format(os.path.join(output_directory,
+                                   output_csv_aggregate)),
               "w", newline="\n", encoding="utf-8") as agg_csv:
         csv = parsed_aggregate_reports_to_csv(aggregate_reports)
         agg_csv.write(csv)
 
-    with open("{0}".format(os.path.join(output_directory, output_json_forensic_file)),
+    with open("{0}"
+              .format(os.path.join(output_directory,
+                                   output_json_forensic)),
               "w", newline="\n", encoding="utf-8") as for_json:
         for_json.write(json.dumps(forensic_reports, ensure_ascii=False,
                                   indent=2))
 
-    with open("{0}".format(os.path.join(output_directory, output_csv_forensic_file)),
+    with open("{0}"
+              .format(os.path.join(output_directory,
+                                   output_csv_forensic)),
               "w", newline="\n", encoding="utf-8") as for_csv:
         csv = parsed_forensic_reports_to_csv(forensic_reports)
         for_csv.write(csv)
