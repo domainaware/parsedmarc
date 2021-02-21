@@ -228,6 +228,7 @@ def _main():
                      imap_watch=False,
                      imap_delete=False,
                      imap_test=False,
+                     imap_batch_size=None,
                      hec=None,
                      hec_token=None,
                      hec_index=None,
@@ -347,6 +348,10 @@ def _main():
                 opts.imap_delete = imap_config.getboolean("delete")
             if "test" in imap_config:
                 opts.imap_test = imap_config.getboolean("test")
+            if "batch_size" in imap_config:
+                opts.imap_batch_size = imap_config.getint("batch_size")
+            else:
+                opts.imap_batch_size = None
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
             if "hosts" in elasticsearch_config:
@@ -649,8 +654,9 @@ def _main():
                 offline=opts.offline,
                 nameservers=ns,
                 test=opts.imap_test,
-                strip_attachment_payloads=sa
-                                                   )
+                strip_attachment_payloads=sa,
+                batch_size=opts.imap_batch_size
+            )
 
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
@@ -706,7 +712,9 @@ def _main():
                 test=opts.imap_test,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
-                strip_attachment_payloads=sa)
+                strip_attachment_payloads=sa,
+                batch_size=opts.imap_batch_size
+            )
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
             exit(1)
