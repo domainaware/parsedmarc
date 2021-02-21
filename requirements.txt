@@ -27,3 +27,4 @@ sphinx_rtd_theme>=0.4.3
 wheel>=0.33.6
 codecov>=2.0.15
 lxml>=4.4.0
+boto3>=1.16.63
