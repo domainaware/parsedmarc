@@ -155,6 +155,7 @@ The full set of configuration options are:
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
+    - ``limit_messages`` - int: Process a maximum of this many messages per run
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
 

@@ -1004,7 +1004,8 @@ def get_dmarc_reports_from_inbox(connection=None,
                                  nameservers=None,
                                  dns_timeout=6.0,
                                  strip_attachment_payloads=False,
-                                 results=None):
+                                 results=None,
+                                 limit_messages=None):
     """
     Fetches and parses DMARC reports from an inbox
 
@@ -1066,6 +1067,8 @@ def get_dmarc_reports_from_inbox(connection=None,
     server.create_folder(invalid_reports_folder)
 
     messages = server.search()
+    if limit_messages is not None:
+        messages = messages[:limit_messages]
     total_messages = len(messages)
     logger.debug("Found {0} messages in {1}".format(len(messages),
                                                     reports_folder))
@@ -1165,7 +1168,7 @@ def get_dmarc_reports_from_inbox(connection=None,
 
     total_messages = len(server.search())
 
-    if not test and total_messages > 0:
+    if not test and (len(messages) < limit_messages) and total_messages > 0:
         # Process emails that came in during the last run
         results = get_dmarc_reports_from_inbox(
             connection=server,
@@ -1177,7 +1180,8 @@ def get_dmarc_reports_from_inbox(connection=None,
             dns_timeout=dns_timeout,
             strip_attachment_payloads=strip_attachment_payloads,
             results=results,
-            offline=offline
+            offline=offline,
+            limit_messages=limit_messages-len(messages)
         )
 
     return results

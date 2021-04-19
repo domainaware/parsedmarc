@@ -210,6 +210,7 @@ def _main():
                      imap_watch=False,
                      imap_delete=False,
                      imap_test=False,
+                     imap_limit_messages=None,
                      hec=None,
                      hec_token=None,
                      hec_index=None,
@@ -327,6 +328,8 @@ def _main():
                 opts.imap_delete = imap_config.getboolean("delete")
             if "test" in imap_config:
                 opts.imap_test = imap_config.getboolean("test")
+            if "limit_messages" in imap_config:
+                opts.imap_limit_messages = imap_config.getint("limit_messages")
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
             if "hosts" in elasticsearch_config:
@@ -613,9 +616,9 @@ def _main():
                 offline=opts.offline,
                 nameservers=ns,
                 test=opts.imap_test,
-                strip_attachment_payloads=sa
+                strip_attachment_payloads=sa,
+                limit_messages=opts.imap_limit_messages
                                                    )
-
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
 
