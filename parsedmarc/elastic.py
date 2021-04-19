@@ -320,7 +320,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     begin_date_query = Q(dict(match=dict(date_range=begin_date)))
     end_date_query = Q(dict(match=dict(date_range=end_date)))
 
-    search = Search(index="dmarc_aggregate*")
+    if index_suffix is not None:
+        search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
+    else:
+        search = Search(index="dmarc_aggregate*")
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
@@ -437,7 +440,10 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     arrival_date_human = forensic_report["arrival_date_utc"]
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
-    search = Search(index="dmarc_forensic*")
+    if index_suffix is not None:
+        search = Search(index="dmarc_forensic_{0}*".format(index_suffix))
+    else:
+        search = Search(index="dmarc_forensic*")
     arrival_query = {"match": {"arrival_date": arrival_date}}
     q = Q(arrival_query)
 
