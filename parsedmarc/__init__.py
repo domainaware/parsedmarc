@@ -1060,10 +1060,11 @@ def get_dmarc_reports_from_inbox(connection=None,
                             max_retries=max_retries,
                             initial_folder=reports_folder)
 
-    server.create_folder(archive_folder)
-    server.create_folder(aggregate_reports_folder)
-    server.create_folder(forensic_reports_folder)
-    server.create_folder(invalid_reports_folder)
+    if not test:
+        server.create_folder(archive_folder)
+        server.create_folder(aggregate_reports_folder)
+        server.create_folder(forensic_reports_folder)
+        server.create_folder(invalid_reports_folder)
 
     messages = server.search()
     total_messages = len(messages)
