@@ -304,8 +304,12 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
         new_report["policy_published"] = new_policy_published
 
         if type(report["record"]) == list:
-            for record in report["record"]:
-                report_record = _parse_report_record(record,
+            for i in range(len(report["record"])):
+                if i % 20 == 0 and i > 0:
+                    logger.debug("Sending noop cmd")
+                    server.noop()
+                    logger.debug("Processed {0}/{1}".format(i, len(report["record"])))
+                report_record = _parse_report_record(report["record"][i],
                                                      offline=offline,
                                                      nameservers=nameservers,
                                                      dns_timeout=timeout,
@@ -1039,6 +1043,7 @@ def get_dmarc_reports_from_inbox(connection=None,
         raise ValueError("Must supply a connection, or a username and "
                          "password")
 
+    global server
     aggregate_reports = []
     forensic_reports = []
     aggregate_report_msg_uids = []
