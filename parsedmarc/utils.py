@@ -201,15 +201,15 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
 
 def timestamp_to_datetime(timestamp):
     """
-    Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object (UTC)
+    Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object
 
     Args:
         timestamp (int): The timestamp
 
     Returns:
-        DateTime: The converted timestamp as a Python ``DateTime`` object (UTC)
+        DateTime: The converted timestamp as a Python ``DateTime`` object
     """
-    return datetime.utcfromtimestamp(int(timestamp))
+    return datetime.fromtimestamp(int(timestamp))
 
 
 def timestamp_to_human(timestamp):
@@ -220,7 +220,7 @@ def timestamp_to_human(timestamp):
         timestamp: The timestamp
 
     Returns:
-        str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format (UTC)
+        str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
     """
     return timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
