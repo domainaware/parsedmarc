@@ -317,8 +317,8 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-    begin_date_query = Q(dict(match=dict(date_range=begin_date)))
-    end_date_query = Q(dict(match=dict(date_range=end_date)))
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
+    end_date_query = Q(dict(match=dict(date_end=end_date)))
 
     if index_suffix is not None:
         search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
