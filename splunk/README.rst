@@ -16,7 +16,7 @@ Listen on all network interfaces::
 
   docker run -d -p 8000:8000 -p 8088:8088 -e "SPLUNK_START_ARGS=--accept-license" -e "SPLUNK_PASSWORD=password1234" -e "SPLUNK_HEC_TOKEN=hec-token-1234" --name splunk splunk/splunk:latest
 
-Listen on localhost for use with reverse proxy with base URL `/splunk`::
+Listen on localhost for use with reverse proxy with base URL ``/splunk``::
 
   docker run -d -p 127.0.0.1:8000:8000 -p 127.0.0.1:8088:8088 -e "SPLUNK_START_ARGS=--accept-license" -e "SPLUNK_PASSWORD=password1234" -e "SPLUNK_HEC_TOKEN=hec-token-1234" -e "SPLUNK_ROOT_ENDPOINT=/splunk" --name splunk splunk/splunk:latest
 
@@ -28,7 +28,7 @@ Set up reverse proxy, e.g. Apache2::
 Splunk Configuration
 --------------------
 
-Access web UI at http://127.0.0.1:8000 and log in with `admin:password1234`.
+Access web UI at http://127.0.0.1:8000 and log in with ``admin:password1234``.
 
 Create App and Index
 ~~~~~~~~~~~~~~~~~~~~
@@ -37,7 +37,7 @@ Create App and Index
 
   - Index name: "email"
 
-- HEC token `hec-token-1234` should be already set up. 
+- HEC token ``hec-token-1234`` should be already set up. 
 
   - Check under Settings > Data > Data inputs: HTTP Event Collector
 
@@ -79,7 +79,7 @@ parsedmarc.ini::
   index = email
   skip_certificate_verification = True
 
-Note that `skip_certificate_verification = True` disables security checks.
+Note that ``skip_certificate_verification = True`` disables security checks.
 
 Run parsedmarc::
 
