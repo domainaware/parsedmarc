@@ -301,10 +301,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
-    begin_date = human_timestamp_to_datetime(metadata["begin_date"])
-    end_date = human_timestamp_to_datetime(metadata["end_date"])
-    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
-    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
+    begin_date = human_timestamp_to_datetime(metadata["begin_date"], to_utc=True)
+    end_date = human_timestamp_to_datetime(metadata["end_date"], to_utc=True)
+    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
     if monthly_indexes:
         index_date = begin_date.strftime("%Y-%m")
     else:
