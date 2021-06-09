@@ -225,7 +225,8 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
         errors.append("Invalid XML: {0}".format(e.__str__()))
         tree = etree.parse(BytesIO(xml.encode('utf-8')),
                            etree.XMLParser(recover=True))
-        xml = etree.tostring(tree).decode('utf-8')
+        s = etree.tostring(tree)
+        xml = '' if s is None else s.decode('utf-8')
 
     try:
         # Replace XML header (sometimes they are invalid)
