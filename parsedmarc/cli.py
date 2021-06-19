@@ -178,6 +178,18 @@ def _main():
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
+    arg_parser.add_argument("--output-json-aggregate",
+                            help="output aggregate JSON file",
+                            default="aggregate.json")
+    arg_parser.add_argument("--output-json-forensic",
+                            help="output forensic JSON file",
+                            default="forensic.json")
+    arg_parser.add_argument("--output-csv-aggregate",
+                            help="output aggregate CSV file",
+                            default="aggregate.csv")
+    arg_parser.add_argument("--output-csv-forensic",
+                            help="output forensic CSV file",
+                            default="forensic.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -203,11 +215,16 @@ def _main():
     forensic_reports = []
 
     args = arg_parser.parse_args()
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
+                     output_json_aggregate=args.output_json_aggregate,
+                     output_json_forensic=args.output_json_forensic,
+                     output_csv_aggregate=args.output_csv_aggregate,
+                     output_csv_forensic=args.output_csv_forensic,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
@@ -665,7 +682,11 @@ def _main():
                            ("forensic_reports", forensic_reports)])
 
     if opts.output:
-        save_output(results, output_directory=opts.output)
+        save_output(results, output_directory=opts.output,
+                    output_json_aggregate=opts.output_json_aggregate,
+                    output_json_forensic=opts.output_json_forensic,
+                    output_csv_aggregate=opts.output_csv_aggregate,
+                    output_csv_forensic=opts.output_csv_forensic)
 
     process_reports(results)
 
