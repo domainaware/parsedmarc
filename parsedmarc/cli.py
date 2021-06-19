@@ -736,9 +736,8 @@ def _main():
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=sa,
-                batch_size=opts.imap_batch_size
-                offline=opts.offline,
-                strip_attachment_payloads=sa)
+                batch_size=opts.imap_batch_size,
+                offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
             exit(1)
