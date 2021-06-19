@@ -98,7 +98,8 @@ setup(
                       'elasticsearch-dsl>=7.2.0,<8.0.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
-                      'lxml>=4.4.0'
+                      'lxml>=4.4.0',
+                      'boto3>=1.16.63'
                       ],
 
     entry_points={
