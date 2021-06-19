@@ -8,6 +8,7 @@ import shutil
 import xml.parsers.expat as expat
 import json
 from datetime import datetime
+from time import sleep
 from collections import OrderedDict
 from io import BytesIO, StringIO
 from gzip import GzipFile
@@ -1253,6 +1254,11 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                        idle_timeout=idle_timeout)
         except (timeout, IMAPClientError):
             logger.warning("IMAP connection timeout. Reconnecting...")
+            sleep(5)
+        except Exception as e:
+            logger.warning("IMAP connection error. {0}. "
+                           "Reconnecting...".format(e))
+            sleep(5)
 
 
 def save_output(results, output_directory="output",
