@@ -19,7 +19,7 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport
+    InvalidDMARCReport, s3
 from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
@@ -79,6 +79,14 @@ def _main():
                 )
             except Exception as error_:
                 logger.error("Kafka Error: {0}".format(error_.__str__()))
+        if opts.s3_bucket:
+            try:
+                s3_client = s3.S3Client(
+                    bucket_name=opts.s3_bucket,
+                    bucket_path=opts.s3_path,
+                )
+            except Exception as error_:
+                logger.error("S3 Error: {0}".format(error_.__str__()))
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -104,6 +112,11 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                          error_.__str__()))
+                try:
+                    if opts.s3_bucket:
+                        s3_client.save_aggregate_report_to_s3(report)
+                except Exception as error_:
+                    logger.error("S3 Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -138,6 +151,11 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
+                try:
+                    if opts.s3_bucket:
+                        s3_client.save_forensic_report_to_s3(report)
+                except Exception as error_:
+                    logger.error("S3 Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -160,6 +178,18 @@ def _main():
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
+    arg_parser.add_argument("--output-json-aggregate",
+                            help="output aggregate JSON file",
+                            default="aggregate.json")
+    arg_parser.add_argument("--output-json-forensic",
+                            help="output forensic JSON file",
+                            default="forensic.json")
+    arg_parser.add_argument("--output-csv-aggregate",
+                            help="output aggregate CSV file",
+                            default="aggregate.csv")
+    arg_parser.add_argument("--output-csv-forensic",
+                            help="output forensic CSV file",
+                            default="forensic.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -185,11 +215,16 @@ def _main():
     forensic_reports = []
 
     args = arg_parser.parse_args()
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
+                     output_json_aggregate=args.output_json_aggregate,
+                     output_json_forensic=args.output_json_forensic,
+                     output_csv_aggregate=args.output_csv_aggregate,
+                     output_csv_forensic=args.output_csv_forensic,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
@@ -242,6 +277,8 @@ def _main():
                      smtp_to=[],
                      smtp_subject="parsedmarc report",
                      smtp_message="Please see the attached DMARC results.",
+                     s3_bucket=None,
+                     s3_path=None,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1
@@ -474,6 +511,22 @@ def _main():
                 opts.smtp_attachment = smtp_config["attachment"]
             if "message" in smtp_config:
                 opts.smtp_message = smtp_config["message"]
+        if "s3" in config.sections():
+            s3_config = config["s3"]
+            if "bucket" in s3_config:
+                opts.s3_bucket = s3_config["bucket"]
+            else:
+                logger.critical("bucket setting missing from the "
+                                "s3 config section")
+                exit(-1)
+            if "path" in s3_config:
+                opts.s3_path = s3_config["path"]
+                if opts.s3_path.startswith("/"):
+                    opts.s3_path = opts.s3_path[1:]
+                if opts.s3_path.endswith("/"):
+                    opts.s3_path = opts.s3_path[:-1]
+            else:
+                opts.s3_path = ""
 
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
@@ -494,6 +547,8 @@ def _main():
     if opts.imap_host is None and len(opts.file_path) == 0:
         logger.error("You must supply input files, or an IMAP configuration")
         exit(1)
+
+    logger.info("Starting dmarcparse")
 
     if opts.save_aggregate or opts.save_forensic:
         try:
@@ -633,7 +688,11 @@ def _main():
                            ("forensic_reports", forensic_reports)])
 
     if opts.output:
-        save_output(results, output_directory=opts.output)
+        save_output(results, output_directory=opts.output,
+                    output_json_aggregate=opts.output_json_aggregate,
+                    output_json_forensic=opts.output_json_forensic,
+                    output_csv_aggregate=opts.output_csv_aggregate,
+                    output_csv_forensic=opts.output_csv_forensic)
 
     process_reports(results)
 
@@ -678,7 +737,8 @@ def _main():
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=sa,
                 batch_size=opts.imap_batch_size
-            )
+                offline=opts.offline,
+                strip_attachment_payloads=sa)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
             exit(1)

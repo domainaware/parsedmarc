@@ -128,11 +128,15 @@ For example
    token = HECTokenGoesHere
    index = email
 
+   [s3]
+   bucket = my-bucket
+   path = parsedmarc
+
 The full set of configuration options are:
 
 - ``general``
-    - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch and/or Splunk
-    - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch and/or Splunk
+    - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
+    - ``save_forensic`` - bool: Save forensic report data to Elasticsearch, Splunk and/or S3
     - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
@@ -145,7 +149,7 @@ The full set of configuration options are:
     - ``chunk_size`` - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
-    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``port`` - int: The IMAP server port (Default: 993) If your Hoster publishes another port, still try 993. Otherwise Error:"wrong SSL version" 
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
@@ -192,6 +196,9 @@ The full set of configuration options are:
     - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+- ``s3``
+    - ``bucket`` - str: The S3 bucket name
+    - ``path`` - int: The path to upload reports to (Default: /)
 
 
 .. warning::
