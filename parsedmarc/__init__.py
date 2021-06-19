@@ -787,6 +787,8 @@ def parse_report_email(input_, offline=False, nameservers=None,
     subject = None
     feedback_report = None
     sample = None
+    if "From" in msg_headers:
+        logger.info("Parsing mail from {0}".format(msg_headers["From"]))
     if "Subject" in msg_headers:
         subject = msg_headers["Subject"]
     for part in msg.walk():
@@ -958,7 +960,7 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
                                                         input_))
         for i in range(len(message_keys)):
             message_key = message_keys[i]
-            logger.debug("Processing message {0} of {1}".format(
+            logger.info("Processing message {0} of {1}".format(
                 i+1, total_messages
             ))
             msg_content = mbox.get_string(message_key)
@@ -1087,7 +1089,7 @@ def get_dmarc_reports_from_inbox(connection=None,
                                                     reports_folder))
     for i in range(len(messages)):
         msg_uid = messages[i]
-        logger.debug("Processing message {0} of {1}: UID {2}".format(
+        logger.info("Processing message {0} of {1}: UID {2}".format(
             i+1, total_messages, msg_uid
 
         ))
