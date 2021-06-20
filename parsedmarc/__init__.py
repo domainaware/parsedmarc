@@ -1284,10 +1284,10 @@ def save_output(results, output_directory="output",
     Args:
         results (OrderedDict): Parsing results
         output_directory (str): The patch to the directory to save in
-        aggregate_json_filename (str): Output filename for the aggregate JSON report
-        forensic_json_filename (str): Output filename for the forensic JSON report
-        aggregate_csv_filename (str):  Output filename for the aggregate CSV report
-        forensic_csv_filename (str):  Output filename for the forensic CSV report
+        aggregate_json_filename (str): Filename for the aggregate JSON file
+        forensic_json_filename (str): Filename for the forensic JSON file
+        aggregate_csv_filename (str): Filename for the aggregate CSV file
+        forensic_csv_filename (str): Filename for the forensic CSV file
     """
 
     aggregate_reports = results["aggregate_reports"]

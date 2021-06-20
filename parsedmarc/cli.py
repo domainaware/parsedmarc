@@ -303,13 +303,17 @@ def _main():
             if "output" in general_config:
                 opts.output = general_config["output"]
             if "aggregate_json_filename" in general_config:
-                opts.aggregate_json_filename = general_config["aggregate_json_filename"]
+                opts.aggregate_json_filename = general_config[
+                    "aggregate_json_filename"]
             if "forensic_json_filename" in general_config:
-                opts.forensic_json_filename = general_config["forensic_json_filename"]
+                opts.forensic_json_filename = general_config[
+                    "forensic_json_filename"]
             if "aggregate_csv_filename" in general_config:
-                opts.aggregate_csv_filename = general_config["aggregate_csv_filename"]
+                opts.aggregate_csv_filename = general_config[
+                    "aggregate_csv_filename"]
             if "forensic_csv_filename" in general_config:
-                opts.forensic_csv_filename = general_config["forensic_csv_filename"]
+                opts.forensic_csv_filename = general_config[
+                    "forensic_csv_filename"]
             if "nameservers" in general_config:
                 opts.nameservers = _str_to_list(general_config["nameservers"])
             if "dns_timeout" in general_config:
