@@ -165,12 +165,14 @@ The full set of configuration options are:
     - ``log_file`` - str: Write log messages to a file at this path
     - ``n_procs`` - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)
     - ``chunk_size`` - int: Number of files to give to each process when running in parallel.
-      .. note::
+
+    .. note::
         Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993).
-      .. note::
+
+    .. note::
         If your host recommends another port, still try 993
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
@@ -184,7 +186,8 @@ The full set of configuration options are:
     - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
-      .. note::
+
+    .. note::
          Special characters in the username or password must be `URL encoded`_.
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
