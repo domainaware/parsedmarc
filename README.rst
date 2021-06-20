@@ -165,11 +165,13 @@ The full set of configuration options are:
     .. note::
         Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
+
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993).
 
     .. note::
         If your host recommends another port, still try 993
+
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
@@ -185,6 +187,7 @@ The full set of configuration options are:
 
     .. note::
          Special characters in the username or password must be `URL encoded`_.
+
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
     - ``index_suffix`` - str: A suffix to apply to the index names
