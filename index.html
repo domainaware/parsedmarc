@@ -3,20 +3,25 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 6.12.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 7.0.0 documentation</title>
   
 
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
+
   
+  
+
   
 
   
@@ -26,10 +31,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -49,7 +54,7 @@
           
 
           
-            <a href="#" class="icon icon-home" alt="Documentation Home"> parsedmarc
+            <a href="#" class="icon icon-home"> parsedmarc
           
 
           
@@ -59,7 +64,7 @@
             
             
               <div class="version">
-                6.12.0
+                7.0.0
               </div>
             
           
@@ -197,6 +202,8 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
@@ -208,7 +215,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -268,36 +275,48 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 <div class="section" id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span>
-                  <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">offline</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span>
-                  <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-                  <span class="p">[</span><span class="n">file_path</span> <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_JSON_FILENAME</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_JSON_FILENAME</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_CSV_FILENAME</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_CSV_FILENAME</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">offline</span><span class="p">]</span>
+                   <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                   <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]</span>
 
-<span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
+ <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
 
-<span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
-  <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
-                        <span class="n">files</span> <span class="ow">or</span> <span class="n">emails</span>
+ <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
+   <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
+                         <span class="n">files</span><span class="p">,</span> <span class="n">emails</span><span class="p">,</span> <span class="ow">or</span> <span class="n">mbox</span> <span class="n">files</span><span class="s1">&#39;</span>
 
-<span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
-  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
-  <span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">,</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">CONFIG_FILE</span>
-                        <span class="n">a</span> <span class="n">path</span> <span class="n">to</span> <span class="n">a</span> <span class="n">configuration</span> <span class="n">file</span> <span class="p">(</span><span class="o">--</span><span class="n">silent</span> <span class="n">implied</span><span class="p">)</span>
-  <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
-                        <span class="n">remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
-  <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
-                        <span class="n">write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
-  <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                        <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
-  <span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">dns_timeout</span> <span class="n">DNS_TIMEOUT</span>
-                        <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
-                        <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
-  <span class="o">--</span><span class="n">offline</span>             <span class="n">do</span> <span class="ow">not</span> <span class="n">make</span> <span class="n">online</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">geolocation</span> <span class="ow">or</span> <span class="n">DNS</span>
-  <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
-  <span class="o">--</span><span class="n">debug</span>               <span class="nb">print</span> <span class="n">debugging</span> <span class="n">information</span>
-  <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span>   <span class="n">output</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span>
-  <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
+ <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
+   <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+   <span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">,</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">CONFIG_FILE</span>
+                         <span class="n">a</span> <span class="n">path</span> <span class="n">to</span> <span class="n">a</span> <span class="n">configuration</span> <span class="n">file</span> <span class="p">(</span><span class="o">--</span><span class="n">silent</span> <span class="n">implied</span><span class="p">)</span>
+   <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
+                         <span class="n">remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
+   <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
+                         <span class="n">write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
+   <span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_JSON_FILENAME</span>
+                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">aggregate</span> <span class="n">JSON</span> <span class="n">output</span> <span class="n">file</span>
+   <span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_JSON_FILENAME</span>
+                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">forensic</span> <span class="n">JSON</span> <span class="n">output</span> <span class="n">file</span>
+   <span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_CSV_FILENAME</span>
+                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">aggregate</span> <span class="n">CSV</span> <span class="n">output</span> <span class="n">file</span>
+   <span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_CSV_FILENAME</span>
+                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">forensic</span> <span class="n">CSV</span> <span class="n">output</span> <span class="n">file</span>
+   <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
+                         <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
+   <span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">dns_timeout</span> <span class="n">DNS_TIMEOUT</span>
+                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
+                         <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
+   <span class="o">--</span><span class="n">offline</span>             <span class="n">do</span> <span class="ow">not</span> <span class="n">make</span> <span class="n">online</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">geolocation</span> <span class="ow">or</span> <span class="n">DNS</span>
+   <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
+   <span class="o">--</span><span class="n">verbose</span>             <span class="n">more</span> <span class="n">verbose</span> <span class="n">output</span>
+   <span class="o">--</span><span class="n">debug</span>               <span class="nb">print</span> <span class="n">debugging</span> <span class="n">information</span>
+   <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span>   <span class="n">output</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span>
+   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -332,16 +351,22 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <span class="na">url</span> <span class="o">=</span> <span class="s">https://splunkhec.example.com</span>
 <span class="na">token</span> <span class="o">=</span> <span class="s">HECTokenGoesHere</span>
 <span class="na">index</span> <span class="o">=</span> <span class="s">email</span>
+
+<span class="k">[s3]</span>
+<span class="na">bucket</span> <span class="o">=</span> <span class="s">my-bucket</span>
+<span class="na">path</span> <span class="o">=</span> <span class="s">parsedmarc</span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
 <ul>
-<li><dl class="simple">
+<li><dl>
 <dt><code class="docutils literal notranslate"><span class="pre">general</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to the Elasticsearch and/or Splunk</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to the Elasticsearch and/or Splunk</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment payloads from results</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate JSON output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation or DNS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
@@ -349,43 +374,50 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process when running in parallel.</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Setting this to a number larger than one can improve performance when processing thousands of files</p>
+</div>
 </dd>
 </dl>
 </li>
-<li><dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>
+<blockquote>
+<div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If your host recommends another port, still try 993</p>
+</div>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">max_retries</span></code> - int: The maximum number of retries after a timeout</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password (escape <code class="docutils literal notranslate"><span class="pre">%</span></code> with a second <code class="docutils literal notranslate"><span class="pre">%</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The IMAP folder where the incoming reports can be found (Default: INBOX)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The IMAP folder to sort processed emails into (Default: Archive)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process messages as they arrive</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them, instead of archiving them</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process before saving. Defaults to all messages if not set.</p></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
 <li><dl>
-<dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt><dd><ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or <code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p>
+<dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or <code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p></li>
+</ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Special characters in the username or password must be <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
 </div>
-</li>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when creating the index (Default: 1)</p></li>
@@ -430,6 +462,14 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email (Default: parsedmarc report)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message (Default: Please see the attached parsedmarc report.)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">s3</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - int: The path to upload reports to (Default: /)</p></li>
 </ul>
 </dd>
 </dl>
@@ -537,7 +577,7 @@ schema.</p>
 <div class="section" id="csv">
 <h3>CSV<a class="headerlink" href="#csv" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">spf_aligned</span><span class="p">,</span><span class="n">dkim_aligned</span><span class="p">,</span><span class="n">dmarc_aligned</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
-<span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150</span><span class="o">.</span><span class="mf">241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="n">none</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
+<span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150.241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="n">none</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
 </pre></div>
 </div>
 </div>
@@ -638,7 +678,7 @@ schema.</p>
 <div class="section" id="id2">
 <h3>CSV<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">feedback_type</span><span class="p">,</span><span class="n">user_agent</span><span class="p">,</span><span class="n">version</span><span class="p">,</span><span class="n">original_envelope_id</span><span class="p">,</span><span class="n">original_mail_from</span><span class="p">,</span><span class="n">original_rcpt_to</span><span class="p">,</span><span class="n">arrival_date</span><span class="p">,</span><span class="n">arrival_date_utc</span><span class="p">,</span><span class="n">subject</span><span class="p">,</span><span class="n">message_id</span><span class="p">,</span><span class="n">authentication_results</span><span class="p">,</span><span class="n">dkim_domain</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">delivery_result</span><span class="p">,</span><span class="n">auth_failure</span><span class="p">,</span><span class="n">reported_domain</span><span class="p">,</span><span class="n">authentication_mechanisms</span><span class="p">,</span><span class="n">sample_headers_only</span>
-<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7</span><span class="o">.</span><span class="mf">30937.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10</span><span class="o">.</span><span class="mf">10.10</span><span class="p">,,,,</span><span class="n">policy</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
+<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7.30937</span><span class="o">.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10.10.10</span><span class="p">,,,,</span><span class="n">policy</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
 </pre></div>
 </div>
 </div>
@@ -1117,13 +1157,13 @@ sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">
 <p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
 it.</p>
 <p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a>.</p>
-<p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> the Saved Objects tab of the management
+<p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> the Saved Objects tab of the Stack management
 page of Kibana.</p>
 <p>It will give you the option to overwrite existing saved dashboards or
 visualizations, which could be used to restore them if you or someone else
 breaks them, as there are no permissions/access controls in Kibana without
 the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
-<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects Stack management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
 <a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
 <div class="section" id="upgrading-kibana-index-patterns">
 <h4>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this headline">¶</a></h4>
@@ -1662,32 +1702,32 @@ that enforce with a DMARC quarantine or reject policy.</p>
 <span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline">¶</a></h2>
 <p>A Python package for parsing DMARC reports</p>
 <dl class="py exception">
-<dt id="parsedmarc.InvalidAggregateReport">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidAggregateReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidAggregateReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidAggregateReport" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.InvalidAggregateReport">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">InvalidAggregateReport</span></span><a class="reference internal" href="_modules/parsedmarc.html#InvalidAggregateReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.InvalidAggregateReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC aggregate report is encountered</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.InvalidDMARCReport">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidDMARCReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidDMARCReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidDMARCReport" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.InvalidDMARCReport">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">InvalidDMARCReport</span></span><a class="reference internal" href="_modules/parsedmarc.html#InvalidDMARCReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.InvalidDMARCReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC report is encountered</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.InvalidForensicReport">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">InvalidForensicReport</code><a class="reference internal" href="_modules/parsedmarc.html#InvalidForensicReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.InvalidForensicReport" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.InvalidForensicReport">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">InvalidForensicReport</span></span><a class="reference internal" href="_modules/parsedmarc.html#InvalidForensicReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.InvalidForensicReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an invalid DMARC forensic report is encountered</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.ParserError">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">ParserError</code><a class="reference internal" href="_modules/parsedmarc.html#ParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.ParserError" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.ParserError">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">ParserError</span></span><a class="reference internal" href="_modules/parsedmarc.html#ParserError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.ParserError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised whenever the parser fails for some reason</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.email_results">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">email_results</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em>, <em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">mail_from</span></em>, <em class="sig-param"><span class="n">mail_to</span></em>, <em class="sig-param"><span class="n">mail_cc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mail_bcc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">require_encryption</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">subject</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">attachment_filename</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">message</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.email_results">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">email_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_from</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_to</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_cc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_bcc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_encryption</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attachment_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition">¶</a></dt>
 <dd><p>Emails parsing results as a zip file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1712,8 +1752,8 @@ that enforce with a DMARC quarantine or reject policy.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.extract_xml">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">extract_xml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.extract_xml">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
 or bytes.</p>
 <dl class="field-list simple">
@@ -1730,8 +1770,8 @@ or bytes.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.get_dmarc_reports_from_inbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_inbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">connection</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">host</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">user</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ssl</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">30</span></em>, <em class="sig-param"><span class="n">max_retries</span><span class="o">=</span><span class="default_value">4</span></em>, <em class="sig-param"><span class="n">reports_folder</span><span class="o">=</span><span class="default_value">'INBOX'</span></em>, <em class="sig-param"><span class="n">archive_folder</span><span class="o">=</span><span class="default_value">'Archive'</span></em>, <em class="sig-param"><span class="n">delete</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">test</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">results</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.get_dmarc_reports_from_inbox">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_retries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches and parses DMARC reports from an inbox</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1755,6 +1795,7 @@ or bytes.</p>
 <li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</p></li>
 <li><p><strong>report results</strong> (<em>forensic</em>) – </p></li>
 <li><p><strong>results</strong> (<em>dict</em>) – Results from the previous run</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Number of messages to read and process before saving</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1767,8 +1808,8 @@ or bytes.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.get_dmarc_reports_from_mbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_dmarc_reports_from_mbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mbox" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.get_dmarc_reports_from_mbox">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_mbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a mailbox in mbox format containing e-mails with attached
 DMARC reports</p>
 <dl class="field-list simple">
@@ -1794,8 +1835,8 @@ DMARC reports</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.get_imap_capabilities">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_imap_capabilities</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">server</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.get_imap_capabilities">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_imap_capabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of an IMAP server’s capabilities</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1806,8 +1847,8 @@ DMARC reports</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.get_report_zip">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">get_report_zip</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.get_report_zip">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_report_zip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a zip file of parsed report output</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1823,8 +1864,8 @@ DMARC reports</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parse_aggregate_report_file">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_input</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parse_aggregate_report_file">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
 aggregate DMARC report</p>
 <dl class="field-list simple">
@@ -1836,6 +1877,7 @@ aggregate DMARC report</p>
 <li><p><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </p></li>
 <li><p><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
+<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1848,8 +1890,8 @@ aggregate DMARC report</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parse_aggregate_report_xml">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_aggregate_report_xml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xml</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parse_aggregate_report_xml">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1860,6 +1902,7 @@ aggregate DMARC report</p>
 <li><p><strong>public DNS resolvers by default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's</em>) – </p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
+<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1872,8 +1915,8 @@ aggregate DMARC report</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parse_forensic_report">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_forensic_report</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">feedback_report</span></em>, <em class="sig-param"><span class="n">sample</span></em>, <em class="sig-param"><span class="n">msg_date</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parse_forensic_report">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_forensic_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feedback_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1900,8 +1943,8 @@ aggregate DMARC report</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parse_report_email">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_email</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parse_report_email">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1913,6 +1956,7 @@ aggregate DMARC report</p>
 <li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</p></li>
 <li><p><strong>report results</strong> (<em>forensic</em>) – </p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
+<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1929,8 +1973,8 @@ aggregate DMARC report</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parse_report_file">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parse_report_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parse_report_file">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <dl class="field-list simple">
@@ -1944,6 +1988,7 @@ file-like object. or bytes</p>
 <li><p><strong>report results</strong> (<em>forensic</em>) – </p></li>
 <li><p><strong>offline</strong> (<em>bool</em>) – Do not make online queries for geolocation or DNS</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
+<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1956,8 +2001,8 @@ file-like object. or bytes</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parsed_aggregate_reports_to_csv">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parsed_aggregate_reports_to_csv">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_aggregate_reports_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
@@ -1974,8 +2019,8 @@ headers</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parsed_aggregate_reports_to_csv_rows">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_aggregate_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parsed_aggregate_reports_to_csv_rows">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_aggregate_reports_to_csv_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed aggregate reports to list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
@@ -1993,8 +2038,8 @@ format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parsed_forensic_reports_to_csv">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parsed_forensic_reports_to_csv">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_forensic_reports_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed forensic reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
@@ -2011,8 +2056,8 @@ headers</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.parsed_forensic_reports_to_csv_rows">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">parsed_forensic_reports_to_csv_rows</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.parsed_forensic_reports_to_csv_rows">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_forensic_reports_to_csv_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_forensic_reports_to_csv_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_forensic_reports_to_csv_rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts one or more parsed forensic reports to a list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
@@ -2029,22 +2074,26 @@ format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.save_output">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">save_output</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">results</span></em>, <em class="sig-param"><span class="n">output_directory</span><span class="o">=</span><span class="default_value">'output'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.save_output">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">save_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save report data in the given directory</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>results</strong> (<em>OrderedDict</em>) – Parsing results</p></li>
-<li><p><strong>output_directory</strong> – The patch to the directory to save in</p></li>
+<li><p><strong>output_directory</strong> (<em>str</em>) – The patch to the directory to save in</p></li>
+<li><p><strong>aggregate_json_filename</strong> (<em>str</em>) – Filename for the aggregate JSON file</p></li>
+<li><p><strong>forensic_json_filename</strong> (<em>str</em>) – Filename for the forensic JSON file</p></li>
+<li><p><strong>aggregate_csv_filename</strong> (<em>str</em>) – Filename for the aggregate CSV file</p></li>
+<li><p><strong>forensic_csv_filename</strong> (<em>str</em>) – Filename for the forensic CSV file</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.watch_inbox">
-<code class="sig-prename descclassname">parsedmarc.</code><code class="sig-name descname">watch_inbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">username</span></em>, <em class="sig-param"><span class="n">password</span></em>, <em class="sig-param"><span class="n">callback</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ssl</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">reports_folder</span><span class="o">=</span><span class="default_value">'INBOX'</span></em>, <em class="sig-param"><span class="n">archive_folder</span><span class="o">=</span><span class="default_value">'Archive'</span></em>, <em class="sig-param"><span class="n">delete</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">test</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">idle_timeout</span><span class="o">=</span><span class="default_value">30</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dns_timeout</span><span class="o">=</span><span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.watch_inbox">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">watch_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idle_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
 to a callback function
 :param host: The mail server hostname or IP address
@@ -2073,26 +2122,28 @@ to a callback function
 :type dns_timeout: float
 :param strip_attachment_payloads: Replace attachment payloads in
 :type strip_attachment_payloads: bool
-:param forensic report samples with None:</p>
+:param forensic report samples with None:
+:param batch_size: Number of messages to read and process before saving
+:type batch_size: int</p>
 </dd></dl>
 
 <div class="section" id="module-parsedmarc.elastic">
 <span id="parsedmarc-elastic"></span><h3>parsedmarc.elastic<a class="headerlink" href="#module-parsedmarc.elastic" title="Permalink to this headline">¶</a></h3>
 <dl class="py exception">
-<dt id="parsedmarc.elastic.AlreadySaved">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">AlreadySaved</code><a class="reference internal" href="_modules/parsedmarc/elastic.html#AlreadySaved"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.AlreadySaved" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.AlreadySaved">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">AlreadySaved</span></span><a class="reference internal" href="_modules/parsedmarc/elastic.html#AlreadySaved"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.AlreadySaved" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when a report to be saved matches an existing report</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.elastic.ElasticsearchError">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">ElasticsearchError</code><a class="reference internal" href="_modules/parsedmarc/elastic.html#ElasticsearchError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.ElasticsearchError" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.ElasticsearchError">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">ElasticsearchError</span></span><a class="reference internal" href="_modules/parsedmarc/elastic.html#ElasticsearchError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.ElasticsearchError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an Elasticsearch error occurs</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.elastic.create_indexes">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">create_indexes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">names</span></em>, <em class="sig-param"><span class="n">settings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.create_indexes">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">create_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create Elasticsearch indexes</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2105,8 +2156,8 @@ to a callback function
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.elastic.migrate_indexes">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">migrate_indexes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_indexes</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">forensic_indexes</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.migrate_indexes">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates index mappings</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2119,8 +2170,8 @@ to a callback function
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_aggregate_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_report</span></em>, <em class="sig-param"><span class="n">index_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">monthly_indexes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">number_of_shards</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">number_of_replicas</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.save_aggregate_report_to_elasticsearch">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">save_aggregate_report_to_elasticsearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monthly_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_shards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2139,8 +2190,8 @@ to a callback function
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">save_forensic_report_to_elasticsearch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">forensic_report</span></em>, <em class="sig-param"><span class="n">index_suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">monthly_indexes</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">number_of_shards</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">number_of_replicas</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.save_forensic_report_to_elasticsearch">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">save_forensic_report_to_elasticsearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forensic_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monthly_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_shards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2161,8 +2212,8 @@ index</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.elastic.set_hosts">
-<code class="sig-prename descclassname">parsedmarc.elastic.</code><code class="sig-name descname">set_hosts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hosts</span></em>, <em class="sig-param"><span class="n">use_ssl</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ssl_cert_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">password</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.elastic.set_hosts">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">set_hosts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_cert_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2184,12 +2235,12 @@ index</p></li>
 <div class="section" id="module-parsedmarc.splunk">
 <span id="parsedmarc-splunk"></span><h3>parsedmarc.splunk<a class="headerlink" href="#module-parsedmarc.splunk" title="Permalink to this headline">¶</a></h3>
 <dl class="py class">
-<dt id="parsedmarc.splunk.HECClient">
-<em class="property">class </em><code class="sig-prename descclassname">parsedmarc.splunk.</code><code class="sig-name descname">HECClient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">url</span></em>, <em class="sig-param"><span class="n">access_token</span></em>, <em class="sig-param"><span class="n">index</span></em>, <em class="sig-param"><span class="n">source</span><span class="o">=</span><span class="default_value">'parsedmarc'</span></em>, <em class="sig-param"><span class="n">verify</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.splunk.HECClient">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.splunk.</span></span><span class="sig-name descname"><span class="pre">HECClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">access_token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parsedmarc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>A client for a Splunk HTTP Events Collector (HEC)</p>
 <dl class="py method">
-<dt id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
-<code class="sig-name descname">save_aggregate_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aggregate_reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
+<span class="sig-name descname"><span class="pre">save_aggregate_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves aggregate DMARC reports to Splunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2202,8 +2253,8 @@ index</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">
-<code class="sig-name descname">save_forensic_reports_to_splunk</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">forensic_reports</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">
+<span class="sig-name descname"><span class="pre">save_forensic_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forensic_reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves forensic DMARC reports to Splunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2218,8 +2269,8 @@ index</p></li>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.splunk.SplunkError">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.splunk.</code><code class="sig-name descname">SplunkError</code><a class="reference internal" href="_modules/parsedmarc/splunk.html#SplunkError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.splunk.SplunkError" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.splunk.SplunkError">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.splunk.</span></span><span class="sig-name descname"><span class="pre">SplunkError</span></span><a class="reference internal" href="_modules/parsedmarc/splunk.html#SplunkError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.SplunkError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when a Splunk API error occurs</p>
 </dd></dl>
 
@@ -2230,20 +2281,20 @@ index</p></li>
 <span id="parsedmarc-utils"></span><h3>parsedmarc.utils<a class="headerlink" href="#module-parsedmarc.utils" title="Permalink to this headline">¶</a></h3>
 <p>Utility functions that might be useful for other projects</p>
 <dl class="py exception">
-<dt id="parsedmarc.utils.DownloadError">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">DownloadError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#DownloadError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.DownloadError" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.DownloadError">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">DownloadError</span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#DownloadError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.DownloadError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rasied when an error occurs when downloading a file</p>
 </dd></dl>
 
 <dl class="py exception">
-<dt id="parsedmarc.utils.EmailParserError">
-<em class="property">exception </em><code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">EmailParserError</code><a class="reference internal" href="_modules/parsedmarc/utils.html#EmailParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.EmailParserError" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.EmailParserError">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">EmailParserError</span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#EmailParserError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.EmailParserError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raised when an error parsing the email occurs</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.convert_outlook_msg">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">convert_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg_bytes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#convert_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.convert_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.convert_outlook_msg">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">convert_outlook_msg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg_bytes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#convert_outlook_msg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.convert_outlook_msg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code> Perl utility to convert an Outlook MS file to
 standard RFC 822 format</p>
 <dl class="field-list simple">
@@ -2257,8 +2308,8 @@ standard RFC 822 format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.decode_base64">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">decode_base64</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.decode_base64">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">decode_base64</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes a base64 string, with padding being optional</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2274,8 +2325,8 @@ standard RFC 822 format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.get_base_domain">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_base_domain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">domain</span></em>, <em class="sig-param"><span class="n">use_fresh_psl</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.get_base_domain">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_base_domain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_fresh_psl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_base_domain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_base_domain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the base domain name for the given domain</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2299,8 +2350,8 @@ standard RFC 822 format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.get_filename_safe_string">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_filename_safe_string</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_filename_safe_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_filename_safe_string" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.get_filename_safe_string">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_filename_safe_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_filename_safe_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_filename_safe_string" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a string to a string that is safe for a filename
 :param string: A string to make safe for a filename
 :type string: str</p>
@@ -2315,8 +2366,8 @@ standard RFC 822 format</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.get_ip_address_country">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_country</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.get_ip_address_country">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_ip_address_country</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses the MaxMind Geolite2 Country database to return the ISO code for the
 country associated with the given IPv4 or IPv6 address</p>
 <dl class="field-list simple">
@@ -2333,8 +2384,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.get_ip_address_info">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_ip_address_info</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">offline</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.get_ip_address_info">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_ip_address_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns reverse DNS and country information for the given IP address</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2358,8 +2409,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.get_reverse_dns">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">get_reverse_dns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ip_address</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.get_reverse_dns">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_reverse_dns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolves an IP address to a hostname using a reverse DNS query</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2381,8 +2432,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.human_timestamp_to_datetime">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">human_timestamp</span></em>, <em class="sig-param"><span class="n">to_utc</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.human_timestamp_to_datetime">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_datetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_utc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2401,8 +2452,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.human_timestamp_to_timestamp">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">human_timestamp_to_timestamp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">human_timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.human_timestamp_to_timestamp">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a human-readable timestamp into a into a UNIX timestamp</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2418,8 +2469,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.is_mbox">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_mbox</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.is_mbox">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">is_mbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if the given content is a MBOX mailbox file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2435,8 +2486,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.is_outlook_msg">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">is_outlook_msg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">content</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.is_outlook_msg">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">is_outlook_msg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if the given content is a Outlook msg OLE file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2452,8 +2503,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.parse_email">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">parse_email</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.parse_email">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">parse_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition">¶</a></dt>
 <dd><p>A simplified email parser</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2467,8 +2518,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.query_dns">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">query_dns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">domain</span></em>, <em class="sig-param"><span class="n">record_type</span></em>, <em class="sig-param"><span class="n">cache</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nameservers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.query_dns">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">query_dns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Queries DNS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2491,8 +2542,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.timestamp_to_datetime">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_datetime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.timestamp_to_datetime">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">timestamp_to_datetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2508,8 +2559,8 @@ country associated with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="parsedmarc.utils.timestamp_to_human">
-<code class="sig-prename descclassname">parsedmarc.utils.</code><code class="sig-name descname">timestamp_to_human</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.timestamp_to_human">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">timestamp_to_human</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2543,28 +2594,25 @@ country associated with the given IPv4 or IPv6 address</p>
            
           </div>
           <footer>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2018, Sean Whalen
+        &#169; Copyright 2018, Sean Whalen.
 
     </p>
   </div>
     
     
     
-    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     
     provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
