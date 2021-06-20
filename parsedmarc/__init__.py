@@ -36,7 +36,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "6.12.0"
+__version__ = "7.0.0"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -1274,16 +1274,20 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
 
 
 def save_output(results, output_directory="output",
-                output_json_aggregate="aggregate.json",
-                output_json_forensic="forensic.json",
-                output_csv_aggregate="aggregate.csv",
-                output_csv_forensic="forensic.csv"):
+                aggregate_json_filename="aggregate.json",
+                forensic_json_filename="forensic.json",
+                aggregate_csv_filename="aggregate.csv",
+                forensic_csv_filename="forensic.csv"):
     """
     Save report data in the given directory
 
     Args:
         results (OrderedDict): Parsing results
-        output_directory: The patch to the directory to save in
+        output_directory (str): The patch to the directory to save in
+        aggregate_json_filename (str): Output filename for the aggregate JSON report
+        forensic_json_filename (str): Output filename for the forensic JSON report
+        aggregate_csv_filename (str):  Output filename for the aggregate CSV report
+        forensic_csv_filename (str):  Output filename for the forensic CSV report
     """
 
     aggregate_reports = results["aggregate_reports"]
@@ -1297,28 +1301,28 @@ def save_output(results, output_directory="output",
 
     with open("{0}"
               .format(os.path.join(output_directory,
-                                   output_json_aggregate)),
+                                   aggregate_json_filename)),
               "w", newline="\n", encoding="utf-8") as agg_json:
         agg_json.write(json.dumps(aggregate_reports, ensure_ascii=False,
                                   indent=2))
 
     with open("{0}"
               .format(os.path.join(output_directory,
-                                   output_csv_aggregate)),
+                                   aggregate_csv_filename)),
               "w", newline="\n", encoding="utf-8") as agg_csv:
         csv = parsed_aggregate_reports_to_csv(aggregate_reports)
         agg_csv.write(csv)
 
     with open("{0}"
               .format(os.path.join(output_directory,
-                                   output_json_forensic)),
+                                   forensic_json_filename)),
               "w", newline="\n", encoding="utf-8") as for_json:
         for_json.write(json.dumps(forensic_reports, ensure_ascii=False,
                                   indent=2))
 
     with open("{0}"
               .format(os.path.join(output_directory,
-                                   output_csv_forensic)),
+                                   forensic_csv_filename)),
               "w", newline="\n", encoding="utf-8") as for_csv:
         csv = parsed_forensic_reports_to_csv(forensic_reports)
         for_csv.write(csv)

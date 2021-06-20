@@ -178,17 +178,17 @@ def _main():
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
-    arg_parser.add_argument("--output-json-aggregate",
-                            help="output aggregate JSON file",
+    arg_parser.add_argument("--aggregate-json-filename",
+                            help="filename for the aggregate JSON output file",
                             default="aggregate.json")
-    arg_parser.add_argument("--output-json-forensic",
-                            help="output forensic JSON file",
+    arg_parser.add_argument("--forensic-json-filename",
+                            help="filename for the forensic JSON output file",
                             default="forensic.json")
-    arg_parser.add_argument("--output-csv-aggregate",
-                            help="output aggregate CSV file",
+    arg_parser.add_argument("--aggregate-csv-filename",
+                            help="filename for the aggregate CSV output file",
                             default="aggregate.csv")
-    arg_parser.add_argument("--output-csv-forensic",
-                            help="output forensic CSV file",
+    arg_parser.add_argument("--forensic-csv-filename",
+                            help="filename for the forensic CSV output file",
                             default="forensic.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
@@ -221,10 +221,10 @@ def _main():
                      offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
-                     output_json_aggregate=args.output_json_aggregate,
-                     output_json_forensic=args.output_json_forensic,
-                     output_csv_aggregate=args.output_csv_aggregate,
-                     output_csv_forensic=args.output_csv_forensic,
+                     aggregate_csv_filename=args.aggregate_csv_filename,
+                     aggreate_json_filename=args.aggregate_json_filename,
+                     forensic_csv_filename=args.forensic_csv_filename,
+                     forensic_json_filename=args.forensic_json_filename,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
@@ -302,6 +302,14 @@ def _main():
                     "strip_attachment_payloads"]
             if "output" in general_config:
                 opts.output = general_config["output"]
+            if "aggregate_json_filename" in general_config:
+                opts.aggregate_json_filename = general_config["aggregate_json_filename"]
+            if "forensic_json_filename" in general_config:
+                opts.forensic_json_filename = general_config["forensic_json_filename"]
+            if "aggregate_csv_filename" in general_config:
+                opts.aggregate_csv_filename = general_config["aggregate_csv_filename"]
+            if "forensic_csv_filename" in general_config:
+                opts.forensic_csv_filename = general_config["forensic_csv_filename"]
             if "nameservers" in general_config:
                 opts.nameservers = _str_to_list(general_config["nameservers"])
             if "dns_timeout" in general_config:
@@ -689,10 +697,10 @@ def _main():
 
     if opts.output:
         save_output(results, output_directory=opts.output,
-                    output_json_aggregate=opts.output_json_aggregate,
-                    output_json_forensic=opts.output_json_forensic,
-                    output_csv_aggregate=opts.output_csv_aggregate,
-                    output_csv_forensic=opts.output_csv_forensic)
+                    aggregate_json_filename=opts.aggregate_json_filename,
+                    forensic_json_filename=opts.forensic_json_filename,
+                    aggregate_csv_filename=opts.aggregate_csv_filename,
+                    forensic_csv_filename=opts.forensic_csv_filename)
 
     process_reports(results)
 

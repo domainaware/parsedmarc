@@ -62,36 +62,48 @@ CLI help
 
 ::
 
-   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads]
-                     [-o OUTPUT] [-n NAMESERVERS [NAMESERVERS ...]]
-                     [-t DNS_TIMEOUT] [--offline] [-s] [--debug]
-                     [--log-file LOG_FILE] [-v]
-                     [file_path [file_path ...]]
+   usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
+                      [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
+                      [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                      [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
+                      [--forensic-csv-filename FORENSIC_CSV_FILENAME]
+                      [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline]
+                      [-s] [--verbose] [--debug] [--log-file LOG_FILE] [-v]
+                      [file_path ...]
 
-   Parses DMARC reports
+    Parses DMARC reports
 
-   positional arguments:
-     file_path             one or more paths to aggregate or forensic report
-                           files or emails
+    positional arguments:
+      file_path             one or more paths to aggregate or forensic report
+                            files, emails, or mbox files'
 
-   optional arguments:
-     -h, --help            show this help message and exit
-     -c CONFIG_FILE, --config-file CONFIG_FILE
-                           a path to a configuration file (--silent implied)
-     --strip-attachment-payloads
-                           remove attachment payloads from forensic report output
-     -o OUTPUT, --output OUTPUT
-                           write output files to the given directory
-     -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                           nameservers to query
-     -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
-                           number of seconds to wait for an answer from DNS
-                           (default: 2.0)
-     --offline             do not make online queries for geolocation or DNS
-     -s, --silent          only print errors and warnings
-     --debug               print debugging information
-     --log-file LOG_FILE   output logging to a file
-     -v, --version         show program's version number and exit
+    optional arguments:
+      -h, --help            show this help message and exit
+      -c CONFIG_FILE, --config-file CONFIG_FILE
+                            a path to a configuration file (--silent implied)
+      --strip-attachment-payloads
+                            remove attachment payloads from forensic report output
+      -o OUTPUT, --output OUTPUT
+                            write output files to the given directory
+      --aggregate-json-filename AGGREGATE_JSON_FILENAME
+                            filename for the aggregate JSON output file
+      --forensic-json-filename FORENSIC_JSON_FILENAME
+                            filename for the forensic JSON output file
+      --aggregate-csv-filename AGGREGATE_CSV_FILENAME
+                            filename for the aggregate CSV output file
+      --forensic-csv-filename FORENSIC_CSV_FILENAME
+                            filename for the forensic CSV output file
+      -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                            nameservers to query
+      -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                            number of seconds to wait for an answer from DNS
+                            (default: 2.0)
+      --offline             do not make online queries for geolocation or DNS
+      -s, --silent          only print errors and warnings
+      --verbose             more verbose output
+      --debug               print debugging information
+      --log-file LOG_FILE   output logging to a file
+      -v, --version         show program's version number and exit
 
 
 .. note::
@@ -139,10 +151,12 @@ For example
 The full set of configuration options are:
 
 - ``general``
-    - ``save_aggregate`` - bool: Save aggregate report data to the Elasticsearch, Splunk and/or S3
-    - ``save_forensic`` - bool: Save forensic report data to the Elasticsearch, Splunk and/or S3
+    - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
+    - ``save_forensic`` - bool: Save forensic report data to Elasticsearch, Splunk and/or S3
     - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
+    - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
+    - ``forensic_json_filename`` - str: filename for the forensic JSON output file
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -150,16 +164,18 @@ The full set of configuration options are:
     - ``silent`` - bool: Only print errors (Default: True)
     - ``log_file`` - str: Write log messages to a file at this path
     - ``n_procs`` - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)
-    - ``chunk_size`` - int: Number of files to give to each process when running in parallel. Setting this to a number larger than one can improve performance when processing thousands of files
+    - ``chunk_size`` - int: Number of files to give to each process when running in parallel.
+      .. note::
+        Setting this to a number larger than one can improve performance when processing thousands of files
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
-    - ``port`` - int: The IMAP server port (Default: 993)
+    - ``port`` - int: The IMAP server port (Default: 993).
+      .. note::
+        If your host recommends another port, still try 993
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
-    - ``timeout`` - float: Timeout in seconds to wait for an IMAP operation to complete (Default: 30)
-    - ``max_retries`` - int: The maximum number of retries after a timeout
     - ``user`` - str: The IMAP user
-    - ``password`` - str: The IMAP password (escape ``%`` with a second ``%``)
+    - ``password`` - str: The IMAP password
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
     - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
@@ -168,14 +184,10 @@ The full set of configuration options are:
     - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
-
       .. note::
          Special characters in the username or password must be `URL encoded`_.
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
-    - ``user`` - str: Basic auth username
-    - ``password`` - str: Basic auth password
     - ``cert_path`` - str: Path to a trusted certificates
-    - ``timeout`` - float: Timeout in seconds (Default: 60)
     - ``index_suffix`` - str: A suffix to apply to the index names
     - ``monthly_indexes`` - bool: Use monthly indexes instead of daily indexes
     - ``number_of_shards`` - int: The number of shards to use when creating the index (Default: 1)
