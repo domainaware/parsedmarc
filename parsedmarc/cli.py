@@ -222,7 +222,7 @@ def _main():
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
                      aggregate_csv_filename=args.aggregate_csv_filename,
-                     aggreate_json_filename=args.aggregate_json_filename,
+                     aggregate_json_filename=args.aggregate_json_filename,
                      forensic_csv_filename=args.forensic_csv_filename,
                      forensic_json_filename=args.forensic_json_filename,
                      nameservers=args.nameservers,
