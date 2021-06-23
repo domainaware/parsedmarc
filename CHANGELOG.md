@@ -1,6 +1,11 @@
 Changelog
 =========
 
+7.0.1
+-----
+
+- Fix startup error (PR #254)
+
 7.0.0
 -----
 
