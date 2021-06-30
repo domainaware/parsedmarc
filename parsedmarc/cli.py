@@ -178,6 +178,18 @@ def _main():
                             help=strip_attachment_help, action="store_true")
     arg_parser.add_argument("-o", "--output",
                             help="write output files to the given directory")
+    arg_parser.add_argument("--aggregate-json-filename",
+                            help="filename for the aggregate JSON output file",
+                            default="aggregate.json")
+    arg_parser.add_argument("--forensic-json-filename",
+                            help="filename for the forensic JSON output file",
+                            default="forensic.json")
+    arg_parser.add_argument("--aggregate-csv-filename",
+                            help="filename for the aggregate CSV output file",
+                            default="aggregate.csv")
+    arg_parser.add_argument("--forensic-csv-filename",
+                            help="filename for the forensic CSV output file",
+                            default="forensic.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -203,11 +215,16 @@ def _main():
     forensic_reports = []
 
     args = arg_parser.parse_args()
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
                      strip_attachment_payloads=args.strip_attachment_payloads,
                      output=args.output,
+                     aggregate_csv_filename=args.aggregate_csv_filename,
+                     aggregate_json_filename=args.aggregate_json_filename,
+                     forensic_csv_filename=args.forensic_csv_filename,
+                     forensic_json_filename=args.forensic_json_filename,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      dns_timeout=args.dns_timeout,
@@ -285,6 +302,18 @@ def _main():
                     "strip_attachment_payloads"]
             if "output" in general_config:
                 opts.output = general_config["output"]
+            if "aggregate_json_filename" in general_config:
+                opts.aggregate_json_filename = general_config[
+                    "aggregate_json_filename"]
+            if "forensic_json_filename" in general_config:
+                opts.forensic_json_filename = general_config[
+                    "forensic_json_filename"]
+            if "aggregate_csv_filename" in general_config:
+                opts.aggregate_csv_filename = general_config[
+                    "aggregate_csv_filename"]
+            if "forensic_csv_filename" in general_config:
+                opts.forensic_csv_filename = general_config[
+                    "forensic_csv_filename"]
             if "nameservers" in general_config:
                 opts.nameservers = _str_to_list(general_config["nameservers"])
             if "dns_timeout" in general_config:
@@ -531,6 +560,8 @@ def _main():
         logger.error("You must supply input files, or an IMAP configuration")
         exit(1)
 
+    logger.info("Starting dmarcparse")
+
     if opts.save_aggregate or opts.save_forensic:
         try:
             if opts.elasticsearch_hosts:
@@ -669,7 +700,11 @@ def _main():
                            ("forensic_reports", forensic_reports)])
 
     if opts.output:
-        save_output(results, output_directory=opts.output)
+        save_output(results, output_directory=opts.output,
+                    aggregate_json_filename=opts.aggregate_json_filename,
+                    forensic_json_filename=opts.forensic_json_filename,
+                    aggregate_csv_filename=opts.aggregate_csv_filename,
+                    forensic_csv_filename=opts.forensic_csv_filename)
 
     process_reports(results)
 
@@ -713,8 +748,8 @@ def _main():
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=sa,
-                batch_size=opts.imap_batch_size
-            )
+                batch_size=opts.imap_batch_size,
+                offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
             exit(1)

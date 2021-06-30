@@ -295,16 +295,18 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     Raises:
             AlreadySaved
     """
-    logger.debug("Saving aggregate report to Elasticsearch")
+    logger.info("Saving aggregate report to Elasticsearch")
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
-    begin_date = human_timestamp_to_datetime(metadata["begin_date"])
-    end_date = human_timestamp_to_datetime(metadata["end_date"])
-    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%S")
-    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%S")
+    begin_date = human_timestamp_to_datetime(metadata["begin_date"],
+                                             to_utc=True)
+    end_date = human_timestamp_to_datetime(metadata["end_date"],
+                                           to_utc=True)
+    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
     if monthly_indexes:
         index_date = begin_date.strftime("%Y-%m")
     else:
@@ -317,10 +319,13 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-    begin_date_query = Q(dict(match=dict(date_range=begin_date)))
-    end_date_query = Q(dict(match=dict(date_range=end_date)))
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
+    end_date_query = Q(dict(match=dict(date_end=end_date)))
 
-    search = Search(index="dmarc_aggregate*")
+    if index_suffix is not None:
+        search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
+    else:
+        search = Search(index="dmarc_aggregate*")
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
@@ -423,7 +428,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
             AlreadySaved
 
         """
-    logger.debug("Saving forensic report to Elasticsearch")
+    logger.info("Saving forensic report to Elasticsearch")
     forensic_report = forensic_report.copy()
     sample_date = None
     if forensic_report["parsed_sample"]["date"] is not None:
@@ -437,7 +442,10 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     arrival_date_human = forensic_report["arrival_date_utc"]
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
-    search = Search(index="dmarc_forensic*")
+    if index_suffix is not None:
+        search = Search(index="dmarc_forensic_{0}*".format(index_suffix))
+    else:
+        search = Search(index="dmarc_forensic*")
     arrival_query = {"match": {"arrival_date": arrival_date}}
     q = Q(arrival_query)
 
