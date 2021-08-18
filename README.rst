@@ -144,6 +144,10 @@ For example
    bucket = my-bucket
    path = parsedmarc
 
+   [syslog]
+   server = localhost
+   port = 514
+
 The full set of configuration options are:
 
 - ``general``
@@ -222,6 +226,9 @@ The full set of configuration options are:
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
     - ``path`` - int: The path to upload reports to (Default: /)
+- ``syslog``
+    - ``server`` - str: The Syslog server name or IP address
+    - ``port`` - int: The UDP port to use (Default: 514)
 
 
 .. warning::
