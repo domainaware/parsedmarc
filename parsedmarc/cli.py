@@ -13,6 +13,7 @@ import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pool, Value
 from itertools import repeat
+import sys
 import time
 from tqdm import tqdm
 
@@ -626,11 +627,15 @@ def _main():
                                      repeat(opts.offline),
                                      repeat(opts.n_procs >= 1)),
                                  opts.chunk_size)
-    pbar = tqdm(total=len(file_paths))
-    while not results.ready():
-        pbar.update(counter.value - pbar.n)
-        time.sleep(0.1)
-    pbar.close()
+    if sys.stdout.isatty():
+        pbar = tqdm(total=len(file_paths))
+        while not results.ready():
+            pbar.update(counter.value - pbar.n)
+            time.sleep(0.1)
+        pbar.close()
+    else:
+        while not results.ready():
+            time.sleep(0.1)
     results = results.get()
     pool.close()
     pool.join()
