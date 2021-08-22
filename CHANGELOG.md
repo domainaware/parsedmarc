@@ -1,6 +1,24 @@
 Changelog
 =========
 
+7.0.1
+-----
+
+- Fix startup error (PR #254)
+
+7.0.0
+-----
+
+- Fix issue #221: Crash when handling invalid reports without root node (PR #248)
+- Use UTC datetime objects for Elasticsearch output (PR #245) 
+- Fix issues #219, #155, and #103: IMAP connections break on large emails (PR #241)
+- Add support for saving reports to S3 buckets (PR #223)
+- Pass `offline` parameter to `wait_inbox()` (PR #216)
+- Add more details to logging (PR #220)
+- Add options customizing the names of output files (Modifications based on PR #225) 
+- Wait for 5 seconds before attempting to reconnect to an IMAP server (PR #217)
+- Add option to process messages in batches (PR #222)
+
 6.12.0
 ------
 
