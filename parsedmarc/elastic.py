@@ -411,7 +411,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
                                           index_suffix=None,
                                           monthly_indexes=False,
                                           number_of_shards=1,
-                                          number_of_replicas=1):
+                                          number_of_replicas=0):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 
