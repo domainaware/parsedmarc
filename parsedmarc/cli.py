@@ -253,7 +253,7 @@ def _main():
                      elasticsearch_hosts=None,
                      elasticsearch_timeout=60,
                      elasticsearch_number_of_shards=1,
-                     elasticsearch_number_of_replicas=1,
+                     elasticsearch_number_of_replicas=0,
                      elasticsearch_index_suffix=None,
                      elasticsearch_ssl=True,
                      elasticsearch_ssl_cert_path=None,
