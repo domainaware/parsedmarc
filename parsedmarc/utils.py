@@ -293,10 +293,10 @@ def get_ip_address_country(ip_address):
     if db_path is None:
         db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
         if not os.path.exists(db_path):
-            logging.warning("GeoLite2-Country.mmdb is missing. "
-                            "Please follow the instructions at "
-                            "https://dev.maxmind.com/geoip/geoipupdate/ "
-                            "to get the latest version.")
+            logger.warning("GeoLite2-Country.mmdb is missing. "
+                           "Please follow the instructions at "
+                           "https://dev.maxmind.com/geoip/geoipupdate/ "
+                           "to get the latest version.")
             return None
         else:
             db_age = datetime.now() - datetime.fromtimestamp(

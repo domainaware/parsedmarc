@@ -1420,7 +1420,7 @@ def email_results(results, host, mail_from, mail_to,
         attachment_filename (str): Override the default attachment filename
         message (str: Override the default plain text body
     """
-    logging.debug("Emailing report to: {0}".format(",".join(mail_to)))
+    logger.debug("Emailing report to: {0}".format(",".join(mail_to)))
     date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):
