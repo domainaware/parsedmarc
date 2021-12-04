@@ -19,7 +19,7 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport, s3
+    InvalidDMARCReport, s3, syslog
 from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
@@ -87,6 +87,14 @@ def _main():
                 )
             except Exception as error_:
                 logger.error("S3 Error: {0}".format(error_.__str__()))
+        if opts.syslog_server:
+            try:
+                syslog_client = syslog.SyslogClient(
+                    server_name=opts.syslog_server,
+                    server_port=int(opts.syslog_port),
+                )
+            except Exception as error_:
+                logger.error("Syslog Error: {0}".format(error_.__str__()))
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -117,6 +125,11 @@ def _main():
                         s3_client.save_aggregate_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+                try:
+                    if opts.syslog_server:
+                        syslog_client.save_aggregate_report_to_syslog(report)
+                except Exception as error_:
+                    logger.error("Syslog Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -156,6 +169,11 @@ def _main():
                         s3_client.save_forensic_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+                try:
+                    if opts.syslog_server:
+                        syslog_client.save_forensic_report_to_syslog(report)
+                except Exception as error_:
+                    logger.error("Syslog Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -279,6 +297,8 @@ def _main():
                      smtp_message="Please see the attached DMARC results.",
                      s3_bucket=None,
                      s3_path=None,
+                     syslog_server=None,
+                     syslog_port=None,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1
@@ -539,6 +559,18 @@ def _main():
                     opts.s3_path = opts.s3_path[:-1]
             else:
                 opts.s3_path = ""
+        if "syslog" in config.sections():
+            syslog_config = config["syslog"]
+            if "server" in syslog_config:
+                opts.syslog_server = syslog_config["server"]
+            else:
+                logger.critical("server setting missing from the "
+                                "syslog config section")
+                exit(-1)
+            if "port" in syslog_config:
+                opts.syslog_port = syslog_config["port"]
+            else:
+                opts.syslog_port = 514
 
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
