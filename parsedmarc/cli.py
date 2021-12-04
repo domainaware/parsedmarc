@@ -296,7 +296,7 @@ def _main():
         if "general" in config.sections():
             general_config = config["general"]
             if "offline" in general_config:
-                opts.offline = general_config["offline"]
+                opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
                 opts.strip_attachment_payloads = general_config[
                     "strip_attachment_payloads"]
