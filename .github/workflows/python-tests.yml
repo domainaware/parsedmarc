@@ -23,7 +23,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run tests
       run: |
-        tests.py
+        python3 tests.py
     - name: Build docs
       run: |
         cd docs
