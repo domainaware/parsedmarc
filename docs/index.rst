@@ -148,6 +148,10 @@ For example
    bucket = my-bucket
    path = parsedmarc
 
+   [syslog]
+   server = localhost
+   port = 514
+
 The full set of configuration options are:
 
 - ``general``
@@ -157,6 +161,7 @@ The full set of configuration options are:
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
     - ``forensic_json_filename`` - str: filename for the forensic JSON output file
+    - ``ip_db_path`` - str: An optional custim path to a MMDB file from MaxMind or DBIP
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -495,6 +500,16 @@ Installation
 
 geoipupdate setup
 -----------------
+
+.. note::
+
+   Starting in ``parsedmarc`` 7.1.0, a static copy of the  `IP to Country Lite database`_ from IPDB is
+   distributed with ``parsedmarc``, under the terms of the `Creative Commons Attribution 4.0 International License`_. as
+   a fallback if the `MaxMind GeoLite2 Country database`_ is not installed  However, ``parsedmarc`` cannot install updated
+   versions of these databases as they are released, so MaxMind's databases and `geoipupdate`_ tool is still the
+   preferable solution.
+
+   The location of the database file can be overridden by using the ``ip_db_path`` setting.
 
 On Debian 10 (Buster) or later, run:
 
@@ -1600,6 +1615,14 @@ Indices and tables
     :target: https://pypi.org/project/parsedmarc/
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
+
+.. _IP to Country Lite database: https://db-ip.com/db/download/ip-to-country-lite
+
+.. _Creative Commons Attribution 4.0 International License: https://creativecommons.org/licenses/by/4.0/
+
+.. _MaxMind GeoLite2 Country database: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+
+.. _geoipupdate: https://github.com/maxmind/geoipupdate
 
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 

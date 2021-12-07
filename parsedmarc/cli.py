@@ -32,11 +32,12 @@ def _str_to_list(s):
     return list(map(lambda i: i.lstrip(), _list))
 
 
-def cli_parse(file_path, sa, nameservers, dns_timeout, offline,
-              parallel=False):
+def cli_parse(file_path, sa, nameservers, dns_timeout,
+              ip_db_path, offline, parallel=False):
     """Separated this function for multiprocessing"""
     try:
         file_results = parse_report_file(file_path,
+                                         ip_db_path=ip_db_path,
                                          offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
@@ -355,6 +356,8 @@ def _main():
                 opts.n_procs = general_config.getint("n_procs")
             if "chunk_size" in general_config:
                 opts.chunk_size = general_config.getint("chunk_size")
+            if "ip_db_path" in general_config:
+                opts.ip_db_path = general_config["ip_db_path"]
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
@@ -656,6 +659,7 @@ def _main():
                                      repeat(opts.strip_attachment_payloads),
                                      repeat(opts.nameservers),
                                      repeat(opts.dns_timeout),
+                                     repeat(opts.ip_db_path),
                                      repeat(opts.offline),
                                      repeat(opts.n_procs >= 1)),
                                  opts.chunk_size)
@@ -683,10 +687,11 @@ def _main():
                 forensic_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
-        reports = get_dmarc_reports_from_mbox(mbox_path, opts.nameservers,
-                                              opts.dns_timeout,
-                                              opts.strip_attachment_payloads,
-                                              opts.offline, False)
+        reports = get_dmarc_reports_from_mbox(mbox_path, nameservers=opts.nameservers,
+                                              dns_timeout=opts.dns_timeout,
+                                              strip_attachment_payloads=opts.strip_attachment_payloads,
+                                              ip_db_path=opts.ip_db_path,
+                                              offline=opts.offline, parallel=False)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
 
@@ -718,6 +723,7 @@ def _main():
                 password=opts.imap_password,
                 reports_folder=rf,
                 archive_folder=af,
+                ip_db_path=opts.ip_db_path,
                 delete=opts.imap_delete,
                 offline=opts.offline,
                 nameservers=ns,
@@ -786,6 +792,7 @@ def _main():
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=sa,
                 batch_size=opts.imap_batch_size,
+                ip_db_path=opts.ip_db_path,
                 offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))

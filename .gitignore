@@ -118,7 +118,8 @@ output/
 
 # Data files
 *.dat
-*.mmdb
+GeoIP*
+GeoLite*
 
 # Temp files
 tmp/
@@ -127,5 +128,3 @@ tmp/
 prod*.ini
 stage*.ini
 dev*.ini
-
-*.mmdb
