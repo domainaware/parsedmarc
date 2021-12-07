@@ -481,8 +481,8 @@ Please report bugs on the GitHub issue tracker
 
 https://github.com/domainaware/parsedmarc/issues
 
-.. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
-   :target: https://travis-ci.org/domainaware/parsedmarc
+.. |Build Status| image:: https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg
+   :target: https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml
 
 .. |Code Coverage| image:: https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/domainaware/parsedmarc
