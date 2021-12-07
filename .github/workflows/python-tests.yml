@@ -28,3 +28,7 @@ jobs:
       run: |
         cd docs
         make
+    - name: Build packages
+      run: |
+        python3 setup.py sdist
+        python3 bdist_wheel
