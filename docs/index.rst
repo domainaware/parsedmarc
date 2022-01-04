@@ -185,6 +185,10 @@ The full set of configuration options are:
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
+    
+    ..note::
+      The percent symbol has a special function, so it should be escaped. Use "%%" instead of "%" and it should work fine.
+    
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
     - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
