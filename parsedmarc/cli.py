@@ -358,6 +358,8 @@ def _main():
                 opts.chunk_size = general_config.getint("chunk_size")
             if "ip_db_path" in general_config:
                 opts.ip_db_path = general_config["ip_db_path"]
+            else:
+                opts.ip_db_path = None
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
