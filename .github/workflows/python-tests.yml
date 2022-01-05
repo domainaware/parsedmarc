@@ -32,10 +32,10 @@ jobs:
     - name: Check README.rst syntax
       run: |
         rstcheck --report warning README.rst
-        - name: Test building documentation
-          run: |
-            cd docs
-            make html
+    - name: Test building documentation
+      run: |
+        cd docs
+        make html
     - name: Run unit tests
       run: |
         coverage run tests.py
