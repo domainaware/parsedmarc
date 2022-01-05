@@ -1,75 +1,34 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>parsedmarc.utils &mdash; parsedmarc 7.0.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+  <title>parsedmarc.utils &mdash; parsedmarc 7.1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> parsedmarc
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
-                7.0.0
+                7.1.0
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -77,85 +36,34 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <!-- Local TOC -->
               <div class="local-toc"></div>
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">parsedmarc</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Module code</a> &raquo;</li>
-        
           <li><a href="../parsedmarc.html">parsedmarc</a> &raquo;</li>
-        
       <li>parsedmarc.utils</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <h1>Source code for parsedmarc.utils</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Utility functions that might be useful for other projects&quot;&quot;&quot;</span>
 
@@ -175,6 +83,11 @@
 <span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">importlib.resources</span> <span class="k">as</span> <span class="nn">pkg_resources</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="c1"># Try backported to PY&lt;37 `importlib_resources`</span>
+    <span class="kn">import</span> <span class="nn">importlib_resources</span> <span class="k">as</span> <span class="nn">pkg_resources</span>
 
 <span class="kn">import</span> <span class="nn">dateparser</span>
 <span class="kn">import</span> <span class="nn">dns.reversename</span>
@@ -184,6 +97,8 @@
 <span class="kn">import</span> <span class="nn">geoip2.errors</span>
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">publicsuffix2</span>
+
+<span class="kn">import</span> <span class="nn">parsedmarc.resources</span>
 
 <span class="n">USER_AGENT</span> <span class="o">=</span> <span class="s2">&quot;Mozilla/5.0 ((</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">)) parsedmarc&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
@@ -408,7 +323,7 @@
 
 <div class="viewcode-block" id="human_timestamp_to_timestamp"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.human_timestamp_to_timestamp">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts a human-readable timestamp into a into a UNIX timestamp</span>
+<span class="sd">    Converts a human-readable timestamp into a UNIX timestamp</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format</span>
@@ -420,49 +335,47 @@
     <span class="k">return</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Uses the MaxMind Geolite2 Country database to return the ISO code for the</span>
-<span class="sd">    country associated with the given IPv4 or IPv6 address</span>
+<span class="sd">    Returns the ISO code for the country associated</span>
+<span class="sd">    with the given IPv4 or IPv6 address</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to query for</span>
+<span class="sd">        db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: And ISO country code associated with the given IP address</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">system_paths</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">db_paths</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/var/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/var/local/lib/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/usr/local/var/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;%SystemDrive%</span><span class="se">\\</span><span class="s2">ProgramData</span><span class="se">\\</span><span class="s2">MaxMind</span><span class="se">\\</span><span class="s2">GeoIPUpdate</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">&quot;</span>
         <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;C:</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span>
+        <span class="s2">&quot;C:</span><span class="se">\\</span><span class="s2">GeoIP</span><span class="se">\\</span><span class="s2">GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dbip-country.mmdb&quot;</span><span class="p">,</span>
     <span class="p">]</span>
 
-    <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">system_paths</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">system_path</span><span class="p">):</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="n">system_path</span>
-            <span class="k">break</span>
+    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">system_path</span><span class="p">):</span>
+                <span class="n">db_path</span> <span class="o">=</span> <span class="n">system_path</span>
+                <span class="k">break</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">db_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;GeoLite2-Country.mmdb is missing. &quot;</span>
-                            <span class="s2">&quot;Please follow the instructions at &quot;</span>
-                            <span class="s2">&quot;https://dev.maxmind.com/geoip/geoipupdate/ &quot;</span>
-                            <span class="s2">&quot;to get the latest version.&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;GeoLite2-Country.mmdb is more than a week old&quot;</span><span class="p">)</span>
-        <span class="n">db_path</span> <span class="o">=</span> <span class="n">db_path</span>
+        <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="p">,</span>
+                                <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">path</span><span class="p">:</span>
+            <span class="n">db_path</span> <span class="o">=</span> <span class="n">path</span>
+
+        <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IP database is more than a month old&quot;</span><span class="p">)</span>
 
     <span class="n">db_reader</span> <span class="o">=</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
 
@@ -476,13 +389,14 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../index.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to check</span>
+<span class="sd">        ip_db_path (str): path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
@@ -507,7 +421,7 @@
         <span class="n">reverse_dns</span> <span class="o">=</span> <span class="n">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span>
                                       <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                                       <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-    <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
+    <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">)</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">country</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reverse_dns</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -735,46 +649,30 @@
 </pre></div>
 
            </div>
-           
           </div>
           <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2018, Sean Whalen.
-
-    </p>
+    <p>&#169; Copyright 2018, Sean Whalen.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
