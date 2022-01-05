@@ -25,7 +25,6 @@ alabaster>=0.7.12
 Babel>=2.7.0
 sphinx>=1.0.5
 sphinx_rtd_theme>=0.4.3
-wheel>=0.33.6
 codecov>=2.0.15
 lxml>=4.4.0
 boto3>=1.16.63
