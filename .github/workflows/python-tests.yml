@@ -42,6 +42,7 @@ jobs:
     - name: Run unit tests
       run: |
         coverage run tests.py
+        coverage json
     - name: Test sample DMARC reports
       continue-on-error: true
       run: |
