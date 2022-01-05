@@ -33,6 +33,7 @@ jobs:
       run: |
         coverage run tests.py
     - name: Test sample DMARC reports
+      continue-on-error: true
       run: |
         python setup.py install
         parsedmarc --debug -c ci.ini samples/aggregate/*
