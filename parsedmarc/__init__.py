@@ -205,8 +205,9 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     return new_record
 
 
-def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False, nameservers=None,
-                               timeout=2.0, parallel=False, server=None):
+def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
+                               nameservers=None, timeout=2.0,
+                               parallel=False, server=None):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -567,7 +568,8 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          offline=False, ip_db_path=None, nameservers=None, dns_timeout=2.0,
+                          offline=False, ip_db_path=None,
+                          nameservers=None, dns_timeout=2.0,
                           strip_attachment_payloads=False,
                           parallel=False):
     """
@@ -756,8 +758,9 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, offline=False, ip_db_path=None, nameservers=None,
-                       dns_timeout=2.0, strip_attachment_payloads=False,
+def parse_report_email(input_, offline=False, ip_db_path=None,
+                       nameservers=None, dns_timeout=2.0,
+                       strip_attachment_payloads=False,
                        parallel=False, server=None):
     """
     Parses a DMARC report from an email

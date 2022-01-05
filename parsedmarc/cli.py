@@ -689,9 +689,11 @@ def _main():
                 forensic_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
-        reports = get_dmarc_reports_from_mbox(mbox_path, nameservers=opts.nameservers,
+        strip = opts.strip_attachment_payloads
+        reports = get_dmarc_reports_from_mbox(mbox_path,
+                                              nameservers=opts.nameservers,
                                               dns_timeout=opts.dns_timeout,
-                                              strip_attachment_payloads=opts.strip_attachment_payloads,
+                                              strip_attachment_payloads=strip,
                                               ip_db_path=opts.ip_db_path,
                                               offline=opts.offline, parallel=False)
         aggregate_reports += reports["aggregate_reports"]

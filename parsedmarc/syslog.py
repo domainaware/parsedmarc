@@ -8,6 +8,7 @@ from parsedmarc import parsed_aggregate_reports_to_csv_rows, parsed_forensic_rep
 
 logger = logging.getLogger("parsedmarc")
 
+
 class SyslogClient(object):
     """A client for Syslog"""
 
@@ -22,7 +23,8 @@ class SyslogClient(object):
         self.server_port = server_port
         self.logger = logging.getLogger('parsedmarc_syslog')
         self.logger.setLevel(logging.INFO)
-        log_handler = logging.handlers.SysLogHandler(address = (server_name,server_port))
+        log_handler = logging.handlers.SysLogHandler(address=(server_name,
+                                                              server_port))
         self.logger.addHandler(log_handler)
 
     def save_aggregate_report_to_syslog(self, aggregate_reports):
