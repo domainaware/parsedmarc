@@ -397,7 +397,8 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, offline=False, ip_db_path=None, nameservers=None,
+def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
+                                nameservers=None,
                                 dns_timeout=2.0,
                                 parallel=False,
                                 server=None):

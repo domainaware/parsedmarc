@@ -301,7 +301,8 @@ def get_ip_address_country(ip_address, db_path=None):
                 break
 
     if db_path is None:
-        with pkg_resources.path(parsedmarc.resources, "dbip-country-lite.mmdb") as path:
+        with pkg_resources.path(parsedmarc.resources,
+                                "dbip-country-lite.mmdb") as path:
             db_path = path
 
         db_age = datetime.now() - datetime.fromtimestamp(

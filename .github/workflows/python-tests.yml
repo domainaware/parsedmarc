@@ -36,6 +36,9 @@ jobs:
       run: |
         cd docs
         make html
+    - name: Check code style
+      run: |
+        flake8 *.py parsedmarc/*.py
     - name: Run unit tests
       run: |
         coverage run tests.py
@@ -45,9 +48,6 @@ jobs:
         python setup.py install
         parsedmarc --debug -c ci.ini samples/aggregate/*
         parsedmarc --debug -c ci.ini samples/forensic/*"
-    - name: Check code style
-      run: |
-        flake8 *.py parsedmarc/*.py
     - name: Test building packages
       run: |
         python3 setup.py sdist

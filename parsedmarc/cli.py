@@ -695,7 +695,8 @@ def _main():
                                               dns_timeout=opts.dns_timeout,
                                               strip_attachment_payloads=strip,
                                               ip_db_path=opts.ip_db_path,
-                                              offline=opts.offline, parallel=False)
+                                              offline=opts.offline,
+                                              parallel=False)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
 
