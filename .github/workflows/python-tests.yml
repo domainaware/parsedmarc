@@ -34,7 +34,7 @@ jobs:
         flake8 *.py parsedmarc/*.py
     - name: Check README.rst syntax
       run: |
-      rstcheck --report warning README.rst
+        rstcheck --report warning README.rst
     - name: Test building documentation
       run: |
         cd docs
