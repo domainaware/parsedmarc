@@ -1,6 +1,6 @@
 tqdm>=4.31.1
 rstcheck>=3.3.1
-pygments
+pygments=>=2.11.1
 dnspython>=2.0.0
 expiringdict>=1.1.4
 urllib3>=1.25.7
@@ -23,6 +23,7 @@ packaging>=19.1
 imagesize>=1.1.0
 alabaster>=0.7.12
 Babel>=2.7.0
+docutils<0.18,>=0.14
 sphinx>=1.0.5
 sphinx_rtd_theme>=0.4.3
 codecov>=2.0.15
