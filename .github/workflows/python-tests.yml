@@ -21,14 +21,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests
+    - name: Run unit tests
       run: |
-        python3 tests.py
-    - name: Build docs
+        coverage run tests.py
+    - name: Test sample DMARC reports
+      run: |
+        python setup.py install
+        parsedmarc --debug -c ci.ini samples/aggregate/*
+        parsedmarc --debug -c ci.ini samples/forensic/*"
+    - name: Check code style
+      run: |
+        flake8 *.py parsedmarc/*.py
+    - name: Check README.rst syntax
+      run: |
+      rstcheck --report warning README.rst
+    - name: Test building documentation
       run: |
         cd docs
-        make
-    - name: Build packages
+        make html
+    - name: Test building packages
       run: |
         python3 setup.py sdist
         python3 setup.py bdist_wheel
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
