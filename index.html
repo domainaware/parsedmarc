@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 7.1.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 7.1.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -28,7 +28,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                7.1.0
+                7.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -140,6 +140,14 @@
   <section id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
 <h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this headline"></a></h1>
 <p><a class="reference external" href="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml"><img alt="Build Status" src="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="Code Coverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a> <a class="reference external" href="https://pypi.org/project/parsedmarc/"><img alt="PyPI Package" src="https://img.shields.io/pypi/v/parsedmarc.svg" /></a></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Help Wanted</strong></p>
+<p>This is a project is maintained by one developer.
+Please consider reviewing the open <a class="reference external" href="https://github.com/domainaware/parsedmarc/issues">issues</a> to see how you can contribute code, documentation, or user support.
+Assistance on the pinned issues would be particularly helpful.</p>
+<p>Thanks to all <a class="reference external" href="https://github.com/domainaware/parsedmarc/graphs/contributors">contributors</a>!</p>
+</div>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 754.0px; height: 449.0px;" /></a>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
 When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
@@ -229,8 +237,8 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 6.0.0, most CLI options were moved to a configuration file, described below.</p>
-</aside>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 6.0.0, most CLI options were moved to a configuration file, described below.</p>
+</div>
 </section>
 <section id="configuration-file">
 <h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline"></a></h2>
@@ -292,7 +300,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Setting this to a number larger than one can improve performance when processing thousands of files</p>
-</aside>
+</div>
 </dd>
 </dl>
 </li>
@@ -305,7 +313,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If your host recommends another port, still try 993</p>
-</aside>
+</div>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
@@ -333,7 +341,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Special characters in the username or password must be <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
-</aside>
+</div>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
@@ -413,7 +421,7 @@ in your DMARC inbox, but run <code class="docutils literal notranslate"><span cl
 manually on a separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option),
 after you have manually moved known samples you want to save to that
 folder (e.g. malicious samples and non-sensitive legitimate samples).</p>
-</aside>
+</div>
 </section>
 <section id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline"></a></h2>
@@ -628,7 +636,7 @@ proxy details there, for example:</p>
 </div>
 <p>This will set the the proxy up for use system-wide, including for
 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>.</p>
-</aside>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>If your mail server is Microsoft Exchange, ensure that it is patched to at
@@ -638,7 +646,7 @@ least:</p>
 <li><p>Exchange Server 2013 Cumulative Update 21 (<a class="reference external" href="https://support.microsoft.com/KB/4099855">KB4099855</a>)</p></li>
 <li><p>Exchange Server 2016 Cumulative Update 11 (<a class="reference external" href="https://support.microsoft.com/kb/4134118">KB4134118</a>)</p></li>
 </ul>
-</aside>
+</div>
 <section id="geoipupdate-setup">
 <h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this headline"></a></h3>
 <div class="admonition note">
@@ -649,7 +657,7 @@ a fallback if the <a class="reference external" href="https://dev.maxmind.com/ge
 versions of these databases as they are released, so MaxMind’s databases and <a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> tool is still the
 preferable solution.</p>
 <p>The location of the database file can be overridden by using the <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
-</aside>
+</div>
 <p>On Debian 10 (Buster) or later, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
 </pre></div>
@@ -674,14 +682,14 @@ comply with various privacy regulations</a>.</p>
 <p class="admonition-title">Warning</p>
 <p>The configuration file format is different for older (i.e. &lt;=3.1.1) and newer (i.e. &gt;=3.1.1) versions
 of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code>. Be sure to select the correct version for your system.</p>
-</aside>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To check the version of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that is installed, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>geoipupdate -V
 </pre></div>
 </div>
-</aside>
+</div>
 <p>You can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description for the key.</p>
 <p>Once you have generated a key, download the config pre-filled configuration file.
 This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code> on Linux or macOS systems, or at
@@ -720,7 +728,7 @@ sudo easy_install-3.4 pip
 <p>On Windows, <code class="docutils literal notranslate"><span class="pre">pip3</span></code> is <code class="docutils literal notranslate"><span class="pre">pip</span></code>, even with Python 3. So on Windows,
 substitute <code class="docutils literal notranslate"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
 above commands.</p>
-</aside>
+</div>
 </section>
 <section id="installation-using-pypy3">
 <h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline"></a></h3>
@@ -900,7 +908,7 @@ sudo service davmail restart
 <p class="admonition-title">Note</p>
 <p>You must also run the above commands whenever you edit
 <code class="docutils literal notranslate"><span class="pre">davmail.service</span></code>.</p>
-</aside>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Always restart the service every time you upgrade to a new version of
@@ -908,7 +916,7 @@ sudo service davmail restart
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service davmail restart
 </pre></div>
 </div>
-</aside>
+</div>
 <p>To check the status of the service, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service davmail status
 </pre></div>
@@ -922,7 +930,7 @@ current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u davmail.service -r
 </pre></div>
 </div>
-</aside>
+</div>
 </section>
 <section id="configuring-parsedmarc-for-davmail">
 <h4>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this headline"></a></h4>
@@ -943,12 +951,12 @@ config file:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.3.0</p>
-</aside>
+</div>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Elasticsearch and Kibana 6 or later are required</p>
-</aside>
+</div>
 <p>On Debian/Ubuntu based systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y apt-transport-https
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
@@ -976,7 +984,7 @@ value.</p>
 </div>
 <p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html</a>
 for more information.</p>
-</aside>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
 sudo systemctl <span class="nb">enable</span> elasticsearch.service
 sudo systemctl <span class="nb">enable</span> kibana.service
@@ -1132,7 +1140,7 @@ editor.</p>
 <p class="admonition-title">Warning</p>
 <p>Change all occurrences of <code class="docutils literal notranslate"><span class="pre">index=&quot;email&quot;</span></code> in the XML to
 match your own index name.</p>
-</aside>
+</div>
 <p>The Splunk dashboards display the same content and layout as the Kibana
 dashboards, although the Kibana dashboards have slightly easier and more
 flexible filtering options.</p>
@@ -1181,7 +1189,7 @@ sudo service parsedmarc restart
 <p class="admonition-title">Note</p>
 <p>You must also run the above commands whenever you edit
 <code class="docutils literal notranslate"><span class="pre">parsedmarc.service</span></code>.</p>
-</aside>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Always restart the service every time you upgrade to a new version of
@@ -1189,7 +1197,7 @@ sudo service parsedmarc restart
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc restart
 </pre></div>
 </div>
-</aside>
+</div>
 <p>To check the status of the service, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service parsedmarc status
 </pre></div>
@@ -1203,7 +1211,7 @@ current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u parsedmarc.service -r
 </pre></div>
 </div>
-</aside>
+</div>
 </section>
 </section>
 <section id="using-the-kibana-dashboards">
@@ -1214,7 +1222,7 @@ from incoming DMARC reports.</p>
 <p class="admonition-title">Note</p>
 <p>The default dashboard is DMARC Summary. To switch between dashboards,
 click on the Dashboard link in the left side menu of Kibana.</p>
-</aside>
+</div>
 <section id="dmarc-summary">
 <h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this headline"></a></h3>
 <p>As the name suggests, this dashboard is the best place to start reviewing your
@@ -1227,7 +1235,7 @@ will filter for that value.</p>
 <p>Messages should not be considered malicious just because they failed to pass
 DMARC; especially if you have just started collecting data. It may be a
 legitimate service that needs SPF and DKIM configured correctly.</p>
-</aside>
+</div>
 <p>Start by filtering the results to only show failed DKIM alignment. While DMARC
 passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
 valid when a message is forwarded without changing the from address, which is
@@ -1258,7 +1266,7 @@ emails from an old account to a new account, which is why DKIM
 authentication is so important, as mentioned earlier. Similar patterns may
 be observed with businesses who send from reverse DNS addressees of
 parent, subsidiary, and outdated brands.</p>
-</aside>
+</div>
 <p>Further down the dashboard, you can filter by source country or source IP
 address.</p>
 <p>Tables showing SPF and DKIM alignment details are located under the IP address
@@ -1268,7 +1276,7 @@ table.</p>
 <p>Previously, the alignment tables were included in a separate dashboard
 called DMARC Alignment Failures. That dashboard has been consolidated into
 the DMARC Summary dashboard. To view failures only, use the pie chart.</p>
-</aside>
+</div>
 <p>Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.</p>
 </section>
@@ -1282,7 +1290,7 @@ samples of emails that have failed to pass DMARC.</p>
 <p>Most recipients do not send forensic/failure/ruf reports at all to avoid
 privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.</p>
-</aside>
+</div>
 </section>
 </section>
 <section id="dmarc-alignment-guide">
@@ -1292,6 +1300,11 @@ against the same domain that the end user sees.</p>
 <p>A message passes a DMARC check by passing DKIM or SPF, <strong>as long as the related
 indicators are also in alignment</strong>.</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td></td>
 <td><p><strong>DKIM</strong></p></td>
@@ -1346,7 +1359,7 @@ separate SPF and DMARC records on <code class="docutils literal notranslate"><sp
 <p>Do not alter the <code class="docutils literal notranslate"><span class="pre">p</span></code> or <code class="docutils literal notranslate"><span class="pre">sp</span></code> values of the DMARC record on the
 Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
 your TLD and/or any subdomain.</p>
-</aside>
+</div>
 </section>
 <section id="what-about-mailing-lists">
 <h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline"></a></h2>
@@ -1400,6 +1413,10 @@ to the mailing list post address, and not their email address.</p>
 <h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this headline"></a></h4>
 <p>Navigate to General Settings, and configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 74%" />
+<col style="width: 26%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1429,6 +1446,10 @@ to the mailing list post address, and not their email address.</p>
 </table>
 <p>Navigate to Non-digest options, and configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 66%" />
+<col style="width: 34%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1446,6 +1467,10 @@ to the mailing list post address, and not their email address.</p>
 </table>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 79%" />
+<col style="width: 21%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1469,6 +1494,10 @@ to the mailing list post address, and not their email address.</p>
 <p>Navigate to Settings&gt; Alter Messages</p>
 <p>Configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 79%" />
+<col style="width: 21%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1496,6 +1525,10 @@ to the mailing list post address, and not their email address.</p>
 <p>Navigate to Settings&gt; DMARC Mitigation</p>
 <p>Configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 52%" />
+<col style="width: 48%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1531,6 +1564,10 @@ no longer spoof email addresses with domains protected by DMARC.</p>
 <h4>Mailman 2<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h4>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 79%" />
+<col style="width: 21%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1556,12 +1593,16 @@ clients.</p>
 accidentally reply to the entire list, when they only intended to reply to
 the original sender.</p>
 <p>Choose the option that best fits your community.</p>
-</aside>
+</div>
 </section>
 <section id="id4">
 <h4>Mailman 3<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h4>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table class="docutils align-default">
+<colgroup>
+<col style="width: 49%" />
+<col style="width: 51%" />
+</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -1583,7 +1624,7 @@ clients.</p>
 <p>On the other hand, replacing the From address might cause users to
 accidentally reply to the entire list, when they only intended to reply to
 the original sender.</p>
-</aside>
+</div>
 </section>
 <section id="listserv">
 <h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this headline"></a></h4>
@@ -1625,7 +1666,7 @@ that enforce with a DMARC quarantine or reject policy.</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">email_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_from</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_to</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_cc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_bcc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_encryption</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attachment_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#email_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.email_results" title="Permalink to this definition"></a></dt>
 <dd><p>Emails parsing results as a zip file</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>results</strong> (<em>OrderedDict</em>) – Parsing results</p></li>
 <li><p><strong>host</strong> – Mail server hostname or IP address</p></li>
@@ -1652,13 +1693,13 @@ that enforce with a DMARC quarantine or reject policy.</p>
 <dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
 or bytes.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>input</strong> – A path to a file, a file like object, or bytes</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The extracted XML</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -1669,7 +1710,7 @@ or bytes.</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_retries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition"></a></dt>
 <dd><p>Fetches and parses DMARC reports from an inbox</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>connection</strong> – An IMAPClient connection to reuse</p></li>
 <li><p><strong>host</strong> – The mail server hostname or IP address</p></li>
@@ -1694,10 +1735,10 @@ or bytes.</p>
 <li><p><strong>batch_size</strong> (<em>int</em>) – Number of messages to read and process before saving</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Lists of <code class="docutils literal notranslate"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal notranslate"><span class="pre">forensic_reports</span></code></p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1709,7 +1750,7 @@ or bytes.</p>
 <dd><p>Parses a mailbox in mbox format containing e-mails with attached
 DMARC reports</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – A path to a mbox file</p></li>
 <li><p><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</p></li>
@@ -1722,10 +1763,10 @@ DMARC reports</p>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Lists of  <code class="docutils literal notranslate"><span class="pre">aggregate_reports</span></code> and <code class="docutils literal notranslate"><span class="pre">forensic_reports</span></code></p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1736,7 +1777,7 @@ DMARC reports</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_imap_capabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition"></a></dt>
 <dd><p>Returns a list of an IMAP server’s capabilities</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>server</strong> (<em>imapclient.IMAPClient</em>) – An instance of imapclient.IMAPClient</p>
 </dd>
 </dl>
@@ -1748,13 +1789,13 @@ DMARC reports</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_report_zip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a zip file of parsed report output</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>results</strong> (<em>OrderedDict</em>) – The parsed results</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>zip file bytes</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>bytes</p>
 </dd>
 </dl>
@@ -1766,7 +1807,7 @@ DMARC reports</p>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
 aggregate DMARC report</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>_input</strong> – A path to a file, a file like object, or bytes</p></li>
 <li><p><strong>offline</strong> (<em>bool</em>) – Do not query online for geolocation or DNS</p></li>
@@ -1778,10 +1819,10 @@ aggregate DMARC report</p>
 <li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The parsed DMARC aggregate report</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1792,7 +1833,7 @@ aggregate DMARC report</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xml</strong> (<em>str</em>) – A string of DMARC aggregate report XML</p></li>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
@@ -1804,10 +1845,10 @@ aggregate DMARC report</p>
 <li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The parsed aggregate DMARC report</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1818,7 +1859,7 @@ aggregate DMARC report</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_forensic_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feedback_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_forensic_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_forensic_report" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a DMARC forensic report and sample to a <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>feedback_report</strong> (<em>str</em>) – A message’s feedback report as a string</p></li>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
@@ -1833,10 +1874,10 @@ aggregate DMARC report</p>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A parsed report and sample</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1847,7 +1888,7 @@ aggregate DMARC report</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – An emailed DMARC report in RFC 822 format, as bytes or a string</p></li>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
@@ -1860,14 +1901,14 @@ aggregate DMARC report</p>
 <li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">report_type</span></code>: <code class="docutils literal notranslate"><span class="pre">aggregate</span></code> or <code class="docutils literal notranslate"><span class="pre">forensic</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">report</span></code>: The parsed report</p></li>
 </ul>
 </p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1879,7 +1920,7 @@ aggregate DMARC report</p>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – A path to a file, a file like object, or bytes</p></li>
 <li><p><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</p></li>
@@ -1893,10 +1934,10 @@ file-like object. or bytes</p>
 <li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The parsed DMARC report</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -1908,13 +1949,13 @@ file-like object. or bytes</p>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>reports</strong> – A parsed aggregate report or list of parsed aggregate reports</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Parsed aggregate report data in flat CSV format, including headers</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -1926,14 +1967,14 @@ headers</p>
 <dd><p>Converts one or more parsed aggregate reports to list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>reports</strong> – A parsed aggregate report or list of parsed aggregate reports</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Parsed aggregate report data as a list of dicts in flat CSV
 format</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>list</p>
 </dd>
 </dl>
@@ -1945,13 +1986,13 @@ format</p>
 <dd><p>Converts one or more parsed forensic reports to flat CSV format, including
 headers</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>reports</strong> – A parsed forensic report or list of parsed forensic reports</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Parsed forensic report data in flat CSV format, including headers</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -1963,13 +2004,13 @@ headers</p>
 <dd><p>Converts one or more parsed forensic reports to a list of dicts in flat CSV
 format</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>reports</strong> – A parsed forensic report or list of parsed forensic reports</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Parsed forensic report data as a list of dicts in flat CSV format</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>list</p>
 </dd>
 </dl>
@@ -1980,7 +2021,7 @@ format</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">save_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition"></a></dt>
 <dd><p>Save report data in the given directory</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>results</strong> (<em>OrderedDict</em>) – Parsing results</p></li>
 <li><p><strong>output_directory</strong> (<em>str</em>) – The path to the directory to save in</p></li>
@@ -2050,7 +2091,7 @@ to a callback function
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">create_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#create_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.create_indexes" title="Permalink to this definition"></a></dt>
 <dd><p>Create Elasticsearch indexes</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>names</strong> (<em>list</em>) – A list of index names</p></li>
 <li><p><strong>settings</strong> (<em>dict</em>) – Index settings</p></li>
@@ -2064,7 +2105,7 @@ to a callback function
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Permalink to this definition"></a></dt>
 <dd><p>Updates index mappings</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names</p></li>
 <li><p><strong>forensic_indexes</strong> (<em>list</em>) – A list of forensic index names</p></li>
@@ -2078,7 +2119,7 @@ to a callback function
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">save_aggregate_report_to_elasticsearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monthly_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_shards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_aggregate_report_to_elasticsearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch" title="Permalink to this definition"></a></dt>
 <dd><p>Saves a parsed DMARC aggregate report to ElasticSearch</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>aggregate_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</p></li>
 <li><p><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</p></li>
@@ -2087,7 +2128,7 @@ to a callback function
 <li><p><strong>number_of_replicas</strong> (<em>int</em>) – The number of replicas to use in the index</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dt class="field-even">Raises</dt>
 <dd class="field-even"><p><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved" title="parsedmarc.elastic.AlreadySaved"><strong>AlreadySaved</strong></a> – </p>
 </dd>
 </dl>
@@ -2098,7 +2139,7 @@ to a callback function
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">save_forensic_report_to_elasticsearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forensic_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monthly_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_shards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_forensic_report_to_elasticsearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch" title="Permalink to this definition"></a></dt>
 <dd><p>Saves a parsed DMARC forensic report to ElasticSearch</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>forensic_report</strong> (<em>OrderedDict</em>) – A parsed forensic report</p></li>
 <li><p><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</p></li>
@@ -2109,7 +2150,7 @@ indexes</p></li>
 index</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dt class="field-even">Raises</dt>
 <dd class="field-even"><p><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved" title="parsedmarc.elastic.AlreadySaved"><strong>AlreadySaved</strong></a> – </p>
 </dd>
 </dl>
@@ -2120,7 +2161,7 @@ index</p></li>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">set_hosts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_cert_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition"></a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hosts</strong> (<em>str</em>) – A single hostname or URL, or list of hostnames or URLs</p></li>
 <li><p><strong>use_ssl</strong> (<em>bool</em>) – Use a HTTPS connection to the server</p></li>
@@ -2147,7 +2188,7 @@ index</p></li>
 <span class="sig-name descname"><span class="pre">save_aggregate_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition"></a></dt>
 <dd><p>Saves aggregate DMARC reports to Splunk</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>aggregate_reports</strong> – A list of aggregate report dictionaries</p></li>
 <li><p><strong>Splunk</strong> (<em>to save in</em>) – </p></li>
@@ -2161,7 +2202,7 @@ index</p></li>
 <span class="sig-name descname"><span class="pre">save_forensic_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forensic_reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_forensic_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk" title="Permalink to this definition"></a></dt>
 <dd><p>Saves forensic DMARC reports to Splunk</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>forensic_reports</strong> (<em>list</em>) – A list of forensic report dictionaries</p></li>
 <li><p><strong>Splunk</strong> (<em>to save in</em>) – </p></li>
@@ -2202,10 +2243,10 @@ index</p></li>
 <dd><p>Uses the <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code> Perl utility to convert an Outlook MS file to
 standard RFC 822 format</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>msg_bytes</strong> (<em>bytes</em>) – the content of the .msg file</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A RFC 822 string</p>
 </dd>
 </dl>
@@ -2216,13 +2257,13 @@ standard RFC 822 format</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">decode_base64</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#decode_base64"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.decode_base64" title="Permalink to this definition"></a></dt>
 <dd><p>Decodes a base64 string, with padding being optional</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>data</strong> – A base64 encoded string</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The decoded bytes</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>bytes</p>
 </dd>
 </dl>
@@ -2236,18 +2277,18 @@ standard RFC 822 format</p>
 <p class="admonition-title">Note</p>
 <p>Results are based on a list of public domain suffixes at
 <a class="reference external" href="https://publicsuffix.org/list/public_suffix_list.dat">https://publicsuffix.org/list/public_suffix_list.dat</a>.</p>
-</aside>
+</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>domain</strong> (<em>str</em>) – A domain or subdomain</p></li>
 <li><p><strong>use_fresh_psl</strong> (<em>bool</em>) – Download a fresh Public Suffix List</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The base domain of the given domain</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -2260,10 +2301,10 @@ standard RFC 822 format</p>
 :param string: A string to make safe for a filename
 :type string: str</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>A string safe for a filename</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dt class="field-even">Return type</dt>
 <dd class="field-even"><p>str</p>
 </dd>
 </dl>
@@ -2275,16 +2316,16 @@ standard RFC 822 format</p>
 <dd><p>Returns the ISO code for the country associated
 with the given IPv4 or IPv6 address</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</p></li>
 <li><p><strong>db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>And ISO country code associated with the given IP address</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -2295,7 +2336,7 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_ip_address_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_info" title="Permalink to this definition"></a></dt>
 <dd><p>Returns reverse DNS and country information for the given IP address</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ip_address</strong> (<em>str</em>) – The IP address to check</p></li>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – path to a MMDB file from MaxMind or DBIP</p></li>
@@ -2307,10 +2348,10 @@ with the given IPv4 or IPv6 address</p>
 <li><p><strong>parallel</strong> (<em>bool</em>) – parallel processing</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">ip_address</span></code>, <code class="docutils literal notranslate"><span class="pre">reverse_dns</span></code></p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>OrderedDict</p>
 </dd>
 </dl>
@@ -2321,7 +2362,7 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_reverse_dns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_reverse_dns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_reverse_dns" title="Permalink to this definition"></a></dt>
 <dd><p>Resolves an IP address to a hostname using a reverse DNS query</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ip_address</strong> (<em>str</em>) – The IP address to resolve</p></li>
 <li><p><strong>cache</strong> (<em>ExpiringDict</em>) – Cache storage</p></li>
@@ -2330,10 +2371,10 @@ with the given IPv4 or IPv6 address</p>
 <li><p><strong>timeout</strong> (<em>float</em>) – Sets the DNS query timeout in seconds</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The reverse DNS hostname (if any)</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
@@ -2344,16 +2385,16 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_datetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_utc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_datetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_datetime" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a human-readable timestamp into a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>human_timestamp</strong> (<em>str</em>) – A timestamp string</p></li>
 <li><p><strong>to_utc</strong> (<em>bool</em>) – Convert the timestamp to UTC</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The converted timestamp</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>DateTime</p>
 </dd>
 </dl>
@@ -2364,13 +2405,13 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a human-readable timestamp into a UNIX timestamp</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>human_timestamp</strong> (<em>str</em>) – A timestamp in <cite>YYYY-MM-DD HH:MM:SS`</cite> format</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The converted timestamp</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>float</p>
 </dd>
 </dl>
@@ -2381,13 +2422,13 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">is_mbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_mbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.is_mbox" title="Permalink to this definition"></a></dt>
 <dd><p>Checks if the given content is a MBOX mailbox file</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>path</strong> – Content to check</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A flag the indicates if a file is a MBOX mailbox file</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
@@ -2398,13 +2439,13 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">is_outlook_msg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#is_outlook_msg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.is_outlook_msg" title="Permalink to this definition"></a></dt>
 <dd><p>Checks if the given content is a Outlook msg OLE file</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>content</strong> – Content to check</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A flag the indicates if a file is a Outlook MSG file</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
@@ -2415,7 +2456,7 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">parse_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#parse_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.parse_email" title="Permalink to this definition"></a></dt>
 <dd><p>A simplified email parser</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – The RFC 822 message string, or MSG binary</p></li>
 <li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads</p></li>
@@ -2430,7 +2471,7 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">query_dns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#query_dns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.query_dns" title="Permalink to this definition"></a></dt>
 <dd><p>Queries DNS</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>domain</strong> (<em>str</em>) – The domain or subdomain to query about</p></li>
 <li><p><strong>record_type</strong> (<em>str</em>) – The record type to query for</p></li>
@@ -2440,10 +2481,10 @@ with the given IPv4 or IPv6 address</p>
 <li><p><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A list of answers</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>list</p>
 </dd>
 </dl>
@@ -2454,13 +2495,13 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">timestamp_to_datetime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_datetime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_datetime" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>timestamp</strong> (<em>int</em>) – The timestamp</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The converted timestamp as a Python <code class="docutils literal notranslate"><span class="pre">DateTime</span></code> object</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>DateTime</p>
 </dd>
 </dl>
@@ -2471,13 +2512,13 @@ with the given IPv4 or IPv6 address</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">timestamp_to_human</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#timestamp_to_human"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.timestamp_to_human" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a UNIX/DMARC timestamp to a human-readable string</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>timestamp</strong> – The timestamp</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The converted timestamp in <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span> <span class="pre">HH:MM:SS</span></code> format</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
