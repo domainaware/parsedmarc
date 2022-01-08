@@ -9,6 +9,15 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
 
 |Build Status| |Code Coverage| |PyPI Package|
 
+.. note:: **Help Wanted**
+
+   This is a project is maintained by one developer.
+   Please consider reviewing the open `issues`_ to see how you can contribute code, documentation, or user support.
+   Assistance on the pinned issues would be particularly helpful.
+
+   Thanks to all `contributors`_!
+
+
 .. image:: _static/screenshots/dmarc-summary-charts.png
    :alt: A screenshot of DMARC summary charts in Kibana
    :scale: 50 %
@@ -108,7 +117,7 @@ CLI help
 
 .. note::
 
-   In ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+   Starting in ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
 
 Configuration file
 ==================
@@ -1617,6 +1626,10 @@ Indices and tables
 
 ..  |PyPI Package| image:: https://img.shields.io/pypi/v/parsedmarc.svg
     :target: https://pypi.org/project/parsedmarc/
+
+.. _issues: https://github.com/domainaware/parsedmarc/issues
+
+.. _contributors: https://github.com/domainaware/parsedmarc/graphs/contributors
 
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
 
