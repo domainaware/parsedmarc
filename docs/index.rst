@@ -625,7 +625,7 @@ Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
