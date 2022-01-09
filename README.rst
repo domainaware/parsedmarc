@@ -112,7 +112,7 @@ CLI help
 
 .. note::
 
-   Starting in ``parsedmarc`` 7.1.0, a static copy of the  `IP to Country Lite database`_ from IPDB is
+   Starting in ``parsedmarc`` 7.1.1, a static copy of the  `IP to Country Lite database`_ from IPDB is
    distributed with ``parsedmarc``, under the terms of the `Creative Commons Attribution 4.0 International License`_. as
    a fallback if the `MaxMind GeoLite2 Country database`_ is not installed  However, ``parsedmarc`` cannot install updated
    versions of these databases as they are released, so MaxMind's databases and `geoipupdate`_ tool is still the
