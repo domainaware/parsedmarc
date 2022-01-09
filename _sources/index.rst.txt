@@ -607,15 +607,25 @@ On CentOS or RHEL systems, run:
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
 
+
+Create a system user
+
 .. code-block:: bash
 
-    sudo -H pip3 install -U parsedmarc
+    sudo mkdir -f /opt
+    sudo useradd parsedmarc -r -s /bin/false -b /opt
+
+
+.. code-block:: bash
+
+    sudo -u parsedmarc -H pip3 install --user -U pip
+    sudo -u parsedmarc -H pip3 install --user -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
@@ -1153,13 +1163,6 @@ Running parsedmarc as a systemd service
 Use systemd to run ``parsedmarc`` as a service and process reports as they
 arrive.
 
-
-Create a system user
-
-.. code-block:: bash
-
-    sudo useradd parsedmarc -r -s /bin/false
-
 Protect the ``parsedmarc`` configuration file from prying eyes
 
 .. code-block:: bash
@@ -1182,7 +1185,7 @@ Create the service configuration file
     After=network.target network-online.target elasticsearch.service
 
     [Service]
-    ExecStart=/usr/local/bin/parsedmarc -c /etc/parsedmarc.ini
+    ExecStart=/opt/parsedmarc/.local/bin/parsedmarc -c /etc/parsedmarc.ini
     User=parsedmarc
     Group=parsedmarc
     Restart=always

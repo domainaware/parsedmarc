@@ -716,11 +716,17 @@ sudo easy_install-3.4 pip
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U parsedmarc
+<p>Create a system user</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir -f /opt
+sudo useradd parsedmarc -r -s /bin/false -b /opt
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user -U pip
+sudo -u parsedmarc -H pip3 install --user -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1149,10 +1155,6 @@ flexible filtering options.</p>
 <h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this headline"></a></h3>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as they
 arrive.</p>
-<p>Create a system user</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo useradd parsedmarc -r -s /bin/false
-</pre></div>
-</div>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:parsedmarc /etc/parsedmarc.ini
 sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/parsedmarc.ini
@@ -1169,7 +1171,7 @@ sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">
 <span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span><span class="w"></span>
 
 <span class="k">[Service]</span><span class="w"></span>
-<span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/parsedmarc -c /etc/parsedmarc.ini</span><span class="w"></span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/.local/bin/parsedmarc -c /etc/parsedmarc.ini</span><span class="w"></span>
 <span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
 <span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
 <span class="na">Restart</span><span class="o">=</span><span class="s">always</span><span class="w"></span>
