@@ -38,12 +38,14 @@ from parsedmarc.utils import parse_email
 
 __version__ = "7.1.1"
 
-logging.basicConfig(
-    format='%(levelname)8s:%(filename)s:%(lineno)d:'
-           '%(message)s',
+formatter = logging.Formatter(
+    fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
 
 logger = logging.getLogger("parsedmarc")
+logger.addHandler(handler)
 logger.debug("parsedmarc v{0}".format(__version__))
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)

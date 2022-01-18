@@ -578,14 +578,11 @@ def _main():
             else:
                 opts.syslog_port = 514
 
-    logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
 
     if opts.verbose:
-        logging.basicConfig(level=logging.INFO)
         logger.setLevel(logging.INFO)
     if opts.debug:
-        logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
     if opts.log_file:
         fh = logging.FileHandler(opts.log_file)
