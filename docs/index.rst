@@ -9,6 +9,15 @@ parsedmarc documentation - Open source DMARC report analyzer and visualizer
 
 |Build Status| |Code Coverage| |PyPI Package|
 
+.. note:: **Help Wanted**
+
+   This is a project is maintained by one developer.
+   Please consider reviewing the open `issues`_ to see how you can contribute code, documentation, or user support.
+   Assistance on the pinned issues would be particularly helpful.
+
+   Thanks to all `contributors`_!
+
+
 .. image:: _static/screenshots/dmarc-summary-charts.png
    :alt: A screenshot of DMARC summary charts in Kibana
    :scale: 50 %
@@ -108,7 +117,7 @@ CLI help
 
 .. note::
 
-   In ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+   Starting in ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
 
 Configuration file
 ==================
@@ -148,6 +157,10 @@ For example
    bucket = my-bucket
    path = parsedmarc
 
+   [syslog]
+   server = localhost
+   port = 514
+
 The full set of configuration options are:
 
 - ``general``
@@ -157,6 +170,7 @@ The full set of configuration options are:
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
     - ``forensic_json_filename`` - str: filename for the forensic JSON output file
+    - ``ip_db_path`` - str: An optional custim path to a MMDB file from MaxMind or DBIP
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -180,6 +194,10 @@ The full set of configuration options are:
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
+    
+    ..note::
+      The percent symbol has a special function, so it should be escaped. Use "%%" instead of "%" and it should work fine.
+    
     - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
     - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
@@ -496,6 +514,16 @@ Installation
 geoipupdate setup
 -----------------
 
+.. note::
+
+   Starting in ``parsedmarc`` 7.1.0, a static copy of the  `IP to Country Lite database`_ from IPDB is
+   distributed with ``parsedmarc``, under the terms of the `Creative Commons Attribution 4.0 International License`_. as
+   a fallback if the `MaxMind GeoLite2 Country database`_ is not installed  However, ``parsedmarc`` cannot install updated
+   versions of these databases as they are released, so MaxMind's databases and `geoipupdate`_ tool is still the
+   preferable solution.
+
+   The location of the database file can be overridden by using the ``ip_db_path`` setting.
+
 On Debian 10 (Buster) or later, run:
 
 .. code-block:: bash
@@ -579,15 +607,25 @@ On CentOS or RHEL systems, run:
 Python 3 installers for Windows and macOS can be found at
 https://www.python.org/downloads/
 
+
+Create a system user
+
 .. code-block:: bash
 
-    sudo -H pip3 install -U parsedmarc
+    sudo mkdir -f /opt
+    sudo useradd parsedmarc -r -s /bin/false -b /opt
+
+
+.. code-block:: bash
+
+    sudo -u parsedmarc -H pip3 install --user -U pip
+    sudo -u parsedmarc -H pip3 install --user -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -H pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
@@ -1125,13 +1163,6 @@ Running parsedmarc as a systemd service
 Use systemd to run ``parsedmarc`` as a service and process reports as they
 arrive.
 
-
-Create a system user
-
-.. code-block:: bash
-
-    sudo useradd parsedmarc -r -s /bin/false
-
 Protect the ``parsedmarc`` configuration file from prying eyes
 
 .. code-block:: bash
@@ -1154,7 +1185,7 @@ Create the service configuration file
     After=network.target network-online.target elasticsearch.service
 
     [Service]
-    ExecStart=/usr/local/bin/parsedmarc -c /etc/parsedmarc.ini
+    ExecStart=/opt/parsedmarc/.local/bin/parsedmarc -c /etc/parsedmarc.ini
     User=parsedmarc
     Group=parsedmarc
     Restart=always
@@ -1590,8 +1621,8 @@ Indices and tables
 * :ref:`search`
 
 
-.. |Build Status| image:: https://travis-ci.org/domainaware/parsedmarc.svg?branch=master
-   :target: https://travis-ci.org/domainaware/parsedmarc
+.. |Build Status| image:: https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg
+   :target: https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml
 
 .. |Code Coverage| image:: https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/domainaware/parsedmarc
@@ -1599,7 +1630,19 @@ Indices and tables
 ..  |PyPI Package| image:: https://img.shields.io/pypi/v/parsedmarc.svg
     :target: https://pypi.org/project/parsedmarc/
 
+.. _issues: https://github.com/domainaware/parsedmarc/issues
+
+.. _contributors: https://github.com/domainaware/parsedmarc/graphs/contributors
+
 .. _Demystifying DMARC: https://seanthegeek.net/459/demystifying-dmarc/
+
+.. _IP to Country Lite database: https://db-ip.com/db/download/ip-to-country-lite
+
+.. _Creative Commons Attribution 4.0 International License: https://creativecommons.org/licenses/by/4.0/
+
+.. _MaxMind GeoLite2 Country database: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+
+.. _geoipupdate: https://github.com/maxmind/geoipupdate
 
 .. _Cloudflare's public resolvers: https://1.1.1.1/
 

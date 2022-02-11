@@ -1,0 +1,57 @@
+name: Python tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.6"
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libemail-outlook-message-perl
+        curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.16.2-amd64.deb
+        sudo dpkg -i --force-confnew elasticsearch-*.deb
+        sudo systemctl restart elasticsearch
+        sudo systemctl --no-pager status elasticsearch
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Check README.rst syntax
+      run: |
+        rstcheck --report warning README.rst
+    - name: Test building documentation
+      run: |
+        cd docs
+        make html
+    - name: Check code style
+      run: |
+        flake8 *.py parsedmarc/*.py
+    - name: Run unit tests
+      run: |
+        coverage run tests.py
+        coverage json
+    - name: Test sample DMARC reports
+      continue-on-error: true
+      run: |
+        python setup.py install
+        parsedmarc --debug -c ci.ini samples/aggregate/*
+        parsedmarc --debug -c ci.ini samples/forensic/*"
+    - name: Test building packages
+      run: |
+        python3 setup.py sdist
+        python3 setup.py bdist_wheel
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2

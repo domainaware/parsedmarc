@@ -1,6 +1,24 @@
 Changelog
 =========
 
+7.1.1
+-----
+
+- Actually include `dbip-country-lite.mmdb` file in the `parsedmarc.resources` package (PR #281)
+- Update `dbip-country-lite.mmdb` to the 2022-01 release
+
+7.1.0
+-----
+
+- A static copy of the DBIP Country Lite database is now included for use when a copy of the MaxMind GeoLite2 Country database is not installed (Closes #275)
+- Add `ip_db_path` to as a parameter and `general` setting for a custom IP geolocation database location (Closes #184)
+- Search default Homebrew path when searching for a copy of the MaxMind GeoLite2 Country database (Closes #272)
+- Fix log messages written to root logger (PR #276)
+- Fix `--offline` option in CLI not being passed as a boolean (PR #265)
+- Set Elasticsearch shard replication to `0` (PR #274)
+- Add support for syslog output (PR #263 closes #227)
+- Do not print TQDDM progress bar when running in a no-interactive TTY (PR #264)
+
 7.0.1
 -----
 

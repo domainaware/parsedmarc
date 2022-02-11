@@ -218,7 +218,7 @@ def create_indexes(names, settings=None):
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
                 if settings is None:
                     index.settings(number_of_shards=1,
-                                   number_of_replicas=1)
+                                   number_of_replicas=0)
                 else:
                     index.settings(**settings)
                 index.create()
@@ -281,7 +281,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
                                            index_suffix=None,
                                            monthly_indexes=False,
                                            number_of_shards=1,
-                                           number_of_replicas=1):
+                                           number_of_replicas=0):
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
@@ -411,7 +411,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
                                           index_suffix=None,
                                           monthly_indexes=False,
                                           number_of_shards=1,
-                                          number_of_replicas=1):
+                                          number_of_replicas=0):
     """
         Saves a parsed DMARC forensic report to ElasticSearch
 

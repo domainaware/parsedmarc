@@ -13,13 +13,14 @@ import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pool, Value
 from itertools import repeat
+import sys
 import time
 from tqdm import tqdm
 
 from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport, s3
+    InvalidDMARCReport, s3, syslog
 from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
@@ -31,11 +32,12 @@ def _str_to_list(s):
     return list(map(lambda i: i.lstrip(), _list))
 
 
-def cli_parse(file_path, sa, nameservers, dns_timeout, offline,
-              parallel=False):
+def cli_parse(file_path, sa, nameservers, dns_timeout,
+              ip_db_path, offline, parallel=False):
     """Separated this function for multiprocessing"""
     try:
         file_results = parse_report_file(file_path,
+                                         ip_db_path=ip_db_path,
                                          offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
@@ -87,6 +89,14 @@ def _main():
                 )
             except Exception as error_:
                 logger.error("S3 Error: {0}".format(error_.__str__()))
+        if opts.syslog_server:
+            try:
+                syslog_client = syslog.SyslogClient(
+                    server_name=opts.syslog_server,
+                    server_port=int(opts.syslog_port),
+                )
+            except Exception as error_:
+                logger.error("Syslog Error: {0}".format(error_.__str__()))
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -117,6 +127,11 @@ def _main():
                         s3_client.save_aggregate_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+                try:
+                    if opts.syslog_server:
+                        syslog_client.save_aggregate_report_to_syslog(report)
+                except Exception as error_:
+                    logger.error("Syslog Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -156,6 +171,11 @@ def _main():
                         s3_client.save_forensic_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+                try:
+                    if opts.syslog_server:
+                        syslog_client.save_forensic_report_to_syslog(report)
+                except Exception as error_:
+                    logger.error("Syslog Error: {0}".format(error_.__str__()))
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -253,7 +273,7 @@ def _main():
                      elasticsearch_hosts=None,
                      elasticsearch_timeout=60,
                      elasticsearch_number_of_shards=1,
-                     elasticsearch_number_of_replicas=1,
+                     elasticsearch_number_of_replicas=0,
                      elasticsearch_index_suffix=None,
                      elasticsearch_ssl=True,
                      elasticsearch_ssl_cert_path=None,
@@ -279,6 +299,8 @@ def _main():
                      smtp_message="Please see the attached DMARC results.",
                      s3_bucket=None,
                      s3_path=None,
+                     syslog_server=None,
+                     syslog_port=None,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1
@@ -296,7 +318,7 @@ def _main():
         if "general" in config.sections():
             general_config = config["general"]
             if "offline" in general_config:
-                opts.offline = general_config["offline"]
+                opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
                 opts.strip_attachment_payloads = general_config[
                     "strip_attachment_payloads"]
@@ -334,6 +356,10 @@ def _main():
                 opts.n_procs = general_config.getint("n_procs")
             if "chunk_size" in general_config:
                 opts.chunk_size = general_config.getint("chunk_size")
+            if "ip_db_path" in general_config:
+                opts.ip_db_path = general_config["ip_db_path"]
+            else:
+                opts.ip_db_path = None
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
@@ -539,6 +565,18 @@ def _main():
                     opts.s3_path = opts.s3_path[:-1]
             else:
                 opts.s3_path = ""
+        if "syslog" in config.sections():
+            syslog_config = config["syslog"]
+            if "server" in syslog_config:
+                opts.syslog_server = syslog_config["server"]
+            else:
+                logger.critical("server setting missing from the "
+                                "syslog config section")
+                exit(-1)
+            if "port" in syslog_config:
+                opts.syslog_port = syslog_config["port"]
+            else:
+                opts.syslog_port = 514
 
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
@@ -623,14 +661,19 @@ def _main():
                                      repeat(opts.strip_attachment_payloads),
                                      repeat(opts.nameservers),
                                      repeat(opts.dns_timeout),
+                                     repeat(opts.ip_db_path),
                                      repeat(opts.offline),
                                      repeat(opts.n_procs >= 1)),
                                  opts.chunk_size)
-    pbar = tqdm(total=len(file_paths))
-    while not results.ready():
-        pbar.update(counter.value - pbar.n)
-        time.sleep(0.1)
-    pbar.close()
+    if sys.stdout.isatty():
+        pbar = tqdm(total=len(file_paths))
+        while not results.ready():
+            pbar.update(counter.value - pbar.n)
+            time.sleep(0.1)
+        pbar.close()
+    else:
+        while not results.ready():
+            time.sleep(0.1)
     results = results.get()
     pool.close()
     pool.join()
@@ -646,10 +689,14 @@ def _main():
                 forensic_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
-        reports = get_dmarc_reports_from_mbox(mbox_path, opts.nameservers,
-                                              opts.dns_timeout,
-                                              opts.strip_attachment_payloads,
-                                              opts.offline, False)
+        strip = opts.strip_attachment_payloads
+        reports = get_dmarc_reports_from_mbox(mbox_path,
+                                              nameservers=opts.nameservers,
+                                              dns_timeout=opts.dns_timeout,
+                                              strip_attachment_payloads=strip,
+                                              ip_db_path=opts.ip_db_path,
+                                              offline=opts.offline,
+                                              parallel=False)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
 
@@ -681,6 +728,7 @@ def _main():
                 password=opts.imap_password,
                 reports_folder=rf,
                 archive_folder=af,
+                ip_db_path=opts.ip_db_path,
                 delete=opts.imap_delete,
                 offline=opts.offline,
                 nameservers=ns,
@@ -749,6 +797,7 @@ def _main():
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=sa,
                 batch_size=opts.imap_batch_size,
+                ip_db_path=opts.ip_db_path,
                 offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))

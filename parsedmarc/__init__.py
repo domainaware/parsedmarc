@@ -36,7 +36,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
 
-__version__ = "7.0.1"
+__version__ = "7.1.1"
 
 logging.basicConfig(
     format='%(levelname)8s:%(filename)s:%(lineno)d:'
@@ -73,14 +73,15 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, offline=False, nameservers=None,
-                         dns_timeout=2.0, parallel=False):
+def _parse_report_record(record, ip_db_path=None, offline=False,
+                         nameservers=None, dns_timeout=2.0, parallel=False):
     """
     Converts a record from a DMARC aggregate report into a more consistent
     format
 
     Args:
         record (OrderedDict): The record to convert
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
@@ -93,6 +94,7 @@ def _parse_report_record(record, offline=False, nameservers=None,
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(record["row"]["source_ip"],
                                             cache=IP_ADDRESS_CACHE,
+                                            ip_db_path=ip_db_path,
                                             offline=offline,
                                             nameservers=nameservers,
                                             timeout=dns_timeout,
@@ -203,12 +205,14 @@ def _parse_report_record(record, offline=False, nameservers=None,
     return new_record
 
 
-def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
-                               timeout=2.0, parallel=False, server=None):
+def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
+                               nameservers=None, timeout=2.0,
+                               parallel=False, server=None):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
         xml (str): A string of DMARC aggregate report XML
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
@@ -314,6 +318,7 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
                     logger.debug("Processed {0}/{1}".format(
                         i, len(report["record"])))
                 report_record = _parse_report_record(report["record"][i],
+                                                     ip_db_path=ip_db_path,
                                                      offline=offline,
                                                      nameservers=nameservers,
                                                      dns_timeout=timeout,
@@ -322,6 +327,7 @@ def parse_aggregate_report_xml(xml, offline=False, nameservers=None,
 
         else:
             report_record = _parse_report_record(report["record"],
+                                                 ip_db_path=ip_db_path,
                                                  offline=offline,
                                                  nameservers=nameservers,
                                                  dns_timeout=timeout,
@@ -391,7 +397,8 @@ def extract_xml(input_):
     return xml
 
 
-def parse_aggregate_report_file(_input, offline=False, nameservers=None,
+def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
+                                nameservers=None,
                                 dns_timeout=2.0,
                                 parallel=False,
                                 server=None):
@@ -401,6 +408,7 @@ def parse_aggregate_report_file(_input, offline=False, nameservers=None,
     Args:
         _input: A path to a file, a file like object, or bytes
         offline (bool): Do not query online for geolocation or DNS
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -413,6 +421,7 @@ def parse_aggregate_report_file(_input, offline=False, nameservers=None,
     xml = extract_xml(_input)
 
     return parse_aggregate_report_xml(xml,
+                                      ip_db_path=ip_db_path,
                                       offline=offline,
                                       nameservers=nameservers,
                                       timeout=dns_timeout,
@@ -560,7 +569,8 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(feedback_report, sample, msg_date,
-                          offline=False, nameservers=None, dns_timeout=2.0,
+                          offline=False, ip_db_path=None,
+                          nameservers=None, dns_timeout=2.0,
                           strip_attachment_payloads=False,
                           parallel=False):
     """
@@ -568,6 +578,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
     Args:
         feedback_report (str): A message's feedback report as a string
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         sample (str): The RFC 822 headers or RFC 822 message sample
         msg_date (str): The message's date header
@@ -619,6 +630,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         ip_address = re.split(r'\s', parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(ip_address,
+                                                   ip_db_path=ip_db_path,
                                                    offline=offline,
                                                    nameservers=nameservers,
                                                    timeout=dns_timeout,
@@ -747,14 +759,16 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, offline=False, nameservers=None,
-                       dns_timeout=2.0, strip_attachment_payloads=False,
+def parse_report_email(input_, offline=False, ip_db_path=None,
+                       nameservers=None, dns_timeout=2.0,
+                       strip_attachment_payloads=False,
                        parallel=False, server=None):
     """
     Parses a DMARC report from an email
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation on DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -824,6 +838,7 @@ def parse_report_email(input_, offline=False, nameservers=None,
                     ns = nameservers
                     aggregate_report = parse_aggregate_report_file(
                         payload,
+                        ip_db_path=ip_db_path,
                         offline=offline,
                         nameservers=ns,
                         dns_timeout=dns_timeout,
@@ -877,7 +892,7 @@ def parse_report_email(input_, offline=False, nameservers=None,
 
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
-                      strip_attachment_payloads=False,
+                      strip_attachment_payloads=False, ip_db_path=None,
                       offline=False, parallel=False, server=None):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
@@ -889,6 +904,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
         server (IMAPClient): Connection object
@@ -908,6 +924,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     file_object.close()
     try:
         report = parse_aggregate_report_file(content,
+                                             ip_db_path=ip_db_path,
                                              offline=offline,
                                              nameservers=nameservers,
                                              dns_timeout=dns_timeout,
@@ -919,6 +936,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         try:
             sa = strip_attachment_payloads
             results = parse_report_email(content,
+                                         ip_db_path=ip_db_path,
                                          offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
@@ -933,7 +951,9 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
 
 def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
                                 strip_attachment_payloads=False,
-                                offline=False, parallel=False):
+                                ip_db_path=None,
+                                offline=False,
+                                parallel=False):
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
 
@@ -944,6 +964,7 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
 
@@ -968,6 +989,7 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
             try:
                 sa = strip_attachment_payloads
                 parsed_email = parse_report_email(msg_content,
+                                                  ip_db_path=ip_db_path,
                                                   offline=offline,
                                                   nameservers=nameservers,
                                                   dns_timeout=dns_timeout,
@@ -1018,6 +1040,7 @@ def get_dmarc_reports_from_inbox(connection=None,
                                  archive_folder="Archive",
                                  delete=False,
                                  test=False,
+                                 ip_db_path=None,
                                  offline=False,
                                  nameservers=None,
                                  dns_timeout=6.0,
@@ -1041,6 +1064,7 @@ def get_dmarc_reports_from_inbox(connection=None,
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query onfline for geolocation or DNS
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
@@ -1109,6 +1133,7 @@ def get_dmarc_reports_from_inbox(connection=None,
             parsed_email = parse_report_email(msg_content,
                                               nameservers=nameservers,
                                               dns_timeout=dns_timeout,
+                                              ip_db_path=ip_db_path,
                                               offline=offline,
                                               strip_attachment_payloads=sa,
                                               server=server)
@@ -1206,6 +1231,7 @@ def get_dmarc_reports_from_inbox(connection=None,
             dns_timeout=dns_timeout,
             strip_attachment_payloads=strip_attachment_payloads,
             results=results,
+            ip_db_path=ip_db_path,
             offline=offline
         )
 
@@ -1215,7 +1241,8 @@ def get_dmarc_reports_from_inbox(connection=None,
 def watch_inbox(host, username, password, callback, port=None, ssl=True,
                 verify=True, reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False,
-                idle_timeout=30, offline=False, nameservers=None,
+                idle_timeout=30, ip_db_path=None,
+                offline=False, nameservers=None,
                 dns_timeout=6.0, strip_attachment_payloads=False,
                 batch_size=None):
     """
@@ -1234,6 +1261,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
         idle_timeout (int): Number of seconds to wait for a IMAP IDLE response
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
@@ -1250,6 +1278,7 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                            archive_folder=archive_folder,
                                            delete=delete,
                                            test=test,
+                                           ip_db_path=ip_db_path,
                                            offline=offline,
                                            nameservers=nameservers,
                                            dns_timeout=dns_timeout,
@@ -1283,7 +1312,7 @@ def save_output(results, output_directory="output",
 
     Args:
         results (OrderedDict): Parsing results
-        output_directory (str): The patch to the directory to save in
+        output_directory (str): The path to the directory to save in
         aggregate_json_filename (str): Filename for the aggregate JSON file
         forensic_json_filename (str): Filename for the forensic JSON file
         aggregate_csv_filename (str): Filename for the aggregate CSV file
@@ -1420,7 +1449,7 @@ def email_results(results, host, mail_from, mail_to,
         attachment_filename (str): Override the default attachment filename
         message (str: Override the default plain text body
     """
-    logging.debug("Emailing report to: {0}".format(",".join(mail_to)))
+    logger.debug("Emailing report to: {0}".format(",".join(mail_to)))
     date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):

@@ -16,6 +16,11 @@ import platform
 import atexit
 import mailbox
 import re
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    # Try backported to PY<37 `importlib_resources`
+    import importlib_resources as pkg_resources
 
 import dateparser
 import dns.reversename
@@ -25,6 +30,8 @@ import geoip2.database
 import geoip2.errors
 import requests
 import publicsuffix2
+
+import parsedmarc.resources
 
 USER_AGENT = "Mozilla/5.0 (({0} {1})) parsedmarc".format(
             platform.system(),
@@ -249,7 +256,7 @@ def human_timestamp_to_datetime(human_timestamp, to_utc=False):
 
 def human_timestamp_to_timestamp(human_timestamp):
     """
-    Converts a human-readable timestamp into a into a UNIX timestamp
+    Converts a human-readable timestamp into a UNIX timestamp
 
     Args:
         human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
@@ -261,49 +268,47 @@ def human_timestamp_to_timestamp(human_timestamp):
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address):
+def get_ip_address_country(ip_address, db_path=None):
     """
-    Uses the MaxMind Geolite2 Country database to return the ISO code for the
-    country associated with the given IPv4 or IPv6 address
+    Returns the ISO code for the country associated
+    with the given IPv4 or IPv6 address
 
     Args:
         ip_address (str): The IP address to query for
+        db_path (str): Path to a MMDB file from MaxMind or DBIP
 
     Returns:
         str: And ISO country code associated with the given IP address
     """
-    system_paths = [
+    db_paths = [
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
         "/usr/share/GeoIP/GeoLite2-Country.mmdb",
         "/var/lib/GeoIP/GeoLite2-Country.mmdb",
         "/var/local/lib/GeoIP/GeoLite2-Country.mmdb",
+        "/usr/local/var/GeoIP/GeoLite2-Country.mmdb",
         "%SystemDrive%\\ProgramData\\MaxMind\\GeoIPUpdate\\GeoIP\\"
         "GeoLite2-Country.mmdb",
-        "C:\\GeoIP\\GeoLite2-Country.mmdb"
+        "C:\\GeoIP\\GeoLite2-Country.mmdb",
+        "dbip-country-lite.mmdb",
+        "dbip-country.mmdb",
     ]
 
-    db_path = None
-
-    for system_path in system_paths:
-        if os.path.exists(system_path):
-            db_path = system_path
-            break
+    if db_path is None:
+        for system_path in db_paths:
+            if os.path.exists(system_path):
+                db_path = system_path
+                break
 
     if db_path is None:
-        db_path = os.path.join(tempdir, "GeoLite2-Country.mmdb")
-        if not os.path.exists(db_path):
-            logging.warning("GeoLite2-Country.mmdb is missing. "
-                            "Please follow the instructions at "
-                            "https://dev.maxmind.com/geoip/geoipupdate/ "
-                            "to get the latest version.")
-            return None
-        else:
-            db_age = datetime.now() - datetime.fromtimestamp(
-                os.stat(db_path).st_mtime)
-            if db_age > timedelta(days=7):
-                logger.warning("GeoLite2-Country.mmdb is more than a week old")
-        db_path = db_path
+        with pkg_resources.path(parsedmarc.resources,
+                                "dbip-country-lite.mmdb") as path:
+            db_path = path
+
+        db_age = datetime.now() - datetime.fromtimestamp(
+            os.stat(db_path).st_mtime)
+        if db_age > timedelta(days=30):
+            logger.warning("IP database is more than a month old")
 
     db_reader = geoip2.database.Reader(db_path)
 
@@ -317,13 +322,14 @@ def get_ip_address_country(ip_address):
     return country
 
 
-def get_ip_address_info(ip_address, cache=None, offline=False,
+def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
                         nameservers=None, timeout=2.0, parallel=False):
     """
     Returns reverse DNS and country information for the given IP address
 
     Args:
         ip_address (str): The IP address to check
+        ip_db_path (str): path to a MMDB file from MaxMind or DBIP
         cache (ExpiringDict): Cache storage
         offline (bool): Do not make online queries for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
@@ -348,7 +354,7 @@ def get_ip_address_info(ip_address, cache=None, offline=False,
         reverse_dns = get_reverse_dns(ip_address,
                                       nameservers=nameservers,
                                       timeout=timeout)
-    country = get_ip_address_country(ip_address)
+    country = get_ip_address_country(ip_address, db_path=ip_db_path)
     info["country"] = country
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
