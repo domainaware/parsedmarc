@@ -303,7 +303,8 @@ def _main():
                      syslog_port=None,
                      log_file=args.log_file,
                      n_procs=1,
-                     chunk_size=1
+                     chunk_size=1,
+                     ip_db_path = None
                      )
     args = arg_parser.parse_args()
 
