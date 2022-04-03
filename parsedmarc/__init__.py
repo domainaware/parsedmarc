@@ -31,6 +31,7 @@ from mailsuite.imap import IMAPClient
 from mailsuite.smtp import send_email
 from imapclient.exceptions import IMAPClientError
 
+from parsedmarc.mail import MailboxConnection
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
@@ -207,7 +208,7 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
 
 def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
                                nameservers=None, timeout=2.0,
-                               parallel=False, server=None):
+                               parallel=False, keep_alive=None):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -218,7 +219,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
         parallel (bool): Parallel processing
-        server (IMAPClient): Connection object
+        keep_alive (callable): Keep alive function
 
     Returns:
         OrderedDict: The parsed aggregate DMARC report
@@ -312,9 +313,9 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
 
         if type(report["record"]) == list:
             for i in range(len(report["record"])):
-                if server is not None and i > 0 and i % 20 == 0:
-                    logger.debug("Sending noop cmd")
-                    server.noop()
+                if keep_alive is not None and i > 0 and i % 20 == 0:
+                    logger.debug("Sending keepalive cmd")
+                    keep_alive()
                     logger.debug("Processed {0}/{1}".format(
                         i, len(report["record"])))
                 report_record = _parse_report_record(report["record"][i],
@@ -401,7 +402,7 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
                                 nameservers=None,
                                 dns_timeout=2.0,
                                 parallel=False,
-                                server=None):
+                                keep_alive=None):
     """Parses a file at the given path, a file-like object. or bytes as a
     aggregate DMARC report
 
@@ -413,7 +414,7 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         parallel (bool): Parallel processing
-        server (IMAPClient): Connection object
+        keep_alive (callable): Keep alive function
 
     Returns:
         OrderedDict: The parsed DMARC aggregate report
@@ -426,7 +427,7 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
                                       nameservers=nameservers,
                                       timeout=dns_timeout,
                                       parallel=parallel,
-                                      server=server)
+                                      keep_alive=keep_alive)
 
 
 def parsed_aggregate_reports_to_csv_rows(reports):
@@ -762,7 +763,7 @@ def parsed_forensic_reports_to_csv(reports):
 def parse_report_email(input_, offline=False, ip_db_path=None,
                        nameservers=None, dns_timeout=2.0,
                        strip_attachment_payloads=False,
-                       parallel=False, server=None):
+                       parallel=False, keep_alive=None):
     """
     Parses a DMARC report from an email
 
@@ -775,7 +776,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
         strip_attachment_payloads (bool): Remove attachment payloads from
         forensic report results
         parallel (bool): Parallel processing
-        server (IMAPClient): Connection object
+        keep_alive (callable): keep alive function
 
     Returns:
         OrderedDict:
@@ -843,7 +844,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                         nameservers=ns,
                         dns_timeout=dns_timeout,
                         parallel=parallel,
-                        server=server)
+                        keep_alive=keep_alive)
                     result = OrderedDict([("report_type", "aggregate"),
                                           ("report", aggregate_report)])
                     return result
@@ -893,7 +894,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                       strip_attachment_payloads=False, ip_db_path=None,
-                      offline=False, parallel=False, server=None):
+                      offline=False, parallel=False, keep_alive=None):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
@@ -907,7 +908,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
-        server (IMAPClient): Connection object
+        keep_alive (callable): Keep alive function
 
     Returns:
         OrderedDict: The parsed DMARC report
@@ -929,7 +930,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                                              nameservers=nameservers,
                                              dns_timeout=dns_timeout,
                                              parallel=parallel,
-                                             server=server)
+                                             keep_alive=keep_alive)
         results = OrderedDict([("report_type", "aggregate"),
                                ("report", report)])
     except InvalidAggregateReport:
@@ -942,7 +943,7 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                                          dns_timeout=dns_timeout,
                                          strip_attachment_payloads=sa,
                                          parallel=parallel,
-                                         server=server)
+                                         keep_alive=keep_alive)
         except InvalidDMARCReport:
             raise InvalidDMARCReport("Not a valid aggregate or forensic "
                                      "report")
@@ -1007,65 +1008,29 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
                         ("forensic_reports", forensic_reports)])
 
 
-def get_imap_capabilities(server):
+def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
+                                   reports_folder="INBOX",
+                                   archive_folder="Archive",
+                                   delete=False,
+                                   test=False,
+                                   ip_db_path=None,
+                                   offline=False,
+                                   nameservers=None,
+                                   dns_timeout=6.0,
+                                   strip_attachment_payloads=False,
+                                   results=None,
+                                   batch_size=None):
     """
-    Returns a list of an IMAP server's capabilities
+    Fetches and parses DMARC reports from a mailbox
 
     Args:
-        server (imapclient.IMAPClient): An instance of imapclient.IMAPClient
-
-    Returns (list): A list of capabilities
-    """
-
-    capabilities = list(map(str, list(server.capabilities())))
-    for i in range(len(capabilities)):
-        capabilities[i] = str(capabilities[i]).replace("b'",
-                                                       "").replace("'",
-                                                                   "")
-    logger.debug("IMAP server supports: {0}".format(capabilities))
-
-    return capabilities
-
-
-def get_dmarc_reports_from_inbox(connection=None,
-                                 host=None,
-                                 user=None,
-                                 password=None,
-                                 port=None,
-                                 ssl=True,
-                                 verify=True,
-                                 timeout=30,
-                                 max_retries=4,
-                                 reports_folder="INBOX",
-                                 archive_folder="Archive",
-                                 delete=False,
-                                 test=False,
-                                 ip_db_path=None,
-                                 offline=False,
-                                 nameservers=None,
-                                 dns_timeout=6.0,
-                                 strip_attachment_payloads=False,
-                                 results=None,
-                                 batch_size=None):
-    """
-    Fetches and parses DMARC reports from an inbox
-
-    Args:
-        connection: An IMAPClient connection to reuse
-        host: The mail server hostname or IP address
-        user: The mail server user
-        password: The mail server password
-        port: The mail server port
-        ssl (bool): Use SSL/TLS
-        verify (bool): Verify SSL/TLS certificate
-        timeout (float): IMAP timeout in seconds
-        max_retries (int): The maximum number of retries after a timeout
-        reports_folder: The IMAP folder where reports can be found
+        connection: A Mailbox connection object
+        reports_folder: The folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
-        offline (bool): Do not query onfline for geolocation or DNS
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
@@ -1079,9 +1044,8 @@ def get_dmarc_reports_from_inbox(connection=None,
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
 
-    if connection is None and (user is None or password is None):
-        raise ValueError("Must supply a connection, or a username and "
-                         "password")
+    if connection is None:
+        raise ValueError("Must supply a connection")
 
     aggregate_reports = []
     forensic_reports = []
@@ -1095,22 +1059,13 @@ def get_dmarc_reports_from_inbox(connection=None,
         aggregate_reports = results["aggregate_reports"].copy()
         forensic_reports = results["forensic_reports"].copy()
 
-    if connection:
-        server = connection
-    else:
-        server = IMAPClient(host, user, password, port=port,
-                            ssl=ssl, verify=verify,
-                            timeout=timeout,
-                            max_retries=max_retries,
-                            initial_folder=reports_folder)
-
     if not test:
-        server.create_folder(archive_folder)
-        server.create_folder(aggregate_reports_folder)
-        server.create_folder(forensic_reports_folder)
-        server.create_folder(invalid_reports_folder)
+        connection.create_folder(archive_folder)
+        connection.create_folder(aggregate_reports_folder)
+        connection.create_folder(forensic_reports_folder)
+        connection.create_folder(invalid_reports_folder)
 
-    messages = server.search()
+    messages = connection.fetch_messages(batch_size, reports_folder)
     total_messages = len(messages)
     logger.debug("Found {0} messages in {1}".format(len(messages),
                                                     reports_folder))
@@ -1127,16 +1082,15 @@ def get_dmarc_reports_from_inbox(connection=None,
         logger.debug("Processing message {0} of {1}: UID {2}".format(
             i+1, message_limit, msg_uid
         ))
-        msg_content = server.fetch_message(msg_uid, parse=False)
-        sa = strip_attachment_payloads
+        msg_content = connection.fetch_message(msg_uid)
         try:
             parsed_email = parse_report_email(msg_content,
                                               nameservers=nameservers,
                                               dns_timeout=dns_timeout,
                                               ip_db_path=ip_db_path,
                                               offline=offline,
-                                              strip_attachment_payloads=sa,
-                                              server=server)
+                                              strip_attachment_payloads=strip_attachment_payloads,
+                                              keep_alive=connection.keepalive)
             if parsed_email["report_type"] == "aggregate":
                 aggregate_reports.append(parsed_email["report"])
                 aggregate_report_msg_uids.append(msg_uid)
@@ -1149,12 +1103,12 @@ def get_dmarc_reports_from_inbox(connection=None,
                 if delete:
                     logger.debug(
                         "Deleting message UID {0}".format(msg_uid))
-                    server.delete_messages([msg_uid])
+                    connection.delete_message(msg_uid)
                 else:
                     logger.debug(
                         "Moving message UID {0} to {1}".format(
                             msg_uid, invalid_reports_folder))
-                    server.move_messages([msg_uid], invalid_reports_folder)
+                    connection.move_message(msg_uid, invalid_reports_folder)
 
     if not test:
         if delete:
@@ -1168,12 +1122,12 @@ def get_dmarc_reports_from_inbox(connection=None,
                     "Deleting message {0} of {1}: UID {2}".format(
                         i + 1, number_of_processed_msgs, msg_uid))
                 try:
-                    server.delete_messages([msg_uid])
+                    connection.delete_message(msg_uid)
 
                 except Exception as e:
                     message = "Error deleting message UID"
                     e = "{0} {1}: " "{2}".format(message, msg_uid, e)
-                    logger.error("IMAP error: {0}".format(e))
+                    logger.error("Mailbox error: {0}".format(e))
         else:
             if len(aggregate_report_msg_uids) > 0:
                 log_message = "Moving aggregate report messages from"
@@ -1188,12 +1142,12 @@ def get_dmarc_reports_from_inbox(connection=None,
                         "Moving message {0} of {1}: UID {2}".format(
                             i+1, number_of_agg_report_msgs, msg_uid))
                     try:
-                        server.move_messages([msg_uid],
-                                             aggregate_reports_folder)
+                        connection.move_message(msg_uid,
+                                                aggregate_reports_folder)
                     except Exception as e:
                         message = "Error moving message UID"
                         e = "{0} {1}: {2}".format(message, msg_uid, e)
-                        logger.error("IMAP error: {0}".format(e))
+                        logger.error("Mailbox error: {0}".format(e))
             if len(forensic_report_msg_uids) > 0:
                 message = "Moving forensic report messages from"
                 logger.debug(
@@ -1208,21 +1162,21 @@ def get_dmarc_reports_from_inbox(connection=None,
                         message,
                         i + 1, number_of_forensic_msgs, msg_uid))
                     try:
-                        server.move_messages([msg_uid],
-                                             forensic_reports_folder)
+                        connection.move_message(msg_uid,
+                                                forensic_reports_folder)
                     except Exception as e:
                         e = "Error moving message UID {0}: {1}".format(
                             msg_uid, e)
-                        logger.error("IMAP error: {0}".format(e))
+                        logger.error("Mailbox error: {0}".format(e))
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
 
-    total_messages = len(server.search())
+    total_messages = len(connection.fetch_messages(batch_size, reports_folder))
 
     if not test and not batch_size and total_messages > 0:
         # Process emails that came in during the last run
-        results = get_dmarc_reports_from_inbox(
-            connection=server,
+        results = get_dmarc_reports_from_mailbox(
+            connection=connection,
             reports_folder=reports_folder,
             archive_folder=archive_folder,
             delete=delete,
@@ -1273,17 +1227,17 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
     sa = strip_attachment_payloads
 
     def idle_callback(connection):
-        res = get_dmarc_reports_from_inbox(connection=connection,
-                                           reports_folder=reports_folder,
-                                           archive_folder=archive_folder,
-                                           delete=delete,
-                                           test=test,
-                                           ip_db_path=ip_db_path,
-                                           offline=offline,
-                                           nameservers=nameservers,
-                                           dns_timeout=dns_timeout,
-                                           strip_attachment_payloads=sa,
-                                           batch_size=batch_size)
+        res = get_dmarc_reports_from_mailbox(connection=connection,
+                                             reports_folder=reports_folder,
+                                             archive_folder=archive_folder,
+                                             delete=delete,
+                                             test=test,
+                                             ip_db_path=ip_db_path,
+                                             offline=offline,
+                                             nameservers=nameservers,
+                                             dns_timeout=dns_timeout,
+                                             strip_attachment_payloads=sa,
+                                             batch_size=batch_size)
         callback(res)
 
     while True:
