@@ -787,21 +787,26 @@ def _main():
             exit(1)
 
     if mailbox_connection:
-        reports = get_dmarc_reports_from_mailbox(
-            connection=mailbox_connection,
-            delete=opts.mailbox_delete,
-            batch_size=opts.mailbox_batch_size,
-            reports_folder=opts.mailbox_reports_folder,
-            archive_folder=opts.mailbox_archive_folder,
-            ip_db_path=opts.ip_db_path,
-            offline=opts.offline,
-            nameservers=opts.nameservers,
-            test=opts.mailbox_test,
-            strip_attachment_payloads=opts.strip_attachment_payloads,
-        )
+        try:
+            reports = get_dmarc_reports_from_mailbox(
+                connection=mailbox_connection,
+                delete=opts.mailbox_delete,
+                batch_size=opts.mailbox_batch_size,
+                reports_folder=opts.mailbox_reports_folder,
+                archive_folder=opts.mailbox_archive_folder,
+                ip_db_path=opts.ip_db_path,
+                offline=opts.offline,
+                nameservers=opts.nameservers,
+                test=opts.mailbox_test,
+                strip_attachment_payloads=opts.strip_attachment_payloads,
+            )
 
-        aggregate_reports += reports["aggregate_reports"]
-        forensic_reports += reports["forensic_reports"]
+            aggregate_reports += reports["aggregate_reports"]
+            forensic_reports += reports["forensic_reports"]
+
+        except Exception as error:
+            logger.error("Mailbox Error: {0}".format(error.__str__()))
+            exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
