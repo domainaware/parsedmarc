@@ -831,31 +831,19 @@ def _main():
 
     if mailbox_connection and opts.mailbox_watch:
         logger.info("Watching for email - Quit with ctrl-c")
-        ssl = True
-        verify = True
-        if opts.imap_skip_certificate_verification:
-            logger.debug("Skipping IMAP certificate verification")
-            verify = False
-        if opts.imap_ssl is False:
-            ssl = False
+
         try:
-            sa = opts.strip_attachment_payloads
             watch_inbox(
-                opts.imap_host,
-                opts.imap_user,
-                opts.imap_password,
-                process_reports,
-                port=opts.imap_port,
-                ssl=ssl,
-                verify=verify,
-                reports_folder=opts.imap_reports_folder,
-                archive_folder=opts.imap_archive_folder,
-                delete=opts.imap_delete,
-                test=opts.imap_test,
+                mailbox_connection=mailbox_connection,
+                callback=process_reports,
+                reports_folder=opts.mailbox_reports_folder,
+                archive_folder=opts.mailbox_archive_folder,
+                delete=opts.mailbox_delete,
+                test=opts.mailbox_test,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
-                strip_attachment_payloads=sa,
-                batch_size=opts.imap_batch_size,
+                strip_attachment_payloads=opts.strip_attachment_payloads,
+                batch_size=opts.mailbox_batch_size,
                 ip_db_path=opts.ip_db_path,
                 offline=opts.offline)
         except FileExistsError as error:

@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from time import sleep
 from typing import List, Optional
 
 from azure.identity import UsernamePasswordCredential
@@ -77,6 +78,12 @@ class MSGraphConnection(MailboxConnection):
     def keepalive(self):
         # Not needed
         pass
+
+    def watch(self, check_callback, check_timeout):
+        """ Checks the mailbox for new messages every n seconds"""
+        while True:
+            sleep(check_timeout)
+            check_callback(self)
 
     @lru_cache
     def _find_folder_id_from_folder_path(self, folder_name: str) -> str:

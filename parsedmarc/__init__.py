@@ -2,40 +2,37 @@
 
 """A Python package for parsing DMARC reports"""
 
-import logging
-import os
-import shutil
-import xml.parsers.expat as expat
-import json
-from datetime import datetime
-from time import sleep
-from collections import OrderedDict
-from io import BytesIO, StringIO
-from gzip import GzipFile
-from socket import timeout
-import zipfile
-from csv import DictWriter
-import re
-from base64 import b64decode
 import binascii
 import email
-import tempfile
 import email.utils
+import json
+import logging
 import mailbox
+import os
+import re
+import shutil
+import tempfile
+import xml.parsers.expat as expat
+import zipfile
+from base64 import b64decode
+from collections import OrderedDict
+from csv import DictWriter
+from datetime import datetime
+from gzip import GzipFile
+from io import BytesIO, StringIO
+from typing import Callable
 
 import mailparser
-from expiringdict import ExpiringDict
 import xmltodict
+from expiringdict import ExpiringDict
 from lxml import etree
-from mailsuite.imap import IMAPClient
 from mailsuite.smtp import send_email
-from imapclient.exceptions import IMAPClientError
 
 from parsedmarc.mail import MailboxConnection
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
-from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 from parsedmarc.utils import parse_email
+from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
 __version__ = "7.1.1"
 
@@ -1019,7 +1016,8 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                                    dns_timeout=6.0,
                                    strip_attachment_payloads=False,
                                    results=None,
-                                   batch_size=None):
+                                   batch_size=None,
+                                   create_folders=True):
     """
     Fetches and parses DMARC reports from a mailbox
 
@@ -1037,6 +1035,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         forensic report results
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
+        create_folders (bool): Whether to create the destination folders (not used in watch)
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1059,7 +1058,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         aggregate_reports = results["aggregate_reports"].copy()
         forensic_reports = results["forensic_reports"].copy()
 
-    if not test:
+    if not test and create_folders:
         connection.create_folder(archive_folder)
         connection.create_folder(aggregate_reports_folder)
         connection.create_folder(forensic_reports_folder)
@@ -1192,29 +1191,25 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
     return results
 
 
-def watch_inbox(host, username, password, callback, port=None, ssl=True,
-                verify=True, reports_folder="INBOX",
+def watch_inbox(mailbox_connection: MailboxConnection,
+                callback: Callable,
+                reports_folder="INBOX",
                 archive_folder="Archive", delete=False, test=False,
-                idle_timeout=30, ip_db_path=None,
+                check_timeout=30, ip_db_path=None,
                 offline=False, nameservers=None,
                 dns_timeout=6.0, strip_attachment_payloads=False,
                 batch_size=None):
     """
-    Use an IDLE IMAP connection to parse incoming emails, and pass the results
-    to a callback function
+    Watches the mailbox for new messages and sends the results to a callback function
     Args:
-        host: The mail server hostname or IP address
-        username: The mail server username
-        password: The mail server password
+        mailbox_connection: The mailbox connection object
         callback: The callback function to receive the parsing results
-        port: The mail server port
-        ssl (bool): Use SSL/TLS
-        verify (bool): Verify the TLS/SSL certificate
         reports_folder: The IMAP folder where reports can be found
         archive_folder: The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
-        idle_timeout (int): Number of seconds to wait for a IMAP IDLE response
+        check_timeout (int): Number of seconds to wait for a IMAP IDLE response
+          or the number of seconds until the next mail check
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
@@ -1224,9 +1219,8 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
         forensic report samples with None
         batch_size (int): Number of messages to read and process before saving
     """
-    sa = strip_attachment_payloads
 
-    def idle_callback(connection):
+    def check_callback(connection):
         res = get_dmarc_reports_from_mailbox(connection=connection,
                                              reports_folder=reports_folder,
                                              archive_folder=archive_folder,
@@ -1236,24 +1230,12 @@ def watch_inbox(host, username, password, callback, port=None, ssl=True,
                                              offline=offline,
                                              nameservers=nameservers,
                                              dns_timeout=dns_timeout,
-                                             strip_attachment_payloads=sa,
-                                             batch_size=batch_size)
+                                             strip_attachment_payloads=strip_attachment_payloads,
+                                             batch_size=batch_size,
+                                             create_folders=False)
         callback(res)
 
-    while True:
-        try:
-            IMAPClient(host=host, username=username, password=password,
-                       port=port, ssl=ssl, verify=verify,
-                       initial_folder=reports_folder,
-                       idle_callback=idle_callback,
-                       idle_timeout=idle_timeout)
-        except (timeout, IMAPClientError):
-            logger.warning("IMAP connection timeout. Reconnecting...")
-            sleep(5)
-        except Exception as e:
-            logger.warning("IMAP connection error. {0}. "
-                           "Reconnecting...".format(e))
-            sleep(5)
+    mailbox_connection.watch(check_callback=check_callback, check_timeout=check_timeout)
 
 
 def save_output(results, output_directory="output",

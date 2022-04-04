@@ -1,6 +1,9 @@
 import logging
+from time import sleep
 
+from imapclient.exceptions import IMAPClientError
 from mailsuite.imap import IMAPClient
+from socket import timeout
 
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
@@ -18,6 +21,9 @@ class IMAPConnection(MailboxConnection):
                  verify=True,
                  timeout=30,
                  max_retries=4):
+        self._username = user
+        self._password = password
+        self._verify = verify
         self._client = IMAPClient(host, user, password, port=port,
                                   ssl=ssl, verify=verify,
                                   timeout=timeout,
@@ -41,3 +47,19 @@ class IMAPConnection(MailboxConnection):
 
     def keepalive(self):
         self._client.noop()
+
+    def watch(self, check_callback, check_timeout):
+        """ Use an IDLE IMAP connection to parse incoming emails, and pass the results to a callback function"""
+        while True:
+            try:
+                IMAPClient(host=self._client.host, username=self._username, password=self._password,
+                           port=self._client.port, ssl=self._client.ssl, verify=self._verify,
+                           idle_callback=check_callback,
+                           idle_timeout=check_timeout)
+            except (timeout, IMAPClientError):
+                logger.warning("IMAP connection timeout. Reconnecting...")
+                sleep(5)
+            except Exception as e:
+                logger.warning("IMAP connection error. {0}. "
+                               "Reconnecting...".format(e))
+                sleep(5)
