@@ -102,7 +102,9 @@ setup(
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
                       'lxml>=4.4.0',
-                      'boto3>=1.16.63'
+                      'boto3>=1.16.63',
+                      'msgraph-core>=0.2.2',
+                      'azure-identity>=1.8.0'
                       ],
 
     entry_points={
