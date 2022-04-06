@@ -9,7 +9,7 @@ class MailboxConnection(ABC):
     def create_folder(self, folder_name: str):
         raise NotImplementedError
 
-    def fetch_messages(self, batch_size: int, reports_folder: str) -> List[str]:
+    def fetch_messages(self, reports_folder: str) -> List[str]:
         raise NotImplementedError
 
     def fetch_message(self, message_id) -> str:

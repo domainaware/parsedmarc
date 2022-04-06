@@ -32,7 +32,7 @@ class IMAPConnection(MailboxConnection):
     def create_folder(self, folder_name: str):
         self._client.create_folder(folder_name)
 
-    def fetch_messages(self, batch_size, reports_folder: str):
+    def fetch_messages(self, reports_folder: str):
         self._client.select_folder(reports_folder)
         return self._client.search()
 

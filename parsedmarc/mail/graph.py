@@ -50,7 +50,7 @@ class MSGraphConnection(MailboxConnection):
         else:
             logger.warning(f'Unknown response {resp.status_code} {resp.json()}')
 
-    def fetch_messages(self, batch_size: int, folder_name: str) -> List[str]:
+    def fetch_messages(self, folder_name: str) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
         folder_id = self._find_folder_id_from_folder_path(folder_name)
         result = self._client.get(f'/users/{self.mailbox_name}/mailFolders/{folder_id}/messages?$select=id')

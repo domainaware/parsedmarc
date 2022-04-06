@@ -1064,7 +1064,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         connection.create_folder(forensic_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
-    messages = connection.fetch_messages(batch_size, reports_folder)
+    messages = connection.fetch_messages(reports_folder)
     total_messages = len(messages)
     logger.debug("Found {0} messages in {1}".format(len(messages),
                                                     reports_folder))
@@ -1170,7 +1170,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
 
-    total_messages = len(connection.fetch_messages(batch_size, reports_folder))
+    total_messages = len(connection.fetch_messages(reports_folder))
 
     if not test and not batch_size and total_messages > 0:
         # Process emails that came in during the last run
