@@ -29,14 +29,6 @@ from lxml import etree
 from mailsuite.smtp import send_email
 
 from parsedmarc.mail import MailboxConnection
-
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from base64 import urlsafe_b64decode
-
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
