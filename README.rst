@@ -225,6 +225,7 @@ The full set of configuration options are:
     - ``client_id`` - str: The app registration's client ID
     - ``client_secret`` - str: The app registration's secret
     - ``mailbox`` - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox
+
     .. note::
         You must create an app registration in Azure AD and have an admin grant the Microsoft Graph `Mail.ReadWrite` (delegated) permission to the app.
 
