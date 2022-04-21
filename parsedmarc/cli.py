@@ -22,8 +22,7 @@ from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport, s3, syslog
 
-from parsedmarc.mail import IMAPConnection, MSGraphConnection
-from parsedmarc.mail.gmail import GmailConnection
+from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 
 from parsedmarc.utils import is_mbox
 
@@ -241,6 +240,8 @@ def _main():
 
     args = arg_parser.parse_args()
 
+    gmail_api_scopes = ['https://www.googleapis.com/auth/gmail.modify']
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
@@ -311,14 +312,10 @@ def _main():
                      s3_path=None,
                      syslog_server=None,
                      syslog_port=None,
-                     gmail_api_credentials_file = None,
-                     gmail_api_token_file = None,
-                     gmail_api_reports_label = 'INBOX',
-                     gmail_api_archive_label = 'DMARC Archive',
-                     gmail_api_include_spam_trash = False,
-                     gmail_api_scopes = ['https://www.googleapis.com/auth/gmail.modify'],
-                     gmail_api_delete = False,
-                     gmail_api_test = False,
+                     gmail_api_credentials_file=None,
+                     gmail_api_token_file=None,
+                     gmail_api_include_spam_trash=False,
+                     gmail_api_scopes=gmail_api_scopes,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1,
@@ -339,7 +336,8 @@ def _main():
             if "offline" in general_config:
                 opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
-                opts.strip_attachment_payloads = general_config.getboolean("strip_attachment_payloads")
+                opts.strip_attachment_payloads = general_config.getboolean(
+                    "strip_attachment_payloads")
             if "output" in general_config:
                 opts.output = general_config["output"]
             if "aggregate_json_filename" in general_config:
@@ -638,7 +636,9 @@ def _main():
             opts.gmail_api_reports_label = gmail_api_config.get("reports_label", "INBOX")
             opts.gmail_api_archive_label = gmail_api_config.get("archive_label", "DMARC Archive")
             opts.gmail_api_include_spam_trash = gmail_api_config.getboolean("include_spam_trash", False)
-            opts.gmail_api_scopes = str.split(gmail_api_config.get("scopes", "https://www.googleapis.com/auth/gmail.modify"),",")
+            opts.gmail_api_scopes = str.split(gmail_api_config.get("scopes",
+                                                                   "https://www.googleapis.com/auth/gmail.modify"),
+                                              ",")
             opts.gmail_api_delete = gmail_api_config.getboolean("delete", None)
             opts.gmail_api_test = gmail_api_config.getboolean("test", False)
 
