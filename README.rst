@@ -150,6 +150,7 @@ For example
 
    [mailbox]
    watch = True
+   delete = False
 
    [elasticsearch]
    hosts = 127.0.0.1:9200
@@ -171,10 +172,8 @@ For example
    [gmail_api]
    credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
    token_file = /path/to/token.json             # This file will be generated automatically 
-   delete = False                               # Delete reports after successful processing
-   scopes = https://mail.google.com/             
-   include_spam_trash=True                      
-   reports_label=DMARC                          
+   scopes = https://mail.google.com/
+   include_spam_trash=True
 
 
 The full set of configuration options are:
