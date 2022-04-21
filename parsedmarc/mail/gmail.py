@@ -24,7 +24,8 @@ def _get_creds(token_file, credentials_file, scopes):
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                credentials_file, scopes)
             creds = flow.run_console()
         # Save the credentials for the next run
         with open(token_file, 'w') as token:
@@ -33,7 +34,11 @@ def _get_creds(token_file, credentials_file, scopes):
 
 
 class GmailConnection(MailboxConnection):
-    def __init__(self, token_file, credentials_file, scopes, include_spam_trash):
+    def __init__(self,
+                 token_file: str,
+                 credentials_file: str,
+                 scopes: List[str],
+                 include_spam_trash: bool):
         creds = _get_creds(token_file, credentials_file, scopes)
         self.service = build('gmail', 'v1', credentials=creds)
         self.include_spam_trash = include_spam_trash
@@ -41,19 +46,27 @@ class GmailConnection(MailboxConnection):
     def create_folder(self, folder_name: str):
         logger.debug("Creating label {0}".format(folder_name))
         request_body = {'name': folder_name, 'messageListVisibility': 'show'}
-        label = self.service.users().labels().create(userId='me', body=request_body).execute()
+        self.service.users().labels()\
+            .create(userId='me', body=request_body).execute()
 
     def fetch_messages(self, reports_folder: str) -> List[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
-        results = self.service.users().messages().list(userId='me',
-                                                       includeSpamTrash=self.include_spam_trash,
-                                                       labelIds=[reports_label_id]
-                                                       ).execute()
+        results = self.service.users().messages()\
+            .list(userId='me',
+                  includeSpamTrash=self.include_spam_trash,
+                  labelIds=[reports_label_id]
+                  )\
+            .execute()
         messages = results.get('messages', [])
         return [message['id'] for message in messages]
 
     def fetch_message(self, message_id):
-        msg = self.service.users().messages().get(userId='me', id=message_id, format="raw").execute()
+        msg = self.service.users().messages()\
+            .get(userId='me',
+                 id=message_id,
+                 format="raw"
+                 )\
+            .execute()
         return urlsafe_b64decode(msg['raw'])
 
     def delete_message(self, message_id: str):
@@ -61,10 +74,13 @@ class GmailConnection(MailboxConnection):
 
     def move_message(self, message_id: str, folder_name: str):
         label_id = self._find_label_id_for_label(folder_name)
-        logger.debug("Moving message UID {0} to {1}".format(message_id, folder_name))
-        request_body = {'addLabelIds': [label_id], "removeLabelIds": [folder_name]}
-        self.service.users().messages().modify(userId='me', id=message_id,
-                                               body=request_body).execute()
+        logger.debug(f"Moving message UID {message_id} to {folder_name}")
+        request_body = {'addLabelIds': [label_id]}
+        self.service.users().messages()\
+            .modify(userId='me',
+                    id=message_id,
+                    body=request_body)\
+            .execute()
 
     def keepalive(self):
         # Not needed
