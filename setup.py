@@ -102,7 +102,12 @@ setup(
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
                       'lxml>=4.4.0',
-                      'boto3>=1.16.63'
+                      'boto3>=1.16.63',
+                      'google-api-core>=2.4.0',
+                      'google-api-python-client>=2.35.0',
+                      'google-auth>=2.3.3',
+                      'google-auth-httplib2>=0.1.0',
+                      'google-auth-oauthlib>=0.4.6',
                       ],
 
     entry_points={
