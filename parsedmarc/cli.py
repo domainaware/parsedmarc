@@ -240,6 +240,8 @@ def _main():
 
     args = arg_parser.parse_args()
 
+    gmail_api_scopes = ['https://www.googleapis.com/auth/gmail.modify']
+
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
                      offline=args.offline,
@@ -310,14 +312,14 @@ def _main():
                      s3_path=None,
                      syslog_server=None,
                      syslog_port=None,
-                     gmail_api_credentials_file = None,
-                     gmail_api_token_file = None,
-                     gmail_api_reports_label = 'INBOX',
-                     gmail_api_archive_label = 'DMARC Archive',
-                     gmail_api_include_spam_trash = False,
-                     gmail_api_scopes = ['https://www.googleapis.com/auth/gmail.modify'],
-                     gmail_api_delete = False,
-                     gmail_api_test = False,
+                     gmail_api_credentials_file =None,
+                     gmail_api_token_file=None,
+                     gmail_api_reports_label='INBOX',
+                     gmail_api_archive_label='DMARC Archive',
+                     gmail_api_include_spam_trash=False,
+                     gmail_api_scopes=gmail_api_scopes,
+                     gmail_api_delete=False,
+                     gmail_api_test=False,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1,
@@ -338,7 +340,8 @@ def _main():
             if "offline" in general_config:
                 opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
-                opts.strip_attachment_payloads = general_config.getboolean("strip_attachment_payloads")
+                opts.strip_attachment_payloads = general_config.getboolean(
+                    "strip_attachment_payloads")
             if "output" in general_config:
                 opts.output = general_config["output"]
             if "aggregate_json_filename" in general_config:
@@ -637,9 +640,11 @@ def _main():
             opts.gmail_api_reports_label = gmail_api_config.get("reports_label","INBOX")
             opts.gmail_api_archive_label = gmail_api_config.get("archive_label","DMARC Archive")
             opts.gmail_api_include_spam_trash = gmail_api_config.getboolean("include_spam_trash",False)
-            opts.gmail_api_scopes = str.split(gmail_api_config.get("scopes","https://www.googleapis.com/auth/gmail.modify"),",")
-            opts.gmail_api_delete = gmail_api_config.getboolean("delete",None)
-            opts.gmail_api_test = gmail_api_config.getboolean("test",False)
+            opts.gmail_api_scopes = str.split(gmail_api_config.get("scopes",
+                                                                   "https://www.googleapis.com/auth/gmail.modify"),
+                                              ",")
+            opts.gmail_api_delete = gmail_api_config.getboolean("delete",  None)
+            opts.gmail_api_test = gmail_api_config.getboolean("test", False)
 
     logger.setLevel(logging.WARNING)
 
@@ -655,7 +660,8 @@ def _main():
         fh.setFormatter(formatter)
         logger.addHandler(fh)
 
-    if opts.imap_host is None and opts.graph_user is None and len(opts.file_path) == 0 and opts.gmail_api_credentials_file is None:
+    if opts.imap_host is None and opts.graph_user is None and len(opts.file_path) == 0 \
+            and opts.gmail_api_credentials_file is None:
         logger.error("You must supply input files or a mailbox connection")
         exit(1)
 
@@ -831,20 +837,26 @@ def _main():
     if opts.gmail_api_credentials_file:
         if opts.gmail_api_delete:
             if 'https://mail.google.com/' not in opts.gmail_api_scopes:
-                logger.error("Message deletion requires scope 'https://mail.google.com/'. Add the scope and remove token file to acquire proper access.")
+                logger.error("Message deletion requires scope 'https://mail.google.com/'. "
+                             "Add the scope and remove token file to acquire proper access.")
                 opts.gmail_api_delete = False
 
-        reports = get_dmarc_reports_from_gmail_api(credentials_file=opts.gmail_api_credentials_file,token_file=opts.gmail_api_token_file,
-                                     reports_label=opts.gmail_api_reports_label, archive_label=opts.gmail_api_archive_label,
-                                     offline=opts.offline, ip_db_path=opts.ip_db_path,
-                                     scopes = opts.gmail_api_scopes, include_spam_trash= opts.gmail_api_include_spam_trash,
-                                     nameservers=opts.nameservers, dns_timeout=opts.dns_timeout,
-                                     strip_attachment_payloads=opts.strip_attachment_payloads,
-                                     delete=opts.gmail_api_delete, test = opts.gmail_api_test)
+        reports = get_dmarc_reports_from_gmail_api(credentials_file=opts.gmail_api_credentials_file,
+                                                   token_file=opts.gmail_api_token_file,
+                                                   reports_label=opts.gmail_api_reports_label,
+                                                   archive_label=opts.gmail_api_archive_label,
+                                                   offline=opts.offline,
+                                                   ip_db_path=opts.ip_db_path,
+                                                   scopes=opts.gmail_api_scopes,
+                                                   include_spam_trash=opts.gmail_api_include_spam_trash,
+                                                   nameservers=opts.nameservers,
+                                                   dns_timeout=opts.dns_timeout,
+                                                   strip_attachment_payloads=opts.strip_attachment_payloads,
+                                                   delete=opts.gmail_api_delete,
+                                                   test=opts.gmail_api_test)
 
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
-
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
