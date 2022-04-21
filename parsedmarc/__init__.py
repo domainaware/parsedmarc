@@ -1200,6 +1200,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
 
     return results
 
+
 def get_gmail_api_creds(token_file="token.json",credentials_file="credentials.json",scopes=['https://www.googleapis.com/auth/gmail.modify']):
 
     creds = None
@@ -1218,10 +1219,11 @@ def get_gmail_api_creds(token_file="token.json",credentials_file="credentials.js
             token.write(creds.to_json())
     return creds
 
+
 def get_dmarc_reports_from_gmail_api(credentials_file=".credentials",token_file=".token",
                                      reports_label="INBOX", archive_label = "DMARC Archive",
                                      offline=False, ip_db_path=None,
-                                     scopes = ['https://mail.google.com/'], include_spam_trash=False,
+                                     scopes=['https://mail.google.com/'], include_spam_trash=False,
                                      nameservers=None, dns_timeout=2.0,
                                      strip_attachment_payloads=False,delete=False,
                                      test=False,parallel=False):
@@ -1232,7 +1234,6 @@ def get_dmarc_reports_from_gmail_api(credentials_file=".credentials",token_file=
     forensic_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
-
 
     creds = get_gmail_api_creds(token_file,credentials_file,scopes)
     service = build('gmail', 'v1', credentials=creds)
@@ -1271,32 +1272,42 @@ def get_dmarc_reports_from_gmail_api(credentials_file=".credentials",token_file=
                 aggregate_label_id = label['id']
     if reports_label_id is None:
         logger.debug("Creating label {0} for reports".format(reports_label))
-        label = service.users().labels().create(userId='me',body={'name': reports_label, 'messageListVisibility': 'show'}).execute()
+        label = service.users().labels().create(userId='me',
+                                                body={'name': reports_label,
+                                                      'messageListVisibility': 'show'}).execute()
         reports_label_id = label['id']
 
     if archive_label_id is None:
         logger.debug("Creating label {0} for archive".format(archive_label))
-        label = service.users().labels().create(userId='me',body={'name': archive_label, 'messageListVisibility': 'show'}).execute()
+        label = service.users().labels().create(userId='me',
+                                                body={'name': archive_label,
+                                                      'messageListVisibility': 'show'}).execute()
         archive_label_id = label['id']
 
     if forensic_label_id is None:
         logger.debug("Creating label {0} for forensic reports".format(forensic_label))
-        label = service.users().labels().create(userId='me',body={'name': forensic_label, 'messageListVisibility': 'show'}).execute()
+        label = service.users().labels().create(userId='me',
+                                                body={'name': forensic_label,
+                                                      'messageListVisibility': 'show'}).execute()
         forensic_label_id = label['id']
 
     if aggregate_label_id is None:
         logger.debug("Creating label {0} for aggregate reports".format(aggregate_label))
-        label = service.users().labels().create(userId='me',body={'name': aggregate_label, 'messageListVisibility': 'show'}).execute()
+        label = service.users().labels().create(userId='me',
+                                                body={'name': aggregate_label,
+                                                      'messageListVisibility': 'show'}).execute()
         aggregate_label_id = label['id']
 
     if invalid_label_id is None:
         logger.debug("Creating label {0} for invalid reports".format(invalid_label))
-        label = service.users().labels().create(userId='me',body={'name': invalid_label, 'messageListVisibility': 'show'}).execute()
+        label = service.users().labels().create(userId='me',
+                                                body={'name': invalid_label,
+                                                      'messageListVisibility': 'show'}).execute()
         invalid_label_id = label['id']
 
-
-    results = service.users().messages().list(userId='me',includeSpamTrash=include_spam_trash,labelIds=[reports_label_id]).execute()
-    messages = results.get('messages',[])
+    results = service.users().messages().list(userId='me', includeSpamTrash=include_spam_trash,
+                                              labelIds=[reports_label_id]).execute()
+    messages = results.get('messages', [])
     total_messages = results['resultSizeEstimate']
 
     while(messages):
@@ -1398,7 +1409,6 @@ def get_dmarc_reports_from_gmail_api(credentials_file=".credentials",token_file=
                         e = "Error moving message UID {0}: {1}".format(
                             msg_uid, e)
                         logger.error("GMail error: {0}".format(e))
-
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
