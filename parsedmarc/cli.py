@@ -17,10 +17,13 @@ import sys
 import time
 from tqdm import tqdm
 
-from parsedmarc import get_dmarc_reports_from_inbox, watch_inbox, \
+from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport, s3, syslog, get_dmarc_reports_from_gmail_api
+
+from parsedmarc.mail import IMAPConnection, MSGraphConnection
+
 from parsedmarc.utils import is_mbox
 
 logger = logging.getLogger("parsedmarc")
@@ -63,6 +66,7 @@ def _main():
         output_str = "{0}\n".format(json.dumps(reports_,
                                                ensure_ascii=False,
                                                indent=2))
+
         if not opts.silent:
             print(output_str)
         if opts.kafka_hosts:
@@ -252,6 +256,12 @@ def _main():
                      verbose=args.verbose,
                      save_aggregate=False,
                      save_forensic=False,
+                     mailbox_reports_folder="INBOX",
+                     mailbox_archive_folder="Archive",
+                     mailbox_watch=False,
+                     mailbox_delete=False,
+                     mailbox_test=False,
+                     mailbox_batch_size=None,
                      imap_host=None,
                      imap_skip_certificate_verification=False,
                      imap_ssl=True,
@@ -260,12 +270,11 @@ def _main():
                      imap_max_retries=4,
                      imap_user=None,
                      imap_password=None,
-                     imap_reports_folder="INBOX",
-                     imap_archive_folder="Archive",
-                     imap_watch=False,
-                     imap_delete=False,
-                     imap_test=False,
-                     imap_batch_size=None,
+                     graph_user=None,
+                     graph_password=None,
+                     graph_client_id=None,
+                     graph_client_secret=None,
+                     graph_mailbox=None,
                      hec=None,
                      hec_token=None,
                      hec_index=None,
@@ -329,8 +338,7 @@ def _main():
             if "offline" in general_config:
                 opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
-                opts.strip_attachment_payloads = general_config[
-                    "strip_attachment_payloads"]
+                opts.strip_attachment_payloads = general_config.getboolean("strip_attachment_payloads")
             if "output" in general_config:
                 opts.output = general_config["output"]
             if "aggregate_json_filename" in general_config:
@@ -369,6 +377,24 @@ def _main():
                 opts.ip_db_path = general_config["ip_db_path"]
             else:
                 opts.ip_db_path = None
+
+        if "mailbox" in config.sections():
+            mailbox_config = config["mailbox"]
+            if "reports_folder" in mailbox_config:
+                opts.mailbox_reports_folder = mailbox_config["reports_folder"]
+            if "archive_folder" in mailbox_config:
+                opts.mailbox_archive_folder = mailbox_config["archive_folder"]
+            if "watch" in mailbox_config:
+                opts.mailbox_watch = mailbox_config.getboolean("watch")
+            if "delete" in mailbox_config:
+                opts.mailbox_delete = mailbox_config.getboolean("delete")
+            if "test" in mailbox_config:
+                opts.mailbox_test = mailbox_config.getboolean("test")
+            if "batch_size" in mailbox_config:
+                opts.mailbox_batch_size = mailbox_config.getint("batch_size")
+            else:
+                opts.mailbox_batch_size = None
+
         if "imap" in config.sections():
             imap_config = config["imap"]
             if "host" in imap_config:
@@ -402,20 +428,37 @@ def _main():
                                 "imap config section")
                 exit(-1)
 
-            if "reports_folder" in imap_config:
-                opts.imap_reports_folder = imap_config["reports_folder"]
-            if "archive_folder" in imap_config:
-                opts.imap_archive_folder = imap_config["archive_folder"]
-            if "watch" in imap_config:
-                opts.imap_watch = imap_config.getboolean("watch")
-            if "delete" in imap_config:
-                opts.imap_delete = imap_config.getboolean("delete")
-            if "test" in imap_config:
-                opts.imap_test = imap_config.getboolean("test")
-            if "batch_size" in imap_config:
-                opts.imap_batch_size = imap_config.getint("batch_size")
+        if "msgraph" in config.sections():
+            graph_config = config["msgraph"]
+            if "user" in graph_config:
+                opts.graph_user = graph_config["user"]
             else:
-                opts.imap_batch_size = None
+                logger.critical("user setting missing from the "
+                                "msgraph config section")
+                exit(-1)
+            if "password" in graph_config:
+                opts.graph_password = graph_config["password"]
+            else:
+                logger.critical("password setting missing from the "
+                                "msgraph config section")
+                exit(-1)
+
+            if "client_id" in graph_config:
+                opts.graph_client_id = graph_config["client_id"]
+            else:
+                logger.critical("client_id setting missing from the "
+                                "msgraph config section")
+                exit(-1)
+
+            if "client_secret" in graph_config:
+                opts.graph_client_secret = graph_config["client_secret"]
+            else:
+                logger.critical("client_secret setting missing from the "
+                                "msgraph config section")
+                exit(-1)
+            if "mailbox" in graph_config:
+                opts.graph_mailbox = graph_config["mailbox"]
+
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
             if "hosts" in elasticsearch_config:
@@ -498,7 +541,7 @@ def _main():
                                 "kafka config section")
                 exit(-1)
             if "ssl" in kafka_config:
-                opts.kafka_ssl = kafka_config["ssl"].getboolean()
+                opts.kafka_ssl = kafka_config.getboolean("ssl")
             if "skip_certificate_verification" in kafka_config:
                 kafka_verify = kafka_config.getboolean(
                     "skip_certificate_verification")
@@ -523,7 +566,7 @@ def _main():
                                 "smtp config section")
                 exit(-1)
             if "port" in smtp_config:
-                opts.smtp_port = smtp_config["port"]
+                opts.smtp_port = smtp_config.getint("port")
             if "ssl" in smtp_config:
                 opts.smtp_ssl = smtp_config.getboolean("ssl")
             if "skip_certificate_verification" in smtp_config:
@@ -611,11 +654,12 @@ def _main():
             '%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
         fh.setFormatter(formatter)
         logger.addHandler(fh)
-    if opts.imap_host is None and len(opts.file_path) == 0 and opts.gmail_api_credentials_file is None:
-        logger.error("You must supply input files, or an IMAP or Gmail configurationor")
+
+    if opts.imap_host is None and opts.graph_user is None and len(opts.file_path) == 0 and opts.gmail_api_credentials_file is None:
+        logger.error("You must supply input files or a mailbox connection")
         exit(1)
 
-    logger.info("Starting dmarcparse")
+    logger.info("Starting parsedmarc")
 
     if opts.save_aggregate or opts.save_forensic:
         try:
@@ -717,16 +761,13 @@ def _main():
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
 
+    mailbox_connection = None
     if opts.imap_host:
         try:
             if opts.imap_user is None or opts.imap_password is None:
                 logger.error("IMAP user and password must be specified if"
                              "host is specified")
 
-            rf = opts.imap_reports_folder
-            af = opts.imap_archive_folder
-            ns = opts.nameservers
-            sa = opts.strip_attachment_payloads
             ssl = True
             verify = True
             if opts.imap_skip_certificate_verification:
@@ -734,7 +775,8 @@ def _main():
                 verify = False
             if opts.imap_ssl is False:
                 ssl = False
-            reports = get_dmarc_reports_from_inbox(
+
+            mailbox_connection = IMAPConnection(
                 host=opts.imap_host,
                 port=opts.imap_port,
                 ssl=ssl,
@@ -743,22 +785,47 @@ def _main():
                 max_retries=opts.imap_max_retries,
                 user=opts.imap_user,
                 password=opts.imap_password,
-                reports_folder=rf,
-                archive_folder=af,
+            )
+
+        except Exception as error:
+            logger.error("IMAP Error: {0}".format(error.__str__()))
+            exit(1)
+
+    if opts.graph_user:
+        try:
+            mailbox = opts.graph_mailbox or opts.graph_user
+            mailbox_connection = MSGraphConnection(
+                client_id=opts.graph_client_id,
+                client_secret=opts.graph_client_secret,
+                username=opts.graph_user,
+                password=opts.graph_password,
+                mailbox=mailbox
+            )
+
+        except Exception as error:
+            logger.error("MS Graph Error: {0}".format(error.__str__()))
+            exit(1)
+
+    if mailbox_connection:
+        try:
+            reports = get_dmarc_reports_from_mailbox(
+                connection=mailbox_connection,
+                delete=opts.mailbox_delete,
+                batch_size=opts.mailbox_batch_size,
+                reports_folder=opts.mailbox_reports_folder,
+                archive_folder=opts.mailbox_archive_folder,
                 ip_db_path=opts.ip_db_path,
-                delete=opts.imap_delete,
                 offline=opts.offline,
-                nameservers=ns,
-                test=opts.imap_test,
-                strip_attachment_payloads=sa,
-                batch_size=opts.imap_batch_size
+                nameservers=opts.nameservers,
+                test=opts.mailbox_test,
+                strip_attachment_payloads=opts.strip_attachment_payloads,
             )
 
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
 
         except Exception as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
+            logger.error("Mailbox Error: {0}".format(error.__str__()))
             exit(1)
 
     if opts.gmail_api_credentials_file:
@@ -805,33 +872,21 @@ def _main():
             logger.error("{0}".format(error.__str__()))
             exit(1)
 
-    if opts.imap_host and opts.imap_watch:
+    if mailbox_connection and opts.mailbox_watch:
         logger.info("Watching for email - Quit with ctrl-c")
-        ssl = True
-        verify = True
-        if opts.imap_skip_certificate_verification:
-            logger.debug("Skipping IMAP certificate verification")
-            verify = False
-        if opts.imap_ssl is False:
-            ssl = False
+
         try:
-            sa = opts.strip_attachment_payloads
             watch_inbox(
-                opts.imap_host,
-                opts.imap_user,
-                opts.imap_password,
-                process_reports,
-                port=opts.imap_port,
-                ssl=ssl,
-                verify=verify,
-                reports_folder=opts.imap_reports_folder,
-                archive_folder=opts.imap_archive_folder,
-                delete=opts.imap_delete,
-                test=opts.imap_test,
+                mailbox_connection=mailbox_connection,
+                callback=process_reports,
+                reports_folder=opts.mailbox_reports_folder,
+                archive_folder=opts.mailbox_archive_folder,
+                delete=opts.mailbox_delete,
+                test=opts.mailbox_test,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
-                strip_attachment_payloads=sa,
-                batch_size=opts.imap_batch_size,
+                strip_attachment_payloads=opts.strip_attachment_payloads,
+                batch_size=opts.mailbox_batch_size,
                 ip_db_path=opts.ip_db_path,
                 offline=opts.offline)
         except FileExistsError as error:

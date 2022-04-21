@@ -29,7 +29,7 @@ Features
 
 * Parses draft and 1.0 standard aggregate/rua reports
 * Parses forensic/failure/ruf reports
-* Can parse reports from an inbox over IMAP
+* Can parse reports from an inbox over IMAP or Microsoft Graph
 * Transparently handles gzip or zip compressed reports
 * Consistent data structures
 * Simple JSON and/or CSV output
@@ -147,6 +147,8 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
+
+   [mailbox]
    watch = True
 
    [elasticsearch]
@@ -196,8 +198,16 @@ The full set of configuration options are:
 
     .. note::
         Setting this to a number larger than one can improve performance when processing thousands of files
-- ``imap``
 
+- ``mailbox``
+    - ``reports_folder`` - str: The mailbox folder where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The mailbox folder to sort processed emails into (Default: Archive)
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive or poll MS Graph for new messages
+    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``test`` - bool: Do not move or delete messages
+    - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
+
+- ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993).
 
@@ -208,12 +218,16 @@ The full set of configuration options are:
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
-    - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
-    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
-    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
-    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
-    - ``test`` - bool: Do not move or delete messages
-    - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
+
+- ``msgraph``
+    - ``user`` - str: The M365 user
+    - ``password`` - str: The user password
+    - ``client_id`` - str: The app registration's client ID
+    - ``client_secret`` - str: The app registration's secret
+    - ``mailbox`` - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox
+    .. note::
+        You must create an app registration in Azure AD and have an admin grant the Microsoft Graph `Mail.ReadWrite` (delegated) permission to the app.
+
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
 
