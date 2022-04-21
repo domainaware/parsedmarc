@@ -585,7 +585,7 @@ def _main():
                 opts.syslog_port = syslog_config["port"]
             else:
                 opts.syslog_port = 514
-
+    
         if "gmail_api" in config.sections():
             gmail_api_config = config["gmail_api"]
             opts.gmail_api_credentials_file = gmail_api_config.get("credentials_file",None)
@@ -597,15 +597,11 @@ def _main():
             opts.gmail_api_delete = gmail_api_config.getboolean("delete",None)
             opts.gmail_api_test = gmail_api_config.getboolean("test",False)
 
-
-    logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.WARNING)
 
     if opts.verbose:
-        logging.basicConfig(level=logging.INFO)
         logger.setLevel(logging.INFO)
     if opts.debug:
-        logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
     if opts.log_file:
         fh = logging.FileHandler(opts.log_file)
