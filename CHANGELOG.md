@@ -1,6 +1,16 @@
 Changelog
 =========
 
+8.0.0
+-----
+
+- Update included copy of `dbip-country-lite.mmdb` to the 2022-04 release
+- Add support for Microsoft/Office 365 via Microsoft Graph API (PR #301 closes issue #111)
+- Pin `elasticsearch-dsl` version at `>=2.2.0<7.14.0` (PR #297  closes issue #296)
+- Properly initialize `ip_dp_path` (PR #294 closes issue #286)
+- Remove usage of `lgging.basicConfig` (PR #285)
+- Add support for the Gmail API (PR #284 and PR #307 close issue #96)
+
 7.1.1
 -----
 
