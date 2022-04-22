@@ -150,6 +150,7 @@ For example
 
    [mailbox]
    watch = True
+   delete = False
 
    [elasticsearch]
    hosts = 127.0.0.1:9200
@@ -171,10 +172,8 @@ For example
    [gmail_api]
    credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
    token_file = /path/to/token.json             # This file will be generated automatically 
-   delete = False                               # Delete reports after successful processing
-   scopes = https://mail.google.com/             
-   include_spam_trash=True                      
-   reports_label=DMARC                          
+   scopes = https://mail.google.com/
+   include_spam_trash=True
 
 
 The full set of configuration options are:
@@ -200,8 +199,8 @@ The full set of configuration options are:
         Setting this to a number larger than one can improve performance when processing thousands of files
 
 - ``mailbox``
-    - ``reports_folder`` - str: The mailbox folder where the incoming reports can be found (Default: INBOX)
-    - ``archive_folder`` - str:  The mailbox folder to sort processed emails into (Default: Archive)
+    - ``reports_folder`` - str: The mailbox folder (or label for Gmail) where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The mailbox folder (or label for Gmail) to sort processed emails into (Default: Archive)
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive or poll MS Graph for new messages
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
@@ -275,12 +274,8 @@ The full set of configuration options are:
 - ``gmail_api``
     - ``gmail_api_credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
     - ``gmail_api_token_file`` - str: Path to save the token file (Default: .token)
-    - ``gmail_api_reports_label`` - str: Label to use when searching for reports to parse (Default: INBOX)
-    - ``gmail_api_archive_file`` - str: Label to apply to processed reports (Default: DMARC Archive)
     - ``gmail_api_include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
     - ``gmail_api_scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
-    - ``gmail_api_delete`` - bool: Delete messages after processing them, instead of archiving them (Default: False)
-    - ``gmail_api_test`` - bool: Do not move or delete messages (Default: False)
 
 .. warning::
 

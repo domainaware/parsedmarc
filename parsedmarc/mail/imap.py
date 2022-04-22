@@ -49,11 +49,18 @@ class IMAPConnection(MailboxConnection):
         self._client.noop()
 
     def watch(self, check_callback, check_timeout):
-        """ Use an IDLE IMAP connection to parse incoming emails, and pass the results to a callback function"""
+        """
+         Use an IDLE IMAP connection to parse incoming emails,
+         and pass the results to a callback function
+        """
         while True:
             try:
-                IMAPClient(host=self._client.host, username=self._username, password=self._password,
-                           port=self._client.port, ssl=self._client.ssl, verify=self._verify,
+                IMAPClient(host=self._client.host,
+                           username=self._username,
+                           password=self._password,
+                           port=self._client.port,
+                           ssl=self._client.ssl,
+                           verify=self._verify,
                            idle_callback=check_callback,
                            idle_timeout=check_timeout)
             except (timeout, IMAPClientError):
