@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 7.1.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.0.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -28,7 +28,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                7.1.1
+                8.0.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -257,7 +257,10 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span><span class="w"></span>
 <span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarcresports@example.com</span><span class="w"></span>
 <span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$uperSecure</span><span class="w"></span>
+
+<span class="k">[mailbox]</span><span class="w"></span>
 <span class="na">watch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span><span class="w"></span>
+<span class="na">delete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span><span class="w"></span>
 
 <span class="k">[elasticsearch]</span><span class="w"></span>
 <span class="na">hosts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">127.0.0.1:9200</span><span class="w"></span>
@@ -275,6 +278,12 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <span class="k">[syslog]</span><span class="w"></span>
 <span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span><span class="w"></span>
 <span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span><span class="w"></span>
+
+<span class="k">[gmail_api]</span><span class="w"></span>
+<span class="na">credentials_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2</span><span class="w"></span>
+<span class="na">token_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/token.json             # This file will be generated automatically</span><span class="w"></span>
+<span class="na">scopes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://mail.google.com/</span><span class="w"></span>
+<span class="na">include_spam_trash</span><span class="o">=</span><span class="s">True</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
@@ -304,9 +313,20 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </dd>
 </dl>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>
-<blockquote>
-<div><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for Gmail) where the incoming reports can be found (Default: INBOX)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for Gmail) to sort processed emails into (Default: Archive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process messages as they arrive or poll MS Graph for new messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them, instead of archiving them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process before saving. Defaults to all messages if not set.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993).</p></li>
 </ul>
@@ -320,19 +340,23 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
 </ul>
-<dl class="simple">
-<dt>..note::</dt><dd><p>The percent symbol has a special function, so it should be escaped. Use “%%” instead of “%” and it should work fine.</p>
 </dd>
 </dl>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The IMAP folder where the incoming reports can be found (Default: INBOX)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The IMAP folder to sort processed emails into (Default: Archive)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process messages as they arrive</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them, instead of archiving them</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process before saving. Defaults to all messages if not set.</p></li>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s secret</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox</p></li>
 </ul>
-</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must create an app registration in Azure AD and have an admin grant the Microsoft Graph <cite>Mail.ReadWrite</cite> (delegated) permission to the app.</p>
+</div>
+</dd>
+</dl>
 </li>
 <li><dl>
 <dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt><dd><ul class="simple">
@@ -401,7 +425,34 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </dd>
 </dl>
 </li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">syslog</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: 514)</p></li>
 </ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_credentials_file</span></code> - str: Path to file containing the credentials, None to disable (Default: None)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_token_file</span></code> - str: Path to save the token file (Default: .token)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_include_spam_trash</span></code> - bool: Include messages in Spam and Trash when searching reports (Default: False)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_scopes</span></code> - str: Comma separated list of scopes to use when acquiring credentials (Default: <a class="reference external" href="https://www.googleapis.com/auth/gmail.modify">https://www.googleapis.com/auth/gmail.modify</a>)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> setting.
+By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>,
+which are much faster and more reliable than Google, Cisco OpenDNS, or
+even most local resolvers.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network blocks DNS
+requests to outside resolvers.</p>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
@@ -1708,33 +1759,27 @@ or bytes.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="parsedmarc.get_dmarc_reports_from_inbox">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_retries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_inbox" title="Permalink to this definition"></a></dt>
-<dd><p>Fetches and parses DMARC reports from an inbox</p>
+<dt class="sig sig-object py" id="parsedmarc.get_dmarc_reports_from_mailbox">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_mailbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">parsedmarc.mail.mailbox_connection.MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_folders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mailbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mailbox" title="Permalink to this definition"></a></dt>
+<dd><p>Fetches and parses DMARC reports from a mailbox</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>connection</strong> – An IMAPClient connection to reuse</p></li>
-<li><p><strong>host</strong> – The mail server hostname or IP address</p></li>
-<li><p><strong>user</strong> – The mail server user</p></li>
-<li><p><strong>password</strong> – The mail server password</p></li>
-<li><p><strong>port</strong> – The mail server port</p></li>
-<li><p><strong>ssl</strong> (<em>bool</em>) – Use SSL/TLS</p></li>
-<li><p><strong>verify</strong> (<em>bool</em>) – Verify SSL/TLS certificate</p></li>
-<li><p><strong>timeout</strong> (<em>float</em>) – IMAP timeout in seconds</p></li>
-<li><p><strong>max_retries</strong> (<em>int</em>) – The maximum number of retries after a timeout</p></li>
-<li><p><strong>reports_folder</strong> – The IMAP folder where reports can be found</p></li>
+<li><p><strong>connection</strong> – A Mailbox connection object</p></li>
+<li><p><strong>reports_folder</strong> – The folder where reports can be found</p></li>
 <li><p><strong>archive_folder</strong> – The folder to move processed mail to</p></li>
 <li><p><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</p></li>
 <li><p><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</p></li>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
-<li><p><strong>offline</strong> (<em>bool</em>) – Do not query onfline for geolocation or DNS</p></li>
+<li><p><strong>offline</strong> (<em>bool</em>) – Do not query online for geolocation or DNS</p></li>
 <li><p><strong>nameservers</strong> (<em>list</em>) – A list of DNS nameservers to query</p></li>
 <li><p><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</p></li>
-<li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</p></li>
-<li><p><strong>results</strong> (<em>dict</em>) – </p></li>
-<li><p><strong>results</strong> – Results from the previous run</p></li>
+<li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from
+forensic report results</p></li>
+<li><p><strong>results</strong> (<em>dict</em>) – Results from the previous run</p></li>
 <li><p><strong>batch_size</strong> (<em>int</em>) – Number of messages to read and process before saving</p></li>
+<li><p><strong>create_folders</strong> (<em>bool</em>) – Whether to create the destination folders
+(not used in watch)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1775,18 +1820,6 @@ DMARC reports</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="parsedmarc.get_imap_capabilities">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_imap_capabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_imap_capabilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_imap_capabilities" title="Permalink to this definition"></a></dt>
-<dd><p>Returns a list of an IMAP server’s capabilities</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>server</strong> (<em>imapclient.IMAPClient</em>) – An instance of imapclient.IMAPClient</p>
-</dd>
-</dl>
-<p>Returns (list): A list of capabilities</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.get_report_zip">
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_report_zip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_report_zip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_report_zip" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a zip file of parsed report output</p>
@@ -1805,7 +1838,7 @@ DMARC reports</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parse_aggregate_report_file">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a file at the given path, a file-like object. or bytes as a
 aggregate DMARC report</p>
 <dl class="field-list simple">
@@ -1818,7 +1851,7 @@ aggregate DMARC report</p>
 <li><p><strong>default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's public DNS resolvers by</em>) – </p></li>
 <li><p><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
-<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
+<li><p><strong>keep_alive</strong> (<em>callable</em>) – Keep alive function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1832,7 +1865,7 @@ aggregate DMARC report</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parse_aggregate_report_xml">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_xml" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a DMARC XML report string and returns a consistent OrderedDict</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1844,7 +1877,7 @@ aggregate DMARC report</p>
 <li><p><strong>default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's public DNS resolvers by</em>) – </p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
-<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
+<li><p><strong>keep_alive</strong> (<em>callable</em>) – Keep alive function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1887,7 +1920,7 @@ aggregate DMARC report</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parse_report_email">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_email" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a DMARC report from an email</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1900,7 +1933,7 @@ aggregate DMARC report</p>
 <li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from</p></li>
 <li><p><strong>results</strong> (<em>forensic report</em>) – </p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
-<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
+<li><p><strong>keep_alive</strong> (<em>callable</em>) – keep alive function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1918,7 +1951,7 @@ aggregate DMARC report</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parse_report_file">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_report_file" title="Permalink to this definition"></a></dt>
 <dd><p>Parses a DMARC aggregate or forensic file at the given path, a
 file-like object. or bytes</p>
 <dl class="field-list simple">
@@ -1933,7 +1966,7 @@ file-like object. or bytes</p>
 <li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
 <li><p><strong>offline</strong> (<em>bool</em>) – Do not make online queries for geolocation or DNS</p></li>
 <li><p><strong>parallel</strong> (<em>bool</em>) – Parallel processing</p></li>
-<li><p><strong>server</strong> (<em>IMAPClient</em>) – Connection object</p></li>
+<li><p><strong>keep_alive</strong> (<em>callable</em>) – Keep alive function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -2038,40 +2071,33 @@ format</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.watch_inbox">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">watch_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idle_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition"></a></dt>
-<dd><p>Use an IDLE IMAP connection to parse incoming emails, and pass the results
-to a callback function
-:param host: The mail server hostname or IP address
-:param username: The mail server username
-:param password: The mail server password
-:param callback: The callback function to receive the parsing results
-:param port: The mail server port
-:param ssl: Use SSL/TLS
-:type ssl: bool
-:param verify: Verify the TLS/SSL certificate
-:type verify: bool
-:param reports_folder: The IMAP folder where reports can be found
-:param archive_folder: The folder to move processed mail to
-:param delete: Delete  messages after processing them
-:type delete: bool
-:param test: Do not move or delete messages after processing them
-:type test: bool
-:param idle_timeout: Number of seconds to wait for a IMAP IDLE response
-:type idle_timeout: int
-:param ip_db_path: Path to a MMDB file from MaxMind or DBIP
-:type ip_db_path: str
-:param offline: Do not query online for geolocation or DNS
-:type offline: bool
-:param nameservers: A list of one or more nameservers to use
-:type nameservers: list
-:param (Cloudflare’s public DNS resolvers by default):
-:param dns_timeout: Set the DNS query timeout
-:type dns_timeout: float
-:param strip_attachment_payloads: Replace attachment payloads in
-:type strip_attachment_payloads: bool
-:param forensic report samples with None:
-:param batch_size: Number of messages to read and process before saving
-:type batch_size: int</p>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">watch_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mailbox_connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">parsedmarc.mail.mailbox_connection.MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Watches the mailbox for new messages and</dt><dd><p>sends the results to a callback function</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mailbox_connection</strong> – The mailbox connection object</p></li>
+<li><p><strong>callback</strong> – The callback function to receive the parsing results</p></li>
+<li><p><strong>reports_folder</strong> – The IMAP folder where reports can be found</p></li>
+<li><p><strong>archive_folder</strong> – The folder to move processed mail to</p></li>
+<li><p><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</p></li>
+<li><p><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</p></li>
+<li><p><strong>check_timeout</strong> (<em>int</em>) – Number of seconds to wait for a IMAP IDLE response
+or the number of seconds until the next mail check</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>offline</strong> (<em>bool</em>) – Do not query online for geolocation or DNS</p></li>
+<li><p><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use</p></li>
+<li><p><strong>default</strong><strong>)</strong> (<em>(</em><em>Cloudflare's public DNS resolvers by</em>) – </p></li>
+<li><p><strong>dns_timeout</strong> (<em>float</em>) – Set the DNS query timeout</p></li>
+<li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Replace attachment payloads in</p></li>
+<li><p><strong>None</strong> (<em>forensic report samples with</em>) – </p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Number of messages to read and process before saving</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <section id="module-parsedmarc.elastic">

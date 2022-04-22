@@ -142,7 +142,10 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
+
+   [mailbox]
    watch = True
+   delete = False
 
    [elasticsearch]
    hosts = 127.0.0.1:9200
@@ -160,6 +163,13 @@ For example
    [syslog]
    server = localhost
    port = 514
+
+   [gmail_api]
+   credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
+   token_file = /path/to/token.json             # This file will be generated automatically
+   scopes = https://mail.google.com/
+   include_spam_trash=True
+
 
 The full set of configuration options are:
 
@@ -182,8 +192,16 @@ The full set of configuration options are:
 
     .. note::
         Setting this to a number larger than one can improve performance when processing thousands of files
-- ``imap``
 
+- ``mailbox``
+    - ``reports_folder`` - str: The mailbox folder (or label for Gmail) where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The mailbox folder (or label for Gmail) to sort processed emails into (Default: Archive)
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive or poll MS Graph for new messages
+    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``test`` - bool: Do not move or delete messages
+    - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
+
+- ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993).
 
@@ -194,16 +212,17 @@ The full set of configuration options are:
     - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
-    
-    ..note::
-      The percent symbol has a special function, so it should be escaped. Use "%%" instead of "%" and it should work fine.
-    
-    - ``reports_folder`` - str: The IMAP folder where the incoming reports can be found (Default: INBOX)
-    - ``archive_folder`` - str:  The IMAP folder to sort processed emails into (Default: Archive)
-    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive
-    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
-    - ``test`` - bool: Do not move or delete messages
-    - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
+
+- ``msgraph``
+    - ``user`` - str: The M365 user
+    - ``password`` - str: The user password
+    - ``client_id`` - str: The app registration's client ID
+    - ``client_secret`` - str: The app registration's secret
+    - ``mailbox`` - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox
+
+    .. note::
+        You must create an app registration in Azure AD and have an admin grant the Microsoft Graph `Mail.ReadWrite` (delegated) permission to the app.
+
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
 
@@ -244,6 +263,24 @@ The full set of configuration options are:
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
     - ``path`` - int: The path to upload reports to (Default: /)
+- ``syslog``
+    - ``server`` - str: The Syslog server name or IP address
+    - ``port`` - int: The UDP port to use (Default: 514)
+- ``gmail_api``
+    - ``gmail_api_credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
+    - ``gmail_api_token_file`` - str: Path to save the token file (Default: .token)
+    - ``gmail_api_include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
+    - ``gmail_api_scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
+
+.. warning::
+
+    It is **strongly recommended** to **not** use the ``nameservers`` setting.
+    By default, ``parsedmarc`` uses `Cloudflare's public resolvers`_,
+    which are much faster and more reliable than Google, Cisco OpenDNS, or
+    even most local resolvers.
+
+    The ``nameservers`` option should only be used if your network blocks DNS
+    requests to outside resolvers.
 
 .. warning::
 
@@ -267,6 +304,7 @@ The full set of configuration options are:
    manually on a separate IMAP folder (using the  ``reports_folder`` option),
    after you have manually moved known samples you want to save to that
    folder (e.g. malicious samples and non-sensitive legitimate samples).
+
 
 Sample aggregate report output
 ==============================
