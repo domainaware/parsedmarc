@@ -274,8 +274,6 @@ The full set of configuration options are:
 - ``gmail_api``
     - ``gmail_api_credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
     - ``gmail_api_token_file`` - str: Path to save the token file (Default: .token)
-    - ``gmail_api_reports_label`` - str: Label to use when searching for reports to parse (Default: INBOX)
-    - ``gmail_api_archive_file`` - str: Label to apply to processed reports (Default: DMARC Archive)
     - ``gmail_api_include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
     - ``gmail_api_scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
 

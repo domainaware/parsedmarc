@@ -810,21 +810,21 @@ def _main():
             exit(1)
 
     if opts.gmail_api_credentials_file:
-        if opts.gmail_api_delete:
+        if opts.mailbox_delete:
             if 'https://mail.google.com/' not in opts.gmail_api_scopes:
                 logger.error("Message deletion requires scope"
                              " 'https://mail.google.com/'. "
                              "Add the scope and remove token file "
                              "to acquire proper access.")
-                opts.gmail_api_delete = False
+                opts.mailbox_delete = False
 
         try:
-            token_file = opts.gmail_api_token_file or "token.json"
             mailbox_connection = GmailConnection(
                 credentials_file=opts.gmail_api_credentials_file,
-                token_file=token_file,
+                token_file=opts.gmail_api_token_file,
                 scopes=opts.gmail_api_scopes,
                 include_spam_trash=opts.gmail_api_include_spam_trash,
+                reports_folder=opts.mailbox_reports_folder
             )
 
         except Exception as error:

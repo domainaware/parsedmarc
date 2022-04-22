@@ -96,7 +96,7 @@ class MSGraphConnection(MailboxConnection):
             sleep(check_timeout)
             check_callback(self)
 
-    @lru_cache(maxsize=100)
+    @lru_cache(maxsize=10)
     def _find_folder_id_from_folder_path(self, folder_name: str) -> str:
         path_parts = folder_name.split('/')
         parent_folder_id = None
