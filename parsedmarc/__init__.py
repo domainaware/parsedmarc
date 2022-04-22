@@ -1034,10 +1034,11 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
-        forensic report results
+          forensic report results
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
-        create_folders (bool): Whether to create the destination folders (not used in watch)
+        create_folders (bool): Whether to create the destination folders
+          (not used in watch)
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1085,12 +1086,13 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         ))
         msg_content = connection.fetch_message(msg_uid)
         try:
+            sa = strip_attachment_payloads
             parsed_email = parse_report_email(msg_content,
                                               nameservers=nameservers,
                                               dns_timeout=dns_timeout,
                                               ip_db_path=ip_db_path,
                                               offline=offline,
-                                              strip_attachment_payloads=strip_attachment_payloads,
+                                              strip_attachment_payloads=sa,
                                               keep_alive=connection.keepalive)
             if parsed_email["report_type"] == "aggregate":
                 aggregate_reports.append(parsed_email["report"])
@@ -1202,7 +1204,8 @@ def watch_inbox(mailbox_connection: MailboxConnection,
                 dns_timeout=6.0, strip_attachment_payloads=False,
                 batch_size=None):
     """
-    Watches the mailbox for new messages and sends the results to a callback function
+    Watches the mailbox for new messages and
+      sends the results to a callback function
     Args:
         mailbox_connection: The mailbox connection object
         callback: The callback function to receive the parsing results
@@ -1223,6 +1226,7 @@ def watch_inbox(mailbox_connection: MailboxConnection,
     """
 
     def check_callback(connection):
+        sa = strip_attachment_payloads
         res = get_dmarc_reports_from_mailbox(connection=connection,
                                              reports_folder=reports_folder,
                                              archive_folder=archive_folder,
@@ -1232,12 +1236,13 @@ def watch_inbox(mailbox_connection: MailboxConnection,
                                              offline=offline,
                                              nameservers=nameservers,
                                              dns_timeout=dns_timeout,
-                                             strip_attachment_payloads=strip_attachment_payloads,
+                                             strip_attachment_payloads=sa,
                                              batch_size=batch_size,
                                              create_folders=False)
         callback(res)
 
-    mailbox_connection.watch(check_callback=check_callback, check_timeout=check_timeout)
+    mailbox_connection.watch(check_callback=check_callback,
+                             check_timeout=check_timeout)
 
 
 def save_output(results, output_directory="output",

@@ -240,7 +240,7 @@ def _main():
 
     args = arg_parser.parse_args()
 
-    gmail_api_scopes = ['https://www.googleapis.com/auth/gmail.modify']
+    default_gmail_api_scope = 'https://www.googleapis.com/auth/gmail.modify'
 
     opts = Namespace(file_path=args.file_path,
                      config_file=args.config_file,
@@ -315,11 +315,11 @@ def _main():
                      gmail_api_credentials_file=None,
                      gmail_api_token_file=None,
                      gmail_api_include_spam_trash=False,
-                     gmail_api_scopes=gmail_api_scopes,
+                     gmail_api_scopes=[],
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1,
-                     ip_db_path = None
+                     ip_db_path=None
                      )
     args = arg_parser.parse_args()
 
@@ -628,19 +628,18 @@ def _main():
                 opts.syslog_port = syslog_config["port"]
             else:
                 opts.syslog_port = 514
-    
+
         if "gmail_api" in config.sections():
             gmail_api_config = config["gmail_api"]
-            opts.gmail_api_credentials_file = gmail_api_config.get("credentials_file", None)
-            opts.gmail_api_token_file = gmail_api_config.get("token_file", ".token")
-            opts.gmail_api_reports_label = gmail_api_config.get("reports_label", "INBOX")
-            opts.gmail_api_archive_label = gmail_api_config.get("archive_label", "DMARC Archive")
-            opts.gmail_api_include_spam_trash = gmail_api_config.getboolean("include_spam_trash", False)
-            opts.gmail_api_scopes = str.split(gmail_api_config.get("scopes",
-                                                                   "https://www.googleapis.com/auth/gmail.modify"),
-                                              ",")
-            opts.gmail_api_delete = gmail_api_config.getboolean("delete", None)
-            opts.gmail_api_test = gmail_api_config.getboolean("test", False)
+            opts.gmail_api_credentials_file = \
+                gmail_api_config.get("credentials_file")
+            opts.gmail_api_token_file = \
+                gmail_api_config.get("token_file", ".token")
+            opts.gmail_api_include_spam_trash = \
+                gmail_api_config.getboolean("include_spam_trash", False)
+            opts.gmail_api_scopes = \
+                gmail_api_config.get("scopes",
+                                     default_gmail_api_scope).split(',')
 
     logger.setLevel(logging.WARNING)
 
@@ -813,8 +812,10 @@ def _main():
     if opts.gmail_api_credentials_file:
         if opts.gmail_api_delete:
             if 'https://mail.google.com/' not in opts.gmail_api_scopes:
-                logger.error("Message deletion requires scope 'https://mail.google.com/'. "
-                             "Add the scope and remove token file to acquire proper access.")
+                logger.error("Message deletion requires scope"
+                             " 'https://mail.google.com/'. "
+                             "Add the scope and remove token file "
+                             "to acquire proper access.")
                 opts.gmail_api_delete = False
 
         try:

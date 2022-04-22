@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from parsedmarc import MailboxConnection
+from parsedmarc.mail.mailbox_connection import MailboxConnection
 
 logger = logging.getLogger("parsedmarc")
 
