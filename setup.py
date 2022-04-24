@@ -78,7 +78,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=["parsedmarc", "parsedmarc.resources"],
+    packages=["parsedmarc", "parsedmarc.resources", "parsedmarc.mail"],
     package_data={
             "parsedmarc.resources": ["*.mmdb"]
     },
