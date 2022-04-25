@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.0.1
+-----
+
+- Fix `ModuleNotFoundError` by adding `parsedmarc.mail` to the list of packages in `setup.py` (PR #308)
+
 8.0.0
 -----
 
