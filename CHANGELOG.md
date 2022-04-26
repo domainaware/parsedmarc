@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.0.2
+-----
+
+- Strip leading and trailing whitespaces from Gmail scopes (Closes #310)
+
 8.0.1
 -----
 
