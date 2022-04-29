@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - master
+      - add_dockerfile
 
 env:
   REGISTRY: ghcr.io
