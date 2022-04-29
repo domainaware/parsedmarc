@@ -1,6 +1,16 @@
 Changelog
 =========
 
+8.0.2
+-----
+
+- Strip leading and trailing whitespaces from Gmail scopes (Closes #310)
+
+8.0.1
+-----
+
+- Fix `ModuleNotFoundError` by adding `parsedmarc.mail` to the list of packages in `setup.py` (PR #308)
+
 8.0.0
 -----
 

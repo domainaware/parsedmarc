@@ -396,6 +396,10 @@ def _main():
 
         if "imap" in config.sections():
             imap_config = config["imap"]
+            if "watch" in imap_config:
+                logger.warning("Starting in 8.0.0, the watch option has been "
+                               "moved from the imap configuration section to "
+                               "the mailbox configuration section.")
             if "host" in imap_config:
                 opts.imap_host = imap_config["host"]
             else:
@@ -639,7 +643,9 @@ def _main():
                 gmail_api_config.getboolean("include_spam_trash", False)
             opts.gmail_api_scopes = \
                 gmail_api_config.get("scopes",
-                                     default_gmail_api_scope).split(',')
+                                     default_gmail_api_scope)
+            opts.gmail_api_scopes = \
+                _str_to_list(opts.gmail_api_scopes)
 
     logger.setLevel(logging.WARNING)
 
