@@ -396,6 +396,10 @@ def _main():
 
         if "imap" in config.sections():
             imap_config = config["imap"]
+            if "watch" in imap_config:
+                logger.warning("Starting in 8.0.0, the watch option has been "
+                               "moved from the imap configuration section to "
+                               "the mailbox configuration section.")
             if "host" in imap_config:
                 opts.imap_host = imap_config["host"]
             else:

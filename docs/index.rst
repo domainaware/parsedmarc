@@ -142,6 +142,7 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
+   # Starting in 8.0.0, the watch option has moved to the mailbox section
 
    [mailbox]
    watch = True
@@ -164,14 +165,10 @@ For example
    server = localhost
    port = 514
 
-   [gmail_api]
-   credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
-   token_file = /path/to/token.json             # This file will be generated automatically
-   scopes = https://mail.google.com/
-   include_spam_trash=True
 
 
 The full set of configuration options are:
+
 
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
@@ -203,7 +200,13 @@ The full set of configuration options are:
 
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
-    - ``port`` - int: The IMAP server port (Default: 993).
+    - ``port`` - int: The IMAP server port (Default: 993)
+
+    .. note::
+      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+
+    .. note::
+      Starting in version 8.0.0, the ``watch`` option has been moved to the ``mailbox`` section
 
     .. note::
         If your host recommends another port, still try 993
@@ -260,6 +263,10 @@ The full set of configuration options are:
     - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+
+    .. note::
+      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
     - ``path`` - int: The path to upload reports to (Default: /)

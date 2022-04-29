@@ -147,6 +147,7 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
+   # Starting in 8.0.0, the watch option has moved to the mailbox section
 
    [mailbox]
    watch = True
@@ -169,14 +170,13 @@ For example
    server = localhost
    port = 514
 
-   [gmail_api]
-   credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
-   token_file = /path/to/token.json             # This file will be generated automatically 
-   scopes = https://mail.google.com/
-   include_spam_trash=True
 
 
 The full set of configuration options are:
+
+.. note::
+      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a `%`` character is used, such as a password.
+
 
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
@@ -210,7 +210,10 @@ The full set of configuration options are:
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993).
 
-    .. note::
+   .. note::
+      Starting in version 8.0.0, the ``watch`` option has been moved to the ``mailbox`` section
+
+   .. note::
         If your host recommends another port, still try 993
 
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
