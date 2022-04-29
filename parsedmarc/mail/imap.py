@@ -53,6 +53,13 @@ class IMAPConnection(MailboxConnection):
          Use an IDLE IMAP connection to parse incoming emails,
          and pass the results to a callback function
         """
+
+        # IDLE callback sends IMAPClient object,
+        # send back the imap connection object instead
+        def idle_callback_wrapper(client: IMAPClient):
+            self._client = client
+            check_callback(self)
+
         while True:
             try:
                 IMAPClient(host=self._client.host,
@@ -61,7 +68,7 @@ class IMAPConnection(MailboxConnection):
                            port=self._client.port,
                            ssl=self._client.ssl,
                            verify=self._verify,
-                           idle_callback=check_callback,
+                           idle_callback=idle_callback_wrapper,
                            idle_timeout=check_timeout)
             except (timeout, IMAPClientError):
                 logger.warning("IMAP connection timeout. Reconnecting...")
