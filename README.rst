@@ -313,6 +313,14 @@ The full set of configuration options are:
    after you have manually moved known samples you want to save to that
    folder (e.g. malicious samples and non-sensitive legitimate samples).
 
+Docker usage
+============
+
+.. code-block:: bash
+
+   docker run ghcr.io/domainaware/parsedmarc:<version> -c config.ini
+
+
 Sample aggregate report output
 ==============================
 
