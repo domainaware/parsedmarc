@@ -99,7 +99,7 @@ setup(
                       'dateparser>=0.7.2',
                       'mailsuite>=1.6.1',
                       'elasticsearch<7.14.0'
-                      'elasticsearch-dsl==7.2.0',
+                      'elasticsearch-dsl==7.4.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
                       'lxml>=4.4.0',
