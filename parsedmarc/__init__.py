@@ -28,12 +28,13 @@ from expiringdict import ExpiringDict
 from lxml import etree
 from mailsuite.smtp import send_email
 
-from parsedmarc.meta import __version__
 from parsedmarc.mail import MailboxConnection
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
+
+__version__ = "8.0.3"
 
 formatter = logging.Formatter(
     fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
