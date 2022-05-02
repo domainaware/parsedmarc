@@ -142,6 +142,7 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
+   # Starting in 8.0.0, the watch option has moved to the mailbox section
 
    [mailbox]
    watch = True
@@ -164,14 +165,10 @@ For example
    server = localhost
    port = 514
 
-   [gmail_api]
-   credentials_file = /path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2
-   token_file = /path/to/token.json             # This file will be generated automatically
-   scopes = https://mail.google.com/
-   include_spam_trash=True
 
 
 The full set of configuration options are:
+
 
 - ``general``
     - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
@@ -203,7 +200,13 @@ The full set of configuration options are:
 
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
-    - ``port`` - int: The IMAP server port (Default: 993).
+    - ``port`` - int: The IMAP server port (Default: 993)
+
+    .. note::
+      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+
+    .. note::
+      Starting in version 8.0.0, the ``watch`` option has been moved to the ``mailbox`` section
 
     .. note::
         If your host recommends another port, still try 993
@@ -260,6 +263,10 @@ The full set of configuration options are:
     - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
     - ``attachment`` - str: The ZIP attachment filenames
     - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+
+    .. note::
+      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
     - ``path`` - int: The path to upload reports to (Default: /)
@@ -650,20 +657,20 @@ Create a system user
 
 .. code-block:: bash
 
-    sudo mkdir -f /opt
-    sudo useradd parsedmarc -r -s /bin/false -b /opt
+    sudo mkdir /opt
+    sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 
 
 .. code-block:: bash
 
     sudo -u parsedmarc -H pip3 install --user -U pip
-    sudo -u parsedmarc -H pip3 install --user -U parsedmarc
+    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
@@ -712,7 +719,7 @@ Next, create a ``pypy3`` virtualenv for parsedmarc
     cd /opt/venvs
     sudo -H pip3 install -U virtualenv
     sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
     sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 
 To upgrade ``parsedmarc`` inside the virtualenv, run:
@@ -720,13 +727,13 @@ To upgrade ``parsedmarc`` inside the virtualenv, run:
 
 .. code-block:: bash
 
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 
 Optional dependencies
 ---------------------
@@ -750,8 +757,14 @@ tags in your DMARC record, separated by commas.
 Accessing an inbox using OWA/EWS
 --------------------------------
 
-Some organisations do not allow IMAP, and only support Exchange Web Services
-(EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
+.. note::
+
+   Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
+   inboxes via the Microsoft Graph API, which is preferred over Davmail.
+
+Some organisations do not allow IMAP or the Microsoft Graph API,
+and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
+In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
 `Modern Auth/multi-factor authentication`_ is required.
 

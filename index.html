@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.0.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.0.3 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -28,7 +28,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.0.2
+                8.0.3
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -257,6 +257,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span><span class="w"></span>
 <span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarcresports@example.com</span><span class="w"></span>
 <span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$uperSecure</span><span class="w"></span>
+<span class="c1"># Starting in 8.0.0, the watch option has moved to the mailbox section</span><span class="w"></span>
 
 <span class="k">[mailbox]</span><span class="w"></span>
 <span class="na">watch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span><span class="w"></span>
@@ -278,12 +279,6 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <span class="k">[syslog]</span><span class="w"></span>
 <span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span><span class="w"></span>
 <span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span><span class="w"></span>
-
-<span class="k">[gmail_api]</span><span class="w"></span>
-<span class="na">credentials_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/credentials.json # Get this file from console.google.com. See https://developers.google.com/identity/protocols/oauth2</span><span class="w"></span>
-<span class="na">token_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/token.json             # This file will be generated automatically</span><span class="w"></span>
-<span class="na">scopes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://mail.google.com/</span><span class="w"></span>
-<span class="na">include_spam_trash</span><span class="o">=</span><span class="s">True</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
@@ -328,8 +323,16 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><dl>
 <dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character, so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting in version 8.0.0, the <code class="docutils literal notranslate"><span class="pre">watch</span></code> option has been moved to the <code class="docutils literal notranslate"><span class="pre">mailbox</span></code> section</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If your host recommends another port, still try 993</p>
@@ -400,7 +403,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </dd>
 </dl>
 </li>
-<li><dl class="simple">
+<li><dl>
 <dt><code class="docutils literal notranslate"><span class="pre">smtp</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</p></li>
@@ -414,6 +417,10 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message (Default: Please see the attached parsedmarc report.)</p></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character, so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+</div>
 </dd>
 </dl>
 </li>
@@ -768,16 +775,16 @@ sudo easy_install-3.4 pip
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
 <p>Create a system user</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir -f /opt
-sudo useradd parsedmarc -r -s /bin/false -b /opt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir /opt
+sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user -U pip
-sudo -u parsedmarc -H pip3 install --user -U parsedmarc
+sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 <div class="admonition note">
@@ -815,16 +822,16 @@ sudo -H pip3 install -U virtualenv
 <span class="nb">cd</span> /opt/venvs
 sudo -H pip3 install -U virtualenv
 sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
 sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 </pre></div>
 </div>
 <p>To upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
 </pre></div>
 </div>
 <p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 </pre></div>
 </div>
 </section>
@@ -845,8 +852,14 @@ tags in your DMARC record, separated by commas.</p>
 </section>
 <section id="accessing-an-inbox-using-owa-ews">
 <h3>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this headline"></a></h3>
-<p>Some organisations do not allow IMAP, and only support Exchange Web Services
-(EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
+inboxes via the Microsoft Graph API, which is preferred over Davmail.</p>
+</div>
+<p>Some organisations do not allow IMAP or the Microsoft Graph API,
+and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
+In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
 <a class="reference external" href="http://davmail.sourceforge.net/faq.html">Modern Auth/multi-factor authentication</a> is required.</p>
 <p>To do this, download the latest <code class="docutils literal notranslate"><span class="pre">davmail-version.zip</span></code> from
