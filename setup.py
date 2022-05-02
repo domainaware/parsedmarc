@@ -96,7 +96,7 @@ setup(
                       'publicsuffix2>=2.20190812', 'xmltodict>=0.12.0',
                       'geoip2>=3.0.0', 'urllib3>=1.25.7',
                       'requests>=2.22.0', 'imapclient>=2.1.0',
-                      'dateparser>=0.7.2',
+                      'dateparser>=1.1.1',
                       'mailsuite>=1.6.1',
                       'elasticsearch<7.14.0',
                       'elasticsearch-dsl==7.4.0',
