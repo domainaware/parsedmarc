@@ -7,6 +7,8 @@ Changelog
 - Fix IMAP callback for `IDLE` connections (PR #313 closes issue #311)
 - Add warnings in documentation and log output for IMAP configuration changes introduced in 8.0.0 (Closes issue #309)
 - Actually pin the `elasticsearch` Python library version at `<7.14.0` (Closes issue #315)
+- Separate version numbers in `__init__.py` and `setup.py` to allow `pip` to install directly from `git`
+- Update `dateparser` to 1.1.1 (closes issue #273)
 
 8.0.2 (yanked)
 --------------
