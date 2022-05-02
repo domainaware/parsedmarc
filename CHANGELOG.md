@@ -1,18 +1,25 @@
 Changelog
 =========
 
-8.0.2
+8.0.3
 -----
 
-- Strip leading and trailing whitespaces from Gmail scopes (Closes #310)
+- Fix IMAP callback for `IDLE` connections (PR #313 closes issue #311)
+- Add warnings in documentation and log output for IMAP configuration changes introduced in 8.0.0 (Closes issue #309)
+- Actually pin the `elasticsearch` Python library version at `<7.14.0` (Closes issue #315)
 
-8.0.1
------
+8.0.2 (yanked)
+--------------
+
+- Strip leading and trailing whitespaces from Gmail scopes (Closes issue #310)
+
+8.0.1 (yanked)
+--------------
 
 - Fix `ModuleNotFoundError` by adding `parsedmarc.mail` to the list of packages in `setup.py` (PR #308)
 
-8.0.0
------
+8.0.0 (yanked)
+--------------
 
 - Update included copy of `dbip-country-lite.mmdb` to the 2022-04 release
 - Add support for Microsoft/Office 365 via Microsoft Graph API (PR #301 closes issue #111)
