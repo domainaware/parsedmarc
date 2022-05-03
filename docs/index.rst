@@ -657,20 +657,20 @@ Create a system user
 
 .. code-block:: bash
 
-    sudo mkdir -f /opt
-    sudo useradd parsedmarc -r -s /bin/false -b /opt
+    sudo mkdir /opt
+    sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 
 
 .. code-block:: bash
 
     sudo -u parsedmarc -H pip3 install --user -U pip
-    sudo -u parsedmarc -H pip3 install --user -U parsedmarc
+    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -u parsedmarc -H pip3 install --user -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 
 .. note::
 
@@ -719,7 +719,7 @@ Next, create a ``pypy3`` virtualenv for parsedmarc
     cd /opt/venvs
     sudo -H pip3 install -U virtualenv
     sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
     sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
 
 To upgrade ``parsedmarc`` inside the virtualenv, run:
@@ -727,13 +727,13 @@ To upgrade ``parsedmarc`` inside the virtualenv, run:
 
 .. code-block:: bash
 
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U parsedmarc
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
 
 Or, install the latest development release directly from GitHub:
 
 .. code-block:: bash
 
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 
 Optional dependencies
 ---------------------
@@ -757,8 +757,14 @@ tags in your DMARC record, separated by commas.
 Accessing an inbox using OWA/EWS
 --------------------------------
 
-Some organisations do not allow IMAP, and only support Exchange Web Services
-(EWS)/Outlook Web Access (OWA). In that case, Davmail will need to be set up
+.. note::
+
+   Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
+   inboxes via the Microsoft Graph API, which is preferred over Davmail.
+
+Some organisations do not allow IMAP or the Microsoft Graph API,
+and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
+In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
 `Modern Auth/multi-factor authentication`_ is required.
 

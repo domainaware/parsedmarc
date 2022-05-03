@@ -14,7 +14,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-from parsedmarc import __version__
+__version__ = "8.0.3"
 
 description = "A Python package and CLI for parsing aggregate and " \
               "forensic DMARC reports"
@@ -96,9 +96,10 @@ setup(
                       'publicsuffix2>=2.20190812', 'xmltodict>=0.12.0',
                       'geoip2>=3.0.0', 'urllib3>=1.25.7',
                       'requests>=2.22.0', 'imapclient>=2.1.0',
-                      'dateparser>=0.7.2',
+                      'dateparser>=1.1.1',
                       'mailsuite>=1.6.1',
-                      'elasticsearch-dsl>=7.2.0,<7.14.0',
+                      'elasticsearch<7.14.0',
+                      'elasticsearch-dsl==7.4.0',
                       'kafka-python>=1.4.4',
                       'tqdm>=4.31.1',
                       'lxml>=4.4.0',
