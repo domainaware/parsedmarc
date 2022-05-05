@@ -1,9 +1,10 @@
 name: Build docker image
 
 on:
+  release:
+    types:
+      - published
   push:
-    tags:
-      - 'v*'
     branches:
       - master
 
