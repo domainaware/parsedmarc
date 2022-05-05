@@ -318,7 +318,7 @@ Docker usage
 
 .. code-block:: bash
 
-   docker run ghcr.io/domainaware/parsedmarc:<version> -c config.ini
+   docker run -v "${PWD}/config.ini:/config.ini" ghcr.io/domainaware/parsedmarc:<version> -c /config.ini
 
 
 Sample aggregate report output
