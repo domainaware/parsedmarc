@@ -147,7 +147,6 @@ For example
    host = imap.example.com
    user = dmarcresports@example.com
    password = $uperSecure
-   # Starting in 8.0.0, the watch option has moved to the mailbox section
 
    [mailbox]
    watch = True
@@ -211,7 +210,7 @@ The full set of configuration options are:
     - ``port`` - int: The IMAP server port (Default: 993).
 
    .. note::
-      Starting in version 8.0.0, the ``watch`` option has been moved to the ``mailbox`` section
+      Starting in version 8.0.0, most options from the ``imap`` section have been moved to the ``mailbox`` section.
 
    .. note::
         If your host recommends another port, still try 993
