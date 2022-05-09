@@ -379,6 +379,8 @@ def _main():
 
         if "mailbox" in config.sections():
             mailbox_config = config["mailbox"]
+            if "msgraph" in config.sections():
+                opts.mailbox_reports_folder = "Inbox"
             if "reports_folder" in mailbox_config:
                 opts.mailbox_reports_folder = mailbox_config["reports_folder"]
             if "archive_folder" in mailbox_config:
@@ -430,6 +432,43 @@ def _main():
                 logger.critical("password setting missing from the "
                                 "imap config section")
                 exit(-1)
+            if "reports_folder" in imap_config:
+                opts.mailbox_reports_folder = imap_config["reports_folder"]
+                logger.warning("Use of the reports_folder option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            if "archive_folder" in imap_config:
+                opts.mailbox_archive_folder = imap_config["archive_folder"]
+                logger.warning("Use of the archive_folder option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            if "watch" in imap_config:
+                opts.mailbox_watch = imap_config.getboolean("watch")
+                logger.warning("Use of the watch option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            if "delete" in imap_config:
+                logger.warning("Use of the delete option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            if "test" in imap_config:
+                opts.mailbox_test = imap_config.getboolean("test")
+                logger.warning("Use of the test option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            if "batch_size" in imap_config:
+                opts.mailbox_batch_size = imap_config.getint("batch_size")
+                logger.warning("Use of the batch_size option in the imap "
+                               "configuration section has been deprecated. "
+                               "Use this option in the mailbox configuration "
+                               "section instead.")
+            else:
+                opts.mailbox_batch_size = None
 
         if "msgraph" in config.sections():
             graph_config = config["msgraph"]
