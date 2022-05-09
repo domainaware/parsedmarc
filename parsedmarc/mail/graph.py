@@ -66,7 +66,7 @@ class MSGraphConnection(MailboxConnection):
     def mark_message_read(self, message_id: str):
         """Marks a message as read"""
         url = f'/users/{self.mailbox_name}/messages/{message_id}'
-        resp = self._client.patch(url, data={"isRead": "true"})
+        resp = self._client.patch(url, json={"isRead": "true"})
         if resp.status_code != 200:
             raise RuntimeWarning(f"Failed to mark message read"
                                  f"{resp.status_code}: {resp.json()}")

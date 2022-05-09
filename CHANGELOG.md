@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.1.1
+-----
+
+- Fix marking messages as read via Microsoft Graph
+
 8.1.0
 -----
 
