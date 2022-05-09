@@ -63,9 +63,18 @@ class MSGraphConnection(MailboxConnection):
         emails = result.json()['value']
         return [email['id'] for email in emails]
 
+    def mark_message_read(self, message_id: str):
+        """Marks a message as read"""
+        url = f'/users/{self.mailbox_name}/messages/{message_id}'
+        resp = self._client.patch(url, data={"isRead": "true"})
+        if resp.status_code != 200:
+            raise RuntimeWarning(f"Failed to mark message read"
+                                 f"{resp.status_code}: {resp.json()}")
+
     def fetch_message(self, message_id: str):
         url = f'/users/{self.mailbox_name}/messages/{message_id}/$value'
         result = self._client.get(url)
+        self.mark_message_read(message_id)
         return result.text
 
     def delete_message(self, message_id: str):
