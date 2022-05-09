@@ -5,7 +5,6 @@ Changelog
 -----
 
 - Restore compatability with <8.0.0 configuration files (with deprecation warnings)
-- Move `parsedmarc.__version__` to `parsedmarc.meta.__version__`
 - Set default `reports_folder` to `Inbox` (rather than `INBOX`) when `msgraph` is configured
 - Mark a message as read when fetching a message from Microsoft Graph
 

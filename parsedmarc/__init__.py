@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-from parsedmarc.meta import __version__
+__version__ = "8.1.0"
 
 formatter = logging.Formatter(
     fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
