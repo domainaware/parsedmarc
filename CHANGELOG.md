@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.2.0
+-----
+
+- Support non-standard, text-based forensic reports sent by some mail hosts
+- Set forensic report version to `None` (`null` in JSON) if the report was in a non-standard format and/or is missing a version number
+
 8.1.1
 -----
 

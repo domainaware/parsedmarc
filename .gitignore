@@ -128,3 +128,7 @@ tmp/
 prod*.ini
 stage*.ini
 dev*.ini
+
+# Private samples
+
+samples/private

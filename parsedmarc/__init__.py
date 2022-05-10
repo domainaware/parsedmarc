@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.1.1"
+__version__ = "8.2.0"
 
 formatter = logging.Formatter(
     fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
@@ -49,6 +49,7 @@ logger.debug("parsedmarc v{0}".format(__version__))
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
 xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
+text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
 
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
@@ -608,7 +609,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
             parsed_report["arrival_date"] = msg_date.isoformat()
 
         if "version" not in parsed_report:
-            parsed_report["version"] = 1
+            parsed_report["version"] = None
 
         if "user_agent" not in parsed_report:
             parsed_report["user_agent"] = None
@@ -829,6 +830,21 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
             sample = payload
         elif content_type == "message/rfc822":
             sample = payload
+        elif content_type == "text/plain":
+            if "A message claiming to be from you has failed" in payload:
+                parts = payload.split("detected.")
+                field_matches = text_report_regex.findall(parts[0])
+                fields = dict()
+                for match in field_matches:
+                    field_name = match[0].lower().replace(" ", "-")
+                    fields[field_name] = match[1].strip()
+                feedback_report = "Arrival-Date: {}\n" \
+                                  "Source-IP: {}".format(
+                    fields["received-date"],
+                    fields["sender-ip-address"])
+                sample = parts[1].lstrip()
+                sample = sample.replace("=\r\n", "")
+                logger.debug(sample)
         else:
             try:
                 payload = b64decode(payload)
@@ -857,7 +873,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                         'aggregate DMARC report: {1}'.format(subject, e)
                 raise InvalidAggregateReport(error)
 
-            except FileNotFoundError as e:
+            except Exception as e:
                 error = 'Unable to parse message with ' \
                         'subject "{0}": {1}'.format(subject, e)
                 raise InvalidDMARCReport(error)
