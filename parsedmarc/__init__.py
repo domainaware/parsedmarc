@@ -839,9 +839,9 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                     field_name = match[0].lower().replace(" ", "-")
                     fields[field_name] = match[1].strip()
                 feedback_report = "Arrival-Date: {}\n" \
-                                  "Source-IP: {}".format(
-                    fields["received-date"],
-                    fields["sender-ip-address"])
+                                  "Source-IP: {}" \
+                                  "".format(fields["received-date"],
+                                            fields["sender-ip-address"])
                 sample = parts[1].lstrip()
                 sample = sample.replace("=\r\n", "")
                 logger.debug(sample)
