@@ -393,8 +393,6 @@ def _main():
                 opts.mailbox_test = mailbox_config.getboolean("test")
             if "batch_size" in mailbox_config:
                 opts.mailbox_batch_size = mailbox_config.getint("batch_size")
-            else:
-                opts.mailbox_batch_size = None
 
         if "imap" in config.sections():
             imap_config = config["imap"]
@@ -467,8 +465,6 @@ def _main():
                                "configuration section has been deprecated. "
                                "Use this option in the mailbox configuration "
                                "section instead.")
-            else:
-                opts.mailbox_batch_size = None
 
         if "msgraph" in config.sections():
             graph_config = config["msgraph"]

@@ -6,6 +6,7 @@ Changelog
 
 - Support non-standard, text-based forensic reports sent by some mail hosts
 - Set forensic report version to `None` (`null` in JSON) if the report was in a non-standard format and/or is missing a version number
+- The default value of the `mailbox` `batch_size` option is now `10` (use `0` for no limit)
 
 8.1.1
 -----

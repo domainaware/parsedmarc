@@ -203,7 +203,7 @@ The full set of configuration options are:
     - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive or poll MS Graph for new messages
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
-    - ``batch_size`` - int: Number of messages to read and process before saving. Defaults to all messages if not set.
+    - ``batch_size`` - int: Number of messages to read and process before saving. Default 10. Use 0 for no limit.
 
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
