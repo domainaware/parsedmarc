@@ -216,14 +216,24 @@ The full set of configuration options are:
     - ``password`` - str: The IMAP password
 
 - ``msgraph``
-    - ``user`` - str: The M365 user
-    - ``password`` - str: The user password
+    - ``auth_method`` - str: Authentication method, valid types are UsernamePassword, DeviceCode, or ClientSecret (Default: UsernamePassword).
+    - ``user`` - str: The M365 user, required when the auth method is UsernamePassword
+    - ``password`` - str: The user password, required when the auth method is UsernamePassword
     - ``client_id`` - str: The app registration's client ID
     - ``client_secret`` - str: The app registration's secret
-    - ``mailbox`` - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox
+    - ``tenant_id`` - str: The Azure AD tenant ID. This is required for all auth methods except UsernamePassword.
+    - ``mailbox`` - str: The mailbox name. This defaults to the current user if using the UsernamePassword auth method, but could be a shared mailbox if the user has access to the mailbox
 
     .. note::
-        You must create an app registration in Azure AD and have an admin grant the Microsoft Graph `Mail.ReadWrite` (delegated) permission to the app.
+        You must create an app registration in Azure AD and have an admin grant the Microsoft Graph ``Mail.ReadWrite`` (delegated) permission to the app.
+        If you are using `UsernamePassword` auth and the mailbox is different from the username, you must grant the app ``Mail.ReadWrite.Shared``.
+
+        If you are using the `ClientSecret` auth method, you need to grant the ``Mail.ReadWrite`` (application) permission to the app.
+        It is highly recommended that you restrict the application's access to a specific mailbox since it allows all mailboxes by default.
+        Use the ``New-ApplicationAccessPolicy`` command in the Exchange PowerShell module.
+
+        ``New-ApplicationAccessPolicy -AccessRight RestrictAccess -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>" -Description "Restrict access to dmarc reports mailbox."``
+
 
 - ``elasticsearch``
     - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
