@@ -228,8 +228,9 @@ The full set of configuration options are:
         You must create an app registration in Azure AD and have an admin grant the Microsoft Graph ``Mail.ReadWrite`` (delegated) permission to the app.
         If you are using `UsernamePassword` auth and the mailbox is different from the username, you must grant the app ``Mail.ReadWrite.Shared``.
 
+    .. warning::
         If you are using the `ClientSecret` auth method, you need to grant the ``Mail.ReadWrite`` (application) permission to the app.
-        It is highly recommended that you restrict the application's access to a specific mailbox since it allows all mailboxes by default.
+        You must also restrict the application's access to a specific mailbox since it allows all mailboxes by default.
         Use the ``New-ApplicationAccessPolicy`` command in the Exchange PowerShell module.
 
         ``New-ApplicationAccessPolicy -AccessRight RestrictAccess -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>" -Description "Restrict access to dmarc reports mailbox."``
