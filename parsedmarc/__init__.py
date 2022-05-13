@@ -1034,7 +1034,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                                    dns_timeout=6.0,
                                    strip_attachment_payloads=False,
                                    results=None,
-                                   batch_size=10,
+                                   batch_size=None,
                                    create_folders=True):
     """
     Fetches and parses DMARC reports from a mailbox
@@ -1053,7 +1053,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
           forensic report results
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
-            (use 0 for no limit)
+            (default is no limit)
         create_folders (bool): Whether to create the destination folders
           (not used in watch)
 
