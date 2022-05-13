@@ -637,15 +637,14 @@ On Debian or Ubuntu systems, run:
 
 .. code-block:: bash
 
-    sudo apt-get install -y python3-pip
+    sudo apt-get install -y python3-pip python3-virtualenv python3-dev libxml2-dev libxslt-dev
 
 
 On CentOS or RHEL systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y python34-setuptools python34-devel
-   sudo easy_install-3.4 pip
+   sudo dnf install -y python39 python3-virtualenv python3-setuptools python3-devel libxml2-devel libxslt-devel
 
 
 Python 3 installers for Windows and macOS can be found at
@@ -660,79 +659,42 @@ Create a system user
     sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 
 
-.. code-block:: bash
-
-    sudo -u parsedmarc -H pip3 install --user -U pip
-    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
+Install parsedmarc in a virtualenv
 
 .. code-block:: bash
 
-    sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
+    sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
 
-.. note::
+CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems explicitly tell ``virtualenv`` to use ``python3.9`` instead
 
-    On Windows, ``pip3`` is ``pip``, even with Python 3. So on Windows,
-    substitute ``pip`` as an administrator in place of ``sudo pip3``, in the
-    above commands.
+.. code-block:: bash
 
+    sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
+
+To install or upgrade ``parsedmarc`` inside the virtualenv, run:
+
+.. code-block:: bash
+
+    sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
 
 Installation using pypy3
 ------------------------
 
-For the best possible processing speed, consider using ``parsedmarc`` inside a ``pypy3``
-virtualenv. First, `download the latest portable Linux version of pypy3`_. Extract it to
-``/opt/pypy3`` (``sudo mkdir /opt`` if ``/opt`` does not exist), then create a
-symlink:
-
+For the best possible processing speed, consider using ``parsedmarc`` inside a `pypy3`_
+virtualenv instead.
 
 .. code-block:: bash
 
-    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
-    tar -jxf pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
-    rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-    sudo chown -R root:root pypy3.5-7.0.0-linux_x86_64-portable
-    sudo mv pypy3.5-7.0.0-linux_x86_64-portable /opt/pypy3
-    sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+   wget https://downloads.python.org/pypy/pypy3.x-vx.x.x-linux64.tar.bz2
+   tar -pxf pypy3.x-vx.x.x-linux64.tar.bz2
+   mv pypy3.x-vx.x.x-linux64 pypy3
+   ./pypy3/bin/pip3 install -U pip setuptools wheel virtualenv
+   sudo chown -R root:root pypy3
+   sudo mv pypy3 /opt
+   sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
+   sudo rm -rf /opt/parsedmarc/venv
+   sudo -u parsedmarc /usr/local/bin/pypy3 -m venv --upgrade /opt/parsedmarc/venv
 
-Install ``virtualenv`` on your system:
-
-.. code-block:: bash
-
-    sudo apt-get install python3-pip
-    sudo -H pip3 install -U virtualenv
-
-Uninstall any instance of ``parsedmarc`` that you may have installed globally
-
-.. code-block:: bash
-
-    sudo -H pip3 uninstall -y parsedmarc
-
-Next, create a ``pypy3`` virtualenv for parsedmarc
-
-
-.. code-block:: bash
-
-    sudo mkdir /opt/venvs
-    cd /opt/venvs
-    sudo -H pip3 install -U virtualenv
-    sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
-    sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
-
-To upgrade ``parsedmarc`` inside the virtualenv, run:
-
-
-.. code-block:: bash
-
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
-
-Or, install the latest development release directly from GitHub:
-
-.. code-block:: bash
-
-    sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
 
 Optional dependencies
 ---------------------
@@ -1235,7 +1197,7 @@ Create the service configuration file
     After=network.target network-online.target elasticsearch.service
 
     [Service]
-    ExecStart=/opt/parsedmarc/.local/bin/parsedmarc -c /etc/parsedmarc.ini
+    ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
     User=parsedmarc
     Group=parsedmarc
     Restart=always
@@ -1710,7 +1672,7 @@ Indices and tables
 
 .. _geoipupdate releases page on GitHub: https://github.com/maxmind/geoipupdate/releases
 
-.. _download the latest portable Linux version of pypy3: https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux
+.. _pypy3: https://www.pypy.org/download.html
 
 .. _Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
 
