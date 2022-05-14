@@ -230,8 +230,9 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
         errors.append("Invalid XML: {0}".format(e.__str__()))
-        tree = etree.parse(BytesIO(xml.encode('utf-8')),
-                           etree.XMLParser(recover=True))
+        tree = etree.parse(
+            BytesIO(xml.encode('utf-8')),
+            etree.XMLParser(recover=True, resolve_entities=False))
         s = etree.tostring(tree)
         xml = '' if s is None else s.decode('utf-8')
 
