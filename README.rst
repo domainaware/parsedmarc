@@ -237,6 +237,7 @@ The full set of configuration options are:
         If you are using the `ClientSecret` auth method, you need to grant the ``Mail.ReadWrite`` (application) permission to the app.
         You must also restrict the application's access to a specific mailbox since it allows all mailboxes by default.
         Use the ``New-ApplicationAccessPolicy`` command in the Exchange PowerShell module.
+        If you need to scope the policy to shared mailboxes, you can add them to a mail enabled security group and use that as the group id.
 
         ``New-ApplicationAccessPolicy -AccessRight RestrictAccess -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>" -Description "Restrict access to dmarc reports mailbox."``
 
