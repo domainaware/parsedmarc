@@ -586,7 +586,7 @@ On CentOS or RHEL systems, run:
 
 .. code-block:: bash
 
-   sudo yum install -y geoipupdate
+   sudo dnf install -y geoipupdate
 
 The latest builds for Linux, macOS, and Windows can be downloaded from the `geoipupdate releases page on GitHub`_.
 
@@ -676,24 +676,6 @@ To install or upgrade ``parsedmarc`` inside the virtualenv, run:
 .. code-block:: bash
 
     sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
-
-Installation using pypy3
-------------------------
-
-For the best possible processing speed, consider using ``parsedmarc`` inside a `pypy3`_
-virtualenv instead.
-
-.. code-block:: bash
-
-   wget https://downloads.python.org/pypy/pypy3.x-vx.x.x-linux64.tar.bz2
-   tar -pxf pypy3.x-vx.x.x-linux64.tar.bz2
-   mv pypy3.x-vx.x.x-linux64 pypy3
-   ./pypy3/bin/pip3 install -U pip setuptools wheel virtualenv
-   sudo chown -R root:root pypy3
-   sudo mv pypy3 /opt
-   sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
-   sudo rm -rf /opt/parsedmarc/venv
-   sudo -u parsedmarc /usr/local/bin/pypy3 -m venv --upgrade /opt/parsedmarc/venv
 
 
 Optional dependencies
