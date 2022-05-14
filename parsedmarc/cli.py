@@ -23,6 +23,7 @@ from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     InvalidDMARCReport, s3, syslog
 
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
+from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.utils import is_mbox
 
@@ -62,6 +63,7 @@ def init(ctr):
 
 def _main():
     """Called when the module is executed"""
+
     def process_reports(reports_):
         output_str = "{0}\n".format(json.dumps(reports_,
                                                ensure_ascii=False,
@@ -272,10 +274,12 @@ def _main():
                      imap_max_retries=4,
                      imap_user=None,
                      imap_password=None,
+                     graph_auth_method=None,
                      graph_user=None,
                      graph_password=None,
                      graph_client_id=None,
                      graph_client_secret=None,
+                     graph_tenant_id=None,
                      graph_mailbox=None,
                      hec=None,
                      hec_token=None,
@@ -468,16 +472,40 @@ def _main():
 
         if "msgraph" in config.sections():
             graph_config = config["msgraph"]
-            if "user" in graph_config:
-                opts.graph_user = graph_config["user"]
+            if "auth_method" not in graph_config:
+                logger.info("auth_method setting missing from the "
+                            "msgraph config section "
+                            "defaulting to UsernamePassword")
+                opts.graph_auth_method = AuthMethod.UsernamePassword.name
             else:
-                logger.critical("user setting missing from the "
-                                "msgraph config section")
-                exit(-1)
-            if "password" in graph_config:
-                opts.graph_password = graph_config["password"]
+                opts.graph_auth_method = graph_config["auth_method"]
+
+            if opts.graph_auth_method == AuthMethod.UsernamePassword.name:
+                if "user" in graph_config:
+                    opts.graph_user = graph_config["user"]
+                else:
+                    logger.critical("user setting missing from the "
+                                    "msgraph config section")
+                    exit(-1)
+                if "password" in graph_config:
+                    opts.graph_password = graph_config["password"]
+                else:
+                    logger.critical("password setting missing from the "
+                                    "msgraph config section")
+                    exit(-1)
+
+            if opts.graph_auth_method != AuthMethod.UsernamePassword.name:
+                if "tenant_id" in graph_config:
+                    opts.graph_tenant_id = graph_config['tenant_id']
+                else:
+                    logger.critical("tenant_id setting missing from the "
+                                    "msgraph config section")
+                    exit(-1)
+
+            if "client_secret" in graph_config:
+                opts.graph_client_secret = graph_config["client_secret"]
             else:
-                logger.critical("password setting missing from the "
+                logger.critical("client_secret setting missing from the "
                                 "msgraph config section")
                 exit(-1)
 
@@ -488,14 +516,12 @@ def _main():
                                 "msgraph config section")
                 exit(-1)
 
-            if "client_secret" in graph_config:
-                opts.graph_client_secret = graph_config["client_secret"]
-            else:
-                logger.critical("client_secret setting missing from the "
-                                "msgraph config section")
-                exit(-1)
             if "mailbox" in graph_config:
                 opts.graph_mailbox = graph_config["mailbox"]
+            elif opts.graph_auth_method != AuthMethod.UsernamePassword.name:
+                logger.critical("mailbox setting missing from the "
+                                "msgraph config section")
+                exit(-1)
 
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
@@ -697,7 +723,7 @@ def _main():
         logger.addHandler(fh)
 
     if opts.imap_host is None \
-            and opts.graph_user is None \
+            and opts.graph_client_id is None \
             and opts.gmail_api_credentials_file is None \
             and len(opts.file_path) == 0:
         logger.error("You must supply input files or a mailbox connection")
@@ -835,15 +861,17 @@ def _main():
             logger.error("IMAP Error: {0}".format(error.__str__()))
             exit(1)
 
-    if opts.graph_user:
+    if opts.graph_client_id:
         try:
             mailbox = opts.graph_mailbox or opts.graph_user
             mailbox_connection = MSGraphConnection(
+                auth_method=opts.graph_auth_method,
+                mailbox=mailbox,
+                tenant_id=opts.graph_tenant_id,
                 client_id=opts.graph_client_id,
                 client_secret=opts.graph_client_secret,
                 username=opts.graph_user,
-                password=opts.graph_password,
-                mailbox=mailbox
+                password=opts.graph_password
             )
 
         except Exception as error:
