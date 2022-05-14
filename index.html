@@ -64,7 +64,6 @@
 <li><a class="reference internal" href="#installation">Installation</a><ul>
 <li><a class="reference internal" href="#geoipupdate-setup">geoipupdate setup</a></li>
 <li><a class="reference internal" href="#installing-parsedmarc">Installing parsedmarc</a></li>
-<li><a class="reference internal" href="#installation-using-pypy3">Installation using pypy3</a></li>
 <li><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 <li><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li><a class="reference internal" href="#accessing-an-inbox-using-owa-ews">Accessing an inbox using OWA/EWS</a><ul>
@@ -347,15 +346,25 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </li>
 <li><dl>
 <dt><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are UsernamePassword, DeviceCode, or ClientSecret (Default: UsernamePassword).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is UsernamePassword</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password, required when the auth method is UsernamePassword</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s secret</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the user that is logged in, but could be a shared mailbox if the user has access to the mailbox</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The Azure AD tenant ID. This is required for all auth methods except UsernamePassword.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the current user if using the UsernamePassword auth method, but could be a shared mailbox if the user has access to the mailbox</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You must create an app registration in Azure AD and have an admin grant the Microsoft Graph <cite>Mail.ReadWrite</cite> (delegated) permission to the app.</p>
+<p>You must create an app registration in Azure AD and have an admin grant the Microsoft Graph <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (delegated) permission to the app.
+If you are using <cite>UsernamePassword</cite> auth and the mailbox is different from the username, you must grant the app <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you are using the <cite>ClientSecret</cite> auth method, you need to grant the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application) permission to the app.
+You must also restrict the application’s access to a specific mailbox since it allows all mailboxes by default.
+Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the Exchange PowerShell module.</p>
+<p><code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span> <span class="pre">-AccessRight</span> <span class="pre">RestrictAccess</span> <span class="pre">-AppId</span> <span class="pre">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="pre">-PolicyScopeGroupId</span> <span class="pre">&quot;&lt;MAILBOX&gt;&quot;</span> <span class="pre">-Description</span> <span class="pre">&quot;Restrict</span> <span class="pre">access</span> <span class="pre">to</span> <span class="pre">dmarc</span> <span class="pre">reports</span> <span class="pre">mailbox.&quot;</span></code></p>
 </div>
 </dd>
 </dl>
@@ -726,7 +735,7 @@ sudo apt install -y geoipupdate
 </pre></div>
 </div>
 <p>On CentOS or RHEL systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo dnf install -y geoipupdate
 </pre></div>
 </div>
 <p>The latest builds for Linux, macOS, and Windows can be downloaded from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
@@ -763,12 +772,11 @@ This file should be saved at <code class="docutils literal notranslate"><span cl
 <section id="installing-parsedmarc">
 <h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this headline"></a></h3>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip python3-virtualenv python3-dev libxml2-dev libxslt-dev
 </pre></div>
 </div>
 <p>On CentOS or RHEL systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y python34-setuptools python34-devel
-sudo easy_install-3.4 pip
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo dnf install -y python39 python3-virtualenv python3-setuptools python3-devel libxml2-devel libxslt-devel
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
@@ -778,59 +786,16 @@ sudo easy_install-3.4 pip
 sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user -U pip
-sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U parsedmarc
+<p>Install parsedmarc in a virtualenv</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
 </pre></div>
 </div>
-<p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc -H pip3 install --user --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
+<p>CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems explicitly tell <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> to use <code class="docutils literal notranslate"><span class="pre">python3.9</span></code> instead</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
 </pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>On Windows, <code class="docutils literal notranslate"><span class="pre">pip3</span></code> is <code class="docutils literal notranslate"><span class="pre">pip</span></code>, even with Python 3. So on Windows,
-substitute <code class="docutils literal notranslate"><span class="pre">pip</span></code> as an administrator in place of <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pip3</span></code>, in the
-above commands.</p>
-</div>
-</section>
-<section id="installation-using-pypy3">
-<h3>Installation using pypy3<a class="headerlink" href="#installation-using-pypy3" title="Permalink to this headline"></a></h3>
-<p>For the best possible processing speed, consider using <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code>
-virtualenv. First, <a class="reference external" href="https://github.com/squeaky-pl/portable-pypy#portable-pypy-distribution-for-linux">download the latest portable Linux version of pypy3</a>. Extract it to
-<code class="docutils literal notranslate"><span class="pre">/opt/pypy3</span></code> (<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">mkdir</span> <span class="pre">/opt</span></code> if <code class="docutils literal notranslate"><span class="pre">/opt</span></code> does not exist), then create a
-symlink:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
-tar -jxf pypy3.5-7.0.0-linux_x86_64-portable.tar.bz2
-rm pypy3.5-6.0.0-linux_x86_64-portable.tar.bz2
-sudo chown -R root:root pypy3.5-7.0.0-linux_x86_64-portable
-sudo mv pypy3.5-7.0.0-linux_x86_64-portable /opt/pypy3
-sudo ln -s /opt/pypy3/bin/pypy3 /usr/local/bin/pypy3
-</pre></div>
-</div>
-<p>Install <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> on your system:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install python3-pip
-sudo -H pip3 install -U virtualenv
-</pre></div>
-</div>
-<p>Uninstall any instance of <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> that you may have installed globally</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H pip3 uninstall -y parsedmarc
-</pre></div>
-</div>
-<p>Next, create a <code class="docutils literal notranslate"><span class="pre">pypy3</span></code> virtualenv for parsedmarc</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir /opt/venvs
-<span class="nb">cd</span> /opt/venvs
-sudo -H pip3 install -U virtualenv
-sudo virtualenv --download -p /usr/local/bin/pypy3 parsedmarc
-sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
-sudo ln -s /opt/venvs/parsedmarc/bin/parsedmarc /usr/local/bin/parsedmarc
-</pre></div>
-</div>
-<p>To upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U parsedmarc
-</pre></div>
-</div>
-<p>Or, install the latest development release directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -H /opt/venvs/parsedmarc/bin/pip3 install --no-warn-script-location -U git+https://github.com/domainaware/parsedmarc.git
+<p>To install or upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
 </pre></div>
 </div>
 </section>
@@ -1234,7 +1199,7 @@ sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">
 <span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span><span class="w"></span>
 
 <span class="k">[Service]</span><span class="w"></span>
-<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/.local/bin/parsedmarc -c /etc/parsedmarc.ini</span><span class="w"></span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span><span class="w"></span>
 <span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
 <span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
 <span class="na">Restart</span><span class="o">=</span><span class="s">always</span><span class="w"></span>
