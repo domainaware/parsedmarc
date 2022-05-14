@@ -1,31 +1,73 @@
 import logging
+from enum import Enum
 from functools import lru_cache
 from time import sleep
 from typing import List, Optional
 
-from azure.identity import UsernamePasswordCredential
+from azure.identity import UsernamePasswordCredential, \
+    DeviceCodeCredential, ClientSecretCredential
 from msgraph.core import GraphClient
 
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
-logger = logging.getLogger("parsedmarc")
+
+class AuthMethod(Enum):
+    DeviceCode = 1
+    UsernamePassword = 2
+    ClientSecret = 3
+
+
+logger = logging.getLogger('parsedmarc')
+
+
+def _generate_credential(auth_method: str, **kwargs):
+    if auth_method == AuthMethod.DeviceCode.name:
+        credential = DeviceCodeCredential(
+            client_id=kwargs['client_id'],
+            client_secret=kwargs['client_secret'],
+            disable_automatic_authentication=True,
+            tenant_id=kwargs['tenant_id']
+        )
+    elif auth_method == AuthMethod.UsernamePassword.name:
+        credential = UsernamePasswordCredential(
+            client_id=kwargs['client_id'],
+            client_credential=kwargs['client_secret'],
+            disable_automatic_authentication=True,
+            username=kwargs['username'],
+            password=kwargs['password']
+        )
+    elif auth_method == AuthMethod.ClientSecret.name:
+        credential = ClientSecretCredential(
+            client_id=kwargs['client_id'],
+            tenant_id=kwargs['tenant_id'],
+            client_secret=kwargs['client_secret']
+        )
+    else:
+        raise RuntimeError(f'Auth method {auth_method} not found')
+    return credential
 
 
 class MSGraphConnection(MailboxConnection):
     def __init__(self,
+                 auth_method: str,
+                 mailbox: str,
                  client_id: str,
+                 client_secret: str,
                  username: str,
                  password: str,
-                 client_secret: str,
-                 mailbox: str):
-        credential = UsernamePasswordCredential(
-            client_id=client_id,
-            client_credential=client_secret,
-            disable_automatic_authentication=True,
-            username=username,
-            password=password
-        )
-        credential.authenticate(scopes=['Mail.ReadWrite'])
+                 tenant_id: str):
+        credential = _generate_credential(auth_method,
+                                          client_id=client_id,
+                                          client_secret=client_secret,
+                                          username=username,
+                                          password=password,
+                                          tenant_id=tenant_id)
+        scopes = ['Mail.ReadWrite']
+        # Detect if mailbox is shared
+        if username and mailbox and username != mailbox:
+            scopes = ['Mail.ReadWrite.Shared']
+        if not isinstance(credential, ClientSecretCredential):
+            credential.authenticate(scopes=scopes)
         self._client = GraphClient(credential=credential)
         self.mailbox_name = mailbox
 
