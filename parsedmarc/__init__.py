@@ -390,9 +390,11 @@ def extract_xml(input_):
         file_object.close()
 
     except UnicodeDecodeError:
+        file_object.close()
         raise InvalidAggregateReport("File objects must be opened in binary "
                                      "(rb) mode")
     except Exception as error:
+        file_object.close()
         raise InvalidAggregateReport(
             "Invalid archive file: {0}".format(error.__str__()))
 
