@@ -40,14 +40,16 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        # https://github.com/docker/login-action/releases/tag/v2.0.0
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        # https://github.com/docker/build-push-action/releases/tag/v3.0.0
+        uses: docker/build-push-action@e551b19e49efd4e98792db7592c17c09b89db8d8
         with:
           context: .
           push: ${{ github.event_name == 'release' }}
