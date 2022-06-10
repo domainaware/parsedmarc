@@ -12,12 +12,16 @@ logger = logging.getLogger("parsedmarc")
 class S3Client(object):
     """A client for a Amazon S3"""
 
-    def __init__(self, bucket_name, bucket_path):
+    def __init__(self, bucket_name, bucket_path, region_name, endpoint_url, access_key_id, secret_access_key):
         """
         Initializes the S3Client
         Args:
             bucket_name (str): The S3 Bucket
             bucket_path (str): The path to save reports
+            region_name (str): The region name
+            endpoint_url (str): The endpoint URL
+            access_key_id (str): The access key id
+            secret_access_key (str): The secret access key
         """
         self.bucket_name = bucket_name
         self.bucket_path = bucket_path
@@ -29,7 +33,14 @@ class S3Client(object):
             "end_date",
         ]
 
-        self.s3 = boto3.resource('s3')
+        # https://github.com/boto/boto3/blob/1.24.7/boto3/session.py#L312
+        self.s3 = boto3.resource(
+            's3',
+            region_name=region_name,
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+        )
         self.bucket = self.s3.Bucket(self.bucket_name)
 
     def save_aggregate_report_to_s3(self, report):

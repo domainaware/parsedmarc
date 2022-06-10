@@ -281,6 +281,10 @@ The full set of configuration options are:
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
     - ``path`` - str: The path to upload reports to (Default: /)
+    - ``region_name`` - str: The region name (Optional)
+    - ``endpoint_url`` - str: The endpoint URL (Optional)
+    - ``access_key_id`` - str: The access key id (Optional)
+    - ``secret_access_key`` - str: The secret access key (Optional)
 - ``syslog``
     - ``server`` - str: The Syslog server name or IP address
     - ``port`` - int: The UDP port to use (Default: 514)

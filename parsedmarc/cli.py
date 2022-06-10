@@ -92,6 +92,10 @@ def _main():
                 s3_client = s3.S3Client(
                     bucket_name=opts.s3_bucket,
                     bucket_path=opts.s3_path,
+                    region_name=opts.s3_region_name,
+                    endpoint_url=opts.s3_endpoint_url,
+                    access_key_id=opts.s3_access_key_id,
+                    secret_access_key=opts.s3_secret_access_key,
                 )
             except Exception as error_:
                 logger.error("S3 Error: {0}".format(error_.__str__()))
@@ -314,6 +318,10 @@ def _main():
                      smtp_message="Please see the attached DMARC results.",
                      s3_bucket=None,
                      s3_path=None,
+                     s3_region_name=None,
+                     s3_endpoint_url=None,
+                     s3_access_key_id=None,
+                     s3_secret_access_key=None,
                      syslog_server=None,
                      syslog_port=None,
                      gmail_api_credentials_file=None,
@@ -681,6 +689,16 @@ def _main():
                     opts.s3_path = opts.s3_path[:-1]
             else:
                 opts.s3_path = ""
+
+            if "region_name" in s3_config:
+                opts.s3_region_name = s3_config["region_name"]
+            if "endpoint_url" in s3_config:
+                opts.s3_endpoint_url = s3_config["endpoint_url"]
+            if "access_key_id" in s3_config:
+                opts.s3_access_key_id = s3_config["access_key_id"]
+            if "secret_access_key" in s3_config:
+                opts.s3_secret_access_key = s3_config["secret_access_key"]
+
         if "syslog" in config.sections():
             syslog_config = config["syslog"]
             if "server" in syslog_config:
