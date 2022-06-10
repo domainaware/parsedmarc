@@ -280,7 +280,7 @@ The full set of configuration options are:
 
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
-    - ``path`` - int: The path to upload reports to (Default: /)
+    - ``path`` - str: The path to upload reports to (Default: /)
 - ``syslog``
     - ``server`` - str: The Syslog server name or IP address
     - ``port`` - int: The UDP port to use (Default: 514)
