@@ -1,6 +1,13 @@
 Changelog
 =========
 
+8.3.0
+-----
+
+- Support MFA for Microsoft Graph (PR #320 closes issue #319)
+- Add more options for S3 export (PR #328)
+- Provide a helpful error message when the log file cannot be created (closes issue #317)
+
 8.2.0
 -----
 
