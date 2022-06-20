@@ -12,7 +12,8 @@ logger = logging.getLogger("parsedmarc")
 class S3Client(object):
     """A client for a Amazon S3"""
 
-    def __init__(self, bucket_name, bucket_path, region_name, endpoint_url, access_key_id, secret_access_key):
+    def __init__(self, bucket_name, bucket_path, region_name, endpoint_url,
+                 access_key_id, secret_access_key):
         """
         Initializes the S3Client
         Args:
