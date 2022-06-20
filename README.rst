@@ -184,7 +184,7 @@ The full set of configuration options are:
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
     - ``forensic_json_filename`` - str: filename for the forensic JSON output file
-    - ``ip_db_path`` - str: An optional custim path to a MMDB file from MaxMind or DBIP
+    - ``ip_db_path`` - str: An optional custom path to a MMDB file from MaxMind or DBIP
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
