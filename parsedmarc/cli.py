@@ -733,12 +733,17 @@ def _main():
     if opts.debug:
         logger.setLevel(logging.DEBUG)
     if opts.log_file:
-        fh = logging.FileHandler(opts.log_file)
-        formatter = logging.Formatter(
-            '%(asctime)s - '
-            '%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
+        try:
+            with open(opts.log_file, "w") as log_file:
+                pass
+            fh = logging.FileHandler(opts.log_file)
+            formatter = logging.Formatter(
+                '%(asctime)s - '
+                '%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+        except Exception as error:
+            logger.warning("Unable to write to log file: {}".format(error))
 
     if opts.imap_host is None \
             and opts.graph_client_id is None \
