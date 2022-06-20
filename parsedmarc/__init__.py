@@ -1226,6 +1226,7 @@ def watch_inbox(mailbox_connection: MailboxConnection,
     """
     Watches the mailbox for new messages and
       sends the results to a callback function
+
     Args:
         mailbox_connection: The mailbox connection object
         callback: The callback function to receive the parsing results
