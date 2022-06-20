@@ -176,7 +176,7 @@ The full set of configuration options are:
     - ``output`` - str: Directory to place JSON and CSV files in
     - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
     - ``forensic_json_filename`` - str: filename for the forensic JSON output file
-    - ``ip_db_path`` - str: An optional custim path to a MMDB file from MaxMind or DBIP
+    - ``ip_db_path`` - str: An optional custom path to a MMDB file from MaxMind or DBIP
     - ``offline`` - bool: Do not use online queries for geolocation or DNS
     - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
@@ -232,6 +232,7 @@ The full set of configuration options are:
         If you are using the `ClientSecret` auth method, you need to grant the ``Mail.ReadWrite`` (application) permission to the app.
         You must also restrict the application's access to a specific mailbox since it allows all mailboxes by default.
         Use the ``New-ApplicationAccessPolicy`` command in the Exchange PowerShell module.
+        If you need to scope the policy to shared mailboxes, you can add them to a mail enabled security group and use that as the group id.
 
         ``New-ApplicationAccessPolicy -AccessRight RestrictAccess -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>" -Description "Restrict access to dmarc reports mailbox."``
 
@@ -279,7 +280,11 @@ The full set of configuration options are:
 
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
-    - ``path`` - int: The path to upload reports to (Default: /)
+    - ``path`` - str: The path to upload reports to (Default: /)
+    - ``region_name`` - str: The region name (Optional)
+    - ``endpoint_url`` - str: The endpoint URL (Optional)
+    - ``access_key_id`` - str: The access key id (Optional)
+    - ``secret_access_key`` - str: The secret access key (Optional)
 - ``syslog``
     - ``server`` - str: The Syslog server name or IP address
     - ``port`` - int: The UDP port to use (Default: 514)
@@ -535,7 +540,7 @@ Installation
 
 .. note::
 
-   If your system is behind a web proxy, you neeed to configure your system
+   If your system is behind a web proxy, you need to configure your system
    to use that proxy. To do this, edit ``/etc/environment`` and add your
    proxy details there, for example:
 

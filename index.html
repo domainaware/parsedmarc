@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.2.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -28,7 +29,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.2.0
+                8.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -137,7 +138,7 @@
            <div itemprop="articleBody">
              
   <section id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
-<h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this headline"></a></h1>
+<h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this heading"></a></h1>
 <p><a class="reference external" href="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml"><img alt="Build Status" src="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="Code Coverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a> <a class="reference external" href="https://pypi.org/project/parsedmarc/"><img alt="PyPI Package" src="https://img.shields.io/pypi/v/parsedmarc.svg" /></a></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -154,7 +155,7 @@ open source alternative to commercial DMARC report processing services such
 as Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
 and Valimail.</p>
 <section id="features">
-<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline"></a></h2>
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>Parses draft and 1.0 standard aggregate/rua reports</p></li>
 <li><p>Parses forensic/failure/ruf reports</p></li>
@@ -169,27 +170,27 @@ premade dashboards</p></li>
 </ul>
 </section>
 <section id="resources">
-<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline"></a></h2>
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this heading"></a></h2>
 <section id="dmarc-guides">
-<h3>DMARC guides<a class="headerlink" href="#dmarc-guides" title="Permalink to this headline"></a></h3>
+<h3>DMARC guides<a class="headerlink" href="#dmarc-guides" title="Permalink to this heading"></a></h3>
 <ul class="simple">
 <li><p><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a> - A complete guide to SPF, DKIM, and DMARC</p></li>
 </ul>
 </section>
 <section id="spf-and-dmarc-record-validation">
-<h3>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this headline"></a></h3>
+<h3>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this heading"></a></h3>
 <p>If you are looking for SPF and DMARC record validation and parsing,
 check out the sister project,
 <a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
 </section>
 <section id="lookalike-domains">
-<h3>Lookalike domains<a class="headerlink" href="#lookalike-domains" title="Permalink to this headline"></a></h3>
+<h3>Lookalike domains<a class="headerlink" href="#lookalike-domains" title="Permalink to this heading"></a></h3>
 <p>DMARC protects against domain spoofing, not lookalike domains. for open source
 lookalike domain monitoring, check out <a class="reference external" href="https://github.com/seanthegeek/domainaware">DomainAware</a>.</p>
 </section>
 </section>
 <section id="cli-help">
-<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this headline"></a></h2>
+<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this heading"></a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_JSON_FILENAME</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_JSON_FILENAME</span><span class="p">]</span>
@@ -240,7 +241,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 </section>
 <section id="configuration-file">
-<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline"></a></h2>
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> can be configured by supplying the path to an INI file</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc -c /etc/parsedmarc.ini
 </pre></div>
@@ -289,7 +290,7 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic JSON output file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custim path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file from MaxMind or DBIP</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation or DNS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
@@ -363,7 +364,8 @@ If you are using <cite>UsernamePassword</cite> auth and the mailbox is different
 <p class="admonition-title">Warning</p>
 <p>If you are using the <cite>ClientSecret</cite> auth method, you need to grant the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application) permission to the app.
 You must also restrict the application’s access to a specific mailbox since it allows all mailboxes by default.
-Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the Exchange PowerShell module.</p>
+Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the Exchange PowerShell module.
+If you need to scope the policy to shared mailboxes, you can add them to a mail enabled security group and use that as the group id.</p>
 <p><code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span> <span class="pre">-AccessRight</span> <span class="pre">RestrictAccess</span> <span class="pre">-AppId</span> <span class="pre">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="pre">-PolicyScopeGroupId</span> <span class="pre">&quot;&lt;MAILBOX&gt;&quot;</span> <span class="pre">-Description</span> <span class="pre">&quot;Restrict</span> <span class="pre">access</span> <span class="pre">to</span> <span class="pre">dmarc</span> <span class="pre">reports</span> <span class="pre">mailbox.&quot;</span></code></p>
 </div>
 </dd>
@@ -435,7 +437,11 @@ Use the <code class="docutils literal notranslate"><span class="pre">New-Applica
 <li><dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">s3</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - int: The path to upload reports to (Default: /)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: /)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">region_name</span></code> - str: The region name (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">endpoint_url</span></code> - str: The endpoint URL (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_key_id</span></code> - str: The access key id (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">secret_access_key</span></code> - str: The secret access key (Optional)</p></li>
 </ul>
 </dd>
 </dl>
@@ -490,7 +496,7 @@ folder (e.g. malicious samples and non-sensitive legitimate samples).</p>
 </div>
 </section>
 <section id="sample-aggregate-report-output">
-<h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this headline"></a></h2>
+<h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this heading"></a></h2>
 <p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
 report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
 report schema standardized in
@@ -499,7 +505,7 @@ This draft schema is still in wide use.</p>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report
 schema.</p>
 <section id="json">
-<h3>JSON<a class="headerlink" href="#json" title="Permalink to this headline"></a></h3>
+<h3>JSON<a class="headerlink" href="#json" title="Permalink to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">  </span><span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;draft&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">  </span><span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -568,7 +574,7 @@ schema.</p>
 </div>
 </section>
 <section id="csv">
-<h3>CSV<a class="headerlink" href="#csv" title="Permalink to this headline"></a></h3>
+<h3>CSV<a class="headerlink" href="#csv" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">spf_aligned</span><span class="p">,</span><span class="n">dkim_aligned</span><span class="p">,</span><span class="n">dmarc_aligned</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
 <span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150.241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="n">none</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
 </pre></div>
@@ -576,11 +582,11 @@ schema.</p>
 </section>
 </section>
 <section id="sample-forensic-report-output">
-<h2>Sample forensic report output<a class="headerlink" href="#sample-forensic-report-output" title="Permalink to this headline"></a></h2>
+<h2>Sample forensic report output<a class="headerlink" href="#sample-forensic-report-output" title="Permalink to this heading"></a></h2>
 <p>Thanks to Github user <a class="reference external" href="https://github.com/xennn">xennn</a> for the anonymized
 <a class="reference external" href="https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml">forensic report email sample</a>.</p>
 <section id="id1">
-<h3>JSON<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<h3>JSON<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">     </span><span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">     </span><span class="nt">&quot;user_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span><span class="w"></span>
@@ -669,7 +675,7 @@ schema.</p>
 </div>
 </section>
 <section id="id2">
-<h3>CSV<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<h3>CSV<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">feedback_type</span><span class="p">,</span><span class="n">user_agent</span><span class="p">,</span><span class="n">version</span><span class="p">,</span><span class="n">original_envelope_id</span><span class="p">,</span><span class="n">original_mail_from</span><span class="p">,</span><span class="n">original_rcpt_to</span><span class="p">,</span><span class="n">arrival_date</span><span class="p">,</span><span class="n">arrival_date_utc</span><span class="p">,</span><span class="n">subject</span><span class="p">,</span><span class="n">message_id</span><span class="p">,</span><span class="n">authentication_results</span><span class="p">,</span><span class="n">dkim_domain</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">delivery_result</span><span class="p">,</span><span class="n">auth_failure</span><span class="p">,</span><span class="n">reported_domain</span><span class="p">,</span><span class="n">authentication_mechanisms</span><span class="p">,</span><span class="n">sample_headers_only</span>
 <span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7.30937</span><span class="o">.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10.10.10</span><span class="p">,,,,</span><span class="n">policy</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
 </pre></div>
@@ -677,16 +683,16 @@ schema.</p>
 </section>
 </section>
 <section id="bug-reports">
-<h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this headline"></a></h2>
+<h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this heading"></a></h2>
 <p>Please report bugs on the GitHub issue tracker</p>
 <p><a class="reference external" href="https://github.com/domainaware/parsedmarc/issues">https://github.com/domainaware/parsedmarc/issues</a></p>
 </section>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If your system is behind a web proxy, you neeed to configure your system
+<p>If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
 proxy details there, for example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
@@ -714,7 +720,7 @@ least:</p>
 </ul>
 </div>
 <section id="geoipupdate-setup">
-<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this headline"></a></h3>
+<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the  <a class="reference external" href="https://db-ip.com/db/download/ip-to-country-lite">IP to Country Lite database</a> from IPDB is
@@ -770,7 +776,7 @@ This file should be saved at <code class="docutils literal notranslate"><span cl
 <p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the <a class="reference external" href="https://dev.maxmind.com/geoip/geoipupdate/">MaxMind geoipupdate page</a>.</p>
 </section>
 <section id="installing-parsedmarc">
-<h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this headline"></a></h3>
+<h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this heading"></a></h3>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip python3-virtualenv python3-dev libxml2-dev libxslt-dev
 </pre></div>
@@ -800,7 +806,7 @@ sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 </div>
 </section>
 <section id="optional-dependencies">
-<h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this headline"></a></h3>
+<h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this heading"></a></h3>
 <p>If you would like to be able to parse emails saved from Microsoft Outlook
 (i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>
@@ -809,13 +815,13 @@ sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 </div>
 </section>
 <section id="testing-multiple-report-analyzers">
-<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this headline"></a></h3>
+<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this heading"></a></h3>
 <p>If you would like to test parsedmarc and another report processing solution
 at the same time, you can have up to two mailto URIs each in the rua and ruf
 tags in your DMARC record, separated by commas.</p>
 </section>
 <section id="accessing-an-inbox-using-owa-ews">
-<h3>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this headline"></a></h3>
+<h3>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
@@ -900,7 +906,7 @@ as a local EWS/OWA IMAP gateway. It can even work where
 </pre></div>
 </div>
 <section id="running-davmail-as-a-systemd-service">
-<h4>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this headline"></a></h4>
+<h4>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this heading"></a></h4>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">davmail</span></code> as a service.</p>
 <p>Create a system user</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo useradd davmail -r -s /bin/false
@@ -967,7 +973,7 @@ current process (newest to oldest), run:</p>
 </div>
 </section>
 <section id="configuring-parsedmarc-for-davmail">
-<h4>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this headline"></a></h4>
+<h4>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this heading"></a></h4>
 <p>Because you are interacting with DavMail server over the loopback
 (i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
 config file:</p>
@@ -981,7 +987,7 @@ config file:</p>
 </section>
 </section>
 <section id="elasticsearch-and-kibana">
-<h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this headline"></a></h3>
+<h3>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.3.0</p>
@@ -1136,7 +1142,7 @@ the commercial <a class="reference external" href="https://www.elastic.co/produc
 <a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects Stack management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
 <a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
 <section id="upgrading-kibana-index-patterns">
-<h4>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this headline"></a></h4>
+<h4>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this heading"></a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 5.0.0 makes some changes to the way data is indexed in
 Elasticsearch. if you are upgrading from a previous release of
 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, you need to complete the following steps to replace the
@@ -1155,7 +1161,7 @@ Saved Objects page</p></li>
 </ol>
 </section>
 <section id="records-retention">
-<h4>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this headline"></a></h4>
+<h4>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this heading"></a></h4>
 <p>Starting in version 5.0.0, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> stores data in a separate
 index for each day to make it easy to comply with records
 retention regulations such as GDPR. For fore information,
@@ -1163,7 +1169,7 @@ check out the Elastic guide to <a class="reference external" href="https://www.e
 </section>
 </section>
 <section id="splunk">
-<h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this headline"></a></h3>
+<h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this heading"></a></h3>
 <p>Starting in version 4.3.0 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
 forensic DMARC data to a Splunk <a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC">HTTP Event collector (HEC)</a>.</p>
 <p>The project repository contains <a class="reference external" href="https://github.com/domainaware/parsedmarc/tree/master/splunk">XML files</a> for premade Splunk dashboards for
@@ -1180,7 +1186,7 @@ dashboards, although the Kibana dashboards have slightly easier and more
 flexible filtering options.</p>
 </section>
 <section id="running-parsedmarc-as-a-systemd-service">
-<h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this headline"></a></h3>
+<h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this heading"></a></h3>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as they
 arrive.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
@@ -1245,7 +1251,7 @@ current process (newest to oldest), run:</p>
 </section>
 </section>
 <section id="using-the-kibana-dashboards">
-<h2>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Permalink to this headline"></a></h2>
+<h2>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Permalink to this heading"></a></h2>
 <p>The Kibana DMARC dashboards are a human-friendly way to understand the results
 from incoming DMARC reports.</p>
 <div class="admonition note">
@@ -1254,7 +1260,7 @@ from incoming DMARC reports.</p>
 click on the Dashboard link in the left side menu of Kibana.</p>
 </div>
 <section id="dmarc-summary">
-<h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this headline"></a></h3>
+<h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this heading"></a></h3>
 <p>As the name suggests, this dashboard is the best place to start reviewing your
 aggregate DMARC data.</p>
 <p>Across the top of the dashboard, three pie charts display the percentage of
@@ -1311,7 +1317,7 @@ the DMARC Summary dashboard. To view failures only, use the pie chart.</p>
 filters by clicking on Add Filter at the upper right of the page.</p>
 </section>
 <section id="dmarc-forensic-samples">
-<h3>DMARC Forensic Samples<a class="headerlink" href="#dmarc-forensic-samples" title="Permalink to this headline"></a></h3>
+<h3>DMARC Forensic Samples<a class="headerlink" href="#dmarc-forensic-samples" title="Permalink to this heading"></a></h3>
 <p>The DMARC Forensic Samples dashboard contains information on DMARC forensic
 reports (also known as failure reports or ruf reports). These reports contain
 samples of emails that have failed to pass DMARC.</p>
@@ -1324,7 +1330,7 @@ supply the headers of sample emails. Very few provide the entire email.</p>
 </section>
 </section>
 <section id="dmarc-alignment-guide">
-<h2>DMARC Alignment Guide<a class="headerlink" href="#dmarc-alignment-guide" title="Permalink to this headline"></a></h2>
+<h2>DMARC Alignment Guide<a class="headerlink" href="#dmarc-alignment-guide" title="Permalink to this heading"></a></h2>
 <p>DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
 against the same domain that the end user sees.</p>
 <p>A message passes a DMARC check by passing DKIM or SPF, <strong>as long as the related
@@ -1372,7 +1378,7 @@ header</p></td>
 </table>
 </section>
 <section id="what-if-a-sender-won-t-support-dkim-dmarc">
-<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-won-t-support-dkim-dmarc" title="Permalink to this headline"></a></h2>
+<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-won-t-support-dkim-dmarc" title="Permalink to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p>Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
 authentication.</p></li>
@@ -1392,13 +1398,13 @@ your TLD and/or any subdomain.</p>
 </div>
 </section>
 <section id="what-about-mailing-lists">
-<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this headline"></a></h2>
+<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this heading"></a></h2>
 <p>When you deploy DMARC on your domain, you might find that messages relayed by
 mailing lists are failing DMARC, most likely because the mailing list is
 spoofing your from address, and modifying the subject, footer, or other part
 of the message, thereby breaking the DKIM signature.</p>
 <section id="mailing-list-list-best-practices">
-<h3>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this headline"></a></h3>
+<h3>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this heading"></a></h3>
 <p>Ideally, a mailing list should forward messages without altering the headers
 or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of explaining exactly
 what mailing lists should and shouldn’t do to be fully DMARC compliant.
@@ -1440,7 +1446,7 @@ tell that a message came from the mailing list, because the message was sent
 to the mailing list post address, and not their email address.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 <section id="mailman-2">
-<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this headline"></a></h4>
+<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this heading"></a></h4>
 <p>Navigate to General Settings, and configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -1518,7 +1524,7 @@ to the mailing list post address, and not their email address.</p>
 </table>
 </section>
 <section id="mailman-3">
-<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this headline"></a></h4>
+<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this heading"></a></h4>
 <p>Navigate to Settings&gt; List Identity</p>
 <p>Make Subject prefix blank.</p>
 <p>Navigate to Settings&gt; Alter Messages</p>
@@ -1583,7 +1589,7 @@ command line instead, for example:</p>
 </section>
 </section>
 <section id="workarounds">
-<h3>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this headline"></a></h3>
+<h3>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this heading"></a></h3>
 <p>If a mailing list must go <strong>against</strong> best practices and
 modify the message (e.g. to add a required legal footer), the mailing
 list administrator must configure the list to replace the From address of the
@@ -1591,7 +1597,7 @@ message (also known as munging) with the address of the mailing list, so they
 no longer spoof email addresses with domains protected by DMARC.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 <section id="id3">
-<h4>Mailman 2<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h4>
+<h4>Mailman 2<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h4>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -1626,7 +1632,7 @@ the original sender.</p>
 </div>
 </section>
 <section id="id4">
-<h4>Mailman 3<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h4>
+<h4>Mailman 3<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h4>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -1657,7 +1663,7 @@ the original sender.</p>
 </div>
 </section>
 <section id="listserv">
-<h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this headline"></a></h4>
+<h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h4>
 <p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
 that enforce with a DMARC quarantine or reject policy.</p>
 <p>Some additional steps are needed for Linux hosts.</p>
@@ -1665,7 +1671,7 @@ that enforce with a DMARC quarantine or reject policy.</p>
 </section>
 </section>
 <section id="module-parsedmarc">
-<span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this headline"></a></h2>
+<span id="api"></span><h2>API<a class="headerlink" href="#module-parsedmarc" title="Permalink to this heading"></a></h2>
 <p>A Python package for parsing DMARC reports</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="parsedmarc.InvalidAggregateReport">
@@ -1737,7 +1743,7 @@ or bytes.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.get_dmarc_reports_from_mailbox">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_mailbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">parsedmarc.mail.mailbox_connection.MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_folders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mailbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mailbox" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">get_dmarc_reports_from_mailbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_folders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#get_dmarc_reports_from_mailbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.get_dmarc_reports_from_mailbox" title="Permalink to this definition"></a></dt>
 <dd><p>Fetches and parses DMARC reports from a mailbox</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2049,7 +2055,7 @@ format</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.watch_inbox">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">watch_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mailbox_connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">parsedmarc.mail.mailbox_connection.MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">watch_inbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mailbox_connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MailboxConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reports_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INBOX'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">archive_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Archive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_attachment_payloads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#watch_inbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.watch_inbox" title="Permalink to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>Watches the mailbox for new messages and</dt><dd><p>sends the results to a callback function</p>
 </dd>
@@ -2079,7 +2085,7 @@ or the number of seconds until the next mail check</p></li>
 </dd></dl>
 
 <section id="module-parsedmarc.elastic">
-<span id="parsedmarc-elastic"></span><h3>parsedmarc.elastic<a class="headerlink" href="#module-parsedmarc.elastic" title="Permalink to this headline"></a></h3>
+<span id="parsedmarc-elastic"></span><h3>parsedmarc.elastic<a class="headerlink" href="#module-parsedmarc.elastic" title="Permalink to this heading"></a></h3>
 <dl class="py exception">
 <dt class="sig sig-object py" id="parsedmarc.elastic.AlreadySaved">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">AlreadySaved</span></span><a class="reference internal" href="_modules/parsedmarc/elastic.html#AlreadySaved"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.AlreadySaved" title="Permalink to this definition"></a></dt>
@@ -2184,7 +2190,7 @@ index</p></li>
 </div>
 </section>
 <section id="module-parsedmarc.splunk">
-<span id="parsedmarc-splunk"></span><h3>parsedmarc.splunk<a class="headerlink" href="#module-parsedmarc.splunk" title="Permalink to this headline"></a></h3>
+<span id="parsedmarc-splunk"></span><h3>parsedmarc.splunk<a class="headerlink" href="#module-parsedmarc.splunk" title="Permalink to this heading"></a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="parsedmarc.splunk.HECClient">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsedmarc.splunk.</span></span><span class="sig-name descname"><span class="pre">HECClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">access_token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parsedmarc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition"></a></dt>
@@ -2229,7 +2235,7 @@ index</p></li>
 </div>
 </section>
 <section id="module-parsedmarc.utils">
-<span id="parsedmarc-utils"></span><h3>parsedmarc.utils<a class="headerlink" href="#module-parsedmarc.utils" title="Permalink to this headline"></a></h3>
+<span id="parsedmarc-utils"></span><h3>parsedmarc.utils<a class="headerlink" href="#module-parsedmarc.utils" title="Permalink to this heading"></a></h3>
 <p>Utility functions that might be useful for other projects</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="parsedmarc.utils.DownloadError">
@@ -2535,7 +2541,7 @@ with the given IPv4 or IPv6 address</p>
 </section>
 </section>
 <section id="indices-and-tables">
-<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h2>
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
