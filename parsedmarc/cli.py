@@ -734,8 +734,8 @@ def _main():
         logger.setLevel(logging.DEBUG)
     if opts.log_file:
         try:
-            with open(opts.log_file, "w") as log_file:
-                pass
+            log_file = open(opts.log_file, "w")
+            log_file.close()
             fh = logging.FileHandler(opts.log_file)
             formatter = logging.Formatter(
                 '%(asctime)s - '
