@@ -1,5 +1,8 @@
 name: Python tests
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ master ]
@@ -21,7 +24,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libemail-outlook-message-perl
-        curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.16.2-amd64.deb
+        curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.2.2-amd64.deb
         sudo dpkg -i --force-confnew elasticsearch-*.deb
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
