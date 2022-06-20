@@ -5,7 +5,7 @@ set -e
 . venv/bin/activate
 
 pip install -U -r requirements.txt
-rstcheck --report warning README.rst
+rstcheck --report-level warning README.rst
 cd docs
 make html
 touch _build/html/.nojekyll
