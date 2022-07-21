@@ -129,11 +129,12 @@ class MSGraphConnection(MailboxConnection):
             logger.warning(f'Unknown response '
                            f'{resp.status_code} {resp.json()}')
 
-    def fetch_messages(self, folder_name: str) -> List[str]:
+    def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
         folder_id = self._find_folder_id_from_folder_path(folder_name)
+        batch_size = kwargs.get('batch_size', 10)
         url = f'/users/{self.mailbox_name}/mailFolders/' \
-              f'{folder_id}/messages?$select=id'
+              f'{folder_id}/messages?$select=id&$top={batch_size}'
         result = self._client.get(url)
         emails = result.json()['value']
         return [email['id'] for email in emails]
