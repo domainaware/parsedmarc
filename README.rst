@@ -228,6 +228,7 @@ The full set of configuration options are:
     - ``client_secret`` - str: The app registration's secret
     - ``tenant_id`` - str: The Azure AD tenant ID. This is required for all auth methods except UsernamePassword.
     - ``mailbox`` - str: The mailbox name. This defaults to the current user if using the UsernamePassword auth method, but could be a shared mailbox if the user has access to the mailbox
+    - ``token_file`` - str: Path to save the token file (Default: .token)
 
     .. note::
         You must create an app registration in Azure AD and have an admin grant the Microsoft Graph ``Mail.ReadWrite`` (delegated) permission to the app.
@@ -290,10 +291,10 @@ The full set of configuration options are:
     - ``server`` - str: The Syslog server name or IP address
     - ``port`` - int: The UDP port to use (Default: 514)
 - ``gmail_api``
-    - ``gmail_api_credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
-    - ``gmail_api_token_file`` - str: Path to save the token file (Default: .token)
-    - ``gmail_api_include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
-    - ``gmail_api_scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
+    - ``credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
+    - ``token_file`` - str: Path to save the token file (Default: .token)
+    - ``include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
+    - ``scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
 
 .. warning::
 

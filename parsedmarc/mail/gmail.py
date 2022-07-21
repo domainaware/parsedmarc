@@ -65,7 +65,7 @@ class GmailConnection(MailboxConnection):
             else:
                 raise e
 
-    def fetch_messages(self, reports_folder: str) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
         results = self.service.users().messages()\
             .list(userId='me',

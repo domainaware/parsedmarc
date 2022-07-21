@@ -1,11 +1,13 @@
 import logging
 from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 from time import sleep
 from typing import List, Optional
 
 from azure.identity import UsernamePasswordCredential, \
-    DeviceCodeCredential, ClientSecretCredential
+    DeviceCodeCredential, ClientSecretCredential, \
+    TokenCachePersistenceOptions, AuthenticationRecord
 from msgraph.core import GraphClient
 
 from parsedmarc.mail.mailbox_connection import MailboxConnection
@@ -20,13 +22,39 @@ class AuthMethod(Enum):
 logger = logging.getLogger('parsedmarc')
 
 
-def _generate_credential(auth_method: str, **kwargs):
+def _get_cache_args(token_path: Path):
+    cache_args = {
+        'cache_persistence_options':
+            TokenCachePersistenceOptions(name='parsedmarc')
+    }
+    auth_record = _load_token(token_path)
+    if auth_record:
+        cache_args['authentication_record'] = \
+            AuthenticationRecord.deserialize(auth_record)
+    return cache_args
+
+
+def _load_token(token_path: Path) -> Optional[str]:
+    if not token_path.exists():
+        return None
+    with token_path.open() as token_file:
+        return token_file.read()
+
+
+def _cache_auth_record(record: AuthenticationRecord, token_path: Path):
+    token = record.serialize()
+    with token_path.open('w') as token_file:
+        token_file.write(token)
+
+
+def _generate_credential(auth_method: str, token_path: Path, **kwargs):
     if auth_method == AuthMethod.DeviceCode.name:
         credential = DeviceCodeCredential(
             client_id=kwargs['client_id'],
             client_secret=kwargs['client_secret'],
             disable_automatic_authentication=True,
-            tenant_id=kwargs['tenant_id']
+            tenant_id=kwargs['tenant_id'],
+            **_get_cache_args(token_path)
         )
     elif auth_method == AuthMethod.UsernamePassword.name:
         credential = UsernamePasswordCredential(
@@ -34,7 +62,8 @@ def _generate_credential(auth_method: str, **kwargs):
             client_credential=kwargs['client_secret'],
             disable_automatic_authentication=True,
             username=kwargs['username'],
-            password=kwargs['password']
+            password=kwargs['password'],
+            **_get_cache_args(token_path)
         )
     elif auth_method == AuthMethod.ClientSecret.name:
         credential = ClientSecretCredential(
@@ -55,19 +84,23 @@ class MSGraphConnection(MailboxConnection):
                  client_secret: str,
                  username: str,
                  password: str,
-                 tenant_id: str):
+                 tenant_id: str,
+                 token_file: str):
+        token_path = Path(token_file)
         credential = _generate_credential(auth_method,
                                           client_id=client_id,
                                           client_secret=client_secret,
                                           username=username,
                                           password=password,
-                                          tenant_id=tenant_id)
+                                          tenant_id=tenant_id,
+                                          token_path=token_path)
         scopes = ['Mail.ReadWrite']
         # Detect if mailbox is shared
-        if username and mailbox and username != mailbox:
+        if mailbox and username != mailbox:
             scopes = ['Mail.ReadWrite.Shared']
         if not isinstance(credential, ClientSecretCredential):
-            credential.authenticate(scopes=scopes)
+            auth_record = credential.authenticate(scopes=scopes)
+            _cache_auth_record(auth_record, token_path)
         self._client = GraphClient(credential=credential)
         self.mailbox_name = mailbox
 
@@ -96,11 +129,12 @@ class MSGraphConnection(MailboxConnection):
             logger.warning(f'Unknown response '
                            f'{resp.status_code} {resp.json()}')
 
-    def fetch_messages(self, folder_name: str) -> List[str]:
+    def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
         folder_id = self._find_folder_id_from_folder_path(folder_name)
+        batch_size = kwargs.get('batch_size', 10)
         url = f'/users/{self.mailbox_name}/mailFolders/' \
-              f'{folder_id}/messages?$select=id'
+              f'{folder_id}/messages?$select=id&$top={batch_size}'
         result = self._client.get(url)
         emails = result.json()['value']
         return [email['id'] for email in emails]

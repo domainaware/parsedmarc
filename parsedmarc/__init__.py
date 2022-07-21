@@ -1087,7 +1087,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         connection.create_folder(forensic_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
-    messages = connection.fetch_messages(reports_folder)
+    messages = connection.fetch_messages(reports_folder, batch_size=batch_size)
     total_messages = len(messages)
     logger.debug("Found {0} messages in {1}".format(len(messages),
                                                     reports_folder))

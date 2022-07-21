@@ -480,6 +480,8 @@ def _main():
 
         if "msgraph" in config.sections():
             graph_config = config["msgraph"]
+            opts.graph_token_file = graph_config.get("token_file", ".token")
+
             if "auth_method" not in graph_config:
                 logger.info("auth_method setting missing from the "
                             "msgraph config section "
@@ -894,7 +896,8 @@ def _main():
                 client_id=opts.graph_client_id,
                 client_secret=opts.graph_client_secret,
                 username=opts.graph_user,
-                password=opts.graph_password
+                password=opts.graph_password,
+                token_file=opts.graph_token_file
             )
 
         except Exception as error:
