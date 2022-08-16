@@ -71,6 +71,12 @@ def _main():
 
         if not opts.silent:
             print(output_str)
+        if opts.output:
+            save_output(results, output_directory=opts.output,
+                        aggregate_json_filename=opts.aggregate_json_filename,
+                        forensic_json_filename=opts.forensic_json_filename,
+                        aggregate_csv_filename=opts.aggregate_csv_filename,
+                        forensic_csv_filename=opts.forensic_csv_filename)
         if opts.kafka_hosts:
             try:
                 ssl_context = None
@@ -950,13 +956,6 @@ def _main():
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports)])
-
-    if opts.output:
-        save_output(results, output_directory=opts.output,
-                    aggregate_json_filename=opts.aggregate_json_filename,
-                    forensic_json_filename=opts.forensic_json_filename,
-                    aggregate_csv_filename=opts.aggregate_csv_filename,
-                    forensic_csv_filename=opts.forensic_csv_filename)
 
     process_reports(results)
 
