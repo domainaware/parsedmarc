@@ -204,6 +204,7 @@ The full set of configuration options are:
     - ``delete`` - bool: Delete messages after processing them, instead of archiving them
     - ``test`` - bool: Do not move or delete messages
     - ``batch_size`` - int: Number of messages to read and process before saving. Default 10. Use 0 for no limit.
+    - ``check_timeout`` - int: Number of seconds to wait for a IMAP IDLE response or the number of seconds until the next mail check (Default: 30)
 
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address

@@ -270,6 +270,7 @@ def _main():
                      mailbox_delete=False,
                      mailbox_test=False,
                      mailbox_batch_size=None,
+                     mailbox_check_timeout=30,
                      imap_host=None,
                      imap_skip_certificate_verification=False,
                      imap_ssl=True,
@@ -405,6 +406,8 @@ def _main():
                 opts.mailbox_test = mailbox_config.getboolean("test")
             if "batch_size" in mailbox_config:
                 opts.mailbox_batch_size = mailbox_config.getint("batch_size")
+            if "check_timeout" in mailbox_config:
+                opts.mailbox_check_timeout = mailbox_config.getint("check_timeout")
 
         if "imap" in config.sections():
             imap_config = config["imap"]
@@ -985,6 +988,7 @@ def _main():
                 archive_folder=opts.mailbox_archive_folder,
                 delete=opts.mailbox_delete,
                 test=opts.mailbox_test,
+                check_timeout=opts.mailbox_check_timeout,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
