@@ -1266,6 +1266,36 @@ def watch_inbox(mailbox_connection: MailboxConnection,
                              check_timeout=check_timeout)
 
 
+def append_json(filename, reports):
+    with open(filename, "r+", newline="\n", encoding="utf-8") as output:
+        output_json = json.dumps(reports, ensure_ascii=False, indent=2)
+        if output.seek(0, os.SEEK_END) != 0:
+            if len(reports) == 0:
+                # not appending anything, don't do any dance to append it correctly
+                return
+            output.seek(output.tell() - 1)
+            last_char = output.read(1)
+            if last_char == "]":
+                # remove the trailing "\n]", leading "[\n", and replace with ",\n"
+                output.seek(output.tell() - 2)
+                output.write(",\n")
+                output_json = output_json[2:]
+            else:
+                output.seek(0)
+                output.truncate()
+
+        output.write(output_json)
+
+def append_csv(filename, csv):
+    with open(filename, "r+", newline="\n", encoding="utf-8") as output:
+        if output.seek(0, os.SEEK_END) != 0:
+            # strip the headers from the CSV
+            _headers, csv = csv.split("\n", 1)
+            if len(csv) == 0:
+                # not appending anything, don't do any dance to append it correctly
+                return
+        output.write(csv)
+
 def save_output(results, output_directory="output",
                 aggregate_json_filename="aggregate.json",
                 forensic_json_filename="forensic.json",
@@ -1292,33 +1322,15 @@ def save_output(results, output_directory="output",
     else:
         os.makedirs(output_directory)
 
-    with open("{0}"
-              .format(os.path.join(output_directory,
-                                   aggregate_json_filename)),
-              "w", newline="\n", encoding="utf-8") as agg_json:
-        agg_json.write(json.dumps(aggregate_reports, ensure_ascii=False,
-                                  indent=2))
+    append_json(os.path.join(output_directory, aggregate_json_filename), aggregate_reports)
 
-    with open("{0}"
-              .format(os.path.join(output_directory,
-                                   aggregate_csv_filename)),
-              "w", newline="\n", encoding="utf-8") as agg_csv:
-        csv = parsed_aggregate_reports_to_csv(aggregate_reports)
-        agg_csv.write(csv)
+    append_csv(os.path.join(output_directory, aggregate_csv_filename),
+               parsed_aggregate_reports_to_csv(aggregate_reports))
 
-    with open("{0}"
-              .format(os.path.join(output_directory,
-                                   forensic_json_filename)),
-              "w", newline="\n", encoding="utf-8") as for_json:
-        for_json.write(json.dumps(forensic_reports, ensure_ascii=False,
-                                  indent=2))
+    append_json(os.path.join(output_directory, forensic_json_filename), forensic_reports)
 
-    with open("{0}"
-              .format(os.path.join(output_directory,
-                                   forensic_csv_filename)),
-              "w", newline="\n", encoding="utf-8") as for_csv:
-        csv = parsed_forensic_reports_to_csv(forensic_reports)
-        for_csv.write(csv)
+    append_csv(os.path.join(output_directory, forensic_csv_filename),
+               parsed_forensic_reports_to_csv(forensic_reports))
 
     samples_directory = os.path.join(output_directory, "samples")
     if not os.path.exists(samples_directory):
