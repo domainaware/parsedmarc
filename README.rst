@@ -295,6 +295,7 @@ The full set of configuration options are:
     - ``token_file`` - str: Path to save the token file (Default: .token)
     - ``include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
     - ``scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
+    - ``oauth2_port`` - int: The TCP port for the local server to listen on for the OAuth2 response (Default: 8080)
 
 .. warning::
 

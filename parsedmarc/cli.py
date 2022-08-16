@@ -328,6 +328,7 @@ def _main():
                      gmail_api_token_file=None,
                      gmail_api_include_spam_trash=False,
                      gmail_api_scopes=[],
+                     gmail_api_oauth2_port=8080,
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1,
@@ -727,6 +728,9 @@ def _main():
                                      default_gmail_api_scope)
             opts.gmail_api_scopes = \
                 _str_to_list(opts.gmail_api_scopes)
+            if "oauth2_port" in gmail_api_config:
+                opts.gmail_api_oauth2_port = \
+                    gmail_api_config.get("oauth2_port", 8080)
 
     logger.setLevel(logging.WARNING)
 
@@ -919,7 +923,8 @@ def _main():
                 token_file=opts.gmail_api_token_file,
                 scopes=opts.gmail_api_scopes,
                 include_spam_trash=opts.gmail_api_include_spam_trash,
-                reports_folder=opts.mailbox_reports_folder
+                reports_folder=opts.mailbox_reports_folder,
+                oauth2_port=opts.gmail_api_oauth2_port
             )
 
         except Exception as error:
