@@ -1,4 +1,3 @@
-import logging
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -10,6 +9,7 @@ from azure.identity import UsernamePasswordCredential, \
     TokenCachePersistenceOptions, AuthenticationRecord
 from msgraph.core import GraphClient
 
+from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
 
@@ -17,9 +17,6 @@ class AuthMethod(Enum):
     DeviceCode = 1
     UsernamePassword = 2
     ClientSecret = 3
-
-
-logger = logging.getLogger('parsedmarc')
 
 
 def _get_cache_args(token_path: Path):

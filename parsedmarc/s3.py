@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import json
 import boto3
 
+from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
-
-logger = logging.getLogger("parsedmarc")
 
 
 class S3Client(object):

@@ -1,4 +1,3 @@
-import logging
 from base64 import urlsafe_b64decode
 from functools import lru_cache
 from pathlib import Path
@@ -11,9 +10,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
-
-logger = logging.getLogger("parsedmarc")
 
 
 def _get_creds(token_file, credentials_file, scopes):

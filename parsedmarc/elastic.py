@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
 from collections import OrderedDict
 
 from elasticsearch_dsl.search import Q
@@ -8,11 +7,9 @@ from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, Ip, Date, Search
 from elasticsearch.helpers import reindex
 
-
+from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 from parsedmarc import InvalidForensicReport
-
-logger = logging.getLogger("parsedmarc")
 
 
 class ElasticsearchError(Exception):
