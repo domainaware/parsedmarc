@@ -1,4 +1,3 @@
-import logging
 from urllib.parse import urlparse
 import socket
 import json
@@ -7,11 +6,10 @@ import urllib3
 import requests
 
 from parsedmarc import __version__
+from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-logger = logging.getLogger("parsedmarc")
 
 
 class SplunkError(RuntimeError):

@@ -1,14 +1,11 @@
-import logging
 from time import sleep
 
 from imapclient.exceptions import IMAPClientError
 from mailsuite.imap import IMAPClient
 from socket import timeout
 
+from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
-
-
-logger = logging.getLogger("parsedmarc")
 
 
 class IMAPConnection(MailboxConnection):

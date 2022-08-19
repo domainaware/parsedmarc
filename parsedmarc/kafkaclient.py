@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import json
 from ssl import create_default_context
 
@@ -10,9 +9,7 @@ from collections import OrderedDict
 from parsedmarc.utils import human_timestamp_to_datetime
 
 from parsedmarc import __version__
-
-logger = logging.getLogger("parsedmarc")
-
+from parsedmarc.log import logger
 
 class KafkaError(RuntimeError):
     """Raised when a Kafka error occurs"""

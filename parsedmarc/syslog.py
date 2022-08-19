@@ -7,8 +7,6 @@ import json
 from parsedmarc import parsed_aggregate_reports_to_csv_rows,\
     parsed_forensic_reports_to_csv_rows
 
-logger = logging.getLogger("parsedmarc")
-
 
 class SyslogClient(object):
     """A client for Syslog"""

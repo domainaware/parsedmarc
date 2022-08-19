@@ -25,9 +25,15 @@ from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 from parsedmarc.mail.graph import AuthMethod
 
+from parsedmarc.log import logger
 from parsedmarc.utils import is_mbox
 
-logger = logging.getLogger("parsedmarc")
+formatter = logging.Formatter(
+    fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
+    datefmt='%Y-%m-%d:%H:%M:%S')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def _str_to_list(s):

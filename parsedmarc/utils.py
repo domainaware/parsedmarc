@@ -32,6 +32,7 @@ import geoip2.errors
 import requests
 import publicsuffix2
 
+from parsedmarc.log import logger
 import parsedmarc.resources
 
 USER_AGENT = "Mozilla/5.0 (({0} {1})) parsedmarc".format(
@@ -42,7 +43,6 @@ USER_AGENT = "Mozilla/5.0 (({0} {1})) parsedmarc".format(
 parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 
 null_file = open(os.devnull, "w")
-logger = logging.getLogger("parsedmarc")
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
 
