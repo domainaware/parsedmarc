@@ -3,6 +3,7 @@
 import logging
 import os
 from datetime import datetime
+from datetime import timezone
 from datetime import timedelta
 from collections import OrderedDict
 import tempfile
@@ -22,7 +23,7 @@ except ImportError:
     # Try backported to PY<37 `importlib_resources`
     import importlib_resources as pkg_resources
 
-import dateparser
+from dateutil.parser import parse as parse_date
 import dns.reversename
 import dns.resolver
 import dns.exception
@@ -246,12 +247,9 @@ def human_timestamp_to_datetime(human_timestamp, to_utc=False):
 
     human_timestamp = human_timestamp.replace("-0000", "")
     human_timestamp = parenthesis_regex.sub("", human_timestamp)
-    settings = {}
 
-    if to_utc:
-        settings = {"TO_TIMEZONE": "UTC"}
-
-    return dateparser.parse(human_timestamp, settings=settings)
+    dt = parse_date(human_timestamp)
+    return dt.astimezone(timezone.utc) if to_utc else dt
 
 
 def human_timestamp_to_timestamp(human_timestamp):
