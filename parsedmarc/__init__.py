@@ -6,7 +6,6 @@ import binascii
 import email
 import email.utils
 import json
-import logging
 import mailbox
 import os
 import re
@@ -399,7 +398,7 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
                                 dns_timeout=2.0,
                                 parallel=False,
                                 keep_alive=None):
-    """Parses a file at the given path, a file-like object. or bytes as a
+    """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
 
     Args:
@@ -483,11 +482,11 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["dmarc_aligned"] = record["alignment"]["dmarc"]
             row["disposition"] = record["policy_evaluated"]["disposition"]
             policy_override_reasons = list(map(
-                lambda r: r["type"],
+                lambda r_: r_["type"],
                 record["policy_evaluated"]
                 ["policy_override_reasons"]))
             policy_override_comments = list(map(
-                lambda r: r["comment"] or "none",
+                lambda r_: r_["comment"] or "none",
                 record["policy_evaluated"]
                 ["policy_override_reasons"]))
             row["policy_override_reasons"] = ",".join(
@@ -1264,12 +1263,14 @@ def append_json(filename, reports):
         output_json = json.dumps(reports, ensure_ascii=False, indent=2)
         if output.seek(0, os.SEEK_END) != 0:
             if len(reports) == 0:
-                # not appending anything, don't do any dance to append it correctly
+                # not appending anything, don't do any dance to append it
+                # correctly
                 return
             output.seek(output.tell() - 1)
             last_char = output.read(1)
             if last_char == "]":
-                # remove the trailing "\n]", leading "[\n", and replace with ",\n"
+                # remove the trailing "\n]", leading "[\n", and replace with
+                # ",\n"
                 output.seek(output.tell() - 2)
                 output.write(",\n")
                 output_json = output_json[2:]
@@ -1279,15 +1280,18 @@ def append_json(filename, reports):
 
         output.write(output_json)
 
+
 def append_csv(filename, csv):
     with open(filename, "r+", newline="\n", encoding="utf-8") as output:
         if output.seek(0, os.SEEK_END) != 0:
             # strip the headers from the CSV
             _headers, csv = csv.split("\n", 1)
             if len(csv) == 0:
-                # not appending anything, don't do any dance to append it correctly
+                # not appending anything, don't do any dance to
+                # append it correctly
                 return
         output.write(csv)
+
 
 def save_output(results, output_directory="output",
                 aggregate_json_filename="aggregate.json",
@@ -1315,12 +1319,14 @@ def save_output(results, output_directory="output",
     else:
         os.makedirs(output_directory)
 
-    append_json(os.path.join(output_directory, aggregate_json_filename), aggregate_reports)
+    append_json(os.path.join(output_directory, aggregate_json_filename),
+                aggregate_reports)
 
     append_csv(os.path.join(output_directory, aggregate_csv_filename),
                parsed_aggregate_reports_to_csv(aggregate_reports))
 
-    append_json(os.path.join(output_directory, forensic_json_filename), forensic_reports)
+    append_json(os.path.join(output_directory, forensic_json_filename),
+                forensic_reports)
 
     append_csv(os.path.join(output_directory, forensic_csv_filename),
                parsed_forensic_reports_to_csv(forensic_reports))
