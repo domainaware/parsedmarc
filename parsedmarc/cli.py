@@ -420,7 +420,8 @@ def _main():
             if "batch_size" in mailbox_config:
                 opts.mailbox_batch_size = mailbox_config.getint("batch_size")
             if "check_timeout" in mailbox_config:
-                opts.mailbox_check_timeout = mailbox_config.getint("check_timeout")
+                opts.mailbox_check_timeout = mailbox_config.getint(
+                    "check_timeout")
 
         if "imap" in config.sections():
             imap_config = config["imap"]

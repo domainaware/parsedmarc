@@ -11,6 +11,7 @@ from parsedmarc.utils import human_timestamp_to_datetime
 from parsedmarc import __version__
 from parsedmarc.log import logger
 
+
 class KafkaError(RuntimeError):
     """Raised when a Kafka error occurs"""
 

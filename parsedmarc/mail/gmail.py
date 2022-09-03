@@ -27,7 +27,8 @@ def _get_creds(token_file, credentials_file, scopes, oauth2_port):
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 credentials_file, scopes)
-            creds = flow.run_local_server(open_browser=False, oauth2_port=oauth2_port)
+            creds = flow.run_local_server(open_browser=False,
+                                          oauth2_port=oauth2_port)
         # Save the credentials for the next run
         with Path(token_file).open('w') as token:
             token.write(creds.to_json())
