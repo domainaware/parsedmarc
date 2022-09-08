@@ -38,6 +38,11 @@ class Test(unittest.TestCase):
             print("\n")
             print(parsedmarc.parsed_aggregate_reports_to_csv(parsed_report))
 
+    def testEmptySample(self):
+        """Test empty/unparasable report"""
+        with self.assertRaises(parsedmarc.InvalidDMARCReport):
+            parsedmarc.parse_report_file('samples/empty.xml')
+
     def testForensicSamples(self):
         """Test sample forensic/ruf/failure DMARC reports"""
         sample_paths = glob("samples/forensic/*.eml")
