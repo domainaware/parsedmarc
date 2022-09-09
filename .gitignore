@@ -106,7 +106,7 @@ ENV/
 .idea/
 
 # Visual Studio Code settings
-.vscode/
+#.vscode/
 
 # I/O files
 output/
