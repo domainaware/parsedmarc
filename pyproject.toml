@@ -11,7 +11,7 @@ dynamic = [
 ]
 description = "A Python package and CLI for parsing aggregate and forensic DMARC reports"
 readme = "README.md"
-license = "Apache 2.0"
+license = "Apache-2.0"
 authors = [
     { name = "Sean Whalen", email = "whalenster@gmail.com" },
 ]
