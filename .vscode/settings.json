@@ -1,11 +1,10 @@
 {
     "markdownlint.config": {
-        "MD024": false,
-        "MD053": false
+        "MD024": false
     },
-
     "cSpell.words": [
         "adkim",
+        "amsmath",
         "andrewmcgilvray",
         "arcname",
         "aspf",
@@ -20,12 +19,15 @@
         "dateparser",
         "Davmail",
         "DBIP",
+        "deflist",
         "devel",
         "DMARC",
         "Dmarcian",
         "dnspython",
+        "dollarmath",
         "exampleuser",
         "expiringdict",
+        "fieldlist",
         "genindex",
         "geoipupdate",
         "Geolite",
@@ -43,6 +45,7 @@
         "keyout",
         "Leeman",
         "libemail",
+        "linkify",
         "LISTSERV",
         "lxml",
         "mailparser",
@@ -82,7 +85,9 @@
         "SAMEORIGIN",
         "Servernameone",
         "setuptools",
+        "smartquotes",
         "STARTTLS",
+        "tasklist",
         "toctree",
         "TQDDM",
         "tqdm",
