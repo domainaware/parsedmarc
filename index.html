@@ -772,12 +772,16 @@ least:</p>
 <h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the  <a class="reference external" href="https://db-ip.com/db/download/ip-to-country-lite">IP to Country Lite database</a> from IPDB is
-distributed with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the terms of the <a class="reference external" href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>. as
-a fallback if the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> is not installed  However, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> cannot install updated
-versions of these databases as they are released, so MaxMind’s databases and <a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> tool is still the
-preferable solution.</p>
-<p>The location of the database file can be overridden by using the <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the
+<a class="reference external" href="https://db-ip.com/db/download/ip-to-country-lite">IP to Country Lite database</a> from IPDB is distributed with
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the terms of the
+<a class="reference external" href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+as a fallback if the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> is not
+installed  However, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> cannot install updated versions of
+these databases as they are released, so MaxMind’s databases and the
+<a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> tool is still the preferable solution.</p>
+<p>The location of the database file can be overridden by using the
+<code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
 </div>
 <p>On Debian 10 (Buster) or later, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
@@ -797,7 +801,8 @@ sudo apt install -y geoipupdate
 from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
 <p>On December 30th, 2019, MaxMind started requiring free accounts to
 access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
-comply with various privacy regulations</a>.</p>
+comply with various privacy
+regulations</a>.</p>
 <p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite2 account</a>, and signing in.</p>
 <p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account,
 and create a new license key for the version of
@@ -864,8 +869,8 @@ explicitly tell <code class="docutils literal notranslate"><span class="pre">vir
 </section>
 <section id="optional-dependencies">
 <h3>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this heading"></a></h3>
-<p>If you would like to be able to parse emails saved from Microsoft Outlook
-(i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
+<p>If you would like to be able to parse emails saved from Microsoft
+Outlook (i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install libemail-outlook-message-perl
 </pre></div>
@@ -873,8 +878,8 @@ explicitly tell <code class="docutils literal notranslate"><span class="pre">vir
 </section>
 <section id="testing-multiple-report-analyzers">
 <h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this heading"></a></h3>
-<p>If you would like to test parsedmarc and another report processing solution
-at the same time, you can have up to two mailto URIs each in the rua and ruf
+<p>If you would like to test parsedmarc and another report processing
+solution at the same time, you can have up to two <code class="docutils literal notranslate"><span class="pre">mailto</span></code> URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.</p>
 </section>
 <section id="accessing-an-inbox-using-owa-ews">
@@ -1020,10 +1025,10 @@ sudo service davmail restart
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In the event of a crash, systemd will restart the service after 5 minutes,
-but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">davmail</span> <span class="pre">status</span></code> command will only show the logs for the
-current process. To vew the logs for previous runs as well as the
-current process (newest to oldest), run:</p>
+<p>In the event of a crash, systemd will restart the service after 5
+minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">davmail</span> <span class="pre">status</span></code> command will only show the
+logs for the current process. To vew the logs for previous runs as
+well as the current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u davmail.service -r
 </pre></div>
 </div>
@@ -1091,8 +1096,8 @@ sudo service kibana start
 </div>
 <p>Without the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a> or <a class="reference external" href="https://readonlyrest.com/">ReadonlyREST</a> products, Kibana
 does not have any authentication
-mechanism of its own. You can use nginx as a reverse proxy that provides basic
-authentication.</p>
+mechanism of its own. You can use nginx as a reverse proxy that
+provides basic authentication.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y nginx apache2-utils
 </pre></div>
 </div>
@@ -1114,8 +1119,7 @@ authentication.</p>
 </pre></div>
 </div>
 <p>Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
-domain name), which is the IP address or domain name that you will be hosting
-Kibana on. it is the most important field.</p>
+domain name), which is the IP address or domain name that you will bebana on. it is the most important field.</p>
 <p>If you generated a CSR, remove the CSR after you have your certs</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm -f kibana.csr
 </pre></div>
@@ -1230,23 +1234,23 @@ check out the Elastic guide to <a class="reference external" href="https://www.e
 <h3>Splunk<a class="headerlink" href="#splunk" title="Permalink to this heading"></a></h3>
 <p>Starting in version 4.3.0 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports sending aggregate and/or
 forensic DMARC data to a Splunk <a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC">HTTP Event collector (HEC)</a>.</p>
-<p>The project repository contains <a class="reference external" href="https://github.com/domainaware/parsedmarc/tree/master/splunk">XML files</a> for premade Splunk dashboards for
-aggregate and forensic DMARC reports.</p>
-<p>Copy and paste the contents of each file into a separate Splunk dashboard XML
-editor.</p>
+<p>The project repository contains <a class="reference external" href="https://github.com/domainaware/parsedmarc/tree/master/splunk">XML files</a> for premade Splunk
+dashboards for aggregate and forensic DMARC reports.</p>
+<p>Copy and paste the contents of each file into a separate Splunk
+dashboard XML editor.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Change all occurrences of <code class="docutils literal notranslate"><span class="pre">index=&quot;email&quot;</span></code> in the XML to
 match your own index name.</p>
 </div>
-<p>The Splunk dashboards display the same content and layout as the Kibana
-dashboards, although the Kibana dashboards have slightly easier and more
-flexible filtering options.</p>
+<p>The Splunk dashboards display the same content and layout as the
+Kibana dashboards, although the Kibana dashboards have slightly
+easier and more flexible filtering options.</p>
 </section>
 <section id="running-parsedmarc-as-a-systemd-service">
 <h3>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this heading"></a></h3>
-<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as they
-arrive.</p>
+<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
+they arrive.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:parsedmarc /etc/parsedmarc.ini
 sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/parsedmarc.ini
@@ -1298,10 +1302,10 @@ sudo service parsedmarc restart
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In the event of a crash, systemd will restart the service after 10 minutes,
-but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show the logs for the
-current process. To vew the logs for previous runs as well as the
-current process (newest to oldest), run:</p>
+<p>In the event of a crash, systemd will restart the service after 10
+minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show
+the logs for the current process. To vew the logs for previous runs
+as well as the current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u parsedmarc.service -r
 </pre></div>
 </div>
@@ -1310,8 +1314,8 @@ current process (newest to oldest), run:</p>
 </section>
 <section id="using-the-kibana-dashboards">
 <h2>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Permalink to this heading"></a></h2>
-<p>The Kibana DMARC dashboards are a human-friendly way to understand the results
-from incoming DMARC reports.</p>
+<p>The Kibana DMARC dashboards are a human-friendly way to understand the
+results from incoming DMARC reports.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The default dashboard is DMARC Summary. To switch between dashboards,
@@ -1319,8 +1323,8 @@ click on the Dashboard link in the left side menu of Kibana.</p>
 </div>
 <section id="dmarc-summary">
 <h3>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Permalink to this heading"></a></h3>
-<p>As the name suggests, this dashboard is the best place to start reviewing your
-aggregate DMARC data.</p>
+<p>As the name suggests, this dashboard is the best place to start
+reviewing your aggregate DMARC data.</p>
 <p>Across the top of the dashboard, three pie charts display the percentage of
 alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
 will filter for that value.</p>
