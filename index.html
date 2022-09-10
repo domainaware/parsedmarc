@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.3.0
+                8.3.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -87,9 +87,11 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
-<li><a class="reference internal" href="#what-if-a-sender-won-t-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
+<li><a class="reference internal" href="#what-if-a-sender-wont-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
 <li><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
 <li><a class="reference internal" href="#mailing-list-list-best-practices">Mailing list list best practices</a><ul>
+<li><a class="reference internal" href="#do">Do</a></li>
+<li><a class="reference internal" href="#do-not">Do not</a></li>
 <li><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
 <li><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
 </ul>
@@ -129,7 +131,7 @@
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
       <li>parsedmarc documentation - Open source DMARC report analyzer and visualizer</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -137,9 +139,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
+  <section class="tex2jax_ignore mathjax_ignore" id="parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer">
 <h1>parsedmarc documentation - Open source DMARC report analyzer and visualizer<a class="headerlink" href="#parsedmarc-documentation-open-source-dmarc-report-analyzer-and-visualizer" title="Permalink to this heading"></a></h1>
-<p><a class="reference external" href="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml"><img alt="Build Status" src="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg" /></a> <a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="Code Coverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a> <a class="reference external" href="https://pypi.org/project/parsedmarc/"><img alt="PyPI Package" src="https://img.shields.io/pypi/v/parsedmarc.svg" /></a></p>
+<p><a class="reference external" href="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml"><img alt="BuildStatus" src="https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg" /></a>
+<a class="reference external" href="https://codecov.io/gh/domainaware/parsedmarc"><img alt="CodeCoverage" src="https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg" /></a>
+<a class="reference external" href="https://pypi.org/project/parsedmarc/"><img alt="PyPIPackage" src="https://img.shields.io/pypi/v/parsedmarc.svg" /></a></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Help Wanted</strong></p>
@@ -191,53 +195,54 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </section>
 <section id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">parsedmarc</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_JSON_FILENAME</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_JSON_FILENAME</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_CSV_FILENAME</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_CSV_FILENAME</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">offline</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">debug</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
-                   <span class="p">[</span><span class="n">file_path</span> <span class="o">...</span><span class="p">]</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
+                   [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
+                   [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                   [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
+                   [--forensic-csv-filename FORENSIC_CSV_FILENAME]
+                   [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline]
+                   [-s] [--verbose] [--debug] [--log-file LOG_FILE] [-v]
+                   [file_path ...]
 
- <span class="n">Parses</span> <span class="n">DMARC</span> <span class="n">reports</span>
+ Parses DMARC reports
 
- <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
-   <span class="n">file_path</span>             <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">paths</span> <span class="n">to</span> <span class="n">aggregate</span> <span class="ow">or</span> <span class="n">forensic</span> <span class="n">report</span>
-                         <span class="n">files</span><span class="p">,</span> <span class="n">emails</span><span class="p">,</span> <span class="ow">or</span> <span class="n">mbox</span> <span class="n">files</span><span class="s1">&#39;</span>
+ positional arguments:
+   file_path             one or more paths to aggregate or forensic report
+                         files, emails, or mbox files&#39;
 
- <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
-   <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
-   <span class="o">-</span><span class="n">c</span> <span class="n">CONFIG_FILE</span><span class="p">,</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">CONFIG_FILE</span>
-                         <span class="n">a</span> <span class="n">path</span> <span class="n">to</span> <span class="n">a</span> <span class="n">configuration</span> <span class="n">file</span> <span class="p">(</span><span class="o">--</span><span class="n">silent</span> <span class="n">implied</span><span class="p">)</span>
-   <span class="o">--</span><span class="n">strip</span><span class="o">-</span><span class="n">attachment</span><span class="o">-</span><span class="n">payloads</span>
-                         <span class="n">remove</span> <span class="n">attachment</span> <span class="n">payloads</span> <span class="kn">from</span> <span class="nn">forensic</span> <span class="n">report</span> <span class="n">output</span>
-   <span class="o">-</span><span class="n">o</span> <span class="n">OUTPUT</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span>
-                         <span class="n">write</span> <span class="n">output</span> <span class="n">files</span> <span class="n">to</span> <span class="n">the</span> <span class="n">given</span> <span class="n">directory</span>
-   <span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_JSON_FILENAME</span>
-                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">aggregate</span> <span class="n">JSON</span> <span class="n">output</span> <span class="n">file</span>
-   <span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">json</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_JSON_FILENAME</span>
-                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">forensic</span> <span class="n">JSON</span> <span class="n">output</span> <span class="n">file</span>
-   <span class="o">--</span><span class="n">aggregate</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">AGGREGATE_CSV_FILENAME</span>
-                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">aggregate</span> <span class="n">CSV</span> <span class="n">output</span> <span class="n">file</span>
-   <span class="o">--</span><span class="n">forensic</span><span class="o">-</span><span class="n">csv</span><span class="o">-</span><span class="n">filename</span> <span class="n">FORENSIC_CSV_FILENAME</span>
-                         <span class="n">filename</span> <span class="k">for</span> <span class="n">the</span> <span class="n">forensic</span> <span class="n">CSV</span> <span class="n">output</span> <span class="n">file</span>
-   <span class="o">-</span><span class="n">n</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">],</span> <span class="o">--</span><span class="n">nameservers</span> <span class="n">NAMESERVERS</span> <span class="p">[</span><span class="n">NAMESERVERS</span> <span class="o">...</span><span class="p">]</span>
-                         <span class="n">nameservers</span> <span class="n">to</span> <span class="n">query</span>
-   <span class="o">-</span><span class="n">t</span> <span class="n">DNS_TIMEOUT</span><span class="p">,</span> <span class="o">--</span><span class="n">dns_timeout</span> <span class="n">DNS_TIMEOUT</span>
-                         <span class="n">number</span> <span class="n">of</span> <span class="n">seconds</span> <span class="n">to</span> <span class="n">wait</span> <span class="k">for</span> <span class="n">an</span> <span class="n">answer</span> <span class="kn">from</span> <span class="nn">DNS</span>
-                         <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
-   <span class="o">--</span><span class="n">offline</span>             <span class="n">do</span> <span class="ow">not</span> <span class="n">make</span> <span class="n">online</span> <span class="n">queries</span> <span class="k">for</span> <span class="n">geolocation</span> <span class="ow">or</span> <span class="n">DNS</span>
-   <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">silent</span>          <span class="n">only</span> <span class="nb">print</span> <span class="n">errors</span> <span class="ow">and</span> <span class="n">warnings</span>
-   <span class="o">--</span><span class="n">verbose</span>             <span class="n">more</span> <span class="n">verbose</span> <span class="n">output</span>
-   <span class="o">--</span><span class="n">debug</span>               <span class="nb">print</span> <span class="n">debugging</span> <span class="n">information</span>
-   <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">file</span> <span class="n">LOG_FILE</span>   <span class="n">output</span> <span class="n">logging</span> <span class="n">to</span> <span class="n">a</span> <span class="n">file</span>
-   <span class="o">-</span><span class="n">v</span><span class="p">,</span> <span class="o">--</span><span class="n">version</span>         <span class="n">show</span> <span class="n">program</span><span class="s1">&#39;s version number and exit</span>
+ optional arguments:
+   -h, --help            show this help message and exit
+   -c CONFIG_FILE, --config-file CONFIG_FILE
+                         a path to a configuration file (--silent implied)
+   --strip-attachment-payloads
+                         remove attachment payloads from forensic report output
+   -o OUTPUT, --output OUTPUT
+                         write output files to the given directory
+   --aggregate-json-filename AGGREGATE_JSON_FILENAME
+                         filename for the aggregate JSON output file
+   --forensic-json-filename FORENSIC_JSON_FILENAME
+                         filename for the forensic JSON output file
+   --aggregate-csv-filename AGGREGATE_CSV_FILENAME
+                         filename for the aggregate CSV output file
+   --forensic-csv-filename FORENSIC_CSV_FILENAME
+                         filename for the forensic CSV output file
+   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                         nameservers to query
+   -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                         number of seconds to wait for an answer from DNS
+                         (default: 2.0)
+   --offline             do not make online queries for geolocation or DNS
+   -s, --silent          only print errors and warnings
+   --verbose             more verbose output
+   --debug               print debugging information
+   --log-file LOG_FILE   output logging to a file
+   -v, --version         show program&#39;s version number and exit
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 6.0.0, most CLI options were moved to a configuration file, described below.</p>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 6.0.0, most CLI options were moved to a
+configuration file, described below.</p>
 </div>
 </section>
 <section id="configuration-file">
@@ -282,103 +287,160 @@ lookalike domain monitoring, check out <a class="reference external" href="https
 </div>
 <p>The full set of configuration options are:</p>
 <ul>
-<li><dl>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">general</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to Elasticsearch, Splunk and/or S3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment payloads from results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to
+Elasticsearch, Splunk and/or S3</p></li>
+</ul>
+</dd>
+</dl>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to
+Elasticsearch, Splunk and/or S3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
+payloads from results</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate JSON output file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic JSON output file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file from MaxMind or DBIP</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation or DNS</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate
+JSON output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic
+JSON output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file</p></li>
+<li><p>from MaxMind or DBIP</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation
+or DNS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of
+DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process when running in parallel.</p></li>
-</ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when
+parsing in CLI mode (Default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process
+when running in parallel.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Setting this to a number larger than one can improve performance when processing thousands of files</p>
+<p>Setting this to a number larger than one can improve
+performance when processing thousands of files</p>
 </div>
-</dd>
-</dl>
 </li>
-<li><dl class="simple">
+</ul>
+</li>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for Gmail) where the incoming reports can be found (Default: INBOX)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for Gmail) to sort processed emails into (Default: Archive)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process messages as they arrive or poll MS Graph for new messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them, instead of archiving them</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process before saving. Default 10. Use 0 for no limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
+Gmail) where the incoming reports can be found (Default: INBOX)</p></li>
 </ul>
 </dd>
 </dl>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for
+Gmail) to sort processed emails into (Default: Archive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process</p></li>
+<li><p>messages as they arrive or poll MS Graph for new messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,</p></li>
+<li><p>instead of archiving them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
+before saving. Default 10. Use 0 for no limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
+IDLE response or the number of seconds until the next mai
+check (Default: 30)</p></li>
+</ul>
 </li>
-<li><dl>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p></li>
 </ul>
+</dd>
+</dl>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character, so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
+so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Starting in version 8.0.0, most options from the <code class="docutils literal notranslate"><span class="pre">imap</span></code> section have been moved to the <code class="docutils literal notranslate"><span class="pre">mailbox</span></code> section.</p>
+<p>Starting in version 8.0.0, most options from the <code class="docutils literal notranslate"><span class="pre">imap</span></code>
+section have been moved to the <code class="docutils literal notranslate"><span class="pre">mailbox</span></code> section.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If your host recommends another port, still try 993</p>
 </div>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
+(Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
 </ul>
+</li>
+<li><dl class="simple myst">
+<dt><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are
+UsernamePassword, DeviceCode, or ClientSecret
+(Default: UsernamePassword).</p></li>
+</ul>
 </dd>
 </dl>
-</li>
-<li><dl>
-<dt><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are UsernamePassword, DeviceCode, or ClientSecret (Default: UsernamePassword).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is UsernamePassword</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password, required when the auth method is UsernamePassword</p></li>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is
+UsernamePassword</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password, required when the auth
+method is UsernamePassword</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s secret</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The Azure AD tenant ID. This is required for all auth methods except UsernamePassword.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the current user if using the UsernamePassword auth method, but could be a shared mailbox if the user has access to the mailbox</p></li>
-</ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The Azure AD tenant ID. This is required
+for all auth methods except UsernamePassword.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the
+current user if using the UsernamePassword auth method, but
+could be a shared mailbox if the user has access to the mailbox</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
+(Default: .token)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You must create an app registration in Azure AD and have an admin grant the Microsoft Graph <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (delegated) permission to the app.
-If you are using <cite>UsernamePassword</cite> auth and the mailbox is different from the username, you must grant the app <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>.</p>
+<p>You must create an app registration in Azure AD and have an
+admin grant the Microsoft Graph <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code>
+(delegated) permission to the app. If you are using
+<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> auth and the mailbox is different from the
+username, you must grant the app <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>If you are using the <cite>ClientSecret</cite> auth method, you need to grant the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application) permission to the app.
-You must also restrict the application’s access to a specific mailbox since it allows all mailboxes by default.
-Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the Exchange PowerShell module.
-If you need to scope the policy to shared mailboxes, you can add them to a mail enabled security group and use that as the group id.</p>
-<p><code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span> <span class="pre">-AccessRight</span> <span class="pre">RestrictAccess</span> <span class="pre">-AppId</span> <span class="pre">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="pre">-PolicyScopeGroupId</span> <span class="pre">&quot;&lt;MAILBOX&gt;&quot;</span> <span class="pre">-Description</span> <span class="pre">&quot;Restrict</span> <span class="pre">access</span> <span class="pre">to</span> <span class="pre">dmarc</span> <span class="pre">reports</span> <span class="pre">mailbox.&quot;</span></code></p>
+<p>If you are using the <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code> auth method, you need to
+grant the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application) permission to the
+app. You must also restrict the application’s access to a
+specific mailbox since it allows all mailboxes by default.
+Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the
+Exchange PowerShell module. If you need to scope the policy to
+shared mailboxes, you can add them to a mail enabled security
+group and use that as the group id.</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span>
+<span class="n">-AppId</span> <span class="s2">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="n">-PolicyScopeGroupId</span> <span class="s2">&quot;&lt;MAILBOX&gt;&quot;</span>
+<span class="n">-Description</span> <span class="s2">&quot;Restrict access to dmarc reports mailbox.&quot;</span>
+</pre></div>
 </div>
-</dd>
-</dl>
+</div>
 </li>
-<li><dl>
+</ul>
+</li>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or <code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports
+or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or
+<code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Special characters in the username or password must be <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
+<p>Special characters in the username or password must be
+<a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
 </div>
+</dd>
+</dl>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
@@ -387,123 +449,148 @@ If you need to scope the policy to shared mailboxes, you can add them to a mail 
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when creating the index (Default: 1)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when creating the index (Default: 1)</p></li>
 </ul>
-</dd>
-</dl>
 </li>
-<li><dl class="simple">
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">url</span></code> - str: The URL of the Splunk HTTP Events Collector (HEC)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">token</span></code> - str: The HEC token</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">index</span></code> - str: The Splunk index to use</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
 </ul>
 </dd>
 </dl>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">token</span></code> - str: The HEC token</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index</span></code> - str: The Splunk index to use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
+</ul>
 </li>
-<li><dl class="simple">
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">kafka</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</p></li>
+</ul>
+</dd>
+</dl>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The Kafka user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">passsword</span></code> - str: The Kafka password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_topic</span></code> - str: The Kafka topic for aggregate reports</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forensic_topic</span></code> - str: The Kafka topic for forensic reports</p></li>
 </ul>
-</dd>
-</dl>
 </li>
-<li><dl>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">smtp</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
+</ul>
+</dd>
+</dl>
+<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: the SMTP username</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: the SMTP password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">from</span></code> - str: The From header to use in the email</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">to</span></code> - list: A list of email addresses to send to</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email (Default: parsedmarc report)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email
+(Default: parsedmarc report)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message (Default: Please see the attached parsedmarc report.)</p></li>
-</ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message
+(Default: Please see the attached parsedmarc report.)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character, so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
+so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
 </div>
-</dd>
-</dl>
 </li>
-<li><dl class="simple">
+</ul>
+</li>
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">s3</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
+</ul>
+</dd>
+</dl>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: /)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">region_name</span></code> - str: The region name (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">endpoint_url</span></code> - str: The endpoint URL (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">access_key_id</span></code> - str: The access key id (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">secret_access_key</span></code> - str: The secret access key (Optional)</p></li>
 </ul>
-</dd>
-</dl>
 </li>
-<li><dl class="simple">
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">syslog</span></code></dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
+</ul>
+</dd>
+</dl>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: 514)</p></li>
 </ul>
-</dd>
-</dl>
 </li>
-<li><dl class="simple">
+<li><dl class="simple myst">
 <dt><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_credentials_file</span></code> - str: Path to file containing the credentials, None to disable (Default: None)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_token_file</span></code> - str: Path to save the token file (Default: .token)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_include_spam_trash</span></code> - bool: Include messages in Spam and Trash when searching reports (Default: False)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api_scopes</span></code> - str: Comma separated list of scopes to use when acquiring credentials (Default: <a class="reference external" href="https://www.googleapis.com/auth/gmail.modify">https://www.googleapis.com/auth/gmail.modify</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
+credentials, None to disable (Default: None)</p></li>
 </ul>
 </dd>
 </dl>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
+(Default: .token)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
+Trash when searching reports (Default: False)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scopes</span></code> - str: Comma separated list of scopes to use when
+acquiring credentials (Default: <a class="reference external" href="https://www.googleapis.com/auth/gmail.modify">https://www.googleapis.com/auth/gmail.modify</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">oauth2_port</span></code> - int: The TCP port for the local server to
+listen on for the OAuth2 response (Default: 8080)</p></li>
+</ul>
 </li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> setting.
-By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>,
-which are much faster and more reliable than Google, Cisco OpenDNS, or
-even most local resolvers.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network blocks DNS
-requests to outside resolvers.</p>
+<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code>
+setting. By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses
+<a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>, which are much faster and more
+reliable than Google, Cisco OpenDNS, or even most local resolvers.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network
+blocks DNS requests to outside resolvers.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options because
-you may not want to save forensic reports (also known as failure reports)
-to your Elasticsearch instance, particularly if you are in a
-highly-regulated industry that handles sensitive data, such as healthcare
-or finance. If your legitimate outgoing email fails DMARC, it is possible
+<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options
+because you may not want to save forensic reports
+(also known as failure reports) to your Elasticsearch instance,
+particularly if you are in a highly-regulated industry that
+handles sensitive data, such as healthcare or finance. If your
+legitimate outgoing email fails DMARC, it is possible
 that email may appear later in a forensic report.</p>
-<p>Forensic reports contain the original headers of an email that failed a
-DMARC check, and sometimes may also include the full message body,
-depending on the policy of the reporting organization.</p>
-<p>Most reporting organizations do not send forensic reports of any kind for
-privacy reasons. While aggregate DMARC reports are sent at least daily,
-it is normal to receive very few forensic reports.</p>
-<p>An alternative approach is to still collect forensic/failure/ruf reports
-in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with <code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code>
-manually on a separate IMAP folder (using the  <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option),
-after you have manually moved known samples you want to save to that
-folder (e.g. malicious samples and non-sensitive legitimate samples).</p>
+<p>Forensic reports contain the original headers of an email that
+failed a DMARC check, and sometimes may also include the
+full message body, depending on the policy of the reporting
+organization.</p>
+<p>Most reporting organizations do not send forensic reports of any
+kind for privacy reasons. While aggregate DMARC reports are sent
+at least daily, it is normal to receive very few forensic reports.</p>
+<p>An alternative approach is to still collect forensic/failure/ruf
+reports in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with
+<code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True``manually</span> <span class="pre">on</span> <span class="pre">a</span> <span class="pre">separate</span> <span class="pre">IMAP</span> <span class="pre">folder</span> <span class="pre">(using</span> <span class="pre">the</span>&#160; <span class="pre">``reports_folder</span></code> option), after you have manually moved
+known samples you want to save to that folder
+(e.g. malicious samples and non-sensitive legitimate samples).</p>
 </div>
 </section>
 <section id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this heading"></a></h2>
 <p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
-report from the dmarc.org wiki. It’s actually an older draft of the the 1.0
+report from the <a class="reference external" href="http://dmarc.org">dmarc.org</a> wiki. It’s actually an older draft of the the 1.0
 report schema standardized in
 <a class="reference external" href="https://tools.ietf.org/html/rfc7489#appendix-C">RFC 7480 Appendix C</a>.
 This draft schema is still in wide use.</p>
-<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless of the report
-schema.</p>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless
+of the report schema.</p>
 <section id="json">
 <h3>JSON<a class="headerlink" href="#json" title="Permalink to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
@@ -575,8 +662,8 @@ schema.</p>
 </section>
 <section id="csv">
 <h3>CSV<a class="headerlink" href="#csv" title="Permalink to this heading"></a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xml_schema</span><span class="p">,</span><span class="n">org_name</span><span class="p">,</span><span class="n">org_email</span><span class="p">,</span><span class="n">org_extra_contact_info</span><span class="p">,</span><span class="n">report_id</span><span class="p">,</span><span class="n">begin_date</span><span class="p">,</span><span class="n">end_date</span><span class="p">,</span><span class="n">errors</span><span class="p">,</span><span class="n">domain</span><span class="p">,</span><span class="n">adkim</span><span class="p">,</span><span class="n">aspf</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">sp</span><span class="p">,</span><span class="n">pct</span><span class="p">,</span><span class="n">fo</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">count</span><span class="p">,</span><span class="n">spf_aligned</span><span class="p">,</span><span class="n">dkim_aligned</span><span class="p">,</span><span class="n">dmarc_aligned</span><span class="p">,</span><span class="n">disposition</span><span class="p">,</span><span class="n">policy_override_reasons</span><span class="p">,</span><span class="n">policy_override_comments</span><span class="p">,</span><span class="n">envelope_from</span><span class="p">,</span><span class="n">header_from</span><span class="p">,</span><span class="n">envelope_to</span><span class="p">,</span><span class="n">dkim_domains</span><span class="p">,</span><span class="n">dkim_selectors</span><span class="p">,</span><span class="n">dkim_results</span><span class="p">,</span><span class="n">spf_domains</span><span class="p">,</span><span class="n">spf_scopes</span><span class="p">,</span><span class="n">spf_results</span>
-<span class="n">draft</span><span class="p">,</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">noreply</span><span class="o">-</span><span class="n">dmarc</span><span class="o">-</span><span class="n">support</span><span class="nd">@acme</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">acme</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dmarc</span><span class="o">/</span><span class="n">support</span><span class="p">,</span><span class="mi">9391651994964116463</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">27</span> <span class="mi">20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">,</span><span class="mi">2012</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">28</span> <span class="mi">19</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">72.150.241.94</span><span class="p">,</span><span class="n">US</span><span class="p">,</span><span class="n">adsl</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="mi">241</span><span class="o">-</span><span class="mf">94.</span><span class="n">shv</span><span class="o">.</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="n">bellsouth</span><span class="o">.</span><span class="n">net</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="n">none</span><span class="p">,,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">none</span><span class="p">,</span><span class="n">fail</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">mfrom</span><span class="p">,</span><span class="k">pass</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
+draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
 </pre></div>
 </div>
 </section>
@@ -676,8 +763,8 @@ schema.</p>
 </section>
 <section id="id2">
 <h3>CSV<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">feedback_type</span><span class="p">,</span><span class="n">user_agent</span><span class="p">,</span><span class="n">version</span><span class="p">,</span><span class="n">original_envelope_id</span><span class="p">,</span><span class="n">original_mail_from</span><span class="p">,</span><span class="n">original_rcpt_to</span><span class="p">,</span><span class="n">arrival_date</span><span class="p">,</span><span class="n">arrival_date_utc</span><span class="p">,</span><span class="n">subject</span><span class="p">,</span><span class="n">message_id</span><span class="p">,</span><span class="n">authentication_results</span><span class="p">,</span><span class="n">dkim_domain</span><span class="p">,</span><span class="n">source_ip_address</span><span class="p">,</span><span class="n">source_country</span><span class="p">,</span><span class="n">source_reverse_dns</span><span class="p">,</span><span class="n">source_base_domain</span><span class="p">,</span><span class="n">delivery_result</span><span class="p">,</span><span class="n">auth_failure</span><span class="p">,</span><span class="n">reported_domain</span><span class="p">,</span><span class="n">authentication_mechanisms</span><span class="p">,</span><span class="n">sample_headers_only</span>
-<span class="n">auth</span><span class="o">-</span><span class="n">failure</span><span class="p">,</span><span class="n">Lua</span><span class="o">/</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,,</span><span class="n">sharepoint</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="n">peter</span><span class="o">.</span><span class="n">pan</span><span class="nd">@domain</span><span class="o">.</span><span class="n">de</span><span class="p">,</span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="mi">2018</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">01</span> <span class="mi">09</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">27</span><span class="p">,</span><span class="n">Subject</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">38.E7.30937</span><span class="o">.</span><span class="n">BD6E1BB5</span><span class="o">@</span> <span class="n">mailrelay</span><span class="o">.</span><span class="n">de</span><span class="o">&gt;</span><span class="p">,</span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,,</span><span class="mf">10.10.10.10</span><span class="p">,,,,</span><span class="n">policy</span><span class="p">,</span><span class="n">dmarc</span><span class="p">,</span><span class="n">domain</span><span class="o">.</span><span class="n">de</span><span class="p">,,</span><span class="kc">False</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
+auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;,2018-10-01 09:20:27,Subject,&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;,&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;,,10.10.10.10,,,,policy,dmarc,domain.de,,False
 </pre></div>
 </div>
 </section>
@@ -695,15 +782,15 @@ schema.</p>
 <p>If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
 proxy details there, for example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">https_proxy</span><span class="o">=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">ftp_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">user</span><span class="p">:</span><span class="n">password</span><span class="nd">@prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">http_proxy</span><span class="o">=</span>http://user:password@prox-server:3128
+<span class="nv">https_proxy</span><span class="o">=</span>https://user:password@prox-server:3128
+<span class="nv">ftp_proxy</span><span class="o">=</span>http://user:password@prox-server:3128
 </pre></div>
 </div>
 <p>Or if no credentials are needed:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">https_proxy</span><span class="o">=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">ftp_proxy</span><span class="o">=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">prox</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="mi">3128</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">http_proxy</span><span class="o">=</span>http://prox-server:3128
+<span class="nv">https_proxy</span><span class="o">=</span>https://prox-server:3128
+<span class="nv">ftp_proxy</span><span class="o">=</span>http://prox-server:3128
 </pre></div>
 </div>
 <p>This will set the the proxy up for use system-wide, including for
@@ -744,11 +831,14 @@ sudo apt install -y geoipupdate
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo dnf install -y geoipupdate
 </pre></div>
 </div>
-<p>The latest builds for Linux, macOS, and Windows can be downloaded from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
-<p>On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
+<p>The latest builds for Linux, macOS, and Windows can be downloaded
+from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
+<p>On December 30th, 2019, MaxMind started requiring free accounts to
+access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
 comply with various privacy regulations</a>.</p>
 <p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite2 account</a>, and signing in.</p>
-<p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account, and create a new license key for the version of
+<p>Then, navigate the to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account,
+and create a new license key for the version of
 <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that was installed.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -763,17 +853,21 @@ of <code class="docutils literal notranslate"><span class="pre">geoipupdate</spa
 </div>
 </div>
 <p>You can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description for the key.</p>
-<p>Once you have generated a key, download the config pre-filled configuration file.
-This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code> on Linux or macOS systems, or at
-<code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on Windows systems.</p>
+<p>Once you have generated a key, download the config pre-filled
+configuration file. This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code>
+on Linux or macOS systems, or at
+<code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on
+Windows systems.</p>
 <p>Then run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo geoipupdate
 </pre></div>
 </div>
 <p>To download the databases for the first time.</p>
-<p>The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
-<code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be run weekly by adding a cron job or scheduled task.</p>
-<p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the <a class="reference external" href="https://dev.maxmind.com/geoip/geoipupdate/">MaxMind geoipupdate page</a>.</p>
+<p>The GeoLite2 Country, City, and ASN databases are updated weekly,
+every Tuesday. <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be run weekly by adding a cron
+job or scheduled task.</p>
+<p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the
+<a class="reference external" href="https://dev.maxmind.com/geoip/geoipupdate/">MaxMind geoipupdate page</a>.</p>
 </section>
 <section id="installing-parsedmarc">
 <h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this heading"></a></h3>
@@ -796,7 +890,8 @@ sudo useradd parsedmarc -r -s /bin/false -m -b /opt
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
 </pre></div>
 </div>
-<p>CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems explicitly tell <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> to use <code class="docutils literal notranslate"><span class="pre">python3.9</span></code> instead</p>
+<p>CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems
+explicitly tell <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> to use <code class="docutils literal notranslate"><span class="pre">python3.9</span></code> instead</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
 </pre></div>
 </div>
@@ -827,7 +922,7 @@ tags in your DMARC record, separated by commas.</p>
 <p>Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
 inboxes via the Microsoft Graph API, which is preferred over Davmail.</p>
 </div>
-<p>Some organisations do not allow IMAP or the Microsoft Graph API,
+<p>Some organizations do not allow IMAP or the Microsoft Graph API,
 and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
 In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
@@ -964,7 +1059,7 @@ sudo service davmail restart
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In the event of a crash, systemd will restart the service after 5 minutes,
-but the <cite>service davmail status</cite> command will only show the logs for the
+but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">davmail</span> <span class="pre">status</span></code> command will only show the logs for the
 current process. To vew the logs for previous runs as well as the
 current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u davmail.service -r
@@ -1032,7 +1127,8 @@ sudo service elasticsearch start
 sudo service kibana start
 </pre></div>
 </div>
-<p>Without the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a> or <a class="reference external" href="https://readonlyrest.com/">ReadonlyREST</a> products, Kibana does not have any authentication
+<p>Without the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a> or <a class="reference external" href="https://readonlyrest.com/">ReadonlyREST</a> products, Kibana
+does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
 authentication.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y nginx apache2-utils
@@ -1241,7 +1337,7 @@ sudo service parsedmarc restart
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In the event of a crash, systemd will restart the service after 10 minutes,
-but the <cite>service parsedmarc status</cite> command will only show the logs for the
+but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show the logs for the
 current process. To vew the logs for previous runs as well as the
 current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u parsedmarc.service -r
@@ -1377,8 +1473,8 @@ header</p></td>
 </tbody>
 </table>
 </section>
-<section id="what-if-a-sender-won-t-support-dkim-dmarc">
-<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-won-t-support-dkim-dmarc" title="Permalink to this heading"></a></h2>
+<section id="what-if-a-sender-wont-support-dkim-dmarc">
+<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-wont-support-dkim-dmarc" title="Permalink to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p>Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
 authentication.</p></li>
@@ -1393,44 +1489,46 @@ separate SPF and DMARC records on <code class="docutils literal notranslate"><sp
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Do not alter the <code class="docutils literal notranslate"><span class="pre">p</span></code> or <code class="docutils literal notranslate"><span class="pre">sp</span></code> values of the DMARC record on the
-Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
-your TLD and/or any subdomain.</p>
+Top-Level Domain (TLD) – that would leave you vulnerable to
+spoofing of your TLD and/or any subdomain.</p>
 </div>
 </section>
 <section id="what-about-mailing-lists">
 <h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this heading"></a></h2>
-<p>When you deploy DMARC on your domain, you might find that messages relayed by
-mailing lists are failing DMARC, most likely because the mailing list is
-spoofing your from address, and modifying the subject, footer, or other part
-of the message, thereby breaking the DKIM signature.</p>
+<p>When you deploy DMARC on your domain, you might find that messages
+relayed by mailing lists are failing DMARC, most likely because the mailing
+list is spoofing your from address, and modifying the subject,
+footer, or other part of the message, thereby breaking the
+DKIM signature.</p>
 <section id="mailing-list-list-best-practices">
 <h3>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this heading"></a></h3>
-<p>Ideally, a mailing list should forward messages without altering the headers
-or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of explaining exactly
-what mailing lists should and shouldn’t do to be fully DMARC compliant.
-Rather than repeat his fine work, here’s a summary:</p>
-<p><strong>Do</strong></p>
-<ul>
+<p>Ideally, a mailing list should forward messages without altering the
+headers or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of
+explaining exactly what mailing lists should and shouldn’t do to be
+fully DMARC compliant. Rather than repeat his fine work, here’s a
+summary:</p>
+<section id="do">
+<h4>Do<a class="headerlink" href="#do" title="Permalink to this heading"></a></h4>
+<ul class="simple">
 <li><p>Retain headers from the original message</p></li>
 <li><p>Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
-adding unsubscribe links to the body</p>
+adding unsubscribe links to the body</p></li>
+</ul>
 <blockquote>
-<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Unsubscribe</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">unsubscribe</span><span class="o">-</span><span class="n">link</span><span class="o">&gt;</span>
-</pre></div>
-</div>
+<div><p>List-Unsubscribe: <a class="reference external" href="https://list.example.com/unsubscribe-link">https://list.example.com/unsubscribe-link</a></p>
 </div></blockquote>
-</li>
+<ul>
 <li><p>Add <a class="reference external" href="https://tools.ietf.org/html/rfc2919">RFC 2919</a> List-Id headers instead of modifying the subject</p>
 <blockquote>
-<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">List</span><span class="o">-</span><span class="n">Id</span><span class="p">:</span> <span class="n">Example</span> <span class="n">Mailing</span> <span class="n">List</span> <span class="o">&lt;</span><span class="nb">list</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>
-</pre></div>
-</div>
+<div><p>List-Id: Example Mailing List &lt;<a class="reference external" href="http://list.example.com">list.example.com</a>&gt;</p>
 </div></blockquote>
 </li>
 </ul>
 <p>Modern mail clients and webmail services generate unsubscribe buttons based on
 these headers.</p>
-<p><strong>Do not</strong></p>
+</section>
+<section id="do-not">
+<h4>Do not<a class="headerlink" href="#do-not" title="Permalink to this heading"></a></h4>
 <ul class="simple">
 <li><p>Remove or modify any existing headers from the original message, including
 From, Date, Subject, etc.</p></li>
@@ -1445,6 +1543,7 @@ list.</p>
 tell that a message came from the mailing list, because the message was sent
 to the mailing list post address, and not their email address.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
+</section>
 <section id="mailman-2">
 <h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this heading"></a></h4>
 <p>Navigate to General Settings, and configure the settings below</p>
@@ -1514,7 +1613,7 @@ to the mailing list post address, and not their email address.</p>
 <tr class="row-even"><td><p><strong>dmarc_moderation_action</strong></p></td>
 <td><p>Accept</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>dmarc_quarentine_moderation_action</strong></p></td>
+<tr class="row-odd"><td><p><strong>dmarc_quarantine_moderation_action</strong></p></td>
 <td><p>Yes</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>dmarc_none_moderation_action</strong></p></td>
@@ -1550,7 +1649,7 @@ to the mailing list post address, and not their email address.</p>
 <tr class="row-odd"><td><p><strong>Explicit reply-to address</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><strong>First strip replyo</strong></p></td>
+<tr class="row-even"><td><p><strong>First strip replyto</strong></p></td>
 <td><p>No</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Reply goes to list</strong></p></td>
@@ -1611,7 +1710,7 @@ no longer spoof email addresses with domains protected by DMARC.</p>
 <tr class="row-even"><td><p><strong>dmarc_moderation_action</strong></p></td>
 <td><p>Munge From</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>dmarc_quarentine_moderation_action</strong></p></td>
+<tr class="row-odd"><td><p><strong>dmarc_quarantine_moderation_action</strong></p></td>
 <td><p>Yes</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>dmarc_none_moderation_action</strong></p></td>
@@ -1823,7 +1922,7 @@ DMARC reports</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parse_aggregate_report_file">
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_aggregate_report_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip_db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nameservers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dns_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_alive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_aggregate_report_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_aggregate_report_file" title="Permalink to this definition"></a></dt>
-<dd><p>Parses a file at the given path, a file-like object. or bytes as a
+<dd><p>Parses a file at the given path, a file-like object. or bytes as an
 aggregate DMARC report</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2194,7 +2293,20 @@ index</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="parsedmarc.splunk.HECClient">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsedmarc.splunk.</span></span><span class="sig-name descname"><span class="pre">HECClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">access_token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parsedmarc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient" title="Permalink to this definition"></a></dt>
-<dd><p>A client for a Splunk HTTP Events Collector (HEC)</p>
+<dd><p>Initializes the HECClient
+:param url: The URL of the HEC
+:type url: str
+:param access_token: The HEC access token
+:type access_token: str
+:param index: The name of the index
+:type index: str
+:param source: The source name
+:type source: str
+:param verify: Verify SSL certificates
+:type verify: bool
+:param timeout: Number of seconds to wait for the server to send
+:type timeout: float
+:param data before giving up:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">
 <span class="sig-name descname"><span class="pre">save_aggregate_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_aggregate_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk" title="Permalink to this definition"></a></dt>

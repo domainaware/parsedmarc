@@ -69,7 +69,7 @@ lookalike domain monitoring, check out `DomainAware <https://github.com/seantheg
 CLI help
 ========
 
-::
+.. code-block:: text
 
    usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
                       [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
@@ -117,7 +117,8 @@ CLI help
 
 .. note::
 
-   Starting in ``parsedmarc`` 6.0.0, most CLI options were moved to a configuration file, described below.
+   Starting in ``parsedmarc`` 6.0.0, most CLI options were moved to a
+   configuration file, described below.
 
 Configuration file
 ==================
@@ -170,78 +171,124 @@ The full set of configuration options are:
 
 
 - ``general``
-    - ``save_aggregate`` - bool: Save aggregate report data to Elasticsearch, Splunk and/or S3
-    - ``save_forensic`` - bool: Save forensic report data to Elasticsearch, Splunk and/or S3
-    - ``strip_attachment_payloads`` - bool: Remove attachment payloads from results
+    - ``save_aggregate`` - bool: Save aggregate report data to
+      Elasticsearch, Splunk and/or S3
+    - ``save_forensic`` - bool: Save forensic report data to
+      Elasticsearch, Splunk and/or S3
+    - ``strip_attachment_payloads`` - bool: Remove attachment
+      payloads from results
     - ``output`` - str: Directory to place JSON and CSV files in
-    - ``aggregate_json_filename`` - str: filename for the aggregate JSON output file
-    - ``forensic_json_filename`` - str: filename for the forensic JSON output file
-    - ``ip_db_path`` - str: An optional custom path to a MMDB file from MaxMind or DBIP
-    - ``offline`` - bool: Do not use online queries for geolocation or DNS
-    - ``nameservers`` -  str: A comma separated list of DNS resolvers (Default: `Cloudflare's public resolvers`_)
+    - ``aggregate_json_filename`` - str: filename for the aggregate
+      JSON output file
+    - ``forensic_json_filename`` - str: filename for the forensic
+      JSON output file
+    - ``ip_db_path`` - str: An optional custom path to a MMDB file
+    -   from MaxMind or DBIP
+    - ``offline`` - bool: Do not use online queries for geolocation
+      or DNS
+    - ``nameservers`` -  str: A comma separated list of
+      DNS resolvers (Default: `Cloudflare's public resolvers`_)
     - ``dns_timeout`` - float: DNS timeout period
     - ``debug`` - bool: Print debugging messages
     - ``silent`` - bool: Only print errors (Default: True)
     - ``log_file`` - str: Write log messages to a file at this path
-    - ``n_procs`` - int: Number of process to run in parallel when parsing in CLI mode (Default: 1)
-    - ``chunk_size`` - int: Number of files to give to each process when running in parallel.
+    - ``n_procs`` - int: Number of process to run in parallel when
+      parsing in CLI mode (Default: 1)
+    - ``chunk_size`` - int: Number of files to give to each process
+      when running in parallel.
 
     .. note::
-        Setting this to a number larger than one can improve performance when processing thousands of files
+        Setting this to a number larger than one can improve
+        performance when processing thousands of files
 
 - ``mailbox``
-    - ``reports_folder`` - str: The mailbox folder (or label for Gmail) where the incoming reports can be found (Default: INBOX)
-    - ``archive_folder`` - str:  The mailbox folder (or label for Gmail) to sort processed emails into (Default: Archive)
-    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process messages as they arrive or poll MS Graph for new messages
-    - ``delete`` - bool: Delete messages after processing them, instead of archiving them
+    - ``reports_folder`` - str: The mailbox folder (or label for
+      Gmail) where the incoming reports can be found (Default: INBOX)
+    - ``archive_folder`` - str:  The mailbox folder (or label for
+      Gmail) to sort processed emails into (Default: Archive)
+    - ``watch`` - bool: Use the IMAP ``IDLE`` command to process
+    -   messages as they arrive or poll MS Graph for new messages
+    - ``delete`` - bool: Delete messages after processing them,
+    -   instead of archiving them
     - ``test`` - bool: Do not move or delete messages
-    - ``batch_size`` - int: Number of messages to read and process before saving. Default 10. Use 0 for no limit.
+    - ``batch_size`` - int: Number of messages to read and process
+      before saving. Default 10. Use 0 for no limit.
+    - ``check_timeout`` - int: Number of seconds to wait for a IMAP
+      IDLE response or the number of seconds until the next mai
+      check (Default: 30)
 
 - ``imap``
     - ``host`` - str: The IMAP server hostname or IP address
     - ``port`` - int: The IMAP server port (Default: 993)
 
     .. note::
-      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+      ``%`` characters must be escaped with another ``%`` character,
+      so use ``%%`` wherever a ``%`` character is used.
 
     .. note::
-      Starting in version 8.0.0, most options from the ``imap`` section have been moved to the ``mailbox`` section.
+      Starting in version 8.0.0, most options from the ``imap``
+      section have been moved to the ``mailbox`` section.
 
     .. note::
         If your host recommends another port, still try 993
 
-    - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
-    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``ssl`` - bool: Use an encrypted SSL/TLS connection
+      (Default: True)
+    - ``skip_certificate_verification`` - bool: Skip certificate
+      verification (not recommended)
     - ``user`` - str: The IMAP user
     - ``password`` - str: The IMAP password
 
 - ``msgraph``
-    - ``auth_method`` - str: Authentication method, valid types are UsernamePassword, DeviceCode, or ClientSecret (Default: UsernamePassword).
-    - ``user`` - str: The M365 user, required when the auth method is UsernamePassword
-    - ``password`` - str: The user password, required when the auth method is UsernamePassword
+    - ``auth_method`` - str: Authentication method, valid types are
+      UsernamePassword, DeviceCode, or ClientSecret
+      (Default: UsernamePassword).
+    - ``user`` - str: The M365 user, required when the auth method is
+      UsernamePassword
+    - ``password`` - str: The user password, required when the auth
+      method is UsernamePassword
     - ``client_id`` - str: The app registration's client ID
     - ``client_secret`` - str: The app registration's secret
-    - ``tenant_id`` - str: The Azure AD tenant ID. This is required for all auth methods except UsernamePassword.
-    - ``mailbox`` - str: The mailbox name. This defaults to the current user if using the UsernamePassword auth method, but could be a shared mailbox if the user has access to the mailbox
+    - ``tenant_id`` - str: The Azure AD tenant ID. This is required
+      for all auth methods except UsernamePassword.
+    - ``mailbox`` - str: The mailbox name. This defaults to the
+      current user if using the UsernamePassword auth method, but
+      could be a shared mailbox if the user has access to the mailbox
+    - ``token_file`` - str: Path to save the token file
+      (Default: .token)
 
     .. note::
-        You must create an app registration in Azure AD and have an admin grant the Microsoft Graph ``Mail.ReadWrite`` (delegated) permission to the app.
-        If you are using `UsernamePassword` auth and the mailbox is different from the username, you must grant the app ``Mail.ReadWrite.Shared``.
+        You must create an app registration in Azure AD and have an
+        admin grant the Microsoft Graph ``Mail.ReadWrite``
+        (delegated) permission to the app. If you are using
+        `UsernamePassword` auth and the mailbox is different from the
+        username, you must grant the app ``Mail.ReadWrite.Shared``.
 
     .. warning::
-        If you are using the `ClientSecret` auth method, you need to grant the ``Mail.ReadWrite`` (application) permission to the app.
-        You must also restrict the application's access to a specific mailbox since it allows all mailboxes by default.
-        Use the ``New-ApplicationAccessPolicy`` command in the Exchange PowerShell module.
-        If you need to scope the policy to shared mailboxes, you can add them to a mail enabled security group and use that as the group id.
+        If you are using the `ClientSecret` auth method, you need to
+        grant the ``Mail.ReadWrite`` (application) permission to the
+        app. You must also restrict the application's access to a
+        specific mailbox since it allows all mailboxes by default.
+        Use the ``New-ApplicationAccessPolicy`` command in the
+        Exchange PowerShell module. If you need to scope the policy to
+        shared mailboxes, you can add them to a mail enabled security
+        group and use that as the group id.
 
-        ``New-ApplicationAccessPolicy -AccessRight RestrictAccess -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>" -Description "Restrict access to dmarc reports mailbox."``
+        .. code-block:: powershell
+
+          New-ApplicationAccessPolicy -AccessRight RestrictAccess
+          -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>"
+          -Description "Restrict access to dmarc reports mailbox."
 
 
 - ``elasticsearch``
-    - ``hosts`` - str: A comma separated list of hostnames and ports or URLs (e.g. ``127.0.0.1:9200`` or ``https://user:secret@localhost``)
+    - ``hosts`` - str: A comma separated list of hostnames and ports
+      or URLs (e.g. ``127.0.0.1:9200`` or
+      ``https://user:secret@localhost``)
 
     .. note::
-         Special characters in the username or password must be `URL encoded`_.
+         Special characters in the username or password must be
+         `URL encoded`_.
 
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
     - ``cert_path`` - str: Path to a trusted certificates
@@ -253,30 +300,36 @@ The full set of configuration options are:
     - ``url`` - str: The URL of the Splunk HTTP Events Collector (HEC)
     - ``token`` - str: The HEC token
     - ``index`` - str: The Splunk index to use
-    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``skip_certificate_verification`` - bool: Skip certificate
+      verification (not recommended)
 - ``kafka``
     - ``hosts`` - str: A comma separated list of Kafka hosts
     - ``user`` - str: The Kafka user
     - ``passsword`` - str: The Kafka password
     - ``ssl`` - bool: Use an encrypted SSL/TLS connection (Default: True)
-    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``skip_certificate_verification`` - bool: Skip certificate
+      verification (not recommended)
     - ``aggregate_topic`` - str: The Kafka topic for aggregate reports
     - ``forensic_topic`` - str: The Kafka topic for forensic reports
 - ``smtp``
     - ``host`` - str: The SMTP hostname
     - ``port`` - int: The SMTP port (Default: 25)
     - ``ssl`` - bool: Require SSL/TLS instead of using STARTTLS
-    - ``skip_certificate_verification`` - bool: Skip certificate verification (not recommended)
+    - ``skip_certificate_verification`` - bool: Skip certificate
+      verification (not recommended)
     - ``user`` - str: the SMTP username
     - ``password`` - str: the SMTP password
     - ``from`` - str: The From header to use in the email
     - ``to`` - list: A list of email addresses to send to
-    - ``subject`` - str: The Subject header to use in the email (Default: parsedmarc report)
+    - ``subject`` - str: The Subject header to use in the email
+      (Default: parsedmarc report)
     - ``attachment`` - str: The ZIP attachment filenames
-    - ``message`` - str: The email message (Default: Please see the attached parsedmarc report.)
+    - ``message`` - str: The email message
+      (Default: Please see the attached parsedmarc report.)
 
     .. note::
-      ``%`` characters must be escaped with another ``%`` character, so use ``%%`` wherever a ``%`` character is used.
+      ``%`` characters must be escaped with another ``%`` character,
+      so use ``%%`` wherever a ``%`` character is used.
 
 - ``s3``
     - ``bucket`` - str: The S3 bucket name
@@ -289,43 +342,52 @@ The full set of configuration options are:
     - ``server`` - str: The Syslog server name or IP address
     - ``port`` - int: The UDP port to use (Default: 514)
 - ``gmail_api``
-    - ``gmail_api_credentials_file`` - str: Path to file containing the credentials, None to disable (Default: None)
-    - ``gmail_api_token_file`` - str: Path to save the token file (Default: .token)
-    - ``gmail_api_include_spam_trash`` - bool: Include messages in Spam and Trash when searching reports (Default: False)
-    - ``gmail_api_scopes`` - str: Comma separated list of scopes to use when acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
+    - ``credentials_file`` - str: Path to file containing the
+      credentials, None to disable (Default: None)
+    - ``token_file`` - str: Path to save the token file
+      (Default: .token)
+    - ``include_spam_trash`` - bool: Include messages in Spam and
+      Trash when searching reports (Default: False)
+    - ``scopes`` - str: Comma separated list of scopes to use when
+      acquiring credentials (Default: https://www.googleapis.com/auth/gmail.modify)
+    - ``oauth2_port`` - int: The TCP port for the local server to
+      listen on for the OAuth2 response (Default: 8080)
 
 .. warning::
 
-    It is **strongly recommended** to **not** use the ``nameservers`` setting.
-    By default, ``parsedmarc`` uses `Cloudflare's public resolvers`_,
-    which are much faster and more reliable than Google, Cisco OpenDNS, or
-    even most local resolvers.
+    It is **strongly recommended** to **not** use the ``nameservers``
+    setting. By default, ``parsedmarc`` uses
+    `Cloudflare's public resolvers`_, which are much faster and more
+    reliable than Google, Cisco OpenDNS, or even most local resolvers.
 
-    The ``nameservers`` option should only be used if your network blocks DNS
-    requests to outside resolvers.
+    The ``nameservers`` option should only be used if your network
+    blocks DNS requests to outside resolvers.
 
 .. warning::
 
-   ``save_aggregate`` and ``save_forensic`` are separate options because
-   you may not want to save forensic reports (also known as failure reports)
-   to your Elasticsearch instance, particularly if you are in a
-   highly-regulated industry that handles sensitive data, such as healthcare
-   or finance. If your legitimate outgoing email fails DMARC, it is possible
+   ``save_aggregate`` and ``save_forensic`` are separate options
+   because you may not want to save forensic reports
+   (also known as failure reports) to your Elasticsearch instance,
+   particularly if you are in a highly-regulated industry that
+   handles sensitive data, such as healthcare or finance. If your
+   legitimate outgoing email fails DMARC, it is possible
    that email may appear later in a forensic report.
 
-   Forensic reports contain the original headers of an email that failed a
-   DMARC check, and sometimes may also include the full message body,
-   depending on the policy of the reporting organization.
+   Forensic reports contain the original headers of an email that
+   failed a DMARC check, and sometimes may also include the
+   full message body, depending on the policy of the reporting
+   organization.
 
-   Most reporting organizations do not send forensic reports of any kind for
-   privacy reasons. While aggregate DMARC reports are sent at least daily,
-   it is normal to receive very few forensic reports.
+   Most reporting organizations do not send forensic reports of any
+   kind for privacy reasons. While aggregate DMARC reports are sent
+   at least daily, it is normal to receive very few forensic reports.
 
-   An alternative approach is to still collect forensic/failure/ruf reports
-   in your DMARC inbox, but run ``parsedmarc`` with ``save_forensic = True``
-   manually on a separate IMAP folder (using the  ``reports_folder`` option),
-   after you have manually moved known samples you want to save to that
-   folder (e.g. malicious samples and non-sensitive legitimate samples).
+   An alternative approach is to still collect forensic/failure/ruf
+   reports in your DMARC inbox, but run ``parsedmarc`` with
+   ``save_forensic = True``manually on a separate IMAP folder (using
+   the  ``reports_folder`` option), after you have manually moved
+   known samples you want to save to that folder
+   (e.g. malicious samples and non-sensitive legitimate samples).
 
 
 Sample aggregate report output
@@ -337,8 +399,8 @@ report schema standardized in
 `RFC 7480 Appendix C <https://tools.ietf.org/html/rfc7489#appendix-C>`_.
 This draft schema is still in wide use.
 
-``parsedmarc`` produces consistent, normalized output, regardless of the report
-schema.
+``parsedmarc`` produces consistent, normalized output, regardless
+of the report schema.
 
 JSON
 ----
@@ -413,7 +475,7 @@ JSON
 CSV
 ---
 
-::
+.. code-block:: text
 
     xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
     draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
@@ -521,7 +583,7 @@ JSON
 CSV
 ---
 
-::
+.. code-block:: text
 
     feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
     auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,policy,dmarc,domain.de,,False
@@ -544,7 +606,7 @@ Installation
    to use that proxy. To do this, edit ``/etc/environment`` and add your
    proxy details there, for example:
 
-   ::
+   .. code-block:: bash
 
       http_proxy=http://user:password@prox-server:3128
       https_proxy=https://user:password@prox-server:3128
@@ -552,7 +614,7 @@ Installation
 
    Or if no credentials are needed:
 
-   ::
+   .. code-block:: bash
 
       http_proxy=http://prox-server:3128
       https_proxy=https://prox-server:3128
@@ -604,14 +666,17 @@ On CentOS or RHEL systems, run:
 
    sudo dnf install -y geoipupdate
 
-The latest builds for Linux, macOS, and Windows can be downloaded from the `geoipupdate releases page on GitHub`_.
+The latest builds for Linux, macOS, and Windows can be downloaded
+from the `geoipupdate releases page on GitHub`_.
 
-On December 30th, 2019, MaxMind started requiring free accounts to access the free Geolite2 databases, in order `to
+On December 30th, 2019, MaxMind started requiring free accounts to
+access the free Geolite2 databases, in order `to
 comply with various privacy regulations`_.
 
 Start by `registering for a free GeoLite2 account`_, and signing in.
 
-Then, navigate the to the `License Keys`_ page under your account, and create a new license key for the version of
+Then, navigate the to the `License Keys`_ page under your account,
+and create a new license key for the version of
 ``geoipupdate`` that was installed.
 
 .. warning::
@@ -629,9 +694,11 @@ Then, navigate the to the `License Keys`_ page under your account, and create a 
 
 You can use ``parsedmarc`` as the description for the key.
 
-Once you have generated a key, download the config pre-filled configuration file.
-This file should be saved at ``/etc/GeoIP.conf`` on Linux or macOS systems, or at
-``%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf`` on Windows systems.
+Once you have generated a key, download the config pre-filled
+configuration file. This file should be saved at ``/etc/GeoIP.conf``
+on Linux or macOS systems, or at
+``%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf`` on
+Windows systems.
 
 Then run
 
@@ -641,10 +708,12 @@ Then run
 
 To download the databases for the first time.
 
-The GeoLite2 Country, City, and ASN databases are updated weekly, every Tuesday.
-``geoipupdate`` can be run weekly by adding a cron job or scheduled task.
+The GeoLite2 Country, City, and ASN databases are updated weekly,
+every Tuesday. ``geoipupdate`` can be run weekly by adding a cron
+job or scheduled task.
 
-More information about ``geoipupdate`` can be found at the `MaxMind geoipupdate page`_.
+More information about ``geoipupdate`` can be found at the
+`MaxMind geoipupdate page`_.
 
 Installing parsedmarc
 ---------------------
@@ -681,7 +750,8 @@ Install parsedmarc in a virtualenv
 
     sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
 
-CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems explicitly tell ``virtualenv`` to use ``python3.9`` instead
+CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems
+explicitly tell ``virtualenv`` to use ``python3.9`` instead
 
 .. code-block:: bash
 
@@ -721,7 +791,7 @@ Accessing an inbox using OWA/EWS
    Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
    inboxes via the Microsoft Graph API, which is preferred over Davmail.
 
-Some organisations do not allow IMAP or the Microsoft Graph API,
+Some organizations do not allow IMAP or the Microsoft Graph API,
 and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
 In that case, Davmail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
@@ -963,7 +1033,8 @@ For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
     sudo service elasticsearch start
     sudo service kibana start
 
-Without the commercial X-Pack_ or ReadonlyREST_ products, Kibana does not have any authentication
+Without the commercial X-Pack_ or ReadonlyREST_ products, Kibana
+does not have any authentication
 mechanism of its own. You can use nginx as a reverse proxy that provides basic
 authentication.
 
@@ -1298,7 +1369,7 @@ is using a particular service. With that information, you can contact them and
 have them set up DKIM.
 
 .. note::
-  
+
     If you have a lot of B2C customers, you may see a high volume of emails as
     your domains coming from consumer email services, such as Google/Gmail and
     Yahoo! This occurs when customers have mailbox rules in place that forward
@@ -1383,24 +1454,26 @@ What if a sender won't support DKIM/DMARC?
 .. warning ::
 
   Do not alter the ``p`` or ``sp`` values of the DMARC record on the
-  Top-Level Domain (TLD) – that would leave you vulnerable to spoofing of
-  your TLD and/or any subdomain.
+  Top-Level Domain (TLD) – that would leave you vulnerable to
+  spoofing of your TLD and/or any subdomain.
 
 What about mailing lists?
 =========================
 
-When you deploy DMARC on your domain, you might find that messages relayed by
-mailing lists are failing DMARC, most likely because the mailing list is
-spoofing your from address, and modifying the subject, footer, or other part
-of the message, thereby breaking the DKIM signature.
+When you deploy DMARC on your domain, you might find that messages
+relayed by mailing lists are failing DMARC, most likely because the mailing
+list is spoofing your from address, and modifying the subject,
+footer, or other part of the message, thereby breaking the
+DKIM signature.
 
 Mailing list list best practices
 --------------------------------
 
-Ideally, a mailing list should forward messages without altering the headers
-or body content at all. `Joe Nelson`_ does a fantastic job of explaining exactly
-what mailing lists should and shouldn't do to be fully DMARC compliant.
-Rather than repeat his fine work, here's a summary:
+Ideally, a mailing list should forward messages without altering the
+headers or body content at all. `Joe Nelson`_ does a fantastic job of
+explaining exactly what mailing lists should and shouldn't do to be
+fully DMARC compliant. Rather than repeat his fine work, here's a
+summary:
 
 **Do**
 
@@ -1470,7 +1543,7 @@ Navigate to Privacy Options> Sending Filters, and configure the settings below
 ====================================== ==========
 **Setting**                            **Value**
 **dmarc_moderation_action**            Accept
-**dmarc_quarentine_moderation_action** Yes
+**dmarc_quarantine_moderation_action** Yes
 **dmarc_none_moderation_action**       Yes
 ====================================== ==========
 
@@ -1492,7 +1565,7 @@ Configure the settings below
 **Include RFC2369 headers**            Yes
 **Include the list post header**       Yes
 **Explicit reply-to address**
-**First strip replyo**                 No
+**First strip replyto**                 No
 **Reply goes to list**                 No munging
 ====================================== ==========
 
@@ -1538,7 +1611,7 @@ Navigate to Privacy Options> Sending Filters, and configure the settings below
 ====================================== ==========
 **Setting**                            **Value**
 **dmarc_moderation_action**            Munge From
-**dmarc_quarentine_moderation_action** Yes
+**dmarc_quarantine_moderation_action** Yes
 **dmarc_none_moderation_action**       Yes
 ====================================== ==========
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.3.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.3.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -28,7 +28,7 @@
             <a href="../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.3.0
+                8.3.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -73,7 +73,6 @@
 <span class="kn">import</span> <span class="nn">email</span>
 <span class="kn">import</span> <span class="nn">email.utils</span>
 <span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
@@ -95,22 +94,15 @@
 <span class="kn">from</span> <span class="nn">lxml</span> <span class="kn">import</span> <span class="n">etree</span>
 <span class="kn">from</span> <span class="nn">mailsuite.smtp</span> <span class="kn">import</span> <span class="n">send_email</span>
 
+<span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.mail</span> <span class="kn">import</span> <span class="n">MailboxConnection</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">get_base_domain</span><span class="p">,</span> <span class="n">get_ip_address_info</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">is_outlook_msg</span><span class="p">,</span> <span class="n">convert_outlook_msg</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.3.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.3.1&quot;</span>
 
-<span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span>
-    <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(levelname)8s</span><span class="s1">:</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">:</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
-    <span class="n">datefmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">:%H:%M:%S&#39;</span><span class="p">)</span>
-<span class="n">handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
-<span class="n">handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
-
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
-<span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
 <span class="n">feedback_report_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([\w\-]+): (.+)$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
@@ -297,11 +289,14 @@
         <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Invalid XML: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
-        <span class="n">tree</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
-            <span class="n">BytesIO</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)),</span>
-            <span class="n">etree</span><span class="o">.</span><span class="n">XMLParser</span><span class="p">(</span><span class="n">recover</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">resolve_entities</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
-        <span class="n">xml</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">s</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tree</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
+                <span class="n">BytesIO</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)),</span>
+                <span class="n">etree</span><span class="o">.</span><span class="n">XMLParser</span><span class="p">(</span><span class="n">recover</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">resolve_entities</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+            <span class="n">xml</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">s</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">xml</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;&lt;a/&gt;&#39;</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Replace XML header (sometimes they are invalid)</span>
@@ -473,7 +468,7 @@
                                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                 <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as a</span>
+    <span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as an</span>
 <span class="sd">    aggregate DMARC report</span>
 
 <span class="sd">    Args:</span>
@@ -557,11 +552,11 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dmarc_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
             <span class="n">policy_override_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="k">lambda</span> <span class="n">r_</span><span class="p">:</span> <span class="n">r_</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
                 <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
                 <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
             <span class="n">policy_override_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">r_</span><span class="p">:</span> <span class="n">r_</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
                 <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
                 <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -1154,7 +1149,7 @@
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
 
-    <span class="n">messages</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">)</span>
+    <span class="n">messages</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
     <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> messages in </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">),</span>
                                                     <span class="n">reports_folder</span><span class="p">))</span>
@@ -1333,6 +1328,41 @@
                              <span class="n">check_timeout</span><span class="o">=</span><span class="n">check_timeout</span><span class="p">)</span></div>
 
 
+<span class="k">def</span> <span class="nf">append_json</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">reports</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">output_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">reports</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># not appending anything, don&#39;t do any dance to append it</span>
+                <span class="c1"># correctly</span>
+                <span class="k">return</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">last_char</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">last_char</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                <span class="c1"># remove the trailing &quot;\n]&quot;, leading &quot;[\n&quot;, and replace with</span>
+                <span class="c1"># &quot;,\n&quot;</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">output_json</span> <span class="o">=</span> <span class="n">output_json</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">truncate</span><span class="p">()</span>
+
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output_json</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">append_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">csv</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># strip the headers from the CSV</span>
+            <span class="n">_headers</span><span class="p">,</span> <span class="n">csv</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># not appending anything, don&#39;t do any dance to</span>
+                <span class="c1"># append it correctly</span>
+                <span class="k">return</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../index.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_json_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
                 <span class="n">forensic_json_filename</span><span class="o">=</span><span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
@@ -1359,33 +1389,17 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_directory</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span>
-              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span>
-                                   <span class="n">aggregate_json_filename</span><span class="p">)),</span>
-              <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">agg_json</span><span class="p">:</span>
-        <span class="n">agg_json</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                  <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">append_json</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">aggregate_json_filename</span><span class="p">),</span>
+                <span class="n">aggregate_reports</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span>
-              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span>
-                                   <span class="n">aggregate_csv_filename</span><span class="p">)),</span>
-              <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">agg_csv</span><span class="p">:</span>
-        <span class="n">csv</span> <span class="o">=</span> <span class="n">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">)</span>
-        <span class="n">agg_csv</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+    <span class="n">append_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">aggregate_csv_filename</span><span class="p">),</span>
+               <span class="n">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">))</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span>
-              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span>
-                                   <span class="n">forensic_json_filename</span><span class="p">)),</span>
-              <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">for_json</span><span class="p">:</span>
-        <span class="n">for_json</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                  <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">append_json</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">forensic_json_filename</span><span class="p">),</span>
+                <span class="n">forensic_reports</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span>
-              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span>
-                                   <span class="n">forensic_csv_filename</span><span class="p">)),</span>
-              <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">for_csv</span><span class="p">:</span>
-        <span class="n">csv</span> <span class="o">=</span> <span class="n">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">)</span>
-        <span class="n">for_csv</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
+    <span class="n">append_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">forensic_csv_filename</span><span class="p">),</span>
+               <span class="n">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">))</span>
 
     <span class="n">samples_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="s2">&quot;samples&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">samples_directory</span><span class="p">):</span>

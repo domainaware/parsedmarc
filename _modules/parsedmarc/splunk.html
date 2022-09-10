@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 7.1.0 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 8.3.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -13,6 +13,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -27,7 +28,7 @@
             <a href="../../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                7.1.0
+                8.3.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -65,8 +66,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for parsedmarc.splunk</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+<span></span><span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
 <span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">json</span>
 
@@ -74,11 +74,10 @@
 <span class="kn">import</span> <span class="nn">requests</span>
 
 <span class="kn">from</span> <span class="nn">parsedmarc</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">human_timestamp_to_timestamp</span>
 
 <span class="n">urllib3</span><span class="o">.</span><span class="n">disable_warnings</span><span class="p">(</span><span class="n">urllib3</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InsecureRequestWarning</span><span class="p">)</span>
-
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="SplunkError"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.SplunkError">[docs]</a><span class="k">class</span> <span class="nc">SplunkError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
