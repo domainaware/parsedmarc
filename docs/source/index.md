@@ -159,7 +159,7 @@ port = 514
 The full set of configuration options are:
 
 - `general`
-  : - `save_aggregate` - bool: Save aggregate report data to
+  - `save_aggregate` - bool: Save aggregate report data to
       Elasticsearch, Splunk and/or S3
   - `save_forensic` - bool: Save forensic report data to
       Elasticsearch, Splunk and/or S3
@@ -190,23 +190,24 @@ The full set of configuration options are:
     performance when processing thousands of files
     :::
 - `mailbox`
-  : - `reports_folder` - str: The mailbox folder (or label for
-      Gmail) where the incoming reports can be found (Default: INBOX)
+  - `reports_folder` - str: The mailbox folder (or label for
+      Gmail) where the incoming reports can be found
+      (Default: `INBOX`)
   - `archive_folder` - str:  The mailbox folder (or label for
-      Gmail) to sort processed emails into (Default: Archive)
+      Gmail) to sort processed emails into (Default: `Archive`)
   - `watch` - bool: Use the IMAP `IDLE` command to process
   - messages as they arrive or poll MS Graph for new messages
   - `delete` - bool: Delete messages after processing them,
   - instead of archiving them
   - `test` - bool: Do not move or delete messages
   - `batch_size` - int: Number of messages to read and process
-      before saving. Default 10. Use 0 for no limit.
+      before saving. Default `10`. Use `0` for no limit.
   - `check_timeout` - int: Number of seconds to wait for a IMAP
       IDLE response or the number of seconds until the next mai
-      check (Default: 30)
+      check (Default: `30`)
 - `imap`
-  : - `host` - str: The IMAP server hostname or IP address
-  - `port` - int: The IMAP server port (Default: 993)
+  - `host` - str: The IMAP server hostname or IP address
+  - `port` - int: The IMAP server port (Default: `993`)
 
     :::{note}
     `%` characters must be escaped with another `%` character,
@@ -229,9 +230,9 @@ The full set of configuration options are:
   - `user` - str: The IMAP user
   - `password` - str: The IMAP password
 - `msgraph`
-  : - `auth_method` - str: Authentication method, valid types are
-      UsernamePassword, DeviceCode, or ClientSecret
-      (Default: UsernamePassword).
+  - `auth_method` - str: Authentication method, valid types are
+      `UsernamePassword`, `DeviceCode`, or `ClientSecret`
+      (Default: `UsernamePassword`).
   - `user` - str: The M365 user, required when the auth method is
       UsernamePassword
   - `password` - str: The user password, required when the auth
@@ -244,7 +245,7 @@ The full set of configuration options are:
       current user if using the UsernamePassword auth method, but
       could be a shared mailbox if the user has access to the mailbox
   - `token_file` - str: Path to save the token file
-      (Default: .token)
+      (Default: `.token`)
 
     :::{note}
     You must create an app registration in Azure AD and have an
@@ -272,7 +273,7 @@ The full set of configuration options are:
 
     :::
 - `elasticsearch`
-  : - `hosts` - str: A comma separated list of hostnames and ports
+  - `hosts` - str: A comma separated list of hostnames and ports
       or URLs (e.g. `127.0.0.1:9200` or
       `https://user:secret@localhost`)
 
@@ -281,66 +282,70 @@ The full set of configuration options are:
     [URL encoded].
     :::
 
-  - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: True)
+  - `ssl` - bool: Use an encrypted SSL/TLS connection
+    (Default: `True`)
   - `cert_path` - str: Path to a trusted certificates
   - `index_suffix` - str: A suffix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
-  - `number_of_shards` - int: The number of shards to use when creating the index (Default: 1)
-  - `number_of_replicas` - int: The number of replicas to use when creating the index (Default: 1)
+  - `number_of_shards` - int: The number of shards to use when
+    creating the index (Default: `1`)
+  - `number_of_replicas` - int: The number of replicas to use when
+    creating the index (Default: `1`)
 - `splunk_hec`
-  : - `url` - str: The URL of the Splunk HTTP Events Collector (HEC)
+  - `url` - str: The URL of the Splunk HTTP Events Collector (HEC)
   - `token` - str: The HEC token
   - `index` - str: The Splunk index to use
   - `skip_certificate_verification` - bool: Skip certificate
-      verification (not recommended)
+    verification (not recommended)
 - `kafka`
-  : - `hosts` - str: A comma separated list of Kafka hosts
+  - `hosts` - str: A comma separated list of Kafka hosts
   - `user` - str: The Kafka user
   - `passsword` - str: The Kafka password
   - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: True)
   - `skip_certificate_verification` - bool: Skip certificate
-      verification (not recommended)
+    verification (not recommended)
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
   - `forensic_topic` - str: The Kafka topic for forensic reports
 - `smtp`
-  : - `host` - str: The SMTP hostname
+  - `host` - str: The SMTP hostname
   - `port` - int: The SMTP port (Default: 25)
   - `ssl` - bool: Require SSL/TLS instead of using STARTTLS
   - `skip_certificate_verification` - bool: Skip certificate
-      verification (not recommended)
+    verification (not recommended)
   - `user` - str: the SMTP username
   - `password` - str: the SMTP password
   - `from` - str: The From header to use in the email
   - `to` - list: A list of email addresses to send to
   - `subject` - str: The Subject header to use in the email
-      (Default: parsedmarc report)
+    (Default: `parsedmarc report`)
   - `attachment` - str: The ZIP attachment filenames
   - `message` - str: The email message
-      (Default: Please see the attached parsedmarc report.)
+    (Default: `Please see the attached parsedmarc report.`)
 
     :::{note}
     `%` characters must be escaped with another `%` character,
     so use `%%` wherever a `%` character is used.
     :::
 - `s3`
-  : - `bucket` - str: The S3 bucket name
+  - `bucket` - str: The S3 bucket name
   - `path` - str: The path to upload reports to (Default: /)
   - `region_name` - str: The region name (Optional)
   - `endpoint_url` - str: The endpoint URL (Optional)
   - `access_key_id` - str: The access key id (Optional)
   - `secret_access_key` - str: The secret access key (Optional)
 - `syslog`
-  : - `server` - str: The Syslog server name or IP address
+  - `server` - str: The Syslog server name or IP address
   - `port` - int: The UDP port to use (Default: 514)
 - `gmail_api`
-  : - `credentials_file` - str: Path to file containing the
+  - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: None)
   - `token_file` - str: Path to save the token file
       (Default: .token)
   - `include_spam_trash` - bool: Include messages in Spam and
       Trash when searching reports (Default: False)
   - `scopes` - str: Comma separated list of scopes to use when
-      acquiring credentials (Default: <https://www.googleapis.com/auth/gmail.modify>)
+      acquiring credentials
+      (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
       listen on for the OAuth2 response (Default: 8080)
 
@@ -382,9 +387,9 @@ known samples you want to save to that folder
 
 ## Sample aggregate report output
 
-Here are the results from parsing the [example](https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F)
-report from the dmarc.org wiki. It's actually an older draft of the the 1.0
-report schema standardized in
+Here are the results from parsing the[example](https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F)
+report from the dmarc.org wiki. It's actually an older draft of
+the 1.0 report schema standardized in
 [RFC 7480 Appendix C](https://tools.ietf.org/html/rfc7489#appendix-C).
 This draft schema is still in wide use.
 
@@ -613,13 +618,17 @@ least:
 ### geoipupdate setup
 
 :::{note}
-Starting in `parsedmarc` 7.1.0, a static copy of the  [IP to Country Lite database] from IPDB is
-distributed with `parsedmarc`, under the terms of the [Creative Commons Attribution 4.0 International License]. as
-a fallback if the [MaxMind GeoLite2 Country database] is not installed  However, `parsedmarc` cannot install updated
-versions of these databases as they are released, so MaxMind's databases and [geoipupdate] tool is still the
-preferable solution.
+Starting in `parsedmarc` 7.1.0, a static copy of the
+[IP to Country Lite database] from IPDB is distributed with
+`parsedmarc`, under the terms of the
+[Creative Commons Attribution 4.0 International License].
+as a fallback if the [MaxMind GeoLite2 Country database] is not
+installed  However, `parsedmarc` cannot install updated versions of
+these databases as they are released, so MaxMind's databases and the
+[geoipupdate] tool is still the preferable solution.
 
-The location of the database file can be overridden by using the `ip_db_path` setting.
+The location of the database file can be overridden by using the
+`ip_db_path` setting.
 :::
 
 On Debian 10 (Buster) or later, run:
@@ -647,7 +656,8 @@ from the [geoipupdate releases page on GitHub].
 
 On December 30th, 2019, MaxMind started requiring free accounts to
 access the free Geolite2 databases, in order [to
-comply with various privacy regulations][to comply with various privacy regulations].
+comply with various privacy 
+regulations][to comply with various privacy regulations].
 
 Start by [registering for a free GeoLite2 account], and signing in.
 
@@ -737,8 +747,8 @@ sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
 
 ### Optional dependencies
 
-If you would like to be able to parse emails saved from Microsoft Outlook
-(i.e. OLE .msg files), install `msgconvert`:
+If you would like to be able to parse emails saved from Microsoft
+Outlook (i.e. OLE .msg files), install `msgconvert`:
 
 On Debian or Ubuntu systems, run:
 
@@ -748,8 +758,8 @@ sudo apt-get install libemail-outlook-message-perl
 
 ### Testing multiple report analyzers
 
-If you would like to test parsedmarc and another report processing solution
-at the same time, you can have up to two mailto URIs each in the rua and ruf
+If you would like to test parsedmarc and another report processing
+solution at the same time, you can have up to two `mailto` URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.
 
 ### Accessing an inbox using OWA/EWS
@@ -915,10 +925,10 @@ service davmail status
 ```
 
 :::{note}
-In the event of a crash, systemd will restart the service after 5 minutes,
-but the `service davmail status` command will only show the logs for the
-current process. To vew the logs for previous runs as well as the
-current process (newest to oldest), run:
+In the event of a crash, systemd will restart the service after 5
+minutes, but the `service davmail status` command will only show the
+logs for the current process. To vew the logs for previous runs as
+well as the current process (newest to oldest), run:
 
 ```bash
 journalctl -u davmail.service -r
@@ -998,8 +1008,8 @@ sudo service kibana start
 
 Without the commercial [X-Pack] or [ReadonlyREST] products, Kibana
 does not have any authentication
-mechanism of its own. You can use nginx as a reverse proxy that provides basic
-authentication.
+mechanism of its own. You can use nginx as a reverse proxy that
+provides basic authentication.
 
 ```bash
 sudo apt-get install -y nginx apache2-utils
@@ -1031,8 +1041,7 @@ openssl req -newkey rsa:4096-nodes -keyout kibana.key -out kibana.csr
 ```
 
 Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
-domain name), which is the IP address or domain name that you will be hosting
-Kibana on. it is the most important field.
+domain name), which is the IP address or domain name that you will bebana on. it is the most important field.
 
 If you generated a CSR, remove the CSR after you have your certs
 
@@ -1179,25 +1188,25 @@ check out the Elastic guide to [managing time-based indexes efficiently](https:/
 Starting in version 4.3.0 `parsedmarc` supports sending aggregate and/or
 forensic DMARC data to a Splunk [HTTP Event collector (HEC)].
 
-The project repository contains [XML files] for premade Splunk dashboards for
-aggregate and forensic DMARC reports.
+The project repository contains [XML files] for premade Splunk
+dashboards for aggregate and forensic DMARC reports.
 
-Copy and paste the contents of each file into a separate Splunk dashboard XML
-editor.
+Copy and paste the contents of each file into a separate Splunk
+dashboard XML editor.
 
 :::{warning}
 Change all occurrences of `index="email"` in the XML to
 match your own index name.
 :::
 
-The Splunk dashboards display the same content and layout as the Kibana
-dashboards, although the Kibana dashboards have slightly easier and more
-flexible filtering options.
+The Splunk dashboards display the same content and layout as the
+Kibana dashboards, although the Kibana dashboards have slightly
+easier and more flexible filtering options.
 
 ### Running parsedmarc as a systemd service
 
-Use systemd to run `parsedmarc` as a service and process reports as they
-arrive.
+Use systemd to run `parsedmarc` as a service and process reports as
+they arrive.
 
 Protect the `parsedmarc` configuration file from prying eyes
 
@@ -1260,10 +1269,10 @@ service parsedmarc status
 ```
 
 :::{note}
-In the event of a crash, systemd will restart the service after 10 minutes,
-but the `service parsedmarc status` command will only show the logs for the
-current process. To vew the logs for previous runs as well as the
-current process (newest to oldest), run:
+In the event of a crash, systemd will restart the service after 10
+minutes, but the `service parsedmarc status` command will only show
+the logs for the current process. To vew the logs for previous runs
+as well as the current process (newest to oldest), run:
 
 ```bash
 journalctl -u parsedmarc.service -r
@@ -1273,8 +1282,8 @@ journalctl -u parsedmarc.service -r
 
 ## Using the Kibana dashboards
 
-The Kibana DMARC dashboards are a human-friendly way to understand the results
-from incoming DMARC reports.
+The Kibana DMARC dashboards are a human-friendly way to understand the
+results from incoming DMARC reports.
 
 :::{note}
 The default dashboard is DMARC Summary. To switch between dashboards,
@@ -1283,8 +1292,8 @@ click on the Dashboard link in the left side menu of Kibana.
 
 ### DMARC Summary
 
-As the name suggests, this dashboard is the best place to start reviewing your
-aggregate DMARC data.
+As the name suggests, this dashboard is the best place to start
+reviewing your aggregate DMARC data.
 
 Across the top of the dashboard, three pie charts display the percentage of
 alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment
@@ -1675,7 +1684,6 @@ Some additional steps are needed for Linux hosts.
 [maxmind geoipupdate page]: https://dev.maxmind.com/geoip/geoipupdate/
 [maxmind geolite2 country database]: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
 [modern auth/multi-factor authentication]: http://davmail.sourceforge.net/faq.html
-[pypy3]: https://www.pypy.org/download.html
 [readonlyrest]: https://readonlyrest.com/
 [registering for a free geolite2 account]: https://www.maxmind.com/en/geolite2/signup
 [rfc 2369]: https://tools.ietf.org/html/rfc2369
