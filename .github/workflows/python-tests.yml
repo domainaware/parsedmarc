@@ -51,7 +51,6 @@ jobs:
         parsedmarc --debug -c ci.ini samples/forensic/*"
     - name: Test building packages
       run: |
-        python3 setup.py sdist
-        python3 setup.py bdist_wheel
+        hatch build
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
