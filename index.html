@@ -287,14 +287,10 @@ configuration file, described below.</p>
 </div>
 <p>The full set of configuration options are:</p>
 <ul>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">general</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">general</span></code></p>
+<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to
 Elasticsearch, Splunk and/or S3</p></li>
-</ul>
-</dd>
-</dl>
-<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
@@ -326,36 +322,29 @@ performance when processing thousands of files</p>
 </li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
-Gmail) where the incoming reports can be found (Default: INBOX)</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
+Gmail) where the incoming reports can be found
+(Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for
-Gmail) to sort processed emails into (Default: Archive)</p></li>
+Gmail) to sort processed emails into (Default: <code class="docutils literal notranslate"><span class="pre">Archive</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process</p></li>
 <li><p>messages as they arrive or poll MS Graph for new messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,</p></li>
 <li><p>instead of archiving them</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
-before saving. Default 10. Use 0 for no limit.</p></li>
+before saving. Default <code class="docutils literal notranslate"><span class="pre">10</span></code>. Use <code class="docutils literal notranslate"><span class="pre">0</span></code> for no limit.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
 IDLE response or the number of seconds until the next mai
-check (Default: 30)</p></li>
+check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">imap</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: 993)</p>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: <code class="docutils literal notranslate"><span class="pre">993</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
@@ -379,15 +368,11 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are
-UsernamePassword, DeviceCode, or ClientSecret
-(Default: UsernamePassword).</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></p>
 <ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are
+<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>, or <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code>
+(Default: <code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is
 UsernamePassword</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password, required when the auth
@@ -400,7 +385,7 @@ for all auth methods except UsernamePassword.</p></li>
 current user if using the UsernamePassword auth method, but
 could be a shared mailbox if the user has access to the mailbox</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
-(Default: .token)</p>
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You must create an app registration in Azure AD and have an
@@ -428,48 +413,40 @@ group and use that as the group id.</p>
 </li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></p>
+<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports
 or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or
-<code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p></li>
-</ul>
+<code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Special characters in the username or password must be
 <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
 </div>
-</dd>
-</dl>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
+(Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when creating the index (Default: 1)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when creating the index (Default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when
+creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when
+creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code> - str: The URL of the Splunk HTTP Events Collector (HEC)</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code> - str: The URL of the Splunk HTTP Events Collector (HEC)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token</span></code> - str: The HEC token</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index</span></code> - str: The Splunk index to use</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">kafka</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">kafka</span></code></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The Kafka user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">passsword</span></code> - str: The Kafka password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
@@ -479,13 +456,9 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forensic_topic</span></code> - str: The Kafka topic for forensic reports</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">smtp</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
 <ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
@@ -495,10 +468,10 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">from</span></code> - str: The From header to use in the email</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">to</span></code> - list: A list of email addresses to send to</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email
-(Default: parsedmarc report)</p></li>
+(Default: <code class="docutils literal notranslate"><span class="pre">parsedmarc</span> <span class="pre">report</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message
-(Default: Please see the attached parsedmarc report.)</p>
+(Default: <code class="docutils literal notranslate"><span class="pre">Please</span> <span class="pre">see</span> <span class="pre">the</span> <span class="pre">attached</span> <span class="pre">parsedmarc</span> <span class="pre">report.</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
@@ -507,13 +480,9 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 </li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">s3</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">s3</span></code></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: /)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">region_name</span></code> - str: The region name (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">endpoint_url</span></code> - str: The endpoint URL (Optional)</p></li>
@@ -521,30 +490,23 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">secret_access_key</span></code> - str: The secret access key (Optional)</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">syslog</span></code></dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
-</ul>
-</dd>
-</dl>
+<li><p><code class="docutils literal notranslate"><span class="pre">syslog</span></code></p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: 514)</p></li>
 </ul>
 </li>
-<li><dl class="simple myst">
-<dt><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
 credentials, None to disable (Default: None)</p></li>
-</ul>
-</dd>
-</dl>
-<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
 (Default: .token)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
 Trash when searching reports (Default: False)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">scopes</span></code> - str: Comma separated list of scopes to use when
-acquiring credentials (Default: <a class="reference external" href="https://www.googleapis.com/auth/gmail.modify">https://www.googleapis.com/auth/gmail.modify</a>)</p></li>
+acquiring credentials
+(Default: <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">oauth2_port</span></code> - int: The TCP port for the local server to
 listen on for the OAuth2 response (Default: 8080)</p></li>
 </ul>
@@ -584,9 +546,9 @@ known samples you want to save to that folder
 </section>
 <section id="sample-aggregate-report-output">
 <h2>Sample aggregate report output<a class="headerlink" href="#sample-aggregate-report-output" title="Permalink to this heading"></a></h2>
-<p>Here are the results from parsing the <a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
-report from the <a class="reference external" href="http://dmarc.org">dmarc.org</a> wiki. It’s actually an older draft of the the 1.0
-report schema standardized in
+<p>Here are the results from parsing the<a class="reference external" href="https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F">example</a>
+report from the <a class="reference external" href="http://dmarc.org">dmarc.org</a> wiki. It’s actually an older draft of
+the 1.0 report schema standardized in
 <a class="reference external" href="https://tools.ietf.org/html/rfc7489#appendix-C">RFC 7480 Appendix C</a>.
 This draft schema is still in wide use.</p>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> produces consistent, normalized output, regardless
