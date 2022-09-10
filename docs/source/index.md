@@ -1,5 +1,12 @@
 # parsedmarc documentation - Open source DMARC report analyzer and visualizer
 
+[![Build
+Status](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg)](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml)
+[![Code
+Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
+[![PyPI
+Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project/parsedmarc/)
+
 :::{note}
 **Help Wanted**
 
