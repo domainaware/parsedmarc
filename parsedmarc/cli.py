@@ -902,8 +902,8 @@ def _main():
                 password=opts.imap_password,
             )
 
-        except Exception as error:
-            logger.error("IMAP Error: {0}".format(error.__str__()))
+        except Exception:
+            logger.exception("IMAP Error")
             exit(1)
 
     if opts.graph_client_id:
@@ -920,8 +920,8 @@ def _main():
                 token_file=opts.graph_token_file
             )
 
-        except Exception as error:
-            logger.error("MS Graph Error: {0}".format(error.__str__()))
+        except Exception:
+            logger.exception("MS Graph Error")
             exit(1)
 
     if opts.gmail_api_credentials_file:
@@ -943,8 +943,8 @@ def _main():
                 oauth2_port=opts.gmail_api_oauth2_port
             )
 
-        except Exception as error:
-            logger.error("Gmail API Error: {0}".format(error.__str__()))
+        except Exception:
+            logger.exception("Gmail API Error")
             exit(1)
 
     if mailbox_connection:
@@ -965,8 +965,8 @@ def _main():
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
 
-        except Exception as error:
-            logger.error("Mailbox Error: {0}".format(error.__str__()))
+        except Exception:
+            logger.exception("Mailbox Error")
             exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
@@ -984,8 +984,8 @@ def _main():
                           username=opts.smtp_user,
                           password=opts.smtp_password,
                           subject=opts.smtp_subject)
-        except Exception as error:
-            logger.error("{0}".format(error.__str__()))
+        except Exception:
+            logger.exception("Failed to email results")
             exit(1)
 
     if mailbox_connection and opts.mailbox_watch:
