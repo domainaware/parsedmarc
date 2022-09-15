@@ -7,7 +7,9 @@ Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge
 [![PyPI
 Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project/parsedmarc/)
 
-[![A screenshot of DMARC summary charts in Kibana](https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png){.align-center}](https://raw.githubusercontent.com/domainaware/parsedmarc/master/docs/_static/screenshots/dmarc-summary-charts.png)
+<p align="center">
+  <img src="https://github.com/domainaware/parsedmarc/raw/master/docs/source/_static/screenshots/dmarc-summary-charts.png?raw=true" alt="A screenshot of DMARC summary charts in Kibana"/>
+</p>
 
 `parsedmarc` is a Python module and CLI utility for parsing DMARC
 reports. When used with Elasticsearch and Kibana (or Splunk), it works
