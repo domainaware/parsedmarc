@@ -129,10 +129,12 @@ class MSGraphConnection(MailboxConnection):
     def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
         folder_id = self._find_folder_id_from_folder_path(folder_name)
-        batch_size = kwargs.get('batch_size', 10)
+        batch_size = kwargs.get('batch_size') or 10
         url = f'/users/{self.mailbox_name}/mailFolders/' \
               f'{folder_id}/messages?$select=id&$top={batch_size}'
         result = self._client.get(url)
+        if result.status_code != 200:
+            raise RuntimeError(f"Failed to fetch messages {result.text}")
         emails = result.json()['value']
         return [email['id'] for email in emails]
 

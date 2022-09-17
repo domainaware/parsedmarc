@@ -796,7 +796,7 @@ def _main():
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError as error:
-            logger.error("Elasticsearch Error: {0}".format(error.__str__()))
+            logger.exception("Elasticsearch Error")
             exit(1)
 
     if opts.hec:
