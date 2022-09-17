@@ -795,7 +795,7 @@ def _main():
                                   timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
-        except elastic.ElasticsearchError as error:
+        except elastic.ElasticsearchError:
             logger.exception("Elasticsearch Error")
             exit(1)
 
