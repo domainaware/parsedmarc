@@ -144,7 +144,7 @@ class MSGraphConnection(MailboxConnection):
             params['$top'] = batch_size
         result = self._client.get(url, params=params)
         if result.status_code != 200:
-            raise RuntimeError(f"Failed to fetch messages {result.text}")
+            raise RuntimeError(f'Failed to fetch messages {result.text}')
         emails = result.json()['value']
         return [email['id'] for email in emails]
 
@@ -159,6 +159,9 @@ class MSGraphConnection(MailboxConnection):
     def fetch_message(self, message_id: str):
         url = f'/users/{self.mailbox_name}/messages/{message_id}/$value'
         result = self._client.get(url)
+        if result.status_code != 200:
+            raise RuntimeWarning(f"Failed to fetch message"
+                                 f"{result.status_code}: {result.json()}")
         self.mark_message_read(message_id)
         return result.text
 
@@ -212,6 +215,9 @@ class MSGraphConnection(MailboxConnection):
             sub_url = f'/{parent_folder_id}/childFolders'
         url = f'/users/{self.mailbox_name}/mailFolders{sub_url}'
         folders_resp = self._client.get(url)
+        if folders_resp.status_code != 200:
+            raise RuntimeWarning(f"Failed to list folders."
+                                 f"{folders_resp.json()}")
         folders = folders_resp.json()['value']
         matched_folders = [folder for folder in folders
                            if folder['displayName'] == folder_name]
