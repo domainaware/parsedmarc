@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.1 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -29,7 +30,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.3.1
+                8.3.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -105,9 +106,65 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#module-parsedmarc">API</a><ul>
-<li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
-<li><a class="reference internal" href="#module-parsedmarc.splunk">parsedmarc.splunk</a></li>
-<li><a class="reference internal" href="#module-parsedmarc.utils">parsedmarc.utils</a></li>
+<li><a class="reference internal" href="#parsedmarc.InvalidAggregateReport"><code class="docutils literal notranslate"><span class="pre">InvalidAggregateReport</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.InvalidDMARCReport"><code class="docutils literal notranslate"><span class="pre">InvalidDMARCReport</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.InvalidForensicReport"><code class="docutils literal notranslate"><span class="pre">InvalidForensicReport</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.ParserError"><code class="docutils literal notranslate"><span class="pre">ParserError</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.email_results"><code class="docutils literal notranslate"><span class="pre">email_results()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.extract_xml"><code class="docutils literal notranslate"><span class="pre">extract_xml()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mailbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mailbox()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mbox()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.get_report_zip"><code class="docutils literal notranslate"><span class="pre">get_report_zip()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parse_aggregate_report_file"><code class="docutils literal notranslate"><span class="pre">parse_aggregate_report_file()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parse_aggregate_report_xml"><code class="docutils literal notranslate"><span class="pre">parse_aggregate_report_xml()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parse_forensic_report"><code class="docutils literal notranslate"><span class="pre">parse_forensic_report()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parse_report_email"><code class="docutils literal notranslate"><span class="pre">parse_report_email()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parse_report_file"><code class="docutils literal notranslate"><span class="pre">parse_report_file()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parsed_aggregate_reports_to_csv"><code class="docutils literal notranslate"><span class="pre">parsed_aggregate_reports_to_csv()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows"><code class="docutils literal notranslate"><span class="pre">parsed_aggregate_reports_to_csv_rows()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parsed_forensic_reports_to_csv"><code class="docutils literal notranslate"><span class="pre">parsed_forensic_reports_to_csv()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.parsed_forensic_reports_to_csv_rows"><code class="docutils literal notranslate"><span class="pre">parsed_forensic_reports_to_csv_rows()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.save_output"><code class="docutils literal notranslate"><span class="pre">save_output()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.watch_inbox"><code class="docutils literal notranslate"><span class="pre">watch_inbox()</span></code></a></li>
+<li><a class="reference internal" href="#module-parsedmarc.elastic">parsedmarc.elastic</a><ul>
+<li><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved"><code class="docutils literal notranslate"><span class="pre">AlreadySaved</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.ElasticsearchError"><code class="docutils literal notranslate"><span class="pre">ElasticsearchError</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.create_indexes"><code class="docutils literal notranslate"><span class="pre">create_indexes()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.migrate_indexes"><code class="docutils literal notranslate"><span class="pre">migrate_indexes()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch"><code class="docutils literal notranslate"><span class="pre">save_aggregate_report_to_elasticsearch()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch"><code class="docutils literal notranslate"><span class="pre">save_forensic_report_to_elasticsearch()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.elastic.set_hosts"><code class="docutils literal notranslate"><span class="pre">set_hosts()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-parsedmarc.splunk">parsedmarc.splunk</a><ul>
+<li><a class="reference internal" href="#parsedmarc.splunk.HECClient"><code class="docutils literal notranslate"><span class="pre">HECClient</span></code></a><ul>
+<li><a class="reference internal" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk"><code class="docutils literal notranslate"><span class="pre">HECClient.save_aggregate_reports_to_splunk()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk"><code class="docutils literal notranslate"><span class="pre">HECClient.save_forensic_reports_to_splunk()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#parsedmarc.splunk.SplunkError"><code class="docutils literal notranslate"><span class="pre">SplunkError</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-parsedmarc.utils">parsedmarc.utils</a><ul>
+<li><a class="reference internal" href="#parsedmarc.utils.DownloadError"><code class="docutils literal notranslate"><span class="pre">DownloadError</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.EmailParserError"><code class="docutils literal notranslate"><span class="pre">EmailParserError</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.convert_outlook_msg"><code class="docutils literal notranslate"><span class="pre">convert_outlook_msg()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.decode_base64"><code class="docutils literal notranslate"><span class="pre">decode_base64()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.get_base_domain"><code class="docutils literal notranslate"><span class="pre">get_base_domain()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.get_filename_safe_string"><code class="docutils literal notranslate"><span class="pre">get_filename_safe_string()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.get_ip_address_country"><code class="docutils literal notranslate"><span class="pre">get_ip_address_country()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.get_ip_address_info"><code class="docutils literal notranslate"><span class="pre">get_ip_address_info()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.get_reverse_dns"><code class="docutils literal notranslate"><span class="pre">get_reverse_dns()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_datetime"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_datetime()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_timestamp"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_timestamp()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.is_mbox"><code class="docutils literal notranslate"><span class="pre">is_mbox()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.is_outlook_msg"><code class="docutils literal notranslate"><span class="pre">is_outlook_msg()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.parse_email"><code class="docutils literal notranslate"><span class="pre">parse_email()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.query_dns"><code class="docutils literal notranslate"><span class="pre">query_dns()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.timestamp_to_datetime"><code class="docutils literal notranslate"><span class="pre">timestamp_to_datetime()</span></code></a></li>
+<li><a class="reference internal" href="#parsedmarc.utils.timestamp_to_human"><code class="docutils literal notranslate"><span class="pre">timestamp_to_human()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
