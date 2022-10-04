@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.3.2
+-----
+
+- Improvements to the Microsoft Graph integration (PR #352)
+
 8.3.1
 -----
 
