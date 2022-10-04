@@ -91,14 +91,19 @@ class MSGraphConnection(MailboxConnection):
                                           password=password,
                                           tenant_id=tenant_id,
                                           token_path=token_path)
-        scopes = ['Mail.ReadWrite']
-        # Detect if mailbox is shared
-        if mailbox and username != mailbox:
-            scopes = ['Mail.ReadWrite.Shared']
+        client_params = {
+            'credential': credential
+        }
         if not isinstance(credential, ClientSecretCredential):
+            scopes = ['Mail.ReadWrite']
+            # Detect if mailbox is shared
+            if mailbox and username != mailbox:
+                scopes = ['Mail.ReadWrite.Shared']
             auth_record = credential.authenticate(scopes=scopes)
             _cache_auth_record(auth_record, token_path)
-        self._client = GraphClient(credential=credential)
+            client_params['scopes'] = scopes
+
+        self._client = GraphClient(**client_params)
         self.mailbox_name = mailbox
 
     def create_folder(self, folder_name: str):
@@ -129,10 +134,17 @@ class MSGraphConnection(MailboxConnection):
     def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
         folder_id = self._find_folder_id_from_folder_path(folder_name)
-        batch_size = kwargs.get('batch_size', 10)
         url = f'/users/{self.mailbox_name}/mailFolders/' \
-              f'{folder_id}/messages?$select=id&$top={batch_size}'
-        result = self._client.get(url)
+              f'{folder_id}/messages'
+        params = {
+            '$select': 'id'
+        }
+        batch_size = kwargs.get('batch_size')
+        if batch_size and batch_size > 0:
+            params['$top'] = batch_size
+        result = self._client.get(url, params=params)
+        if result.status_code != 200:
+            raise RuntimeError(f'Failed to fetch messages {result.text}')
         emails = result.json()['value']
         return [email['id'] for email in emails]
 
@@ -147,6 +159,9 @@ class MSGraphConnection(MailboxConnection):
     def fetch_message(self, message_id: str):
         url = f'/users/{self.mailbox_name}/messages/{message_id}/$value'
         result = self._client.get(url)
+        if result.status_code != 200:
+            raise RuntimeWarning(f"Failed to fetch message"
+                                 f"{result.status_code}: {result.json()}")
         self.mark_message_read(message_id)
         return result.text
 
@@ -200,6 +215,9 @@ class MSGraphConnection(MailboxConnection):
             sub_url = f'/{parent_folder_id}/childFolders'
         url = f'/users/{self.mailbox_name}/mailFolders{sub_url}'
         folders_resp = self._client.get(url)
+        if folders_resp.status_code != 200:
+            raise RuntimeWarning(f"Failed to list folders."
+                                 f"{folders_resp.json()}")
         folders = folders_resp.json()['value']
         matched_folders = [folder for folder in folders
                            if folder['displayName'] == folder_name]
