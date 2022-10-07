@@ -966,20 +966,20 @@ On Debian/Ubuntu based systems, run:
 
 ```bash
 sudo apt-get install -y apt-transport-https
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
 sudo apt-get update
-sudo apt-get install -y default-jre-headless elasticsearch kibana
+sudo apt-get install -y elasticsearch kibana
 ```
 
 For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
 [Elasticsearch] and [Kibana].
 
-:::{warning}
-The default JVM heap size for Elasticsearch is very small (1g), which will
-cause it to crash under a heavy load. To fix this, increase the minimum and
-maximum JVM heap sizes in `/etc/elasticsearch/jvm.options` to more
-reasonable levels, depending on your server's resources.
+:::{note}
+Previously, the default JVM heap size for Elasticsearch was very small (1g),
+which will cause it to crash under a heavy load. To fix this, increase the
+minimum and maximum JVM heap sizes in `/etc/elasticsearch/jvm.options` to
+more reasonable levels, depending on your server's resources.
 
 Make sure the system has at least 2 GB more RAM then the assigned JVM
 heap size.
@@ -994,7 +994,7 @@ For example, to set a 4 GB heap size, set
 -Xmx4g
 ```
 
-See <https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html>
+See <https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings>
 for more information.
 :::
 
