@@ -1082,6 +1082,9 @@ it.
 
 Download (right click the link and click save as) [export.ndjson].
 
+Connect to kibana using the elastic user and the password you previously provide
+on the console ("End Kibana configuration" part).
+
 Import `export.ndjson` the Saved Objects tab of the Stack management
 page of Kibana.
 
