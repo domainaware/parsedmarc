@@ -1075,6 +1075,7 @@ xpack.security.encryptionKey: xxxx...xxxx
 ```
 ```bash
 sudo systemctl restart kibana
+sudo systemctl restart elasticsearch
 ```
 
 Now that Elasticsearch is up and running, use `parsedmarc` to send data to
@@ -1082,11 +1083,12 @@ it.
 
 Download (right click the link and click save as) [export.ndjson].
 
-Connect to kibana using the elastic user and the password you previously provide
+Connect to kibana using the "elastic" user and the password you previously provide
 on the console ("End Kibana configuration" part).
 
 Import `export.ndjson` the Saved Objects tab of the Stack management
-page of Kibana.
+page of Kibana. (Hamburger menu -> "Management" -> "Stack Management" -> 
+"Kibana" -> "Saved Objects")
 
 It will give you the option to overwrite existing saved dashboards or
 visualizations, which could be used to restore them if you or someone else
@@ -1218,7 +1220,7 @@ service parsedmarc status
 :::{note}
 In the event of a crash, systemd will restart the service after 10
 minutes, but the `service parsedmarc status` command will only show
-the logs for the current process. To vew the logs for previous runs
+the logs for the current process. To view the logs for previous runs
 as well as the current process (newest to oldest), run:
 
 ```bash
