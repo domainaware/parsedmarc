@@ -203,8 +203,8 @@ The full set of configuration options are:
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
   - `check_timeout` - int: Number of seconds to wait for a IMAP
-      IDLE response or the number of seconds until the next mai
-      check (Default: `30`)
+      IDLE response or the number of seconds until the next 
+      mail check (Default: `30`)
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
   - `port` - int: The IMAP server port (Default: `993`)
