@@ -1031,7 +1031,7 @@ Move the keys into place and secure them:
 
 ```bash
 sudo mv kibana.* /etc/kibana
-sudo chmod 660 /etc/kibanakibana.key
+sudo chmod 660 /etc/kibana/kibana.key
 ```
 
 Activate the HTTPS server in Kibana
