@@ -1006,28 +1006,6 @@ sudo service elasticsearch start
 sudo service kibana start
 ```
 
-Without the commercial [X-Pack] or [ReadonlyREST] products, Kibana
-does not have any authentication
-mechanism of its own. You can use nginx as a reverse proxy that
-provides basic authentication.
-
-```bash
-sudo apt-get install -y nginx apache2-utils
-```
-
-Or, on CentOS:
-
-```bash
-sudo yum install -y nginx httpd-tools
-```
-
-Create a directory to store the certificates and keys:
-
-```bash
-mkdir ~/ssl
-cd ~/ssl
-```
-
 To create a self-signed certificate, run:
 
 ```bash
@@ -1052,94 +1030,51 @@ rm -f kibana.csr
 Move the keys into place and secure them:
 
 ```bash
-cd
-sudo mv ssl /etc/nginx
-sudo chown -R root:www-data /etc/nginx/ssl
-sudo chmod -R u=rX,g=rX,o= /etc/nginx/ssl
+sudo mv kibana.* /etc/kibana
+sudo chmod 660 /etc/kibanakibana.key
 ```
 
-Disable the default nginx configuration:
-
+Activate the HTTPS server in Kibana
 ```bash
-sudo rm /etc/nginx/sites-enabled/default
+sudo vim /etc/kibana/kibana.yml
 ```
-
-Create the web server configuration
-
+Add the following configuration
+```
+server.host: "SERVER_IP"
+server.publicBaseUrl: "https://SERVER_IP"
+server.ssl.enabled: true
+server.ssl.certificate: /etc/kibana/kibana.crt
+server.ssl.key: /etc/kibana/kibana.key
+```
 ```bash
-sudo nano /etc/nginx/sites-available/kibana
+sudo systemctl restart kibana
 ```
 
-```nginx
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    
-    ssl_certificate /etc/nginx/ssl/kibana.crt;
-    ssl_certificate_key /etc/nginx/ssl/kibana.key;
-    
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:MozSSL:10m;  # about 40000 sessions
-    ssl_session_tickets off;
-
-
-    # modern configuration.
-    ssl_protocols TLSv1.3;
-    ssl_prefer_server_ciphers off;
-
-    # Uncomment this next line if you are using a signed, trusted cert
-    #add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    auth_basic "Login required";
-    auth_basic_user_file /etc/nginx/htpasswd;
-
-    location / {
-        proxy_pass http://127.0.0.1:5601;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-
-server {
-    listen 80;
-    listen [::]:80;
-    return 301 https://$host$request_uri;
-}
-```
-
-:::{note}
-If TLSv1.2 compatibility is required, please adapt the ssl_* part 
-using the Mozilla conf generator <https://ssl-config.mozilla.org/#server=nginx>
-:::
-
-
-Enable the nginx configuration for Kibana:
-
+Enroll Kibana in Elasticsearch
 ```bash
-sudo ln -s /etc/nginx/sites-available/kibana /etc/nginx/sites-enabled/kibana
+sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
 ```
-
-Add a user to basic authentication:
-
+Then access to your webserver at https://SERVER_IP:5601, accept the self-signed
+certificate and paste the token in the "Enrollment token" field.
 ```bash
-sudo htpasswd -c /etc/nginx/htpasswd exampleuser
+sudo /usr/share/kibana/bin/kibana-verification-code
 ```
+Then put the verification code to your web browser.
 
-Where `exampleuser` is the name of the user you want to add.
-
-Secure the permissions of the httpasswd file:
-
+End Kibana configuration
 ```bash
-sudo chown root:www-data /etc/nginx/htpasswd
-sudo chmod u=rw,g=r,o= /etc/nginx/htpasswd
+sudo /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
+sudo /usr/share/kibana/bin/kibana-encryption-keys generate
+sudo vim /etc/kibana/kibana.yml
 ```
-
-Restart nginx:
-
+Add previously generated encryption keys
+```
+xpack.encryptedSavedObjects.encryptionKey: xxxx...xxxx
+xpack.reporting.encryptionKey: xxxx...xxxx
+xpack.security.encryptionKey: xxxx...xxxx
+```
 ```bash
-sudo systemctl restart nginx
+sudo systemctl restart kibana
 ```
 
 Now that Elasticsearch is up and running, use `parsedmarc` to send data to
