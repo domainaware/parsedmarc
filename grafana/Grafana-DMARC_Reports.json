@@ -156,7 +156,7 @@
         "y": 2
       },
       "id": 6,
-      "interval": null,
+      "fixed_interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -191,7 +191,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -248,7 +248,7 @@
         "y": 2
       },
       "id": 2,
-      "interval": null,
+      "fixed_interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -280,7 +280,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -337,7 +337,7 @@
         "y": 2
       },
       "id": 5,
-      "interval": null,
+      "fixed_interval": null,
       "legend": {
         "header": "",
         "percentage": false,
@@ -372,7 +372,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -492,7 +492,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -639,7 +639,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -779,7 +779,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -921,7 +921,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1063,7 +1063,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1203,7 +1203,7 @@
               "field": "date_range",
               "id": "2",
               "settings": {
-                "interval": "1d",
+                "fixed_interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1302,7 +1302,7 @@
         "y": 38
       },
       "id": 36,
-      "interval": "$interval",
+      "fixed_interval": "$interval",
       "links": [],
       "options": {
         "colorMode": "background",
@@ -1329,7 +1329,7 @@
               "field": "date_range",
               "id": "6",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1880,7 +1880,7 @@
               "field": "date_range",
               "id": "6",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -2214,7 +2214,7 @@
         "y": 63
       },
       "id": 41,
-      "interval": "1d",
+      "fixed_interval": "1d",
       "links": [],
       "options": {
         "showHeader": true,
@@ -2623,7 +2623,7 @@
         "y": 72
       },
       "id": 43,
-      "interval": "86399",
+      "fixed_interval": "86399",
       "links": [],
       "options": {
         "showHeader": true,
@@ -2918,7 +2918,7 @@
         "y": 81
       },
       "id": 14,
-      "interval": "",
+      "fixed_interval": "",
       "links": [],
       "options": {
         "showHeader": true,
@@ -3626,7 +3626,7 @@
               "field": "Arrival Date (UTC)",
               "id": "6",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 1,
                 "trimEdges": 0
               },
@@ -3849,7 +3849,7 @@
               "field": "arrival_date",
               "id": "7",
               "settings": {
-                "interval": "auto",
+                "fixed_interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
