@@ -19,10 +19,12 @@ class AuthMethod(Enum):
     ClientSecret = 3
 
 
-def _get_cache_args(token_path: Path):
+def _get_cache_args(token_path: Path, allow_unencrypted_storage):
     cache_args = {
         'cache_persistence_options':
-            TokenCachePersistenceOptions(name='parsedmarc')
+            TokenCachePersistenceOptions(
+                name='parsedmarc',
+                allow_unencrypted_storage=allow_unencrypted_storage)
     }
     auth_record = _load_token(token_path)
     if auth_record:
@@ -51,7 +53,9 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
             client_secret=kwargs['client_secret'],
             disable_automatic_authentication=True,
             tenant_id=kwargs['tenant_id'],
-            **_get_cache_args(token_path)
+            **_get_cache_args(
+                token_path,
+                allow_unencrypted_storage=kwargs['allow_unencrypted_storage'])
         )
     elif auth_method == AuthMethod.UsernamePassword.name:
         credential = UsernamePasswordCredential(
@@ -60,7 +64,9 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
             disable_automatic_authentication=True,
             username=kwargs['username'],
             password=kwargs['password'],
-            **_get_cache_args(token_path)
+            **_get_cache_args(
+                token_path,
+                allow_unencrypted_storage=kwargs['allow_unencrypted_storage'])
         )
     elif auth_method == AuthMethod.ClientSecret.name:
         credential = ClientSecretCredential(
@@ -82,15 +88,18 @@ class MSGraphConnection(MailboxConnection):
                  username: str,
                  password: str,
                  tenant_id: str,
-                 token_file: str):
+                 token_file: str,
+                 allow_unencrypted_storage: bool):
         token_path = Path(token_file)
-        credential = _generate_credential(auth_method,
-                                          client_id=client_id,
-                                          client_secret=client_secret,
-                                          username=username,
-                                          password=password,
-                                          tenant_id=tenant_id,
-                                          token_path=token_path)
+        credential = _generate_credential(
+            auth_method,
+            client_id=client_id,
+            client_secret=client_secret,
+            username=username,
+            password=password,
+            tenant_id=tenant_id,
+            token_path=token_path,
+            allow_unencrypted_storage=allow_unencrypted_storage)
         client_params = {
             'credential': credential
         }
