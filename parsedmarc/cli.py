@@ -298,6 +298,7 @@ def _main():
                      graph_client_secret=None,
                      graph_tenant_id=None,
                      graph_mailbox=None,
+                     graph_allow_unencrypted_storage=False,
                      hec=None,
                      hec_token=None,
                      hec_index=None,
@@ -549,6 +550,10 @@ def _main():
                 logger.critical("mailbox setting missing from the "
                                 "msgraph config section")
                 exit(-1)
+
+            if "allow_unencrypted_storage" in graph_config:
+                opts.graph_allow_unencrypted_storage = graph_config.getboolean(
+                    "allow_unencrypted_storage")
 
         if "elasticsearch" in config:
             elasticsearch_config = config["elasticsearch"]
@@ -917,7 +922,8 @@ def _main():
                 client_secret=opts.graph_client_secret,
                 username=opts.graph_user,
                 password=opts.graph_password,
-                token_file=opts.graph_token_file
+                token_file=opts.graph_token_file,
+                allow_unencrypted_storage=opts.graph_allow_unencrypted_storage
             )
 
         except Exception:

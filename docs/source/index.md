@@ -246,6 +246,9 @@ The full set of configuration options are:
       could be a shared mailbox if the user has access to the mailbox
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
+  - `allow_unencrypted_storage` - bool: Allows the Azure Identity
+      module to fall back to unencrypted token cache (Default: False).
+      Even if enabled, the cache will always try encrypted storage first.
 
     :::{note}
     You must create an app registration in Azure AD and have an
