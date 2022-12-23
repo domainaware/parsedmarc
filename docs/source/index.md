@@ -290,7 +290,7 @@ The full set of configuration options are:
   - `number_of_shards` - int: The number of shards to use when
     creating the index (Default: `1`)
   - `number_of_replicas` - int: The number of replicas to use when
-    creating the index (Default: `1`)
+    creating the index (Default: `0`)
 - `splunk_hec`
   - `url` - str: The URL of the Splunk HTTP Events Collector (HEC)
   - `token` - str: The HEC token
