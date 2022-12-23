@@ -385,6 +385,32 @@ known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).
 :::
 
+:::{warning}
+Elasticsearch 8 change limits policy for shards, restricting by 
+default to 1000. parsedmarc use a shard per analyzed day. If you 
+have more than ~3 years of data, you will need to update this 
+limit.
+Check current usage (from Management -> Dev Tools -> Console):
+```
+GET /_cluster/health?pretty
+...
+  "active_primary_shards": 932,
+  "active_shards": 932,
+...
+}
+```
+Update the limit to 2k per exemple:
+```
+PUT _cluster/settings
+{
+  "persistent" : {
+    "cluster.max_shards_per_node" : 2000 
+  }
+}
+```
+Be warned that increasing this value increase ressources usage.
+:::
+
 ## Sample aggregate report output
 
 Here are the results from parsing the[example](https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F)
