@@ -742,10 +742,16 @@ explicitly tell `virtualenv` to use `python3.9` instead
 sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
 ```
 
+Activate the virtualenv
+
+```bash
+source /opt/parsedmarc/venv/bin/activate
+```
+
 To install or upgrade `parsedmarc` inside the virtualenv, run:
 
 ```bash
-sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
+sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
 ```
 
 ### Optional dependencies
