@@ -292,6 +292,11 @@ def get_ip_address_country(ip_address, db_path=None):
         "dbip-country.mmdb",
     ]
 
+    if db_path is not None:
+        if os.path.isfile(db_path) is False:
+            db_path = None
+            logger.warning("IP database Option contains no file. Use internal file")
+
     if db_path is None:
         for system_path in db_paths:
             if os.path.exists(system_path):
