@@ -975,20 +975,20 @@ On Debian/Ubuntu based systems, run:
 
 ```bash
 sudo apt-get install -y apt-transport-https
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
 sudo apt-get update
-sudo apt-get install -y default-jre-headless elasticsearch kibana
+sudo apt-get install -y elasticsearch kibana
 ```
 
 For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
 [Elasticsearch] and [Kibana].
 
-:::{warning}
-The default JVM heap size for Elasticsearch is very small (1g), which will
-cause it to crash under a heavy load. To fix this, increase the minimum and
-maximum JVM heap sizes in `/etc/elasticsearch/jvm.options` to more
-reasonable levels, depending on your server's resources.
+:::{note}
+Previously, the default JVM heap size for Elasticsearch was very small (1g),
+which will cause it to crash under a heavy load. To fix this, increase the
+minimum and maximum JVM heap sizes in `/etc/elasticsearch/jvm.options` to
+more reasonable levels, depending on your server's resources.
 
 Make sure the system has at least 2 GB more RAM then the assigned JVM
 heap size.
@@ -1003,7 +1003,7 @@ For example, to set a 4 GB heap size, set
 -Xmx4g
 ```
 
-See <https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html>
+See <https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings>
 for more information.
 :::
 
@@ -1013,28 +1013,6 @@ sudo systemctl enable elasticsearch.service
 sudo systemctl enable kibana.service
 sudo service elasticsearch start
 sudo service kibana start
-```
-
-Without the commercial [X-Pack] or [ReadonlyREST] products, Kibana
-does not have any authentication
-mechanism of its own. You can use nginx as a reverse proxy that
-provides basic authentication.
-
-```bash
-sudo apt-get install -y nginx apache2-utils
-```
-
-Or, on CentOS:
-
-```bash
-sudo yum install -y nginx httpd-tools
-```
-
-Create a directory to store the certificates and keys:
-
-```bash
-mkdir ~/ssl
-cd ~/ssl
 ```
 
 To create a self-signed certificate, run:
@@ -1061,85 +1039,52 @@ rm -f kibana.csr
 Move the keys into place and secure them:
 
 ```bash
-cd
-sudo mv ssl /etc/nginx
-sudo chown -R root:www-data /etc/nginx/ssl
-sudo chmod -R u=rX,g=rX,o= /etc/nginx/ssl
+sudo mv kibana.* /etc/kibana
+sudo chmod 660 /etc/kibana/kibana.key
 ```
 
-Disable the default nginx configuration:
-
+Activate the HTTPS server in Kibana
 ```bash
-sudo rm /etc/nginx/sites-enabled/default
+sudo vim /etc/kibana/kibana.yml
 ```
-
-Create the web server configuration
-
+Add the following configuration
+```
+server.host: "SERVER_IP"
+server.publicBaseUrl: "https://SERVER_IP"
+server.ssl.enabled: true
+server.ssl.certificate: /etc/kibana/kibana.crt
+server.ssl.key: /etc/kibana/kibana.key
+```
 ```bash
-sudo nano /etc/nginx/sites-available/kibana
+sudo systemctl restart kibana
 ```
 
-```nginx
-server {
-    listen 443 ssl http2;
-    ssl_certificate /etc/nginx/ssl/kibana.crt;
-    ssl_certificate_key /etc/nginx/ssl/kibana.key;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:50m;
-    ssl_session_tickets off;
-
-
-    # modern configuration. tweak to your needs.
-    ssl_protocols TLSv1.2;
-    ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
-    ssl_prefer_server_ciphers on;
-
-    # Uncomment this next line if you are using a signed, trusted cert
-    #add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    auth_basic "Login required";
-    auth_basic_user_file /etc/nginx/htpasswd;
-
-    location / {
-        proxy_pass http://127.0.0.1:5601;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-
-server {
-    listen 80;
-    return 301 https://$host$request_uri;
-}
-```
-
-Enable the nginx configuration for Kibana:
-
+Enroll Kibana in Elasticsearch
 ```bash
-sudo ln -s /etc/nginx/sites-available/kibana /etc/nginx/sites-enabled/kibana
+sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
 ```
-
-Add a user to basic authentication:
-
+Then access to your webserver at https://SERVER_IP:5601, accept the self-signed
+certificate and paste the token in the "Enrollment token" field.
 ```bash
-sudo htpasswd -c /etc/nginx/htpasswd exampleuser
+sudo /usr/share/kibana/bin/kibana-verification-code
 ```
+Then put the verification code to your web browser.
 
-Where `exampleuser` is the name of the user you want to add.
-
-Secure the permissions of the httpasswd file:
-
+End Kibana configuration
 ```bash
-sudo chown root:www-data /etc/nginx/htpasswd
-sudo chmod u=rw,g=r,o= /etc/nginx/htpasswd
+sudo /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
+sudo /usr/share/kibana/bin/kibana-encryption-keys generate
+sudo vim /etc/kibana/kibana.yml
 ```
-
-Restart nginx:
-
+Add previously generated encryption keys
+```
+xpack.encryptedSavedObjects.encryptionKey: xxxx...xxxx
+xpack.reporting.encryptionKey: xxxx...xxxx
+xpack.security.encryptionKey: xxxx...xxxx
+```
 ```bash
-sudo service nginx restart
+sudo systemctl restart kibana
+sudo systemctl restart elasticsearch
 ```
 
 Now that Elasticsearch is up and running, use `parsedmarc` to send data to
@@ -1147,8 +1092,12 @@ it.
 
 Download (right click the link and click save as) [export.ndjson].
 
+Connect to kibana using the "elastic" user and the password you previously provide
+on the console ("End Kibana configuration" part).
+
 Import `export.ndjson` the Saved Objects tab of the Stack management
-page of Kibana.
+page of Kibana. (Hamburger menu -> "Management" -> "Stack Management" -> 
+"Kibana" -> "Saved Objects")
 
 It will give you the option to overwrite existing saved dashboards or
 visualizations, which could be used to restore them if you or someone else
@@ -1280,7 +1229,7 @@ service parsedmarc status
 :::{note}
 In the event of a crash, systemd will restart the service after 10
 minutes, but the `service parsedmarc status` command will only show
-the logs for the current process. To vew the logs for previous runs
+the logs for the current process. To view the logs for previous runs
 as well as the current process (newest to oldest), run:
 
 ```bash
