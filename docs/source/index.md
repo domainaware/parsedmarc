@@ -636,6 +636,9 @@ On Debian 10 (Buster) or later, run:
 ```bash
 sudo apt-get install -y geoipupdate
 ```
+:::{note}
+[Component "contrib"] is required in your apt sources.
+:::
 
 On Ubuntu systems run:
 
@@ -1667,6 +1670,7 @@ Some additional steps are needed for Linux hosts.
 - {ref}`search`
 
 [cloudflare's public resolvers]: https://1.1.1.1/
+[Component "contrib"]: https://wiki.debian.org/SourcesList#Component
 [contributors]: https://github.com/domainaware/parsedmarc/graphs/contributors
 [creative commons attribution 4.0 international license]: https://creativecommons.org/licenses/by/4.0/
 [demystifying dmarc]: https://seanthegeek.net/459/demystifying-dmarc/
