@@ -1,6 +1,14 @@
 Changelog
 =========
 
+8.4.0
+-----
+
+- Provide a warning when no file is located at the path specified by the `ip_db_path` option (based on PR #369 with improvements in grammar)
+- Add `allow_unencrypted_storage` to possible `msgraph` settings. See documentation for details. (PR #375)
+- Use the `check_timeout` value in the event of an IMAP connection error, instead of a static 5 second value (PR #377)
+- Update the included DBIP IP to Country Lite database to the December 2022 release
+
 8.3.2
 -----
 

@@ -295,7 +295,9 @@ def get_ip_address_country(ip_address, db_path=None):
     if db_path is not None:
         if os.path.isfile(db_path) is False:
             db_path = None
-            logger.warning("IP database Option contains no file. Use internal file")
+            logger.warning(f"No file exists at {db_path}. Falling back to an "
+                           "included copy of the IPDB IP to Country "
+                           "Lite database.")
 
     if db_path is None:
         for system_path in db_paths:
