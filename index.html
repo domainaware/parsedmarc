@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.3.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.4.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.3.2
+                8.4.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -185,8 +185,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>parsedmarc documentation - Open source DMARC report analyzer and visualizer</li>
+      <li><a href="#" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">parsedmarc documentation - Open source DMARC report analyzer and visualizer</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -394,8 +394,8 @@ Gmail) to sort processed emails into (Default: <code class="docutils literal not
 <li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
 before saving. Default <code class="docutils literal notranslate"><span class="pre">10</span></code>. Use <code class="docutils literal notranslate"><span class="pre">0</span></code> for no limit.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
-IDLE response or the number of seconds until the next mai
-check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
+IDLE response or the number of seconds until the next
+mail check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>
@@ -442,7 +442,10 @@ for all auth methods except UsernamePassword.</p></li>
 current user if using the UsernamePassword auth method, but
 could be a shared mailbox if the user has access to the mailbox</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
-(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p>
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_unencrypted_storage</span></code> - bool: Allows the Azure Identity
+module to fall back to unencrypted token cache (Default: False).
+Even if enabled, the cache will always try encrypted storage first.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You must create an app registration in Azure AD and have an
@@ -489,7 +492,7 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when
 creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when
-creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+creating the index (Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></p>
@@ -599,6 +602,32 @@ reports in your DMARC inbox, but run <code class="docutils literal notranslate">
 <code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True``manually</span> <span class="pre">on</span> <span class="pre">a</span> <span class="pre">separate</span> <span class="pre">IMAP</span> <span class="pre">folder</span> <span class="pre">(using</span> <span class="pre">the</span>&#160; <span class="pre">``reports_folder</span></code> option), after you have manually moved
 known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Elasticsearch 8 change limits policy for shards, restricting by
+default to 1000. parsedmarc use a shard per analyzed day. If you
+have more than ~3 years of data, you will need to update this
+limit.
+Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>GET /_cluster/health?pretty
+...
+  &quot;active_primary_shards&quot;: 932,
+  &quot;active_shards&quot;: 932,
+...
+}
+</pre></div>
+</div>
+<p>Update the limit to 2k per exemple:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PUT</span> <span class="n">_cluster</span><span class="o">/</span><span class="n">settings</span>
+<span class="p">{</span>
+  <span class="s2">&quot;persistent&quot;</span> <span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;cluster.max_shards_per_node&quot;</span> <span class="p">:</span> <span class="mi">2000</span> 
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Be warned that increasing this value increase ressources usage.</p>
 </div>
 </section>
 <section id="sample-aggregate-report-output">
@@ -844,6 +873,10 @@ these databases as they are released, so MaxMind’s databases and the
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
 </pre></div>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference external" href="https://wiki.debian.org/SourcesList#Component">Component “contrib”</a> is required in your apt sources.</p>
+</div>
 <p>On Ubuntu systems run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo add-apt-repository ppa:maxmind/ppa
 sudo apt update
@@ -919,8 +952,12 @@ explicitly tell <code class="docutils literal notranslate"><span class="pre">vir
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
 </pre></div>
 </div>
+<p>Activate the virtualenv</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span> /opt/parsedmarc/venv/bin/activate
+</pre></div>
+</div>
 <p>To install or upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc /opt/parsedmarc/venv -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
 </pre></div>
 </div>
 </section>
@@ -1118,20 +1155,20 @@ config file:</p>
 </div>
 <p>On Debian/Ubuntu based systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y apt-transport-https
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo apt-key add -
-<span class="nb">echo</span> <span class="s2">&quot;deb https://artifacts.elastic.co/packages/7.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+<span class="nb">echo</span> <span class="s2">&quot;deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee /etc/apt/sources.list.d/elastic-8.x.list
 sudo apt-get update
-sudo apt-get install -y default-jre-headless elasticsearch kibana
+sudo apt-get install -y elasticsearch kibana
 </pre></div>
 </div>
 <p>For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
 <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html">Elasticsearch</a> and <a class="reference external" href="https://www.elastic.co/guide/en/kibana/current/rpm.html">Kibana</a>.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>The default JVM heap size for Elasticsearch is very small (1g), which will
-cause it to crash under a heavy load. To fix this, increase the minimum and
-maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to more
-reasonable levels, depending on your server’s resources.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Previously, the default JVM heap size for Elasticsearch was very small (1g),
+which will cause it to crash under a heavy load. To fix this, increase the
+minimum and maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to
+more reasonable levels, depending on your server’s resources.</p>
 <p>Make sure the system has at least 2 GB more RAM then the assigned JVM
 heap size.</p>
 <p>Always set the minimum and maximum JVM heap sizes to the same
@@ -1141,7 +1178,7 @@ value.</p>
 -Xmx4g
 </pre></div>
 </div>
-<p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/heap-size.html</a>
+<p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings">https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings</a>
 for more information.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
@@ -1149,22 +1186,6 @@ sudo systemctl <span class="nb">enable</span> elasticsearch.service
 sudo systemctl <span class="nb">enable</span> kibana.service
 sudo service elasticsearch start
 sudo service kibana start
-</pre></div>
-</div>
-<p>Without the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a> or <a class="reference external" href="https://readonlyrest.com/">ReadonlyREST</a> products, Kibana
-does not have any authentication
-mechanism of its own. You can use nginx as a reverse proxy that
-provides basic authentication.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y nginx apache2-utils
-</pre></div>
-</div>
-<p>Or, on CentOS:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo yum install -y nginx httpd-tools
-</pre></div>
-</div>
-<p>Create a directory to store the certificates and keys:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir ~/ssl
-<span class="nb">cd</span> ~/ssl
 </pre></div>
 </div>
 <p>To create a self-signed certificate, run:</p>
@@ -1182,78 +1203,59 @@ domain name), which is the IP address or domain name that you will bebana on. it
 </pre></div>
 </div>
 <p>Move the keys into place and secure them:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span>
-sudo mv ssl /etc/nginx
-sudo chown -R root:www-data /etc/nginx/ssl
-sudo chmod -R <span class="nv">u</span><span class="o">=</span>rX,g<span class="o">=</span>rX,o<span class="o">=</span> /etc/nginx/ssl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mv kibana.* /etc/kibana
+sudo chmod <span class="m">660</span> /etc/kibana/kibana.key
 </pre></div>
 </div>
-<p>Disable the default nginx configuration:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo rm /etc/nginx/sites-enabled/default
+<p>Activate the HTTPS server in Kibana</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo vim /etc/kibana/kibana.yml
 </pre></div>
 </div>
-<p>Create the web server configuration</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/nginx/sites-available/kibana
+<p>Add the following configuration</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">server</span><span class="o">.</span><span class="n">host</span><span class="p">:</span> <span class="s2">&quot;SERVER_IP&quot;</span>
+<span class="n">server</span><span class="o">.</span><span class="n">publicBaseUrl</span><span class="p">:</span> <span class="s2">&quot;https://SERVER_IP&quot;</span>
+<span class="n">server</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span> <span class="n">true</span>
+<span class="n">server</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">certificate</span><span class="p">:</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">kibana</span><span class="o">/</span><span class="n">kibana</span><span class="o">.</span><span class="n">crt</span>
+<span class="n">server</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">key</span><span class="p">:</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">kibana</span><span class="o">/</span><span class="n">kibana</span><span class="o">.</span><span class="n">key</span>
 </pre></div>
 </div>
-<div class="highlight-nginx notranslate"><div class="highlight"><pre><span></span><span class="k">server</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">443</span><span class="w"> </span><span class="s">ssl</span><span class="w"> </span><span class="s">http2</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_certificate</span><span class="w"> </span><span class="s">/etc/nginx/ssl/kibana.crt</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_certificate_key</span><span class="w"> </span><span class="s">/etc/nginx/ssl/kibana.key</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_session_timeout</span><span class="w"> </span><span class="s">1d</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_session_cache</span><span class="w"> </span><span class="s">shared:SSL:50m</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_session_tickets</span><span class="w"> </span><span class="no">off</span><span class="p">;</span><span class="w"></span>
-
-
-<span class="w">    </span><span class="c1"># modern configuration. tweak to your needs.</span>
-<span class="w">    </span><span class="kn">ssl_protocols</span><span class="w"> </span><span class="s">TLSv1.2</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_ciphers</span><span class="w"> </span><span class="s">&#39;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256&#39;</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">ssl_prefer_server_ciphers</span><span class="w"> </span><span class="no">on</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">    </span><span class="c1"># Uncomment this next line if you are using a signed, trusted cert</span>
-<span class="w">    </span><span class="c1">#add_header Strict-Transport-Security &quot;max-age=63072000; includeSubdomains; preload&quot;;</span>
-<span class="w">    </span><span class="kn">add_header</span><span class="w"> </span><span class="s">X-Frame-Options</span><span class="w"> </span><span class="s">SAMEORIGIN</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">add_header</span><span class="w"> </span><span class="s">X-Content-Type-Options</span><span class="w"> </span><span class="s">nosniff</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">auth_basic</span><span class="w"> </span><span class="s">&quot;Login</span><span class="w"> </span><span class="s">required&quot;</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">auth_basic_user_file</span><span class="w"> </span><span class="s">/etc/nginx/htpasswd</span><span class="p">;</span><span class="w"></span>
-
-<span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://127.0.0.1:5601</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Host</span><span class="w"> </span><span class="nv">$host</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Real-IP</span><span class="w"> </span><span class="nv">$remote_addr</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Forwarded-For</span><span class="w"> </span><span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-
-<span class="k">server</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="kn">return</span><span class="w"> </span><span class="mi">301</span><span class="w"> </span><span class="s">https://</span><span class="nv">$host$request_uri</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl restart kibana
 </pre></div>
 </div>
-<p>Enable the nginx configuration for Kibana:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo ln -s /etc/nginx/sites-available/kibana /etc/nginx/sites-enabled/kibana
+<p>Enroll Kibana in Elasticsearch</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
 </pre></div>
 </div>
-<p>Add a user to basic authentication:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo htpasswd -c /etc/nginx/htpasswd exampleuser
+<p>Then access to your webserver at https://SERVER_IP:5601, accept the self-signed
+certificate and paste the token in the “Enrollment token” field.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/kibana/bin/kibana-verification-code
 </pre></div>
 </div>
-<p>Where <code class="docutils literal notranslate"><span class="pre">exampleuser</span></code> is the name of the user you want to add.</p>
-<p>Secure the permissions of the httpasswd file:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:www-data /etc/nginx/htpasswd
-sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/nginx/htpasswd
+<p>Then put the verification code to your web browser.</p>
+<p>End Kibana configuration</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
+sudo /usr/share/kibana/bin/kibana-encryption-keys generate
+sudo vim /etc/kibana/kibana.yml
 </pre></div>
 </div>
-<p>Restart nginx:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service nginx restart
+<p>Add previously generated encryption keys</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xpack</span><span class="o">.</span><span class="n">encryptedSavedObjects</span><span class="o">.</span><span class="n">encryptionKey</span><span class="p">:</span> <span class="n">xxxx</span><span class="o">...</span><span class="n">xxxx</span>
+<span class="n">xpack</span><span class="o">.</span><span class="n">reporting</span><span class="o">.</span><span class="n">encryptionKey</span><span class="p">:</span> <span class="n">xxxx</span><span class="o">...</span><span class="n">xxxx</span>
+<span class="n">xpack</span><span class="o">.</span><span class="n">security</span><span class="o">.</span><span class="n">encryptionKey</span><span class="p">:</span> <span class="n">xxxx</span><span class="o">...</span><span class="n">xxxx</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl restart kibana
+sudo systemctl restart elasticsearch
 </pre></div>
 </div>
 <p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
 it.</p>
 <p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a>.</p>
+<p>Connect to kibana using the “elastic” user and the password you previously provide
+on the console (“End Kibana configuration” part).</p>
 <p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> the Saved Objects tab of the Stack management
-page of Kibana.</p>
+page of Kibana. (Hamburger menu -&gt; “Management” -&gt; “Stack Management” -&gt;
+“Kibana” -&gt; “Saved Objects”)</p>
 <p>It will give you the option to overwrite existing saved dashboards or
 visualizations, which could be used to restore them if you or someone else
 breaks them, as there are no permissions/access controls in Kibana without
@@ -1361,7 +1363,7 @@ sudo service parsedmarc restart
 <p class="admonition-title">Note</p>
 <p>In the event of a crash, systemd will restart the service after 10
 minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show
-the logs for the current process. To vew the logs for previous runs
+the logs for the current process. To view the logs for previous runs
 as well as the current process (newest to oldest), run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u parsedmarc.service -r
 </pre></div>

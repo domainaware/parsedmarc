@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.3.2 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 8.4.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="../../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.3.2
+                8.4.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -54,10 +54,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-          <li><a href="../parsedmarc.html">parsedmarc</a> &raquo;</li>
-      <li>parsedmarc.utils</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../parsedmarc.html">parsedmarc</a></li>
+      <li class="breadcrumb-item active">parsedmarc.utils</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -360,6 +360,13 @@
         <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;dbip-country.mmdb&quot;</span><span class="p">,</span>
     <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No file exists at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">. Falling back to an &quot;</span>
+                           <span class="s2">&quot;included copy of the IPDB IP to Country &quot;</span>
+                           <span class="s2">&quot;Lite database.&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
