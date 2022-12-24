@@ -62,7 +62,7 @@ class EmailParserError(RuntimeError):
 
 
 class DownloadError(RuntimeError):
-    """Rasied when an error occurs when downloading a file"""
+    """Raised when an error occurs when downloading a file"""
 
 
 def decode_base64(data):
