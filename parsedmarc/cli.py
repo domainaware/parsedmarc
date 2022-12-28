@@ -243,7 +243,9 @@ def _main():
                             help="do not make online queries for geolocation "
                                  " or  DNS")
     arg_parser.add_argument("-s", "--silent", action="store_true",
-                            help="only print errors and warnings")
+                            help="only print errors")
+    arg_parser.add_argument("-w", "--warnings", action="store_true", 
+                            help="include warnings in logs")
     arg_parser.add_argument("--verbose", action="store_true",
                             help="more verbose output")
     arg_parser.add_argument("--debug", action="store_true",
@@ -271,6 +273,7 @@ def _main():
                      forensic_json_filename=args.forensic_json_filename,
                      nameservers=args.nameservers,
                      silent=args.silent,
+                     warnings=args.warnings,
                      dns_timeout=args.dns_timeout,
                      debug=args.debug,
                      verbose=args.verbose,
@@ -393,6 +396,8 @@ def _main():
                 opts.verbose = general_config.getboolean("verbose")
             if "silent" in general_config:
                 opts.silent = general_config.getboolean("silent")
+            if "warnings" in general_config:
+                opts.warnings = general_config.getboolean("warnings")
             if "log_file" in general_config:
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
@@ -753,8 +758,10 @@ def _main():
                 opts.gmail_api_oauth2_port = \
                     gmail_api_config.get("oauth2_port", 8080)
 
-    logger.setLevel(logging.WARNING)
+    logger.setLevel(logging.ERROR)
 
+    if opts.warnings:
+        logger.setLevel(logging.WARNING)
     if opts.verbose:
         logger.setLevel(logging.INFO)
     if opts.debug:
