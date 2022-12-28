@@ -244,7 +244,7 @@ def _main():
                                  " or  DNS")
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors")
-    arg_parser.add_argument("-w", "--warnings", action="store_true", 
+    arg_parser.add_argument("-w", "--warnings", action="store_true",
                             help="include warnings in logs")
     arg_parser.add_argument("--verbose", action="store_true",
                             help="more verbose output")
