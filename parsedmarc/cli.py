@@ -245,7 +245,7 @@ def _main():
     arg_parser.add_argument("-s", "--silent", action="store_true",
                             help="only print errors")
     arg_parser.add_argument("-w", "--warnings", action="store_true",
-                            help="include warnings in logs")
+                            help="print warnings in addition to errors")
     arg_parser.add_argument("--verbose", action="store_true",
                             help="more verbose output")
     arg_parser.add_argument("--debug", action="store_true",
