@@ -1262,7 +1262,7 @@ def watch_inbox(mailbox_connection: MailboxConnection,
 
 
 def append_json(filename, reports):
-    with open(filename, "r+", newline="\n", encoding="utf-8") as output:
+    with open(filename, "a+", newline="\n", encoding="utf-8") as output:
         output_json = json.dumps(reports, ensure_ascii=False, indent=2)
         if output.seek(0, os.SEEK_END) != 0:
             if len(reports) == 0:
@@ -1285,7 +1285,7 @@ def append_json(filename, reports):
 
 
 def append_csv(filename, csv):
-    with open(filename, "r+", newline="\n", encoding="utf-8") as output:
+    with open(filename, "a+", newline="\n", encoding="utf-8") as output:
         if output.seek(0, os.SEEK_END) != 0:
             # strip the headers from the CSV
             _headers, csv = csv.split("\n", 1)
