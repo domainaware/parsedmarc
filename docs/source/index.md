@@ -382,8 +382,8 @@ at least daily, it is normal to receive very few forensic reports.
 
 An alternative approach is to still collect forensic/failure/ruf
 reports in your DMARC inbox, but run `parsedmarc` with
-``` save_forensic = True``manually on a separate IMAP folder (using
-the  ``reports_folder ``` option), after you have manually moved
+```save_forensic = True``` manually on a separate IMAP folder (using
+the ```reports_folder``` option), after you have manually moved
 known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).
 :::
