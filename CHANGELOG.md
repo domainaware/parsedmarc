@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.4.1
+-----
+
+- Fix bug introduced in 8.3.1 that caused `No such file or directory` errors if output files didn't exist (PR #385 closes issues #358 and #382)
+- Make the `--silent` CLI option only print errors. Add the `--warnings` options to also print warnings (PR #383)
+
 8.4.0
 -----
 
