@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 8.4.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 8.4.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="../../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.4.0
+                8.4.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -82,7 +82,7 @@
 
 
 <div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
 
 
 <span class="k">class</span> <span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -234,12 +234,12 @@
 
 
 <div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
 
 <span class="sd">    Args:</span>
@@ -269,7 +269,7 @@
 
 
 <div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create Elasticsearch indexes</span>
 
 <span class="sd">    Args:</span>
@@ -294,7 +294,7 @@
 
 
 <div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates index mappings</span>
 
 <span class="sd">    Args:</span>
@@ -348,7 +348,7 @@
                                            <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                            <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                            <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves a parsed DMARC aggregate report to ElasticSearch</span>
 
 <span class="sd">    Args:</span>
@@ -478,7 +478,7 @@
                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                           <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves a parsed DMARC forensic report to ElasticSearch</span>
 
 <span class="sd">        Args:</span>

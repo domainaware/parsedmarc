@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.4.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.4.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="#" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.4.0
+                8.4.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -305,41 +305,41 @@ configuration file, described below.</p>
 <section id="configuration-file">
 <h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> can be configured by supplying the path to an INI file</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc -c /etc/parsedmarc.ini
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc<span class="w"> </span>-c<span class="w"> </span>/etc/parsedmarc.ini
 </pre></div>
 </div>
 <p>For example</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is an example comment</span><span class="w"></span>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is an example comment</span>
 
-<span class="k">[general]</span><span class="w"></span>
-<span class="na">save_aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span><span class="w"></span>
-<span class="na">save_forensic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span><span class="w"></span>
+<span class="k">[general]</span>
+<span class="na">save_aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+<span class="na">save_forensic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
 
-<span class="k">[imap]</span><span class="w"></span>
-<span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span><span class="w"></span>
-<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarcresports@example.com</span><span class="w"></span>
-<span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$uperSecure</span><span class="w"></span>
+<span class="k">[imap]</span>
+<span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span>
+<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarcresports@example.com</span>
+<span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$uperSecure</span>
 
-<span class="k">[mailbox]</span><span class="w"></span>
-<span class="na">watch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span><span class="w"></span>
-<span class="na">delete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span><span class="w"></span>
+<span class="k">[mailbox]</span>
+<span class="na">watch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+<span class="na">delete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span>
 
-<span class="k">[elasticsearch]</span><span class="w"></span>
-<span class="na">hosts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">127.0.0.1:9200</span><span class="w"></span>
-<span class="na">ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span><span class="w"></span>
+<span class="k">[elasticsearch]</span>
+<span class="na">hosts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">127.0.0.1:9200</span>
+<span class="na">ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span>
 
-<span class="k">[splunk_hec]</span><span class="w"></span>
-<span class="na">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://splunkhec.example.com</span><span class="w"></span>
-<span class="na">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">HECTokenGoesHere</span><span class="w"></span>
-<span class="na">index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">email</span><span class="w"></span>
+<span class="k">[splunk_hec]</span>
+<span class="na">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://splunkhec.example.com</span>
+<span class="na">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">HECTokenGoesHere</span>
+<span class="na">index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">email</span>
 
-<span class="k">[s3]</span><span class="w"></span>
-<span class="na">bucket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">my-bucket</span><span class="w"></span>
-<span class="na">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">parsedmarc</span><span class="w"></span>
+<span class="k">[s3]</span>
+<span class="na">bucket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">my-bucket</span>
+<span class="na">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">parsedmarc</span>
 
-<span class="k">[syslog]</span><span class="w"></span>
-<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span><span class="w"></span>
-<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span><span class="w"></span>
+<span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
@@ -599,7 +599,8 @@ kind for privacy reasons. While aggregate DMARC reports are sent
 at least daily, it is normal to receive very few forensic reports.</p>
 <p>An alternative approach is to still collect forensic/failure/ruf
 reports in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with
-<code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True``manually</span> <span class="pre">on</span> <span class="pre">a</span> <span class="pre">separate</span> <span class="pre">IMAP</span> <span class="pre">folder</span> <span class="pre">(using</span> <span class="pre">the</span>&#160; <span class="pre">``reports_folder</span></code> option), after you have manually moved
+<code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code> manually on a separate IMAP folder (using
+the <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option), after you have manually moved
 known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).</p>
 </div>
@@ -641,70 +642,70 @@ This draft schema is still in wide use.</p>
 of the report schema.</p>
 <section id="json">
 <h3>JSON<a class="headerlink" href="#json" title="Permalink to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">  </span><span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;draft&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;org_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;acme.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;org_email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;noreply-dmarc-support@acme.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;org_extra_contact_info&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://acme.com/dmarc/support&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;report_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;9391651994964116463&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;begin_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-27 20:00:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-28 19:59:59&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"></span>
-<span class="w">  </span><span class="p">},</span><span class="w"></span>
-<span class="w">  </span><span class="nt">&quot;policy_published&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;adkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;r&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;aspf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;r&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;p&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;sp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;pct&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;100&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;fo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0&quot;</span><span class="w"></span>
-<span class="w">  </span><span class="p">},</span><span class="w"></span>
-<span class="w">  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;ip_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;72.150.241.94&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;country&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;US&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adsl-72-150-241-94.shv.bellsouth.net&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bellsouth.net&quot;</span><span class="w"></span>
-<span class="w">      </span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;alignment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;dmarc&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
-<span class="w">      </span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;policy_evaluated&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;disposition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fail&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;policy_override_reasons&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"></span>
-<span class="w">      </span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;identifiers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;header_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;envelope_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;envelope_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
-<span class="w">      </span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;auth_results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">          </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;selector&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fail&quot;</span><span class="w"></span>
-<span class="w">          </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">],</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">          </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mfrom&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span><span class="w"></span>
-<span class="w">          </span><span class="p">}</span><span class="w"></span>
-<span class="w">        </span><span class="p">]</span><span class="w"></span>
-<span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">  </span><span class="p">]</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;xml_schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;draft&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;report_metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;org_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;acme.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;org_email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;noreply-dmarc-support@acme.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;org_extra_contact_info&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://acme.com/dmarc/support&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;report_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;9391651994964116463&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;begin_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-27 20:00:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-28 19:59:59&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;policy_published&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;adkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;aspf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;p&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;sp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;pct&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;100&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;fo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;ip_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;72.150.241.94&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;country&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;US&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adsl-72-150-241-94.shv.bellsouth.net&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bellsouth.net&quot;</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;alignment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;dmarc&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;policy_evaluated&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;disposition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fail&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;policy_override_reasons&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;identifiers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;header_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;envelope_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;envelope_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;auth_results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;dkim&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;selector&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fail&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;spf&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;example.com&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mfrom&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
@@ -722,90 +723,90 @@ draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391
 <a class="reference external" href="https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml">forensic report email sample</a>.</p>
 <section id="id1">
 <h3>JSON<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;user_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;original_mail_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;original_rcpt_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;message_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;policy&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">       </span><span class="s2">&quot;dmarc&quot;</span><span class="w"></span>
-<span class="w">     </span><span class="p">],</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;reported_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;arrival_date_utc&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;ip_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.10.10.10&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;country&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
-<span class="w">     </span><span class="p">},</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;authentication_mechanisms&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;original_envelope_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;dkim_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;sample_headers_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: &lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;\nTo: &lt;peter.pan@domain.de&gt;\nfrom: \&quot;=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\&quot; &lt;sharepoint@domain.de&gt;\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;\n&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;parsed_sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Interaktive Wettbewerber-Übersicht&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;local&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span><span class="w"></span>
-<span class="w">       </span><span class="p">},</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;to_domains&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">         </span><span class="s2">&quot;domain.de&quot;</span><span class="w"></span>
-<span class="w">       </span><span class="p">],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">         </span><span class="p">{</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;local&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span><span class="w"></span>
-<span class="w">         </span><span class="p">}</span><span class="w"></span>
-<span class="w">       </span><span class="p">],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;+2&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;mime-version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;content-type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;x-mailer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;body&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;html&gt;&lt;head&gt;&lt;base href=&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=\&quot;Generator\&quot; CONTENT=\&quot;MS Exchange Server version 08.01.0240.003\&quot;&gt;&lt;/html&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;received&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">         </span><span class="p">{</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Servernameone.domain.local Servernameone.domain.local 10.10.10.10&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mailrelay.de mail.DOMAIN.de&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;with&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SMTP id 38.E7.30937.BD6E1BB5&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mon, 1 Oct 2018 11:20:27 +0200 CEST&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;hop&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;date_utc&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">           </span><span class="nt">&quot;delay&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"></span>
-<span class="w">         </span><span class="p">}</span><span class="w"></span>
-<span class="w">       </span><span class="p">],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;content-transfer-encoding&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quoted-printable&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;message-id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;has_defects&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Received&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Message-ID&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;To&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;peter.pan@domain.de&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;\&quot;Interaktive Wettbewerber-Übersicht\&quot; &lt;sharepoint@domain.de&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;MIME-Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;X-Mailer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">         </span><span class="nt">&quot;Content-Transfer-Encoding&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quoted-printable&quot;</span><span class="w"></span>
-<span class="w">       </span><span class="p">},</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;reply_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;cc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;bcc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;attachments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">       </span><span class="nt">&quot;filename_safe_subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span><span class="w"></span>
-<span class="w">     </span><span class="p">}</span><span class="w"></span>
-<span class="w">   </span><span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">     </span><span class="nt">&quot;feedback_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auth-failure&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;user_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Lua/1.0&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;original_mail_from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;original_rcpt_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;arrival_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mon, 01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;message_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;authentication_results&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dmarc=fail (p=none, dis=none) header.from=domain.de&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;delivery_result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;policy&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;auth_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">       </span><span class="s2">&quot;dmarc&quot;</span>
+<span class="w">     </span><span class="p">],</span>
+<span class="w">     </span><span class="nt">&quot;reported_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;arrival_date_utc&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">       </span><span class="nt">&quot;ip_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.10.10.10&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;country&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">     </span><span class="p">},</span>
+<span class="w">     </span><span class="nt">&quot;authentication_mechanisms&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">     </span><span class="nt">&quot;original_envelope_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;dkim_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;sample_headers_only&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Received: from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)\nDate: 01 Oct 2018 11:20:27 +0200\nMessage-ID: &lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;\nTo: &lt;peter.pan@domain.de&gt;\nfrom: \&quot;=?utf-8?B?SW50ZXJha3RpdmUgV2V0dGJld2VyYmVyLcOcYmVyc2ljaHQ=?=\&quot; &lt;sharepoint@domain.de&gt;\nSubject: Subject\nMIME-Version: 1.0\nX-Mailer: Microsoft SharePoint Foundation 2010\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: quoted-printable\n\n&lt;html&gt;&lt;head&gt;&lt;base href=3D&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;=\n&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=3D\&quot;Generator\&quot; CONTENT=3D\&quot;MS Exchange Server version=\n 08.01.0240.003\&quot;&gt;&lt;/html&gt;\n&quot;</span><span class="p">,</span>
+<span class="w">     </span><span class="nt">&quot;parsed_sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">       </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">         </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Interaktive Wettbewerber-Übersicht&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint@domain.de&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;local&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sharepoint&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span>
+<span class="w">       </span><span class="p">},</span>
+<span class="w">       </span><span class="nt">&quot;to_domains&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">&quot;domain.de&quot;</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="p">{</span>
+<span class="w">           </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan@domain.de&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;local&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peter.pan&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;domain.de&quot;</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">&quot;subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;timezone&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;+2&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;mime-version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;content-type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;x-mailer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;body&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;html&gt;&lt;head&gt;&lt;base href=&#39;\nwettbewerb&#39; /&gt;&lt;/head&gt;&lt;body&gt;&lt;!DOCTYPE HTML PUBLIC \&quot;-//W3C//DTD HTML 3.2//EN\&quot;&gt;&lt;HTML&gt;&lt;HEAD&gt;&lt;META NAME=\&quot;Generator\&quot; CONTENT=\&quot;MS Exchange Server version 08.01.0240.003\&quot;&gt;&lt;/html&gt;&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;received&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="p">{</span>
+<span class="w">           </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Servernameone.domain.local Servernameone.domain.local 10.10.10.10&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mailrelay.de mail.DOMAIN.de&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;with&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SMTP id 38.E7.30937.BD6E1BB5&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mon, 1 Oct 2018 11:20:27 +0200 CEST&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;hop&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;date_utc&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-10-01 09:20:27&quot;</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">&quot;delay&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">&quot;content-transfer-encoding&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quoted-printable&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;message-id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;has_defects&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">       </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">         </span><span class="nt">&quot;Received&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;from Servernameone.domain.local (Servernameone.domain.local [10.10.10.10])\n\tby  mailrelay.de (mail.DOMAIN.de) with SMTP id 38.E7.30937.BD6E1BB5; Mon,  1 Oct 2018 11:20:27 +0200 (CEST)&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;Date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;01 Oct 2018 11:20:27 +0200&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;Message-ID&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;38.E7.30937.BD6E1BB5@ mailrelay.de&gt;&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;To&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;peter.pan@domain.de&gt;&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;\&quot;Interaktive Wettbewerber-Übersicht\&quot; &lt;sharepoint@domain.de&gt;&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;Subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;MIME-Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;X-Mailer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Microsoft SharePoint Foundation 2010&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text/html; charset=utf-8&quot;</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">&quot;Content-Transfer-Encoding&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;quoted-printable&quot;</span>
+<span class="w">       </span><span class="p">},</span>
+<span class="w">       </span><span class="nt">&quot;reply_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">       </span><span class="nt">&quot;cc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">       </span><span class="nt">&quot;bcc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">       </span><span class="nt">&quot;attachments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">       </span><span class="nt">&quot;filename_safe_subject&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Subject&quot;</span>
+<span class="w">     </span><span class="p">}</span>
+<span class="w">   </span><span class="p">}</span>
 </pre></div>
 </div>
 </section>
@@ -870,7 +871,7 @@ these databases as they are released, so MaxMind’s databases and the
 <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
 </div>
 <p>On Debian 10 (Buster) or later, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
 </pre></div>
 </div>
 <div class="admonition note">
@@ -878,13 +879,13 @@ these databases as they are released, so MaxMind’s databases and the
 <p><a class="reference external" href="https://wiki.debian.org/SourcesList#Component">Component “contrib”</a> is required in your apt sources.</p>
 </div>
 <p>On Ubuntu systems run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo add-apt-repository ppa:maxmind/ppa
-sudo apt update
-sudo apt install -y geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>ppa:maxmind/ppa
+sudo<span class="w"> </span>apt<span class="w"> </span>update
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
 </pre></div>
 </div>
 <p>On CentOS or RHEL systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo dnf install -y geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
 </pre></div>
 </div>
 <p>The latest builds for Linux, macOS, and Windows can be downloaded
@@ -905,7 +906,7 @@ of <code class="docutils literal notranslate"><span class="pre">geoipupdate</spa
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To check the version of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that is installed, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>geoipupdate -V
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>geoipupdate<span class="w"> </span>-V
 </pre></div>
 </div>
 </div>
@@ -916,7 +917,7 @@ on Linux or macOS systems, or at
 <code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on
 Windows systems.</p>
 <p>Then run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo geoipupdate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>geoipupdate
 </pre></div>
 </div>
 <p>To download the databases for the first time.</p>
@@ -929,35 +930,35 @@ job or scheduled task.</p>
 <section id="installing-parsedmarc">
 <h3>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this heading"></a></h3>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y python3-pip python3-virtualenv python3-dev libxml2-dev libxslt-dev
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python3-pip<span class="w"> </span>python3-virtualenv<span class="w"> </span>python3-dev<span class="w"> </span>libxml2-dev<span class="w"> </span>libxslt-dev
 </pre></div>
 </div>
 <p>On CentOS or RHEL systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo dnf install -y python39 python3-virtualenv python3-setuptools python3-devel libxml2-devel libxslt-devel
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python39<span class="w"> </span>python3-virtualenv<span class="w"> </span>python3-setuptools<span class="w"> </span>python3-devel<span class="w"> </span>libxml2-devel<span class="w"> </span>libxslt-devel
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
 <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
 <p>Create a system user</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mkdir /opt
-sudo useradd parsedmarc -r -s /bin/false -m -b /opt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>mkdir<span class="w"> </span>/opt
+sudo<span class="w"> </span>useradd<span class="w"> </span>parsedmarc<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>/bin/false<span class="w"> </span>-m<span class="w"> </span>-b<span class="w"> </span>/opt
 </pre></div>
 </div>
 <p>Install parsedmarc in a virtualenv</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>virtualenv<span class="w"> </span>/opt/parsedmarc/venv
 </pre></div>
 </div>
 <p>CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems
 explicitly tell <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> to use <code class="docutils literal notranslate"><span class="pre">python3.9</span></code> instead</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>virtualenv<span class="w"> </span>-p<span class="w"> </span>python3.9<span class="w">  </span>/opt/parsedmarc/venv
 </pre></div>
 </div>
 <p>Activate the virtualenv</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span> /opt/parsedmarc/venv/bin/activate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/opt/parsedmarc/venv/bin/activate
 </pre></div>
 </div>
 <p>To install or upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> inside the virtualenv, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>/opt/parsedmarc/venv/bin/pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>parsedmarc
 </pre></div>
 </div>
 </section>
@@ -966,7 +967,7 @@ explicitly tell <code class="docutils literal notranslate"><span class="pre">vir
 <p>If you would like to be able to parse emails saved from Microsoft
 Outlook (i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install libemail-outlook-message-perl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libemail-outlook-message-perl
 </pre></div>
 </div>
 </section>
@@ -992,112 +993,112 @@ as a local EWS/OWA IMAP gateway. It can even work where
 <a class="reference external" href="https://sourceforge.net/projects/davmail/files/">https://sourceforge.net/projects/davmail/files/</a></p>
 <p>Extract the zip using the <code class="docutils literal notranslate"><span class="pre">unzip</span></code> command.</p>
 <p>Install Java:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install default-jre-headless
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>default-jre-headless
 </pre></div>
 </div>
 <p>Configure Davmail by creating a <code class="docutils literal notranslate"><span class="pre">davmail.properties</span></code> file</p>
-<div class="highlight-properties notranslate"><div class="highlight"><pre><span></span><span class="c"># DavMail settings, see http://davmail.sourceforge.net/ for documentation</span><span class="w"></span>
+<div class="highlight-properties notranslate"><div class="highlight"><pre><span></span><span class="c1"># DavMail settings, see http://davmail.sourceforge.net/ for documentation</span>
 
-<span class="c">#############################################################</span><span class="w"></span>
-<span class="c"># Basic settings</span><span class="w"></span>
+<span class="c1">#############################################################</span>
+<span class="c1"># Basic settings</span>
 
-<span class="c"># Server or workstation mode</span><span class="w"></span>
-<span class="na">davmail.server</span><span class="o">=</span><span class="s">true</span><span class="w"></span>
+<span class="c1"># Server or workstation mode</span>
+<span class="na">davmail.server</span><span class="o">=</span><span class="s">true</span>
 
-<span class="c"># connection mode auto, EWS or WebDav</span><span class="w"></span>
-<span class="na">davmail.enableEws</span><span class="o">=</span><span class="s">auto</span><span class="w"></span>
+<span class="c1"># connection mode auto, EWS or WebDav</span>
+<span class="na">davmail.enableEws</span><span class="o">=</span><span class="s">auto</span>
 
-<span class="c"># base Exchange OWA or EWS url</span><span class="w"></span>
-<span class="na">davmail.url</span><span class="o">=</span><span class="s">https://outlook.office365.com/EWS/Exchange.asmx</span><span class="w"></span>
+<span class="c1"># base Exchange OWA or EWS url</span>
+<span class="na">davmail.url</span><span class="o">=</span><span class="s">https://outlook.office365.com/EWS/Exchange.asmx</span>
 
-<span class="c"># Listener ports</span><span class="w"></span>
-<span class="na">davmail.imapPort</span><span class="o">=</span><span class="s">1143</span><span class="w"></span>
+<span class="c1"># Listener ports</span>
+<span class="na">davmail.imapPort</span><span class="o">=</span><span class="s">1143</span>
 
-<span class="c">#############################################################</span><span class="w"></span>
-<span class="c"># Network settings</span><span class="w"></span>
+<span class="c1">#############################################################</span>
+<span class="c1"># Network settings</span>
 
-<span class="c"># Network proxy settings</span><span class="w"></span>
-<span class="na">davmail.enableProxy</span><span class="o">=</span><span class="s">false</span><span class="w"></span>
-<span class="na">davmail.useSystemProxies</span><span class="o">=</span><span class="s">false</span><span class="w"></span>
-<span class="na">davmail.proxyHost</span><span class="o">=</span><span class="w"></span>
-<span class="na">davmail.proxyPort</span><span class="o">=</span><span class="w"></span>
-<span class="na">davmail.proxyUser</span><span class="o">=</span><span class="w"></span>
-<span class="na">davmail.proxyPassword</span><span class="o">=</span><span class="w"></span>
+<span class="c1"># Network proxy settings</span>
+<span class="na">davmail.enableProxy</span><span class="o">=</span><span class="s">false</span>
+<span class="na">davmail.useSystemProxies</span><span class="o">=</span><span class="s">false</span>
+<span class="na">davmail.proxyHost</span><span class="o">=</span>
+<span class="na">davmail.proxyPort</span><span class="o">=</span>
+<span class="na">davmail.proxyUser</span><span class="o">=</span>
+<span class="na">davmail.proxyPassword</span><span class="o">=</span>
 
-<span class="c"># proxy exclude list</span><span class="w"></span>
-<span class="na">davmail.noProxyFor</span><span class="o">=</span><span class="w"></span>
+<span class="c1"># proxy exclude list</span>
+<span class="na">davmail.noProxyFor</span><span class="o">=</span>
 
-<span class="c"># block remote connection to DavMail</span><span class="w"></span>
-<span class="na">davmail.allowRemote</span><span class="o">=</span><span class="s">false</span><span class="w"></span>
+<span class="c1"># block remote connection to DavMail</span>
+<span class="na">davmail.allowRemote</span><span class="o">=</span><span class="s">false</span>
 
-<span class="c"># bind server sockets to the loopback address</span><span class="w"></span>
-<span class="na">davmail.bindAddress</span><span class="o">=</span><span class="s">127.0.0.1</span><span class="w"></span>
+<span class="c1"># bind server sockets to the loopback address</span>
+<span class="na">davmail.bindAddress</span><span class="o">=</span><span class="s">127.0.0.1</span>
 
-<span class="c"># disable SSL for specified listeners</span><span class="w"></span>
-<span class="na">davmail.ssl.nosecureimap</span><span class="o">=</span><span class="s">true</span><span class="w"></span>
+<span class="c1"># disable SSL for specified listeners</span>
+<span class="na">davmail.ssl.nosecureimap</span><span class="o">=</span><span class="s">true</span>
 
-<span class="c"># Send keepalive character during large folder and messages download</span><span class="w"></span>
-<span class="na">davmail.enableKeepalive</span><span class="o">=</span><span class="s">true</span><span class="w"></span>
+<span class="c1"># Send keepalive character during large folder and messages download</span>
+<span class="na">davmail.enableKeepalive</span><span class="o">=</span><span class="s">true</span>
 
-<span class="c"># Message count limit on folder retrieval</span><span class="w"></span>
-<span class="na">davmail.folderSizeLimit</span><span class="o">=</span><span class="s">0</span><span class="w"></span>
+<span class="c1"># Message count limit on folder retrieval</span>
+<span class="na">davmail.folderSizeLimit</span><span class="o">=</span><span class="s">0</span>
 
-<span class="c">#############################################################</span><span class="w"></span>
-<span class="c"># IMAP settings</span><span class="w"></span>
+<span class="c1">#############################################################</span>
+<span class="c1"># IMAP settings</span>
 
-<span class="c"># Delete messages immediately on IMAP STORE \Deleted flag</span><span class="w"></span>
-<span class="na">davmail.imapAutoExpunge</span><span class="o">=</span><span class="s">true</span><span class="w"></span>
+<span class="c1"># Delete messages immediately on IMAP STORE \Deleted flag</span>
+<span class="na">davmail.imapAutoExpunge</span><span class="o">=</span><span class="s">true</span>
 
-<span class="c"># Enable IDLE support, set polling delay in minutes</span><span class="w"></span>
-<span class="na">davmail.imapIdleDelay</span><span class="o">=</span><span class="s">1</span><span class="w"></span>
+<span class="c1"># Enable IDLE support, set polling delay in minutes</span>
+<span class="na">davmail.imapIdleDelay</span><span class="o">=</span><span class="s">1</span>
 
-<span class="c"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate</span><span class="w"></span>
-<span class="c"># message size for performance reasons</span><span class="w"></span>
-<span class="na">davmail.imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="s">true</span><span class="w"></span>
+<span class="c1"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate</span>
+<span class="c1"># message size for performance reasons</span>
+<span class="na">davmail.imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="s">true</span>
 
-<span class="c"># Client connection timeout in seconds - default 300, 0 to disable</span><span class="w"></span>
-<span class="na">davmail.clientSoTimeout</span><span class="o">=</span><span class="s">0</span><span class="w"></span>
+<span class="c1"># Client connection timeout in seconds - default 300, 0 to disable</span>
+<span class="na">davmail.clientSoTimeout</span><span class="o">=</span><span class="s">0</span>
 
-<span class="c">#############################################################</span><span class="w"></span>
+<span class="c1">#############################################################</span>
 </pre></div>
 </div>
 <section id="running-davmail-as-a-systemd-service">
 <h4>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this heading"></a></h4>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">davmail</span></code> as a service.</p>
 <p>Create a system user</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo useradd davmail -r -s /bin/false
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>useradd<span class="w"> </span>davmail<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>/bin/false
 </pre></div>
 </div>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">davmail</span></code> configuration file from prying eyes</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:davmail /opt/davmail/davmail.properties
-sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /opt/davmail/davmail.properties
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chown<span class="w"> </span>root:davmail<span class="w"> </span>/opt/davmail/davmail.properties
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span><span class="w"> </span>/opt/davmail/davmail.properties
 </pre></div>
 </div>
 <p>Create the service configuration file</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/systemd/system/davmail.service
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>nano<span class="w"> </span>/etc/systemd/system/davmail.service
 </pre></div>
 </div>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span><span class="w"></span>
-<span class="na">Description</span><span class="o">=</span><span class="s">DavMail gateway service</span><span class="w"></span>
-<span class="na">Documentation</span><span class="o">=</span><span class="s">https://sourceforge.net/projects/davmail/</span><span class="w"></span>
-<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span><span class="w"></span>
-<span class="na">After</span><span class="o">=</span><span class="s">syslog.target network.target</span><span class="w"></span>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">DavMail gateway service</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://sourceforge.net/projects/davmail/</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">syslog.target network.target</span>
 
-<span class="k">[Service]</span><span class="w"></span>
-<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/davmail/davmail /opt/davmail/davmail.properties</span><span class="w"></span>
-<span class="na">User</span><span class="o">=</span><span class="s">davmail</span><span class="w"></span>
-<span class="na">Group</span><span class="o">=</span><span class="s">davmail</span><span class="w"></span>
-<span class="na">Restart</span><span class="o">=</span><span class="s">always</span><span class="w"></span>
-<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span><span class="w"></span>
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/davmail/davmail /opt/davmail/davmail.properties</span>
+<span class="na">User</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
 
-<span class="k">[Install]</span><span class="w"></span>
-<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span><span class="w"></span>
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
 </pre></div>
 </div>
 <p>Then, enable the service</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
-sudo systemctl <span class="nb">enable</span> parsedmarc.service
-sudo service davmail restart
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>parsedmarc.service
+sudo<span class="w"> </span>service<span class="w"> </span>davmail<span class="w"> </span>restart
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1109,12 +1110,12 @@ sudo service davmail restart
 <p class="admonition-title">Warning</p>
 <p>Always restart the service every time you upgrade to a new version of
 <code class="docutils literal notranslate"><span class="pre">davmail</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service davmail restart
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>service<span class="w"> </span>davmail<span class="w"> </span>restart
 </pre></div>
 </div>
 </div>
 <p>To check the status of the service, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service davmail status
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service<span class="w"> </span>davmail<span class="w"> </span>status
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1123,7 +1124,7 @@ sudo service davmail restart
 minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">davmail</span> <span class="pre">status</span></code> command will only show the
 logs for the current process. To vew the logs for previous runs as
 well as the current process (newest to oldest), run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u davmail.service -r
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl<span class="w"> </span>-u<span class="w"> </span>davmail.service<span class="w"> </span>-r
 </pre></div>
 </div>
 </div>
@@ -1133,11 +1134,11 @@ well as the current process (newest to oldest), run:</p>
 <p>Because you are interacting with DavMail server over the loopback
 (i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
 config file:</p>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span><span class="w"></span>
-<span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span><span class="w"></span>
-<span class="na">port</span><span class="o">=</span><span class="s">1143</span><span class="w"></span>
-<span class="na">ssl</span><span class="o">=</span><span class="s">False</span><span class="w"></span>
-<span class="na">watch</span><span class="o">=</span><span class="s">True</span><span class="w"></span>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span>
+<span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span>
+<span class="na">port</span><span class="o">=</span><span class="s">1143</span>
+<span class="na">ssl</span><span class="o">=</span><span class="s">False</span>
+<span class="na">watch</span><span class="o">=</span><span class="s">True</span>
 </pre></div>
 </div>
 </section>
@@ -1154,11 +1155,11 @@ config file:</p>
 <p>Elasticsearch and Kibana 6 or later are required</p>
 </div>
 <p>On Debian/Ubuntu based systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt-get install -y apt-transport-https
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch <span class="p">|</span> sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-<span class="nb">echo</span> <span class="s2">&quot;deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main&quot;</span> <span class="p">|</span> sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-sudo apt-get update
-sudo apt-get install -y elasticsearch kibana
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>apt-transport-https
+wget<span class="w"> </span>-qO<span class="w"> </span>-<span class="w"> </span>https://artifacts.elastic.co/GPG-KEY-elasticsearch<span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>gpg<span class="w"> </span>--dearmor<span class="w"> </span>-o<span class="w"> </span>/usr/share/keyrings/elasticsearch-keyring.gpg
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/apt/sources.list.d/elastic-8.x.list
+sudo<span class="w"> </span>apt-get<span class="w"> </span>update
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>elasticsearch<span class="w"> </span>kibana
 </pre></div>
 </div>
 <p>For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
@@ -1181,34 +1182,34 @@ value.</p>
 <p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings">https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings</a>
 for more information.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
-sudo systemctl <span class="nb">enable</span> elasticsearch.service
-sudo systemctl <span class="nb">enable</span> kibana.service
-sudo service elasticsearch start
-sudo service kibana start
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>elasticsearch.service
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>kibana.service
+sudo<span class="w"> </span>service<span class="w"> </span>elasticsearch<span class="w"> </span>start
+sudo<span class="w"> </span>service<span class="w"> </span>kibana<span class="w"> </span>start
 </pre></div>
 </div>
 <p>To create a self-signed certificate, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl req -x509 -nodes -days <span class="m">365</span> -newkey rsa:4096 -keyout kibana.key -out kibana.crt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl<span class="w"> </span>req<span class="w"> </span>-x509<span class="w"> </span>-nodes<span class="w"> </span>-days<span class="w"> </span><span class="m">365</span><span class="w"> </span>-newkey<span class="w"> </span>rsa:4096<span class="w"> </span>-keyout<span class="w"> </span>kibana.key<span class="w"> </span>-out<span class="w"> </span>kibana.crt
 </pre></div>
 </div>
 <p>Or, to create a Certificate Signing Request (CSR) for a CA, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl req -newkey rsa:4096-nodes -keyout kibana.key -out kibana.csr
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl<span class="w"> </span>req<span class="w"> </span>-newkey<span class="w"> </span>rsa:4096-nodes<span class="w"> </span>-keyout<span class="w"> </span>kibana.key<span class="w"> </span>-out<span class="w"> </span>kibana.csr
 </pre></div>
 </div>
 <p>Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
 domain name), which is the IP address or domain name that you will bebana on. it is the most important field.</p>
 <p>If you generated a CSR, remove the CSR after you have your certs</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm -f kibana.csr
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>-f<span class="w"> </span>kibana.csr
 </pre></div>
 </div>
 <p>Move the keys into place and secure them:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo mv kibana.* /etc/kibana
-sudo chmod <span class="m">660</span> /etc/kibana/kibana.key
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>mv<span class="w"> </span>kibana.*<span class="w"> </span>/etc/kibana
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">660</span><span class="w"> </span>/etc/kibana/kibana.key
 </pre></div>
 </div>
 <p>Activate the HTTPS server in Kibana</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo vim /etc/kibana/kibana.yml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>vim<span class="w"> </span>/etc/kibana/kibana.yml
 </pre></div>
 </div>
 <p>Add the following configuration</p>
@@ -1219,23 +1220,23 @@ sudo chmod <span class="m">660</span> /etc/kibana/kibana.key
 <span class="n">server</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">key</span><span class="p">:</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">kibana</span><span class="o">/</span><span class="n">kibana</span><span class="o">.</span><span class="n">key</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl restart kibana
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>kibana
 </pre></div>
 </div>
 <p>Enroll Kibana in Elasticsearch</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token<span class="w"> </span>-s<span class="w"> </span>kibana
 </pre></div>
 </div>
 <p>Then access to your webserver at https://SERVER_IP:5601, accept the self-signed
 certificate and paste the token in the “Enrollment token” field.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/kibana/bin/kibana-verification-code
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/kibana/bin/kibana-verification-code
 </pre></div>
 </div>
 <p>Then put the verification code to your web browser.</p>
 <p>End Kibana configuration</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
-sudo /usr/share/kibana/bin/kibana-encryption-keys generate
-sudo vim /etc/kibana/kibana.yml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/elasticsearch/bin/elasticsearch-setup-passwords<span class="w"> </span>interactive
+sudo<span class="w"> </span>/usr/share/kibana/bin/kibana-encryption-keys<span class="w"> </span>generate
+sudo<span class="w"> </span>vim<span class="w"> </span>/etc/kibana/kibana.yml
 </pre></div>
 </div>
 <p>Add previously generated encryption keys</p>
@@ -1244,8 +1245,8 @@ sudo vim /etc/kibana/kibana.yml
 <span class="n">xpack</span><span class="o">.</span><span class="n">security</span><span class="o">.</span><span class="n">encryptionKey</span><span class="p">:</span> <span class="n">xxxx</span><span class="o">...</span><span class="n">xxxx</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl restart kibana
-sudo systemctl restart elasticsearch
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>kibana
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>elasticsearch
 </pre></div>
 </div>
 <p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
@@ -1311,35 +1312,35 @@ easier and more flexible filtering options.</p>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
 they arrive.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo chown root:parsedmarc /etc/parsedmarc.ini
-sudo chmod <span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span> /etc/parsedmarc.ini
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chown<span class="w"> </span>root:parsedmarc<span class="w"> </span>/etc/parsedmarc.ini
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span><span class="w"> </span>/etc/parsedmarc.ini
 </pre></div>
 </div>
 <p>Create the service configuration file</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo nano /etc/systemd/system/parsedmarc.service
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>nano<span class="w"> </span>/etc/systemd/system/parsedmarc.service
 </pre></div>
 </div>
-<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span><span class="w"></span>
-<span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span><span class="w"></span>
-<span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span><span class="w"></span>
-<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span><span class="w"></span>
-<span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span><span class="w"></span>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span>
 
-<span class="k">[Service]</span><span class="w"></span>
-<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span><span class="w"></span>
-<span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
-<span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span><span class="w"></span>
-<span class="na">Restart</span><span class="o">=</span><span class="s">always</span><span class="w"></span>
-<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span><span class="w"></span>
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span>
+<span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
 
-<span class="k">[Install]</span><span class="w"></span>
-<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span><span class="w"></span>
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
 </pre></div>
 </div>
 <p>Then, enable the service</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo systemctl daemon-reload
-sudo systemctl <span class="nb">enable</span> parsedmarc.service
-sudo service parsedmarc restart
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>parsedmarc.service
+sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class="w"> </span>restart
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1351,12 +1352,12 @@ sudo service parsedmarc restart
 <p class="admonition-title">Warning</p>
 <p>Always restart the service every time you upgrade to a new version of
 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo service parsedmarc restart
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class="w"> </span>restart
 </pre></div>
 </div>
 </div>
 <p>To check the status of the service, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service parsedmarc status
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service<span class="w"> </span>parsedmarc<span class="w"> </span>status
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1365,7 +1366,7 @@ sudo service parsedmarc restart
 minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show
 the logs for the current process. To view the logs for previous runs
 as well as the current process (newest to oldest), run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl -u parsedmarc.service -r
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl<span class="w"> </span>-u<span class="w"> </span>parsedmarc.service<span class="w"> </span>-r
 </pre></div>
 </div>
 </div>
@@ -1705,7 +1706,7 @@ to the mailing list post address, and not their email address.</p>
 footer. Unfortunately, the Postorius mailing list admin UI will not allow you
 to create an empty template, so you’ll have to create one using the system’s
 command line instead, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch var/templates/lists/list.example.com/en/list:member:regular:footer
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch<span class="w"> </span>var/templates/lists/list.example.com/en/list:member:regular:footer
 </pre></div>
 </div>
 <p>Where <code class="docutils literal notranslate"><span class="pre">list.example.com</span></code> the list ID, and <code class="docutils literal notranslate"><span class="pre">en</span></code> is the language.</p>

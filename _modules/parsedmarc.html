@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.4.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.4.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.4.0
+                8.4.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -102,7 +102,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.4.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.4.1&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -119,24 +119,24 @@
 
 
 <div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../index.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised whenever the parser fails for some reason&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised whenever the parser fails for some reason&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="InvalidAggregateReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidAggregateReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidAggregateReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC aggregate report is encountered&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC aggregate report is encountered&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="InvalidForensicReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidForensicReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidForensicReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span></div>
 
 
 <span class="k">def</span> <span class="nf">_parse_report_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                          <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a record from a DMARC aggregate report into a more consistent</span>
 <span class="sd">    format</span>
 
@@ -269,7 +269,7 @@
 <div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        xml (str): A string of DMARC aggregate report XML</span>
@@ -419,7 +419,7 @@
 
 
 <div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../index.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extracts xml from a zip or gzip file at the given path, file-like object,</span>
 <span class="sd">    or bytes.</span>
 
@@ -469,7 +469,7 @@
                                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                 <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as an</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as an</span>
 <span class="sd">    aggregate DMARC report</span>
 
 <span class="sd">    Args:</span>
@@ -497,7 +497,7 @@
 
 
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv_rows"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to list of dicts in flat CSV</span>
 <span class="sd">    format</span>
 
@@ -600,7 +600,7 @@
 
 
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
 
@@ -640,7 +640,7 @@
                           <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                           <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                           <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a DMARC forensic report and sample to a ``OrderedDict``</span>
 
 <span class="sd">    Args:</span>
@@ -758,7 +758,7 @@
 
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv_rows"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to a list of dicts in flat CSV</span>
 <span class="sd">    format</span>
 
@@ -793,7 +793,7 @@
 
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
 
@@ -830,7 +830,7 @@
                        <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                        <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parses a DMARC report from an email</span>
 
 <span class="sd">    Args:</span>
@@ -976,7 +976,7 @@
 <div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                       <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
 <span class="sd">    file-like object. or bytes</span>
 
 <span class="sd">    Args:</span>
@@ -1036,7 +1036,7 @@
                                 <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parses a mailbox in mbox format containing e-mails with attached</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a mailbox in mbox format containing e-mails with attached</span>
 <span class="sd">    DMARC reports</span>
 
 <span class="sd">    Args:</span>
@@ -1102,7 +1102,7 @@
                                    <span class="n">results</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
                                    <span class="n">create_folders</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fetches and parses DMARC reports from a mailbox</span>
 
 <span class="sd">    Args:</span>
@@ -1286,7 +1286,7 @@
                 <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Watches the mailbox for new messages and</span>
 <span class="sd">      sends the results to a callback function</span>
 
@@ -1330,7 +1330,7 @@
 
 
 <span class="k">def</span> <span class="nf">append_json</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">reports</span><span class="p">):</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;a+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
         <span class="n">output_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">reports</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1353,7 +1353,7 @@
 
 
 <span class="k">def</span> <span class="nf">append_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">csv</span><span class="p">):</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;a+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># strip the headers from the CSV</span>
             <span class="n">_headers</span><span class="p">,</span> <span class="n">csv</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1369,7 +1369,7 @@
                 <span class="n">forensic_json_filename</span><span class="o">=</span><span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_csv_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
                 <span class="n">forensic_csv_filename</span><span class="o">=</span><span class="s2">&quot;forensic.csv&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save report data in the given directory</span>
 
 <span class="sd">    Args:</span>
@@ -1427,7 +1427,7 @@
 
 
 <div class="viewcode-block" id="get_report_zip"><a class="viewcode-back" href="../index.html#parsedmarc.get_report_zip">[docs]</a><span class="k">def</span> <span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a zip file of parsed report output</span>
 
 <span class="sd">    Args:</span>
@@ -1476,7 +1476,7 @@
                   <span class="n">require_encryption</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">attachment_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Emails parsing results as a zip file</span>
 
 <span class="sd">    Args:</span>

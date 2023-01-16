@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 8.4.0 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 8.4.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="../../index.html" class="icon icon-home"> parsedmarc
           </a>
               <div class="version">
-                8.4.0
+                8.4.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -82,18 +82,18 @@
 
 
 <div class="viewcode-block" id="SplunkError"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.SplunkError">[docs]</a><span class="k">class</span> <span class="nc">SplunkError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when a Splunk API error occurs&quot;&quot;&quot;</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a Splunk API error occurs&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="HECClient"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient">[docs]</a><span class="k">class</span> <span class="nc">HECClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A client for a Splunk HTTP Events Collector (HEC)&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A client for a Splunk HTTP Events Collector (HEC)&quot;&quot;&quot;</span>
 
     <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC</span>
     <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">access_token</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span>
                  <span class="n">source</span><span class="o">=</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initializes the HECClient</span>
 <span class="sd">        Args:</span>
 <span class="sd">            url (str): The URL of the HEC</span>
@@ -123,7 +123,7 @@
         <span class="p">}</span>
 
 <div class="viewcode-block" id="HECClient.save_aggregate_reports_to_splunk"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_aggregate_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves aggregate DMARC reports to Splunk</span>
 
 <span class="sd">        Args:</span>
@@ -190,7 +190,7 @@
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk"><a class="viewcode-back" href="../../index.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves forensic DMARC reports to Splunk</span>
 
 <span class="sd">        Args:</span>
