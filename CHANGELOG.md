@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.4.2
+-----
+
+- Only initialize the syslog, S3 and Kafka clients once (PR #386 closes issues #289 and #380)
+
 8.4.1
 -----
 
