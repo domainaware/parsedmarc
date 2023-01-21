@@ -83,42 +83,6 @@ def _main():
                         forensic_json_filename=opts.forensic_json_filename,
                         aggregate_csv_filename=opts.aggregate_csv_filename,
                         forensic_csv_filename=opts.forensic_csv_filename)
-        if opts.kafka_hosts:
-            try:
-                ssl_context = None
-                if opts.kafka_skip_certificate_verification:
-                    logger.debug("Skipping Kafka certificate verification")
-                    ssl_context = create_default_context()
-                    ssl_context.check_hostname = False
-                    ssl_context.verify_mode = CERT_NONE
-                kafka_client = kafkaclient.KafkaClient(
-                    opts.kafka_hosts,
-                    username=opts.kafka_username,
-                    password=opts.kafka_password,
-                    ssl_context=ssl_context
-                )
-            except Exception as error_:
-                logger.error("Kafka Error: {0}".format(error_.__str__()))
-        if opts.s3_bucket:
-            try:
-                s3_client = s3.S3Client(
-                    bucket_name=opts.s3_bucket,
-                    bucket_path=opts.s3_path,
-                    region_name=opts.s3_region_name,
-                    endpoint_url=opts.s3_endpoint_url,
-                    access_key_id=opts.s3_access_key_id,
-                    secret_access_key=opts.s3_secret_access_key,
-                )
-            except Exception as error_:
-                logger.error("S3 Error: {0}".format(error_.__str__()))
-        if opts.syslog_server:
-            try:
-                syslog_client = syslog.SyslogClient(
-                    server_name=opts.syslog_server,
-                    server_port=int(opts.syslog_port),
-                )
-            except Exception as error_:
-                logger.error("Syslog Error: {0}".format(error_.__str__()))
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -811,6 +775,28 @@ def _main():
             logger.exception("Elasticsearch Error")
             exit(1)
 
+    if opts.s3_bucket:
+        try:
+            s3_client = s3.S3Client(
+                bucket_name=opts.s3_bucket,
+                bucket_path=opts.s3_path,
+                region_name=opts.s3_region_name,
+                endpoint_url=opts.s3_endpoint_url,
+                access_key_id=opts.s3_access_key_id,
+                secret_access_key=opts.s3_secret_access_key,
+            )
+        except Exception as error_:
+            logger.error("S3 Error: {0}".format(error_.__str__()))
+
+    if opts.syslog_server:
+        try:
+            syslog_client = syslog.SyslogClient(
+                server_name=opts.syslog_server,
+                server_port=int(opts.syslog_port),
+            )
+        except Exception as error_:
+            logger.error("Syslog Error: {0}".format(error_.__str__()))
+
     if opts.hec:
         if opts.hec_token is None or opts.hec_index is None:
             logger.error("HEC token and HEC index are required when "
@@ -823,6 +809,23 @@ def _main():
         hec_client = splunk.HECClient(opts.hec, opts.hec_token,
                                       opts.hec_index,
                                       verify=verify)
+
+    if opts.kafka_hosts:
+        try:
+            ssl_context = None
+            if opts.kafka_skip_certificate_verification:
+                logger.debug("Skipping Kafka certificate verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = CERT_NONE
+            kafka_client = kafkaclient.KafkaClient(
+                opts.kafka_hosts,
+                username=opts.kafka_username,
+                password=opts.kafka_password,
+                ssl_context=ssl_context
+            )
+        except Exception as error_:
+            logger.error("Kafka Error: {0}".format(error_.__str__()))
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic
