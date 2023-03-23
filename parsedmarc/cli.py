@@ -20,7 +20,7 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport, s3, syslog
+    InvalidDMARCReport, s3, syslog, loganalytics
 
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 from parsedmarc.mail.graph import AuthMethod
@@ -170,6 +170,22 @@ def _main():
                             forensic_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
+        if opts.la_dce:
+            try:
+                la_client = loganalytics.LogAnalyticsClient(
+                    client_id=opts.la_client_id,
+                    client_secret=opts.la_client_secret,
+                    tenant_id=opts.la_tenant_id,
+                    dce=opts.la_dce,
+                    dcr_immutable_id=opts.la_dcr_immutable_id,
+                    dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
+                    dcr_forensic_stream=opts.la_dcr_forensic_stream
+                )
+                la_client.publish_results(reports_, opts.save_aggregate, opts.save_forensic)
+            except loganalytics.LogAnalyticsException as e:
+                logger.error("Log Analytics error: {0}".format(e.__str__()))
+            except Exception as e:
+                logger.error("Unknown error occured during the publishing to Log Analitics: {0}".format(e.__str__()))
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("-c", "--config-file",
@@ -313,7 +329,14 @@ def _main():
                      log_file=args.log_file,
                      n_procs=1,
                      chunk_size=1,
-                     ip_db_path=None
+                     ip_db_path=None,
+                     la_client_id=None,
+                     la_client_secret=None,
+                     la_tenant_id=None,
+                     la_dce=None,
+                     la_dcr_immutable_id=None,
+                     la_dcr_aggregate_stream=None,
+                     la_dcr_forensic_stream=None
                      )
     args = arg_parser.parse_args()
 
@@ -721,6 +744,23 @@ def _main():
             if "oauth2_port" in gmail_api_config:
                 opts.gmail_api_oauth2_port = \
                     gmail_api_config.get("oauth2_port", 8080)
+        
+        if "log_analytics" in config.sections():
+            log_analytics_config = config["log_analytics"]
+            opts.la_client_id = \
+                log_analytics_config.get("client_id")
+            opts.la_client_secret = \
+                log_analytics_config.get("client_secret")
+            opts.la_tenant_id = \
+                log_analytics_config.get("tenant_id")
+            opts.la_dce = \
+                log_analytics_config.get("dce")
+            opts.la_dcr_immutable_id = \
+                log_analytics_config.get("dcr_immutable_id")
+            opts.la_dcr_aggregate_stream = \
+                log_analytics_config.get("dcr_aggregate_stream")
+            opts.la_dcr_forensic_stream = \
+                log_analytics_config.get("dcr_forensic_stream")
 
     logger.setLevel(logging.ERROR)
 
