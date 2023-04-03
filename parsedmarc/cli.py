@@ -181,11 +181,18 @@ def _main():
                     dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
                     dcr_forensic_stream=opts.la_dcr_forensic_stream
                 )
-                la_client.publish_results(reports_, opts.save_aggregate, opts.save_forensic)
+                la_client.publish_results(
+                    reports_,
+                    opts.save_aggregate,
+                    opts.save_forensic)
             except loganalytics.LogAnalyticsException as e:
                 logger.error("Log Analytics error: {0}".format(e.__str__()))
             except Exception as e:
-                logger.error("Unknown error occured during the publishing to Log Analitics: {0}".format(e.__str__()))
+                logger.error(
+                    "Unknown error occured" +
+                    " during the publishing" +
+                    " to Log Analitics: " +
+                    e.__str__())
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("-c", "--config-file",
@@ -744,7 +751,6 @@ def _main():
             if "oauth2_port" in gmail_api_config:
                 opts.gmail_api_oauth2_port = \
                     gmail_api_config.get("oauth2_port", 8080)
-        
         if "log_analytics" in config.sections():
             log_analytics_config = config["log_analytics"]
             opts.la_client_id = \
