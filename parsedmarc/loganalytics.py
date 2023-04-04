@@ -84,9 +84,7 @@ class LogAnalyticsClient(object):
                 not self.conf.client_secret or
                 not self.conf.tenant_id or
                 not self.conf.dce or
-                not self.conf.dcr_immutable_id or
-                not self.conf.dcr_aggregate_stream or
-                not self.conf.dcr_forensic_stream):
+                not self.conf.dcr_immutable_id):
             raise LogAnalyticsException(
                 "Invalid configuration. " +
                 "One or more required settings are missing.")
