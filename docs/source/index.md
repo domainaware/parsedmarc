@@ -1044,6 +1044,33 @@ sudo service elasticsearch start
 sudo service kibana start
 ```
 
+As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)
+```bash
+sudo vim /etc/elasticsearch/elasticsearch.yml
+```
+Add the following configuration
+```
+# Enable security features
+xpack.security.enabled: true
+
+xpack.security.enrollment.enabled: true
+
+# Enable encryption for HTTP API client connections, such as Kibana, Logstash, and Agents
+xpack.security.http.ssl:
+  enabled: true
+  keystore.path: certs/http.p12
+
+# Enable encryption and mutual authentication between cluster nodes
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+```
+```bash
+sudo systemctl restart elasticsearch
+```
+
 To create a self-signed certificate, run:
 
 ```bash
