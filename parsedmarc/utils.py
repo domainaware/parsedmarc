@@ -30,15 +30,11 @@ import dns.exception
 import geoip2.database
 import geoip2.errors
 import requests
-import publicsuffix2
+import publicsuffixlist
 
 from parsedmarc.log import logger
 import parsedmarc.resources
 
-USER_AGENT = "Mozilla/5.0 (({0} {1})) parsedmarc".format(
-            platform.system(),
-            platform.release(),
-        )
 
 parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 
@@ -83,7 +79,7 @@ def decode_base64(data):
     return base64.b64decode(data)
 
 
-def get_base_domain(domain, use_fresh_psl=False):
+def get_base_domain(domain):
     """
     Gets the base domain name for the given domain
 
@@ -93,41 +89,13 @@ def get_base_domain(domain, use_fresh_psl=False):
 
     Args:
         domain (str): A domain or subdomain
-        use_fresh_psl (bool): Download a fresh Public Suffix List
 
     Returns:
         str: The base domain of the given domain
 
     """
-    psl_path = os.path.join(tempdir, "public_suffix_list.dat")
-
-    def download_psl():
-        url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        # Use a browser-like user agent string to bypass some proxy blocks
-        headers = {"User-Agent": USER_AGENT}
-        try:
-            fresh_psl = requests.get(url, headers=headers).text
-            with open(psl_path, "w", encoding="utf-8") as fresh_psl_file:
-                fresh_psl_file.write(fresh_psl)
-        except Exception as error:
-            raise DownloadError(
-                "Failed to download an updated PSL {0}".format(error))
-
-    if use_fresh_psl:
-        if not os.path.exists(psl_path):
-            download_psl()
-        else:
-            psl_age = datetime.now() - datetime.fromtimestamp(
-                os.stat(psl_path).st_mtime)
-            if psl_age > timedelta(hours=24):
-                download_psl()
-
-        with open(psl_path, encoding="utf-8") as psl_file:
-            psl = publicsuffix2.PublicSuffixList(psl_file)
-
-        return psl.get_public_suffix(domain)
-    else:
-        return publicsuffix2.get_sld(domain)
+    psl = publicsuffixlist.PublicSuffixList()
+    return psl.privatesuffix(domain)
 
 
 def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
