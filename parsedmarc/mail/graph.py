@@ -145,17 +145,34 @@ class MSGraphConnection(MailboxConnection):
         folder_id = self._find_folder_id_from_folder_path(folder_name)
         url = f'/users/{self.mailbox_name}/mailFolders/' \
               f'{folder_id}/messages'
+        batch_size = kwargs.get('batch_size')
+        if not batch_size:
+            batch_size = 0
+        emails = self._get_all_messages(url, batch_size)
+        return [email['id'] for email in emails]
+
+    def _get_all_messages(self, url, batch_size):
+        messages: list
         params = {
             '$select': 'id'
         }
-        batch_size = kwargs.get('batch_size')
-        if batch_size and batch_size > 0:
+        if batch_size:
             params['$top'] = batch_size
+        else:
+            params['$top'] = 100
         result = self._client.get(url, params=params)
         if result.status_code != 200:
             raise RuntimeError(f'Failed to fetch messages {result.text}')
-        emails = result.json()['value']
-        return [email['id'] for email in emails]
+        messages = result.json()['value']
+        # Loop if next page is present and not obtained message limit.
+        while '@odata.nextLink' in result.json() and (
+                batch_size == 0 or
+                batch_size - len(messages) > 0):
+            result = self._client.get(result.json()['@odata.nextLink'])
+            if result.status_code != 200:
+                raise RuntimeError(f'Failed to fetch messages {result.text}')
+            messages.extend(result.json()['value'])
+        return messages
 
     def mark_message_read(self, message_id: str):
         """Marks a message as read"""
@@ -228,7 +245,7 @@ class MSGraphConnection(MailboxConnection):
         if folders_resp.status_code != 200:
             raise RuntimeWarning(f"Failed to list folders."
                                  f"{folders_resp.json()}")
-        folders:list = folders_resp.json()['value']
+        folders: list = folders_resp.json()['value']
         matched_folders = [folder for folder in folders
                            if folder['displayName'] == folder_name]
         if len(matched_folders) == 0:
