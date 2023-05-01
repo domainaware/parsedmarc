@@ -156,7 +156,7 @@ class MSGraphConnection(MailboxConnection):
         params = {
             '$select': 'id'
         }
-        if batch_size:
+        if batch_size and batch_size > 0:
             params['$top'] = batch_size
         else:
             params['$top'] = 100
