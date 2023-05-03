@@ -64,18 +64,14 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#dmarc-alignment-guide">DMARC Alignment Guide</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-if-a-sender-wont-support-dkim-dmarc">What if a sender won’t support DKIM/DMARC?</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#mailing-list-list-best-practices">Mailing list list best practices</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#do">Do</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#do-not">Do not</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#listserv">LISTSERV</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#workarounds">Workarounds</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">Mailman 2</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">Mailman 3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-about-mailing-lists">What about mailing lists?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mailing-list-list-best-practices">Mailing list list best practices</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#do">Do</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#do-not">Do not</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#listserv">LISTSERV</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#workarounds">Workarounds</a></li>
 </ul>
 </li>
 </ul>
@@ -200,23 +196,22 @@ Top-Level Domain (TLD) – that would leave you vulnerable to
 spoofing of your TLD and/or any subdomain.</p>
 </div>
 </section>
-</section>
-<section class="tex2jax_ignore mathjax_ignore" id="what-about-mailing-lists">
-<h1>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this heading"></a></h1>
+<section id="what-about-mailing-lists">
+<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this heading"></a></h2>
 <p>When you deploy DMARC on your domain, you might find that messages
 relayed by mailing lists are failing DMARC, most likely because the mailing
 list is spoofing your from address, and modifying the subject,
 footer, or other part of the message, thereby breaking the
 DKIM signature.</p>
 <section id="mailing-list-list-best-practices">
-<h2>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this heading"></a></h2>
+<h3>Mailing list list best practices<a class="headerlink" href="#mailing-list-list-best-practices" title="Permalink to this heading"></a></h3>
 <p>Ideally, a mailing list should forward messages without altering the
 headers or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of
 explaining exactly what mailing lists should and shouldn’t do to be
 fully DMARC compliant. Rather than repeat his fine work, here’s a
 summary:</p>
 <section id="do">
-<h3>Do<a class="headerlink" href="#do" title="Permalink to this heading"></a></h3>
+<h4>Do<a class="headerlink" href="#do" title="Permalink to this heading"></a></h4>
 <ul class="simple">
 <li><p>Retain headers from the original message</p></li>
 <li><p>Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
@@ -236,7 +231,7 @@ adding unsubscribe links to the body</p></li>
 these headers.</p>
 </section>
 <section id="do-not">
-<h3>Do not<a class="headerlink" href="#do-not" title="Permalink to this heading"></a></h3>
+<h4>Do not<a class="headerlink" href="#do-not" title="Permalink to this heading"></a></h4>
 <ul class="simple">
 <li><p>Remove or modify any existing headers from the original message, including
 From, Date, Subject, etc.</p></li>
@@ -253,7 +248,7 @@ to the mailing list post address, and not their email address.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 </section>
 <section id="mailman-2">
-<h3>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this heading"></a></h3>
+<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this heading"></a></h4>
 <p>Navigate to General Settings, and configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -331,7 +326,7 @@ to the mailing list post address, and not their email address.</p>
 </table>
 </section>
 <section id="mailman-3">
-<h3>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this heading"></a></h3>
+<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this heading"></a></h4>
 <p>Navigate to Settings&gt; List Identity</p>
 <p>Make Subject prefix blank.</p>
 <p>Navigate to Settings&gt; Alter Messages</p>
@@ -395,13 +390,13 @@ command line instead, for example:</p>
 <p>Then restart mailman core.</p>
 </section>
 <section id="listserv">
-<h3>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h3>
+<h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h4>
 <p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
 that enforce with a DMARC quarantine or reject policy.</p>
 <p>Some additional steps are needed for Linux hosts.</p>
 </section>
 <section id="workarounds">
-<h3>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this heading"></a></h3>
+<h4>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this heading"></a></h4>
 <p>If a mailing list must go <strong>against</strong> best practices and
 modify the message (e.g. to add a required legal footer), the mailing
 list administrator must configure the list to replace the From address of the
@@ -409,7 +404,7 @@ message (also known as munging) with the address of the mailing list, so they
 no longer spoof email addresses with domains protected by DMARC.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 <section id="id1">
-<h4>Mailman 2<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h4>
+<h5>Mailman 2<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h5>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -444,7 +439,7 @@ the original sender.</p>
 </div>
 </section>
 <section id="id2">
-<h4>Mailman 3<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h4>
+<h5>Mailman 3<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h5>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -473,6 +468,7 @@ clients.</p>
 accidentally reply to the entire list, when they only intended to reply to
 the original sender.</p>
 </div>
+</section>
 </section>
 </section>
 </section>
