@@ -351,6 +351,19 @@ The full set of configuration options are:
       (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
       listen on for the OAuth2 response (Default: 8080)
+- `log_analytics`
+  - `client_id` - str: The app registration's client ID
+  - `client_secret` - str: The app registraton's client secret
+  - `tenant_id` - str: The tenant id where the app registration resides
+  - `dce` - str: The Data Collection Endpoint (DCE). Example: `https://{DCE-NAME}.{REGION}.ingest.monitor.azure.com`.
+  - `dcr_immutable_id` - str: The immutable ID of the Data Collection Rule (DCR)
+  - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
+  - `dcr_forensic_stream` - str: The stream name for the forensic reports in the DCR
+  
+  :::{note}
+    Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
+    :::
+
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
