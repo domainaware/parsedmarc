@@ -72,10 +72,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#do-not">Do not</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mailman-2">Mailman 2</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mailman-3">Mailman 3</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#workarounds">Workarounds</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Mailman 2</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">Mailman 3</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#listserv">LISTSERV</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#workarounds">Workarounds</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Mailman 2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Mailman 3</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -392,6 +394,12 @@ command line instead, for example:</p>
 <p>Where <code class="docutils literal notranslate"><span class="pre">list.example.com</span></code> the list ID, and <code class="docutils literal notranslate"><span class="pre">en</span></code> is the language.</p>
 <p>Then restart mailman core.</p>
 </section>
+<section id="listserv">
+<h3>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
+that enforce with a DMARC quarantine or reject policy.</p>
+<p>Some additional steps are needed for Linux hosts.</p>
+</section>
 <section id="workarounds">
 <h3>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this heading"></a></h3>
 <p>If a mailing list must go <strong>against</strong> best practices and
@@ -400,9 +408,8 @@ list administrator must configure the list to replace the From address of the
 message (also known as munging) with the address of the mailing list, so they
 no longer spoof email addresses with domains protected by DMARC.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
-</section>
 <section id="id1">
-<h3>Mailman 2<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<h4>Mailman 2<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h4>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -437,7 +444,7 @@ the original sender.</p>
 </div>
 </section>
 <section id="id2">
-<h3>Mailman 3<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<h4>Mailman 3<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h4>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table class="docutils align-default">
 <colgroup>
@@ -467,11 +474,6 @@ accidentally reply to the entire list, when they only intended to reply to
 the original sender.</p>
 </div>
 </section>
-<section id="listserv">
-<h3>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
-that enforce with a DMARC quarantine or reject policy.</p>
-<p>Some additional steps are needed for Linux hosts.</p>
 </section>
 </section>
 </section>
