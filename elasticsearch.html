@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.4.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Using the Kibana dashboards" href="kibana.html" />
+    <link rel="prev" title="Sample outputs" href="output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            parsedmarc
+          </a>
+              <div class="version">
+                8.4.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Elasticsearch and Kibana</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#upgrading-kibana-index-patterns">Upgrading Kibana index patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#records-retention">Records retention</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="davmail.html">Accessing an inbox using OWA/EWS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html#what-about-mailing-lists">What about mailing lists?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">parsedmarc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Elasticsearch and Kibana</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/elasticsearch.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="elasticsearch-and-kibana">
+<h1>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Splunk is also supported starting with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 4.3.0</p>
+</div>
+<p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Elasticsearch and Kibana 6 or later are required</p>
+</div>
+<p>On Debian/Ubuntu based systems, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>apt-transport-https
+wget<span class="w"> </span>-qO<span class="w"> </span>-<span class="w"> </span>https://artifacts.elastic.co/GPG-KEY-elasticsearch<span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>gpg<span class="w"> </span>--dearmor<span class="w"> </span>-o<span class="w"> </span>/usr/share/keyrings/elasticsearch-keyring.gpg
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/apt/sources.list.d/elastic-8.x.list
+sudo<span class="w"> </span>apt-get<span class="w"> </span>update
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>elasticsearch<span class="w"> </span>kibana
+</pre></div>
+</div>
+<p>For CentOS, RHEL, and other RPM systems, follow the Elastic RPM guides for
+<a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html">Elasticsearch</a> and <a class="reference external" href="https://www.elastic.co/guide/en/kibana/current/rpm.html">Kibana</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Previously, the default JVM heap size for Elasticsearch was very small (1g),
+which will cause it to crash under a heavy load. To fix this, increase the
+minimum and maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to
+more reasonable levels, depending on your server’s resources.</p>
+<p>Make sure the system has at least 2 GB more RAM then the assigned JVM
+heap size.</p>
+<p>Always set the minimum and maximum JVM heap sizes to the same
+value.</p>
+<p>For example, to set a 4 GB heap size, set</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>-Xms4g
+-Xmx4g
+</pre></div>
+</div>
+<p>See <a class="reference external" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings">https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#heap-size-settings</a>
+for more information.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>elasticsearch.service
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>kibana.service
+sudo<span class="w"> </span>service<span class="w"> </span>elasticsearch<span class="w"> </span>start
+sudo<span class="w"> </span>service<span class="w"> </span>kibana<span class="w"> </span>start
+</pre></div>
+</div>
+<p>As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>vim<span class="w"> </span>/etc/elasticsearch/elasticsearch.yml
+</pre></div>
+</div>
+<p>Add the following configuration</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span># Enable security features
+xpack.security.enabled: true
+xpack.security.enrollment.enabled: true
+# Enable encryption for HTTP API client connections, such as Kibana, Logstash, and Agents
+xpack.security.http.ssl:
+  enabled: true
+  keystore.path: certs/http.p12
+# Enable encryption and mutual authentication between cluster nodes
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>elasticsearch
+</pre></div>
+</div>
+<p>To create a self-signed certificate, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl<span class="w"> </span>req<span class="w"> </span>-x509<span class="w"> </span>-nodes<span class="w"> </span>-days<span class="w"> </span><span class="m">365</span><span class="w"> </span>-newkey<span class="w"> </span>rsa:4096<span class="w"> </span>-keyout<span class="w"> </span>kibana.key<span class="w"> </span>-out<span class="w"> </span>kibana.crt
+</pre></div>
+</div>
+<p>Or, to create a Certificate Signing Request (CSR) for a CA, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl<span class="w"> </span>req<span class="w"> </span>-newkey<span class="w"> </span>rsa:4096-nodes<span class="w"> </span>-keyout<span class="w"> </span>kibana.key<span class="w"> </span>-out<span class="w"> </span>kibana.csr
+</pre></div>
+</div>
+<p>Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
+domain name), which is the IP address or domain name that you will use to access Kibana. it is the most important field.</p>
+<p>If you generated a CSR, remove the CSR after you have your certs</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>-f<span class="w"> </span>kibana.csr
+</pre></div>
+</div>
+<p>Move the keys into place and secure them:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>mv<span class="w"> </span>kibana.*<span class="w"> </span>/etc/kibana
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">660</span><span class="w"> </span>/etc/kibana/kibana.key
+</pre></div>
+</div>
+<p>Activate the HTTPS server in Kibana</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>vim<span class="w"> </span>/etc/kibana/kibana.yml
+</pre></div>
+</div>
+<p>Add the following configuration</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>server.host: &quot;SERVER_IP&quot;
+server.publicBaseUrl: &quot;https://SERVER_IP&quot;
+server.ssl.enabled: true
+server.ssl.certificate: /etc/kibana/kibana.crt
+server.ssl.key: /etc/kibana/kibana.key
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>kibana
+</pre></div>
+</div>
+<p>Enroll Kibana in Elasticsearch</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token<span class="w"> </span>-s<span class="w"> </span>kibana
+</pre></div>
+</div>
+<p>Then access to your web server at <code class="docutils literal notranslate"><span class="pre">https://SERVER_IP:5601</span></code>, accept the self-signed
+certificate and paste the token in the “Enrollment token” field.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/kibana/bin/kibana-verification-code
+</pre></div>
+</div>
+<p>Then put the verification code to your web browser.</p>
+<p>End Kibana configuration</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>/usr/share/elasticsearch/bin/elasticsearch-setup-passwords<span class="w"> </span>interactive
+sudo<span class="w"> </span>/usr/share/kibana/bin/kibana-encryption-keys<span class="w"> </span>generate
+sudo<span class="w"> </span>vim<span class="w"> </span>/etc/kibana/kibana.yml
+</pre></div>
+</div>
+<p>Add previously generated encryption keys</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>xpack.encryptedSavedObjects.encryptionKey: xxxx...xxxx
+xpack.reporting.encryptionKey: xxxx...xxxx
+xpack.security.encryptionKey: xxxx...xxxx
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>kibana
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>elasticsearch
+</pre></div>
+</div>
+<p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
+it.</p>
+<p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a>.</p>
+<p>Connect to kibana using the “elastic” user and the password you previously provide
+on the console (“End Kibana configuration” part).</p>
+<p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> the Saved Objects tab of the Stack management
+page of Kibana. (Hamburger menu -&gt; “Management” -&gt; “Stack Management” -&gt;
+“Kibana” -&gt; “Saved Objects”)</p>
+<p>It will give you the option to overwrite existing saved dashboards or
+visualizations, which could be used to restore them if you or someone else
+breaks them, as there are no permissions/access controls in Kibana without
+the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
+<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects Stack management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
+<section id="upgrading-kibana-index-patterns">
+<h2>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 5.0.0 makes some changes to the way data is indexed in
+Elasticsearch. if you are upgrading from a previous release of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, you need to complete the following steps to replace the
+Kibana index patterns with versions that match the upgraded indexes:</p>
+<ol class="arabic simple">
+<li><p>Login in to Kibana, and click on Management</p></li>
+<li><p>Under Kibana, click on Saved Objects</p></li>
+<li><p>Check the checkboxes for the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code>
+index patterns</p></li>
+<li><p>Click Delete</p></li>
+<li><p>Click Delete on the conformation message</p></li>
+<li><p>Download (right click the link and click save as)
+the latest version of <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a></p></li>
+<li><p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> by clicking Import from the Kibana
+Saved Objects page</p></li>
+</ol>
+</section>
+<section id="records-retention">
+<h2>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this heading"></a></h2>
+<p>Starting in version 5.0.0, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> stores data in a separate
+index for each day to make it easy to comply with records
+retention regulations such as GDPR. For fore information,
+check out the Elastic guide to <a class="reference external" href="https://www.elastic.co/blog/managing-time-based-indices-efficiently">managing time-based indexes efficiently</a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="output.html" class="btn btn-neutral float-left" title="Sample outputs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="kibana.html" class="btn btn-neutral float-right" title="Using the Kibana dashboards" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Sean Whalen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

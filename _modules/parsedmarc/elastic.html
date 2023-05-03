@@ -26,21 +26,38 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../index.html" class="icon icon-home"> parsedmarc
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            parsedmarc
           </a>
               <div class="version">
                 8.4.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Using parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Sample outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../splunk.html">Splunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../davmail.html">Accessing an inbox using OWA/EWS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dmarc.html#what-about-mailing-lists">What about mailing lists?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -54,7 +71,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a></li>
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
           <li class="breadcrumb-item"><a href="../parsedmarc.html">parsedmarc</a></li>
       <li class="breadcrumb-item active">parsedmarc.elastic</li>
@@ -81,7 +98,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc</span> <span class="kn">import</span> <span class="n">InvalidForensicReport</span>
 
 
-<div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
 
 
@@ -233,11 +250,11 @@
     <span class="n">sample</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="n">_ForensicSampleDoc</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
@@ -268,7 +285,7 @@
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create Elasticsearch indexes</span>
 
@@ -293,7 +310,7 @@
                 <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates index mappings</span>
 
@@ -343,7 +360,7 @@
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
+<div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
                                            <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                            <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                            <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -473,7 +490,7 @@
                 <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../index.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
+<div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                           <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>

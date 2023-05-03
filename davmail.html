@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accessing an inbox using OWA/EWS &mdash; parsedmarc 8.4.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Understanding DMARC" href="dmarc.html" />
+    <link rel="prev" title="Splunk" href="splunk.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            parsedmarc
+          </a>
+              <div class="version">
+                8.4.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Accessing an inbox using OWA/EWS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#running-davmail-as-a-systemd-service">Running DavMail as a systemd service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-parsedmarc-for-davmail">Configuring parsedmarc for DavMail</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html#what-about-mailing-lists">What about mailing lists?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">parsedmarc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Accessing an inbox using OWA/EWS</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/davmail.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="accessing-an-inbox-using-owa-ews">
+<h1>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
+inboxes via the Microsoft Graph API, which is preferred over Davmail.</p>
+</div>
+<p>Some organizations do not allow IMAP or the Microsoft Graph API,
+and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
+In that case, Davmail will need to be set up
+as a local EWS/OWA IMAP gateway. It can even work where
+<a class="reference external" href="https://davmail.sourceforge.net/faq.html">Modern Auth/multi-factor authentication</a> is required.</p>
+<p>To do this, download the latest <code class="docutils literal notranslate"><span class="pre">davmail-version.zip</span></code> from
+<a class="reference external" href="https://sourceforge.net/projects/davmail/files/">https://sourceforge.net/projects/davmail/files/</a></p>
+<p>Extract the zip using the <code class="docutils literal notranslate"><span class="pre">unzip</span></code> command.</p>
+<p>Install Java:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>default-jre-headless
+</pre></div>
+</div>
+<p>Configure Davmail by creating a <code class="docutils literal notranslate"><span class="pre">davmail.properties</span></code> file</p>
+<div class="highlight-properties notranslate"><div class="highlight"><pre><span></span><span class="c1"># DavMail settings, see http://davmail.sourceforge.net/ for documentation</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># Basic settings</span>
+
+<span class="c1"># Server or workstation mode</span>
+<span class="na">davmail.server</span><span class="o">=</span><span class="s">true</span>
+
+<span class="c1"># connection mode auto, EWS or WebDav</span>
+<span class="na">davmail.enableEws</span><span class="o">=</span><span class="s">auto</span>
+
+<span class="c1"># base Exchange OWA or EWS url</span>
+<span class="na">davmail.url</span><span class="o">=</span><span class="s">https://outlook.office365.com/EWS/Exchange.asmx</span>
+
+<span class="c1"># Listener ports</span>
+<span class="na">davmail.imapPort</span><span class="o">=</span><span class="s">1143</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># Network settings</span>
+
+<span class="c1"># Network proxy settings</span>
+<span class="na">davmail.enableProxy</span><span class="o">=</span><span class="s">false</span>
+<span class="na">davmail.useSystemProxies</span><span class="o">=</span><span class="s">false</span>
+<span class="na">davmail.proxyHost</span><span class="o">=</span>
+<span class="na">davmail.proxyPort</span><span class="o">=</span>
+<span class="na">davmail.proxyUser</span><span class="o">=</span>
+<span class="na">davmail.proxyPassword</span><span class="o">=</span>
+
+<span class="c1"># proxy exclude list</span>
+<span class="na">davmail.noProxyFor</span><span class="o">=</span>
+
+<span class="c1"># block remote connection to DavMail</span>
+<span class="na">davmail.allowRemote</span><span class="o">=</span><span class="s">false</span>
+
+<span class="c1"># bind server sockets to the loopback address</span>
+<span class="na">davmail.bindAddress</span><span class="o">=</span><span class="s">127.0.0.1</span>
+
+<span class="c1"># disable SSL for specified listeners</span>
+<span class="na">davmail.ssl.nosecureimap</span><span class="o">=</span><span class="s">true</span>
+
+<span class="c1"># Send keepalive character during large folder and messages download</span>
+<span class="na">davmail.enableKeepalive</span><span class="o">=</span><span class="s">true</span>
+
+<span class="c1"># Message count limit on folder retrieval</span>
+<span class="na">davmail.folderSizeLimit</span><span class="o">=</span><span class="s">0</span>
+
+<span class="c1">#############################################################</span>
+<span class="c1"># IMAP settings</span>
+
+<span class="c1"># Delete messages immediately on IMAP STORE \Deleted flag</span>
+<span class="na">davmail.imapAutoExpunge</span><span class="o">=</span><span class="s">true</span>
+
+<span class="c1"># Enable IDLE support, set polling delay in minutes</span>
+<span class="na">davmail.imapIdleDelay</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># Always reply to IMAP RFC822.SIZE requests with Exchange approximate</span>
+<span class="c1"># message size for performance reasons</span>
+<span class="na">davmail.imapAlwaysApproxMsgSize</span><span class="o">=</span><span class="s">true</span>
+
+<span class="c1"># Client connection timeout in seconds - default 300, 0 to disable</span>
+<span class="na">davmail.clientSoTimeout</span><span class="o">=</span><span class="s">0</span>
+
+<span class="c1">#############################################################</span>
+</pre></div>
+</div>
+<section id="running-davmail-as-a-systemd-service">
+<h2>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this heading"></a></h2>
+<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">davmail</span></code> as a service.</p>
+<p>Create a system user</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>useradd<span class="w"> </span>davmail<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>/bin/false
+</pre></div>
+</div>
+<p>Protect the <code class="docutils literal notranslate"><span class="pre">davmail</span></code> configuration file from prying eyes</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chown<span class="w"> </span>root:davmail<span class="w"> </span>/opt/davmail/davmail.properties
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span><span class="w"> </span>/opt/davmail/davmail.properties
+</pre></div>
+</div>
+<p>Create the service configuration file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>nano<span class="w"> </span>/etc/systemd/system/davmail.service
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">DavMail gateway service</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://sourceforge.net/projects/davmail/</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">syslog.target network.target</span>
+
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/davmail/davmail /opt/davmail/davmail.properties</span>
+<span class="na">User</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">davmail</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
+
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</pre></div>
+</div>
+<p>Then, enable the service</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>parsedmarc.service
+sudo<span class="w"> </span>service<span class="w"> </span>davmail<span class="w"> </span>restart
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must also run the above commands whenever you edit
+<code class="docutils literal notranslate"><span class="pre">davmail.service</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">davmail</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>service<span class="w"> </span>davmail<span class="w"> </span>restart
+</pre></div>
+</div>
+</div>
+<p>To check the status of the service, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service<span class="w"> </span>davmail<span class="w"> </span>status
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the event of a crash, systemd will restart the service after 5
+minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">davmail</span> <span class="pre">status</span></code> command will only show the
+logs for the current process. To vew the logs for previous runs as
+well as the current process (newest to oldest), run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl<span class="w"> </span>-u<span class="w"> </span>davmail.service<span class="w"> </span>-r
+</pre></div>
+</div>
+</div>
+</section>
+<section id="configuring-parsedmarc-for-davmail">
+<h2>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this heading"></a></h2>
+<p>Because you are interacting with DavMail server over the loopback
+(i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
+config file:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[imap]</span>
+<span class="na">host</span><span class="o">=</span><span class="s">127.0.0.1</span>
+<span class="na">port</span><span class="o">=</span><span class="s">1143</span>
+<span class="na">ssl</span><span class="o">=</span><span class="s">False</span>
+<span class="na">watch</span><span class="o">=</span><span class="s">True</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="splunk.html" class="btn btn-neutral float-left" title="Splunk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dmarc.html" class="btn btn-neutral float-right" title="Understanding DMARC" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Sean Whalen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

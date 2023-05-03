@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Using parsedmarc &mdash; parsedmarc 8.4.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Sample outputs" href="output.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            parsedmarc
+          </a>
+              <div class="version">
+                8.4.2
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Using parsedmarc</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cli-help">CLI help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="davmail.html">Accessing an inbox using OWA/EWS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmarc.html#what-about-mailing-lists">What about mailing lists?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">parsedmarc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Using parsedmarc</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="using-parsedmarc">
+<h1>Using parsedmarc<a class="headerlink" href="#using-parsedmarc" title="Permalink to this heading"></a></h1>
+<section id="cli-help">
+<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
+                   [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
+                   [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                   [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
+                   [--forensic-csv-filename FORENSIC_CSV_FILENAME]
+                   [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline]
+                   [-s] [--verbose] [--debug] [--log-file LOG_FILE] [-v]
+                   [file_path ...]
+
+ Parses DMARC reports
+
+ positional arguments:
+   file_path             one or more paths to aggregate or forensic report
+                         files, emails, or mbox files&#39;
+
+ optional arguments:
+   -h, --help            show this help message and exit
+   -c CONFIG_FILE, --config-file CONFIG_FILE
+                         a path to a configuration file (--silent implied)
+   --strip-attachment-payloads
+                         remove attachment payloads from forensic report output
+   -o OUTPUT, --output OUTPUT
+                         write output files to the given directory
+   --aggregate-json-filename AGGREGATE_JSON_FILENAME
+                         filename for the aggregate JSON output file
+   --forensic-json-filename FORENSIC_JSON_FILENAME
+                         filename for the forensic JSON output file
+   --aggregate-csv-filename AGGREGATE_CSV_FILENAME
+                         filename for the aggregate CSV output file
+   --forensic-csv-filename FORENSIC_CSV_FILENAME
+                         filename for the forensic CSV output file
+   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                         nameservers to query
+   -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                         number of seconds to wait for an answer from DNS
+                         (default: 2.0)
+   --offline             do not make online queries for geolocation or DNS
+   -s, --silent          only print errors and warnings
+   --verbose             more verbose output
+   --debug               print debugging information
+   --log-file LOG_FILE   output logging to a file
+   -v, --version         show program&#39;s version number and exit
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 6.0.0, most CLI options were moved to a
+configuration file, described below.</p>
+</div>
+</section>
+<section id="configuration-file">
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> can be configured by supplying the path to an INI file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc<span class="w"> </span>-c<span class="w"> </span>/etc/parsedmarc.ini
+</pre></div>
+</div>
+<p>For example</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is an example comment</span>
+
+<span class="k">[general]</span>
+<span class="na">save_aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+<span class="na">save_forensic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+
+<span class="k">[imap]</span>
+<span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span>
+<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarcresports@example.com</span>
+<span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">$uperSecure</span>
+
+<span class="k">[mailbox]</span>
+<span class="na">watch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+<span class="na">delete</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span>
+
+<span class="k">[elasticsearch]</span>
+<span class="na">hosts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">127.0.0.1:9200</span>
+<span class="na">ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">False</span>
+
+<span class="k">[splunk_hec]</span>
+<span class="na">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://splunkhec.example.com</span>
+<span class="na">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">HECTokenGoesHere</span>
+<span class="na">index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">email</span>
+
+<span class="k">[s3]</span>
+<span class="na">bucket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">my-bucket</span>
+<span class="na">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">parsedmarc</span>
+
+<span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span>
+</pre></div>
+</div>
+<p>The full set of configuration options are:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">general</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to
+Elasticsearch, Splunk and/or S3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to
+Elasticsearch, Splunk and/or S3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
+payloads from results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate
+JSON output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic
+JSON output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file</p></li>
+<li><p>from MaxMind or DBIP</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation
+or DNS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of
+DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when
+parsing in CLI mode (Default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process
+when running in parallel.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Setting this to a number larger than one can improve
+performance when processing thousands of files</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
+Gmail) where the incoming reports can be found
+(Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for
+Gmail) to sort processed emails into (Default: <code class="docutils literal notranslate"><span class="pre">Archive</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process</p></li>
+<li><p>messages as they arrive or poll MS Graph for new messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,</p></li>
+<li><p>instead of archiving them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
+before saving. Default <code class="docutils literal notranslate"><span class="pre">10</span></code>. Use <code class="docutils literal notranslate"><span class="pre">0</span></code> for no limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
+IDLE response or the number of seconds until the next
+mail check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The IMAP server hostname or IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The IMAP server port (Default: <code class="docutils literal notranslate"><span class="pre">993</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
+so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting in version 8.0.0, most options from the <code class="docutils literal notranslate"><span class="pre">imap</span></code>
+section have been moved to the <code class="docutils literal notranslate"><span class="pre">mailbox</span></code> section.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If your host recommends another port, still try 993</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
+(Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The IMAP password</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are
+<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>, or <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code>
+(Default: <code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is
+UsernamePassword</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The user password, required when the auth
+method is UsernamePassword</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s secret</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The Azure AD tenant ID. This is required
+for all auth methods except UsernamePassword.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the
+current user if using the UsernamePassword auth method, but
+could be a shared mailbox if the user has access to the mailbox</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allow_unencrypted_storage</span></code> - bool: Allows the Azure Identity
+module to fall back to unencrypted token cache (Default: False).
+Even if enabled, the cache will always try encrypted storage first.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must create an app registration in Azure AD and have an
+admin grant the Microsoft Graph <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code>
+(delegated) permission to the app. If you are using
+<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> auth and the mailbox is different from the
+username, you must grant the app <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you are using the <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code> auth method, you need to
+grant the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application) permission to the
+app. You must also restrict the application’s access to a
+specific mailbox since it allows all mailboxes by default.
+Use the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> command in the
+Exchange PowerShell module. If you need to scope the policy to
+shared mailboxes, you can add them to a mail enabled security
+group and use that as the group id.</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span>
+<span class="n">-AppId</span> <span class="s2">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="n">-PolicyScopeGroupId</span> <span class="s2">&quot;&lt;MAILBOX&gt;&quot;</span>
+<span class="n">-Description</span> <span class="s2">&quot;Restrict access to dmarc reports mailbox.&quot;</span>
+</pre></div>
+</div>
+</div>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of hostnames and ports
+or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1:9200</span></code> or
+<code class="docutils literal notranslate"><span class="pre">https://user:secret&#64;localhost</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Special characters in the username or password must be
+<a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
+(Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when
+creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when
+creating the index (Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code> - str: The URL of the Splunk HTTP Events Collector (HEC)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">token</span></code> - str: The HEC token</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index</span></code> - str: The Splunk index to use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kafka</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The Kafka user</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">passsword</span></code> - str: The Kafka password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_topic</span></code> - str: The Kafka topic for aggregate reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forensic_topic</span></code> - str: The Kafka topic for forensic reports</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
+verification (not recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: the SMTP username</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: the SMTP password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">from</span></code> - str: The From header to use in the email</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">to</span></code> - list: A list of email addresses to send to</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email
+(Default: <code class="docutils literal notranslate"><span class="pre">parsedmarc</span> <span class="pre">report</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message
+(Default: <code class="docutils literal notranslate"><span class="pre">Please</span> <span class="pre">see</span> <span class="pre">the</span> <span class="pre">attached</span> <span class="pre">parsedmarc</span> <span class="pre">report.</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
+so use <code class="docutils literal notranslate"><span class="pre">%%</span></code> wherever a <code class="docutils literal notranslate"><span class="pre">%</span></code> character is used.</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s3</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: /)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">region_name</span></code> - str: The region name (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">endpoint_url</span></code> - str: The endpoint URL (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">access_key_id</span></code> - str: The access key id (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">secret_access_key</span></code> - str: The secret access key (Optional)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">syslog</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: 514)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
+credentials, None to disable (Default: None)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
+(Default: .token)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
+Trash when searching reports (Default: False)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scopes</span></code> - str: Comma separated list of scopes to use when
+acquiring credentials
+(Default: <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">oauth2_port</span></code> - int: The TCP port for the local server to
+listen on for the OAuth2 response (Default: 8080)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_analytics</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s client secret</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The tenant id where the app registration resides</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dce</span></code> - str: The Data Collection Endpoint (DCE). Example: <code class="docutils literal notranslate"><span class="pre">https://{DCE-NAME}.{REGION}.ingest.monitor.azure.com</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dcr_immutable_id</span></code> - str: The immutable ID of the Data Collection Rule (DCR)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dcr_aggregate_stream</span></code> - str: The stream name for aggregate reports in the DCR</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dcr_forensic_stream</span></code> - str: The stream name for the forensic reports in the DCR</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Information regarding the setup of the Data Collection Rule can be found <a class="reference external" href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">here</a>.</p>
+</div>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is <strong>strongly recommended</strong> to <strong>not</strong> use the <code class="docutils literal notranslate"><span class="pre">nameservers</span></code>
+setting. By default, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> uses
+<a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>, which are much faster and more
+reliable than Google, Cisco OpenDNS, or even most local resolvers.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network
+blocks DNS requests to outside resolvers.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options
+because you may not want to save forensic reports
+(also known as failure reports) to your Elasticsearch instance,
+particularly if you are in a highly-regulated industry that
+handles sensitive data, such as healthcare or finance. If your
+legitimate outgoing email fails DMARC, it is possible
+that email may appear later in a forensic report.</p>
+<p>Forensic reports contain the original headers of an email that
+failed a DMARC check, and sometimes may also include the
+full message body, depending on the policy of the reporting
+organization.</p>
+<p>Most reporting organizations do not send forensic reports of any
+kind for privacy reasons. While aggregate DMARC reports are sent
+at least daily, it is normal to receive very few forensic reports.</p>
+<p>An alternative approach is to still collect forensic/failure/ruf
+reports in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with
+<code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code> manually on a separate IMAP folder (using
+the <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option), after you have manually moved
+known samples you want to save to that folder
+(e.g. malicious samples and non-sensitive legitimate samples).</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Elasticsearch 8 change limits policy for shards, restricting by
+default to 1000. parsedmarc use a shard per analyzed day. If you
+have more than ~3 years of data, you will need to update this
+limit.
+Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span>GET /_cluster/health?pretty
+...
+  &quot;active_primary_shards&quot;: 932,
+  &quot;active_shards&quot;: 932,
+...
+}
+</pre></div>
+</div>
+<p>Update the limit to 2k per example:</p>
+<div class="highlight-http notranslate"><div class="highlight"><pre><span></span>PUT _cluster/settings
+{
+  &quot;persistent&quot; : {
+    &quot;cluster.max_shards_per_node&quot; : 2000 
+  }
+}
+</pre></div>
+</div>
+<p>Increasing this value increases resource usage.</p>
+</div>
+</section>
+<section id="running-parsedmarc-as-a-systemd-service">
+<h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this heading"></a></h2>
+<p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
+they arrive.</p>
+<p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chown<span class="w"> </span>root:parsedmarc<span class="w"> </span>/etc/parsedmarc.ini
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span><span class="w"> </span>/etc/parsedmarc.ini
+</pre></div>
+</div>
+<p>Create the service configuration file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>nano<span class="w"> </span>/etc/systemd/system/parsedmarc.service
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[Unit]</span>
+<span class="na">Description</span><span class="o">=</span><span class="s">parsedmarc mailbox watcher</span>
+<span class="na">Documentation</span><span class="o">=</span><span class="s">https://domainaware.github.io/parsedmarc/</span>
+<span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+<span class="na">After</span><span class="o">=</span><span class="s">network.target network-online.target elasticsearch.service</span>
+
+<span class="k">[Service]</span>
+<span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span>
+<span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span>
+<span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span>
+<span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<span class="na">RestartSec</span><span class="o">=</span><span class="s">5m</span>
+
+<span class="k">[Install]</span>
+<span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</pre></div>
+</div>
+<p>Then, enable the service</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>parsedmarc.service
+sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class="w"> </span>restart
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must also run the above commands whenever you edit
+<code class="docutils literal notranslate"><span class="pre">parsedmarc.service</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Always restart the service every time you upgrade to a new version of
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class="w"> </span>restart
+</pre></div>
+</div>
+</div>
+<p>To check the status of the service, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service<span class="w"> </span>parsedmarc<span class="w"> </span>status
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the event of a crash, systemd will restart the service after 10
+minutes, but the <code class="docutils literal notranslate"><span class="pre">service</span> <span class="pre">parsedmarc</span> <span class="pre">status</span></code> command will only show
+the logs for the current process. To view the logs for previous runs
+as well as the current process (newest to oldest), run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl<span class="w"> </span>-u<span class="w"> </span>parsedmarc.service<span class="w"> </span>-r
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="output.html" class="btn btn-neutral float-right" title="Sample outputs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018, Sean Whalen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

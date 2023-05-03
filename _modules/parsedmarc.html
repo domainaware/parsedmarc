@@ -26,21 +26,38 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> parsedmarc
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            parsedmarc
           </a>
               <div class="version">
                 8.4.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Using parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../output.html">Sample outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../splunk.html">Splunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../davmail.html">Accessing an inbox using OWA/EWS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dmarc.html#what-about-mailing-lists">What about mailing lists?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -54,7 +71,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
       <li class="breadcrumb-item active">parsedmarc</li>
       <li class="wy-breadcrumbs-aside">
@@ -118,19 +135,19 @@
 <span class="n">IP_ADDRESS_CACHE</span> <span class="o">=</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">1800</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../index.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../api.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised whenever the parser fails for some reason&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
+<div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="InvalidAggregateReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidAggregateReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidAggregateReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
+<div class="viewcode-block" id="InvalidAggregateReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidAggregateReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidAggregateReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC aggregate report is encountered&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="InvalidForensicReport"><a class="viewcode-back" href="../index.html#parsedmarc.InvalidForensicReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidForensicReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
+<div class="viewcode-block" id="InvalidForensicReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidForensicReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidForensicReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span></div>
 
 
@@ -266,7 +283,7 @@
     <span class="k">return</span> <span class="n">new_record</span>
 
 
-<div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
@@ -276,7 +293,7 @@
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not query online for geolocation or DNS</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
 <span class="sd">        keep_alive (callable): Keep alive function</span>
@@ -418,7 +435,7 @@
             <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../index.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
+<div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../api.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extracts xml from a zip or gzip file at the given path, file-like object,</span>
 <span class="sd">    or bytes.</span>
@@ -464,7 +481,7 @@
     <span class="k">return</span> <span class="n">xml</span></div>
 
 
-<div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                 <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -477,7 +494,7 @@
 <span class="sd">        offline (bool): Do not query online for geolocation or DNS</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
 <span class="sd">        keep_alive (callable): Keep alive function</span>
@@ -496,7 +513,7 @@
                                       <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="parsed_aggregate_reports_to_csv_rows"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<div class="viewcode-block" id="parsed_aggregate_reports_to_csv_rows"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to list of dicts in flat CSV</span>
 <span class="sd">    format</span>
@@ -599,7 +616,7 @@
     <span class="k">return</span> <span class="n">rows</span></div>
 
 
-<div class="viewcode-block" id="parsed_aggregate_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<div class="viewcode-block" id="parsed_aggregate_reports_to_csv"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
@@ -635,7 +652,7 @@
     <span class="k">return</span> <span class="n">csv_file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="parse_forensic_report"><a class="viewcode-back" href="../index.html#parsedmarc.parse_forensic_report">[docs]</a><span class="k">def</span> <span class="nf">parse_forensic_report</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">msg_date</span><span class="p">,</span>
+<div class="viewcode-block" id="parse_forensic_report"><a class="viewcode-back" href="../api.html#parsedmarc.parse_forensic_report">[docs]</a><span class="k">def</span> <span class="nf">parse_forensic_report</span><span class="p">(</span><span class="n">feedback_report</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">msg_date</span><span class="p">,</span>
                           <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                           <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -650,10 +667,10 @@
 <span class="sd">        sample (str): The RFC 822 headers or RFC 822 message sample</span>
 <span class="sd">        msg_date (str): The message&#39;s date header</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">        forensic report results</span>
+<span class="sd">            forensic report results</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
@@ -757,7 +774,7 @@
             <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="parsed_forensic_reports_to_csv_rows"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<div class="viewcode-block" id="parsed_forensic_reports_to_csv_rows"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to a list of dicts in flat CSV</span>
 <span class="sd">    format</span>
@@ -792,7 +809,7 @@
     <span class="k">return</span> <span class="n">rows</span></div>
 
 
-<div class="viewcode-block" id="parsed_forensic_reports_to_csv"><a class="viewcode-back" href="../index.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<div class="viewcode-block" id="parsed_forensic_reports_to_csv"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
@@ -826,7 +843,7 @@
     <span class="k">return</span> <span class="n">csv_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="parse_report_email"><a class="viewcode-back" href="../api.html#parsedmarc.parse_report_email">[docs]</a><span class="k">def</span> <span class="nf">parse_report_email</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                        <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -840,7 +857,7 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">        forensic report results</span>
+<span class="sd">            forensic report results</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
 <span class="sd">        keep_alive (callable): keep alive function</span>
 
@@ -973,7 +990,7 @@
         <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../index.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<div class="viewcode-block" id="parse_report_file"><a class="viewcode-back" href="../api.html#parsedmarc.parse_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_report_file</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                       <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
@@ -982,10 +999,10 @@
 <span class="sd">    Args:</span>
 <span class="sd">        input_: A path to a file, a file like object, or bytes</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">        forensic report results</span>
+<span class="sd">            forensic report results</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
@@ -1031,7 +1048,7 @@
     <span class="k">return</span> <span class="n">results</span></div>
 
 
-<div class="viewcode-block" id="get_dmarc_reports_from_mbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_mbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mbox</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+<div class="viewcode-block" id="get_dmarc_reports_from_mbox"><a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mbox</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                 <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1042,16 +1059,16 @@
 <span class="sd">    Args:</span>
 <span class="sd">        input_: A path to a mbox file</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">        forensic report results</span>
+<span class="sd">            forensic report results</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
 <span class="sd">        parallel (bool): Parallel processing</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        OrderedDict: Lists of  ``aggregate_reports`` and ``forensic_reports``</span>
+<span class="sd">        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1089,7 +1106,7 @@
                         <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">)])</span></div>
 
 
-<div class="viewcode-block" id="get_dmarc_reports_from_mailbox"><a class="viewcode-back" href="../index.html#parsedmarc.get_dmarc_reports_from_mailbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mailbox</span><span class="p">(</span><span class="n">connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
+<div class="viewcode-block" id="get_dmarc_reports_from_mailbox"><a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mailbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mailbox</span><span class="p">(</span><span class="n">connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
                                    <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                                    <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
                                    <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1116,12 +1133,12 @@
 <span class="sd">        nameservers (list): A list of DNS nameservers to query</span>
 <span class="sd">        dns_timeout (float): Set the DNS query timeout</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">          forensic report results</span>
+<span class="sd">            forensic report results</span>
 <span class="sd">        results (dict): Results from the previous run</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">            (use 0 for no limit)</span>
 <span class="sd">        create_folders (bool): Whether to create the destination folders</span>
-<span class="sd">          (not used in watch)</span>
+<span class="sd">            (not used in watch)</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``</span>
@@ -1278,7 +1295,7 @@
     <span class="k">return</span> <span class="n">results</span></div>
 
 
-<div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../index.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">mailbox_connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
+<div class="viewcode-block" id="watch_inbox"><a class="viewcode-back" href="../api.html#parsedmarc.watch_inbox">[docs]</a><span class="k">def</span> <span class="nf">watch_inbox</span><span class="p">(</span><span class="n">mailbox_connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
                 <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
                 <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                 <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1298,14 +1315,14 @@
 <span class="sd">        delete (bool): Delete  messages after processing them</span>
 <span class="sd">        test (bool): Do not move or delete messages after processing them</span>
 <span class="sd">        check_timeout (int): Number of seconds to wait for a IMAP IDLE response</span>
-<span class="sd">          or the number of seconds until the next mail check</span>
+<span class="sd">            or the number of seconds until the next mail check</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not query online for geolocation or DNS</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">        (Cloudflare&#39;s public DNS resolvers by default)</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Set the DNS query timeout</span>
 <span class="sd">        strip_attachment_payloads (bool): Replace attachment payloads in</span>
-<span class="sd">        forensic report samples with None</span>
+<span class="sd">            forensic report samples with None</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1364,7 +1381,7 @@
         <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csv</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../index.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+<div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../api.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_json_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
                 <span class="n">forensic_json_filename</span><span class="o">=</span><span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_csv_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
@@ -1426,7 +1443,7 @@
             <span class="n">sample_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_report_zip"><a class="viewcode-back" href="../index.html#parsedmarc.get_report_zip">[docs]</a><span class="k">def</span> <span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+<div class="viewcode-block" id="get_report_zip"><a class="viewcode-back" href="../api.html#parsedmarc.get_report_zip">[docs]</a><span class="k">def</span> <span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a zip file of parsed report output</span>
 
@@ -1471,7 +1488,7 @@
     <span class="k">return</span> <span class="n">storage</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../index.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span>
+<div class="viewcode-block" id="email_results"><a class="viewcode-back" href="../api.html#parsedmarc.email_results">[docs]</a><span class="k">def</span> <span class="nf">email_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">mail_from</span><span class="p">,</span> <span class="n">mail_to</span><span class="p">,</span>
                   <span class="n">mail_cc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mail_bcc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                   <span class="n">require_encryption</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">subject</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1493,7 +1510,7 @@
 <span class="sd">        password (str): An optional password</span>
 <span class="sd">        subject (str): Overrides the default message subject</span>
 <span class="sd">        attachment_filename (str): Override the default attachment filename</span>
-<span class="sd">        message (str: Override the default plain text body</span>
+<span class="sd">        message (str): Override the default plain text body</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Emailing report to: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mail_to</span><span class="p">)))</span>
     <span class="n">date_string</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
