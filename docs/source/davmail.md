@@ -1,5 +1,4 @@
-
-### Accessing an inbox using OWA/EWS
+# Accessing an inbox using OWA/EWS
 
 :::{note}
 Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
@@ -91,7 +90,7 @@ davmail.clientSoTimeout=0
 #############################################################
 ```
 
-#### Running DavMail as a systemd service
+## Running DavMail as a systemd service
 
 Use systemd to run `davmail` as a service.
 
@@ -173,7 +172,7 @@ journalctl -u davmail.service -r
 
 :::
 
-#### Configuring parsedmarc for DavMail
+## Configuring parsedmarc for DavMail
 
 Because you are interacting with DavMail server over the loopback
 (i.e. `127.0.0.1`), add the following options to `parsedmarc.ini`

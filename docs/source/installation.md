@@ -1,6 +1,5 @@
 # Installation
 
-:::{note}
 ## Testing multiple report analyzers
 
 If you would like to test parsedmarc and another report processing
@@ -63,6 +62,7 @@ On Debian 10 (Buster) or later, run:
 ```bash
 sudo apt-get install -y geoipupdate
 ```
+
 :::{note}
 [Component "contrib"] is required in your apt sources.
 :::
@@ -86,7 +86,7 @@ from the [geoipupdate releases page on GitHub].
 
 On December 30th, 2019, MaxMind started requiring free accounts to
 access the free Geolite2 databases, in order [to
-comply with various privacy 
+comply with various privacy
 regulations][to comply with various privacy regulations].
 
 Start by [registering for a free GeoLite2 account], and signing in.

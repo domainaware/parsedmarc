@@ -59,8 +59,5 @@ contributing
 api
 ```
 
-
 [contributors]: https://github.com/domainaware/parsedmarc/graphs/contributors
-[creative commons attribution 4.0 international license]: https://creativecommons.org/licenses/by/4.0/
 [issues]: https://github.com/domainaware/parsedmarc/issues
-[readonlyrest]: https://readonlyrest.com/

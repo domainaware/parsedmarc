@@ -1,4 +1,4 @@
-## What about mailing lists?
+# What about mailing lists?
 
 When you deploy DMARC on your domain, you might find that messages
 relayed by mailing lists are failing DMARC, most likely because the mailing
@@ -6,7 +6,7 @@ list is spoofing your from address, and modifying the subject,
 footer, or other part of the message, thereby breaking the
 DKIM signature.
 
-### Mailing list list best practices
+## Mailing list list best practices
 
 Ideally, a mailing list should forward messages without altering the
 headers or body content at all. [Joe Nelson] does a fantastic job of
@@ -14,7 +14,7 @@ explaining exactly what mailing lists should and shouldn't do to be
 fully DMARC compliant. Rather than repeat his fine work, here's a
 summary:
 
-#### Do
+### Do
 
 - Retain headers from the original message
 
@@ -30,7 +30,7 @@ summary:
 Modern mail clients and webmail services generate unsubscribe buttons based on
 these headers.
 
-#### Do not
+### Do not
 
 - Remove or modify any existing headers from the original message, including
   From, Date, Subject, etc.
@@ -48,7 +48,7 @@ to the mailing list post address, and not their email address.
 
 Configuration steps for common mailing list platforms are listed below.
 
-#### Mailman 2
+### Mailman 2
 
 Navigate to General Settings, and configure the settings below
 
@@ -87,7 +87,7 @@ Navigate to Privacy Options> Sending Filters, and configure the settings below
 ====================================== ==========
 ```
 
-#### Mailman 3
+### Mailman 3
 
 Navigate to Settings> List Identity
 
@@ -144,7 +144,7 @@ no longer spoof email addresses with domains protected by DMARC.
 
 Configuration steps for common mailing list platforms are listed below.
 
-#### Mailman 2
+### Mailman 2
 
 Navigate to Privacy Options> Sending Filters, and configure the settings below
 
@@ -170,7 +170,7 @@ the original sender.
 Choose the option that best fits your community.
 :::
 
-#### Mailman 3
+### Mailman 3
 
 In the DMARC Mitigations tab of the Settings page, configure the settings below
 
@@ -193,7 +193,7 @@ accidentally reply to the entire list, when they only intended to reply to
 the original sender.
 :::
 
-#### LISTSERV
+### LISTSERV
 
 [LISTSERV 16.0-2017a] and higher will rewrite the From header for domains
 that enforce with a DMARC quarantine or reject policy.

@@ -1,4 +1,5 @@
 # Understanding DMARC
+
 ## Resources
 
 ### DMARC guides
@@ -17,7 +18,6 @@ check out the sister project,
 
 DMARC protects against domain spoofing, not lookalike domains. for open source
 lookalike domain monitoring, check out [DomainAware](https://github.com/seanthegeek/domainaware).
-
 
 ## DMARC Alignment Guide
 

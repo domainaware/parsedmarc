@@ -1,5 +1,5 @@
 
-## Using the Kibana dashboards
+# Using the Kibana dashboards
 
 The Kibana DMARC dashboards are a human-friendly way to understand the
 results from incoming DMARC reports.
@@ -9,7 +9,7 @@ The default dashboard is DMARC Summary. To switch between dashboards,
 click on the Dashboard link in the left side menu of Kibana.
 :::
 
-### DMARC Summary
+## DMARC Summary
 
 As the name suggests, this dashboard is the best place to start
 reviewing your aggregate DMARC data.
@@ -74,7 +74,7 @@ the DMARC Summary dashboard. To view failures only, use the pie chart.
 Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.
 
-### DMARC Forensic Samples
+## DMARC Forensic Samples
 
 The DMARC Forensic Samples dashboard contains information on DMARC forensic
 reports (also known as failure reports or ruf reports). These reports contain

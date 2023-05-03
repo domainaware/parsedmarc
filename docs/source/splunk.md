@@ -1,4 +1,4 @@
-### Splunk
+# Splunk
 
 Starting in version 4.3.0 `parsedmarc` supports sending aggregate and/or
 forensic DMARC data to a Splunk [HTTP Event collector (HEC)].

@@ -129,6 +129,7 @@ The full set of configuration options are:
     Setting this to a number larger than one can improve
     performance when processing thousands of files
     :::
+
 - `mailbox`
   - `reports_folder` - str: The mailbox folder (or label for
       Gmail) where the incoming reports can be found
@@ -143,7 +144,7 @@ The full set of configuration options are:
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
   - `check_timeout` - int: Number of seconds to wait for a IMAP
-      IDLE response or the number of seconds until the next 
+      IDLE response or the number of seconds until the next
       mail check (Default: `30`)
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
@@ -291,6 +292,18 @@ The full set of configuration options are:
       (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
       listen on for the OAuth2 response (Default: 8080)
+- `log_analytics`
+  - `client_id` - str: The app registration's client ID
+  - `client_secret` - str: The app registration's client secret
+  - `tenant_id` - str: The tenant id where the app registration resides
+  - `dce` - str: The Data Collection Endpoint (DCE). Example: `https://{DCE-NAME}.{REGION}.ingest.monitor.azure.com`.
+  - `dcr_immutable_id` - str: The immutable ID of the Data Collection Rule (DCR)
+  - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
+  - `dcr_forensic_stream` - str: The stream name for the forensic reports in the DCR
+
+  :::{note}
+    Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
+    :::
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
@@ -329,12 +342,13 @@ known samples you want to save to that folder
 :::
 
 :::{warning}
-Elasticsearch 8 change limits policy for shards, restricting by 
-default to 1000. parsedmarc use a shard per analyzed day. If you 
-have more than ~3 years of data, you will need to update this 
+Elasticsearch 8 change limits policy for shards, restricting by
+default to 1000. parsedmarc use a shard per analyzed day. If you
+have more than ~3 years of data, you will need to update this
 limit.
 Check current usage (from Management -> Dev Tools -> Console):
-```
+
+```http
 GET /_cluster/health?pretty
 ...
   "active_primary_shards": 932,
@@ -342,8 +356,10 @@ GET /_cluster/health?pretty
 ...
 }
 ```
-Update the limit to 2k per exemple:
-```
+
+Update the limit to 2k per example:
+
+```http
 PUT _cluster/settings
 {
   "persistent" : {
@@ -351,7 +367,8 @@ PUT _cluster/settings
   }
 }
 ```
-Be warned that increasing this value increase ressources usage.
+
+Increasing this value increases resource usage.
 :::
 
 ## Running parsedmarc as a systemd service

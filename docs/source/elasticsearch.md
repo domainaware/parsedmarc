@@ -1,5 +1,4 @@
-
-### Elasticsearch and Kibana
+# Elasticsearch and Kibana
 
 :::{note}
 Splunk is also supported starting with `parsedmarc` 4.3.0
@@ -55,6 +54,34 @@ sudo service elasticsearch start
 sudo service kibana start
 ```
 
+As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)
+
+```bash
+sudo vim /etc/elasticsearch/elasticsearch.yml
+```
+
+Add the following configuration
+
+```text
+# Enable security features
+xpack.security.enabled: true
+xpack.security.enrollment.enabled: true
+# Enable encryption for HTTP API client connections, such as Kibana, Logstash, and Agents
+xpack.security.http.ssl:
+  enabled: true
+  keystore.path: certs/http.p12
+# Enable encryption and mutual authentication between cluster nodes
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+```
+
+```bash
+sudo systemctl restart elasticsearch
+```
+
 To create a self-signed certificate, run:
 
 ```bash
@@ -68,7 +95,7 @@ openssl req -newkey rsa:4096-nodes -keyout kibana.key -out kibana.csr
 ```
 
 Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
-domain name), which is the IP address or domain name that you will bebana on. it is the most important field.
+domain name), which is the IP address or domain name that you will use to access Kibana. it is the most important field.
 
 If you generated a CSR, remove the CSR after you have your certs
 
@@ -84,44 +111,56 @@ sudo chmod 660 /etc/kibana/kibana.key
 ```
 
 Activate the HTTPS server in Kibana
+
 ```bash
 sudo vim /etc/kibana/kibana.yml
 ```
+
 Add the following configuration
-```
+
+```text
 server.host: "SERVER_IP"
 server.publicBaseUrl: "https://SERVER_IP"
 server.ssl.enabled: true
 server.ssl.certificate: /etc/kibana/kibana.crt
 server.ssl.key: /etc/kibana/kibana.key
 ```
+
 ```bash
 sudo systemctl restart kibana
 ```
 
 Enroll Kibana in Elasticsearch
+
 ```bash
 sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
 ```
-Then access to your webserver at https://SERVER_IP:5601, accept the self-signed
+
+Then access to your web server at `https://SERVER_IP:5601`, accept the self-signed
 certificate and paste the token in the "Enrollment token" field.
+
 ```bash
 sudo /usr/share/kibana/bin/kibana-verification-code
 ```
+
 Then put the verification code to your web browser.
 
 End Kibana configuration
+
 ```bash
 sudo /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
 sudo /usr/share/kibana/bin/kibana-encryption-keys generate
 sudo vim /etc/kibana/kibana.yml
 ```
+
 Add previously generated encryption keys
-```
+
+```text
 xpack.encryptedSavedObjects.encryptionKey: xxxx...xxxx
 xpack.reporting.encryptionKey: xxxx...xxxx
 xpack.security.encryptionKey: xxxx...xxxx
 ```
+
 ```bash
 sudo systemctl restart kibana
 sudo systemctl restart elasticsearch
@@ -136,7 +175,7 @@ Connect to kibana using the "elastic" user and the password you previously provi
 on the console ("End Kibana configuration" part).
 
 Import `export.ndjson` the Saved Objects tab of the Stack management
-page of Kibana. (Hamburger menu -> "Management" -> "Stack Management" -> 
+page of Kibana. (Hamburger menu -> "Management" -> "Stack Management" ->
 "Kibana" -> "Saved Objects")
 
 It will give you the option to overwrite existing saved dashboards or
@@ -156,7 +195,7 @@ the commercial [X-Pack].
 :target: _static/screenshots/confirm-overwrite.png
 ```
 
-#### Upgrading Kibana index patterns
+## Upgrading Kibana index patterns
 
 `parsedmarc` 5.0.0 makes some changes to the way data is indexed in
 Elasticsearch. if you are upgrading from a previous release of
@@ -174,13 +213,12 @@ Kibana index patterns with versions that match the upgraded indexes:
 7. Import `export.ndjson` by clicking Import from the Kibana
    Saved Objects page
 
-#### Records retention
+## Records retention
 
 Starting in version 5.0.0, `parsedmarc` stores data in a separate
 index for each day to make it easy to comply with records
 retention regulations such as GDPR. For fore information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
-
 
 [elasticsearch]: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
 [export.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson
