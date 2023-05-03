@@ -134,6 +134,13 @@ Where `list.example.com` the list ID, and `en` is the language.
 
 Then restart mailman core.
 
+### LISTSERV
+
+[LISTSERV 16.0-2017a] and higher will rewrite the From header for domains
+that enforce with a DMARC quarantine or reject policy.
+
+Some additional steps are needed for Linux hosts.
+
 ### Workarounds
 
 If a mailing list must go **against** best practices and
@@ -144,7 +151,7 @@ no longer spoof email addresses with domains protected by DMARC.
 
 Configuration steps for common mailing list platforms are listed below.
 
-### Mailman 2
+#### Mailman 2
 
 Navigate to Privacy Options> Sending Filters, and configure the settings below
 
@@ -170,7 +177,7 @@ the original sender.
 Choose the option that best fits your community.
 :::
 
-### Mailman 3
+#### Mailman 3
 
 In the DMARC Mitigations tab of the Settings page, configure the settings below
 
@@ -192,13 +199,6 @@ On the other hand, replacing the From address might cause users to
 accidentally reply to the entire list, when they only intended to reply to
 the original sender.
 :::
-
-### LISTSERV
-
-[LISTSERV 16.0-2017a] and higher will rewrite the From header for domains
-that enforce with a DMARC quarantine or reject policy.
-
-Some additional steps are needed for Linux hosts.
 
 [joe nelson]: https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html
 [listserv 16.0-2017a]: https://www.lsoft.com/news/dmarc-issue1-2018.asp
