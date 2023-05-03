@@ -348,8 +348,9 @@ have more than ~3 years of data, you will need to update this
 limit.
 Check current usage (from Management -> Dev Tools -> Console):
 
-```http
+```text
 GET /_cluster/health?pretty
+{
 ...
   "active_primary_shards": 932,
   "active_shards": 932,
@@ -359,7 +360,7 @@ GET /_cluster/health?pretty
 
 Update the limit to 2k per example:
 
-```http
+```text
 PUT _cluster/settings
 {
   "persistent" : {
