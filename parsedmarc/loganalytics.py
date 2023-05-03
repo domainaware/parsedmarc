@@ -139,7 +139,7 @@ class LogAnalyticsClient(object):
             client_secret=conf.client_secret
         )
         logs_client = LogsIngestionClient(conf.dce, credential=credential)
-        if(
+        if (
                 results['aggregate_reports'] and
                 conf.dcr_aggregate_stream and
                 len(results['aggregate_reports']) > 0 and
@@ -150,7 +150,7 @@ class LogAnalyticsClient(object):
                 logs_client,
                 conf.dcr_aggregate_stream)
             logger.info("Successfully pushed aggregate reports.")
-        if(
+        if (
                 results['forensic_reports'] and
                 conf.dcr_forensic_stream and
                 len(results['forensic_reports']) > 0 and
