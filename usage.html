@@ -468,7 +468,8 @@ default to 1000. parsedmarc use a shard per analyzed day. If you
 have more than ~3 years of data, you will need to update this
 limit.
 Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
-<div class="highlight-http notranslate"><div class="highlight"><pre><span></span>GET /_cluster/health?pretty
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>GET /_cluster/health?pretty
+{
 ...
   &quot;active_primary_shards&quot;: 932,
   &quot;active_shards&quot;: 932,
@@ -477,7 +478,7 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 </pre></div>
 </div>
 <p>Update the limit to 2k per example:</p>
-<div class="highlight-http notranslate"><div class="highlight"><pre><span></span>PUT _cluster/settings
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PUT _cluster/settings
 {
   &quot;persistent&quot; : {
     &quot;cluster.max_shards_per_node&quot; : 2000 
