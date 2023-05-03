@@ -26,7 +26,7 @@ class HECClient(object):
                  source="parsedmarc", verify=True, timeout=60):
         """
         Initializes the HECClient
-        
+
         Args:
             url (str): The URL of the HEC
             access_token (str): The HEC access token

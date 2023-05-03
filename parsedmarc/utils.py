@@ -392,7 +392,7 @@ def parse_email_address(original_address):
 def get_filename_safe_string(string):
     """
     Converts a string to a string that is safe for a filename
-    
+
     Args:
         string (str): A string to make safe for a filename
 
