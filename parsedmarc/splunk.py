@@ -26,6 +26,7 @@ class HECClient(object):
                  source="parsedmarc", verify=True, timeout=60):
         """
         Initializes the HECClient
+        
         Args:
             url (str): The URL of the HEC
             access_token (str): The HEC access token
@@ -33,7 +34,7 @@ class HECClient(object):
             source (str): The source name
             verify (bool): Verify SSL certificates
             timeout (float): Number of seconds to wait for the server to send
-            data before giving up
+                data before giving up
         """
         url = urlparse(url)
         self.url = "{0}://{1}/services/collector/event/1.0".format(url.scheme,
@@ -59,7 +60,7 @@ class HECClient(object):
 
         Args:
             aggregate_reports: A list of aggregate report dictionaries
-            to save in Splunk
+                to save in Splunk
 
         """
         logger.debug("Saving aggregate reports to Splunk")
@@ -125,8 +126,8 @@ class HECClient(object):
         Saves forensic DMARC reports to Splunk
 
         Args:
-            forensic_reports (list):  A list of forensic report dictionaries
-            to save in Splunk
+            forensic_reports (list): A list of forensic report dictionaries
+                to save in Splunk
         """
         logger.debug("Saving forensic reports to Splunk")
         if type(forensic_reports) == dict:
