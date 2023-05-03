@@ -1,6 +1,13 @@
 Changelog
 =========
 
+8.5.0
+-----
+
+- Add support for Azure Log Analytics (PR #394)
+- Fix a bug in the Microsoft Graph integration that caused a crash when an inbox has 10+ folders (PR #398)
+- Documentation fixes
+
 8.4.2
 -----
 
