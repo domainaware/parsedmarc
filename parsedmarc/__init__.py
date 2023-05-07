@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.4.2"
+__version__ = "8.5.0"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -208,7 +208,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
         parallel (bool): Parallel processing
         keep_alive (callable): Keep alive function
@@ -409,7 +409,7 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
         offline (bool): Do not query online for geolocation or DNS
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         parallel (bool): Parallel processing
         keep_alive (callable): Keep alive function
@@ -582,10 +582,10 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         sample (str): The RFC 822 headers or RFC 822 message sample
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
-        forensic report results
+            forensic report results
         parallel (bool): Parallel processing
 
     Returns:
@@ -772,7 +772,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
-        forensic report results
+            forensic report results
         parallel (bool): Parallel processing
         keep_alive (callable): keep alive function
 
@@ -914,10 +914,10 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     Args:
         input_: A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
-        forensic report results
+            forensic report results
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
@@ -974,16 +974,16 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
     Args:
         input_: A path to a mbox file
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         strip_attachment_payloads (bool): Remove attachment payloads from
-        forensic report results
+            forensic report results
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         parallel (bool): Parallel processing
 
     Returns:
-        OrderedDict: Lists of  ``aggregate_reports`` and ``forensic_reports``
+        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
 
     """
     aggregate_reports = []
@@ -1048,12 +1048,12 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Remove attachment payloads from
-          forensic report results
+            forensic report results
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
             (use 0 for no limit)
         create_folders (bool): Whether to create the destination folders
-          (not used in watch)
+            (not used in watch)
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1230,14 +1230,14 @@ def watch_inbox(mailbox_connection: MailboxConnection,
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
         check_timeout (int): Number of seconds to wait for a IMAP IDLE response
-          or the number of seconds until the next mail check
+            or the number of seconds until the next mail check
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Set the DNS query timeout
         strip_attachment_payloads (bool): Replace attachment payloads in
-        forensic report samples with None
+            forensic report samples with None
         batch_size (int): Number of messages to read and process before saving
     """
 
@@ -1425,7 +1425,7 @@ def email_results(results, host, mail_from, mail_to,
         password (str): An optional password
         subject (str): Overrides the default message subject
         attachment_filename (str): Override the default attachment filename
-        message (str: Override the default plain text body
+        message (str): Override the default plain text body
     """
     logger.debug("Emailing report to: {0}".format(",".join(mail_to)))
     date_string = datetime.now().strftime("%Y-%m-%d")

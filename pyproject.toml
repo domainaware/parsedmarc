@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "azure-identity>=1.8.0",
+    "azure-monitor-ingestion>=1.0.0",
     "boto3>=1.16.63",
     "dateparser>=1.1.1",
     "dnspython>=2.0.0",

@@ -107,7 +107,7 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
         record_type (str): The record type to query for
         cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
@@ -156,7 +156,7 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
         ip_address (str): The IP address to resolve
         cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
 
     Returns:
@@ -177,13 +177,13 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
 
 def timestamp_to_datetime(timestamp):
     """
-    Converts a UNIX/DMARC timestamp to a Python ``DateTime`` object
+    Converts a UNIX/DMARC timestamp to a Python ``datetime`` object
 
     Args:
         timestamp (int): The timestamp
 
     Returns:
-        DateTime: The converted timestamp as a Python ``DateTime`` object
+        datetime: The converted timestamp as a Python ``datetime`` object
     """
     return datetime.fromtimestamp(int(timestamp))
 
@@ -203,14 +203,14 @@ def timestamp_to_human(timestamp):
 
 def human_timestamp_to_datetime(human_timestamp, to_utc=False):
     """
-    Converts a human-readable timestamp into a Python ``DateTime`` object
+    Converts a human-readable timestamp into a Python ``datetime`` object
 
     Args:
         human_timestamp (str): A timestamp string
         to_utc (bool): Convert the timestamp to UTC
 
     Returns:
-        DateTime: The converted timestamp
+        datetime: The converted timestamp
     """
 
     human_timestamp = human_timestamp.replace("-0000", "")
@@ -306,7 +306,7 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
         cache (ExpiringDict): Cache storage
         offline (bool): Do not make online queries for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
+            (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
         parallel (bool): parallel processing
 
@@ -360,6 +360,7 @@ def parse_email_address(original_address):
 def get_filename_safe_string(string):
     """
     Converts a string to a string that is safe for a filename
+
     Args:
         string (str): A string to make safe for a filename
 
@@ -381,13 +382,13 @@ def get_filename_safe_string(string):
 
 def is_mbox(path):
     """
-    Checks if the given content is a MBOX mailbox file
+    Checks if the given content is an MBOX mailbox file
 
     Args:
         path: Content to check
 
     Returns:
-        bool: A flag the indicates if a file is a MBOX mailbox file
+        bool: A flag that indicates if the file is an MBOX mailbox file
     """
     _is_mbox = False
     try:
@@ -402,13 +403,13 @@ def is_mbox(path):
 
 def is_outlook_msg(content):
     """
-    Checks if the given content is a Outlook msg OLE file
+    Checks if the given content is an Outlook msg OLE/MSG file
 
     Args:
         content: Content to check
 
     Returns:
-        bool: A flag the indicates if a file is a Outlook MSG file
+        bool: A flag that indicates if the file is an Outlook MSG file
     """
     return type(content) == bytes and content.startswith(
         b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
@@ -456,7 +457,8 @@ def parse_email(data, strip_attachment_payloads=False):
         data: The RFC 822 message string, or MSG binary
         strip_attachment_payloads (bool): Remove attachment payloads
 
-    Returns (dict): Parsed email data
+    Returns:
+        dict: Parsed email data
     """
 
     if type(data) == bytes:
