@@ -18,14 +18,13 @@ class Test(unittest.TestCase):
 
     def testPSLDownload(self):
         subdomain = "foo.example.com"
-        result = parsedmarc.utils.get_base_domain(subdomain,
-                                                  use_fresh_psl=True)
+        result = parsedmarc.utils.get_base_domain(subdomain)
         assert result == "example.com"
 
-        # Test PSL caching
-        result = parsedmarc.utils.get_base_domain(subdomain,
-                                                  use_fresh_psl=True)
-        assert result == "example.com"
+        # Test newer PSL entries
+        subdomain = "e3191.c.akamaiedge.net"
+        result = parsedmarc.utils.get_base_domain(subdomain)
+        assert result == "c.akamaiedge.net"
 
     def testAggregateSamples(self):
         """Test sample aggregate/rua DMARC reports"""
