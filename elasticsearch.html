@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.5.0 documentation</title>
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.6.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -36,7 +36,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.5.0
+                8.6.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -186,6 +186,16 @@ server.publicBaseUrl: &quot;https://SERVER_IP&quot;
 server.ssl.enabled: true
 server.ssl.certificate: /etc/kibana/kibana.crt
 server.ssl.key: /etc/kibana/kibana.key
+</pre></div>
+</div>
+<p>::{note}
+For more security, you can configure Kibana to use a local network connexion
+to elasticsearch :</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>elasticsearch.hosts: [&#39;https://SERVER_IP:9200&#39;]
+</pre></div>
+</div>
+<p>=&gt;</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>elasticsearch.hosts: [&#39;https://127.0.0.1:9200&#39;]
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>kibana

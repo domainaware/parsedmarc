@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.5.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 8.6.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -33,7 +33,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.5.0
+                8.6.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -98,7 +98,6 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">platform</span>
 <span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
 <span class="kn">import</span> <span class="nn">re</span>
@@ -114,16 +113,11 @@
 <span class="kn">import</span> <span class="nn">dns.exception</span>
 <span class="kn">import</span> <span class="nn">geoip2.database</span>
 <span class="kn">import</span> <span class="nn">geoip2.errors</span>
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">import</span> <span class="nn">publicsuffix2</span>
+<span class="kn">import</span> <span class="nn">publicsuffixlist</span>
 
 <span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">import</span> <span class="nn">parsedmarc.resources</span>
 
-<span class="n">USER_AGENT</span> <span class="o">=</span> <span class="s2">&quot;Mozilla/5.0 ((</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">)) parsedmarc&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
-            <span class="n">platform</span><span class="o">.</span><span class="n">release</span><span class="p">(),</span>
-        <span class="p">)</span>
 
 <span class="n">parenthesis_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s*\(.*\)\s*&#39;</span><span class="p">)</span>
 
@@ -168,7 +162,7 @@
     <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">use_fresh_psl</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the base domain name for the given domain</span>
 
@@ -178,41 +172,13 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        domain (str): A domain or subdomain</span>
-<span class="sd">        use_fresh_psl (bool): Download a fresh Public Suffix List</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: The base domain of the given domain</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">psl_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s2">&quot;public_suffix_list.dat&quot;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">download_psl</span><span class="p">():</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://publicsuffix.org/list/public_suffix_list.dat&quot;</span>
-        <span class="c1"># Use a browser-like user agent string to bypass some proxy blocks</span>
-        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">fresh_psl</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fresh_psl_file</span><span class="p">:</span>
-                <span class="n">fresh_psl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fresh_psl</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">DownloadError</span><span class="p">(</span>
-                <span class="s2">&quot;Failed to download an updated PSL </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">use_fresh_psl</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">psl_path</span><span class="p">):</span>
-            <span class="n">download_psl</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">psl_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">psl_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">psl_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">):</span>
-                <span class="n">download_psl</span><span class="p">()</span>
-
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">psl_file</span><span class="p">:</span>
-            <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffix2</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">(</span><span class="n">psl_file</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">publicsuffix2</span><span class="o">.</span><span class="n">get_sld</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span></div>
+    <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffixlist</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">privatesuffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="query_dns"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.query_dns">[docs]</a><span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
