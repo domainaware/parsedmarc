@@ -126,6 +126,17 @@ server.ssl.certificate: /etc/kibana/kibana.crt
 server.ssl.key: /etc/kibana/kibana.key
 ```
 
+::{note}
+For more security, you can configure Kibana to use a local network connexion
+to elasticsearch :
+```text
+elasticsearch.hosts: ['https://SERVER_IP:9200']
+```
+=> 
+```text
+elasticsearch.hosts: ['https://127.0.0.1:9200']
+```
+
 ```bash
 sudo systemctl restart kibana
 ```
