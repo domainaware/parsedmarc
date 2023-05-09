@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.6.0
+-----
+
+- Replace publicsuffix2 with publicsuffixlist
+
 8.5.0
 -----
 
