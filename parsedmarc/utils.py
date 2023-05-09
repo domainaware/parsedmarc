@@ -13,7 +13,6 @@ import mailparser
 import json
 import hashlib
 import base64
-import platform
 import atexit
 import mailbox
 import re
@@ -29,7 +28,6 @@ import dns.resolver
 import dns.exception
 import geoip2.database
 import geoip2.errors
-import requests
 import publicsuffixlist
 
 from parsedmarc.log import logger
