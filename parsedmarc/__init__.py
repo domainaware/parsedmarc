@@ -251,7 +251,9 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
                     "email"].split("@")[-1]
         org_name = report_metadata["org_name"]
         if org_name is not None and " " not in org_name:
-            org_name = get_base_domain(org_name)
+            new_org_name = get_base_domain(org_name)
+            if new_org_name is not None:
+                org_name = new_org_name
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
