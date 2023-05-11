@@ -19,8 +19,8 @@ from parsedmarc import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'parsedmarc'
-copyright = '2018, Sean Whalen'
-author = 'Sean Whalen'
+copyright = '2018 - 2023, Sean Whalen and contributors'
+author = 'Sean Whalen and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
