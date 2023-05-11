@@ -6,7 +6,7 @@ list is spoofing your from address, and modifying the subject,
 footer, or other part of the message, thereby breaking the
 DKIM signature.
 
-### Mailing list list best practices
+### Mailing list best practices
 
 Ideally, a mailing list should forward messages without altering the
 headers or body content at all. [Joe Nelson] does a fantastic job of

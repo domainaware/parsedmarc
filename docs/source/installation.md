@@ -28,8 +28,7 @@ https_proxy=https://prox-server:3128
 ftp_proxy=http://prox-server:3128
 ```
 
-This will set the the proxy up for use system-wide, including for
-`parsedmarc`.
+This will set the proxy up for use system-wide, including for `parsedmarc`.
 :::
 
 :::{warning}
@@ -49,7 +48,7 @@ Starting in `parsedmarc` 7.1.0, a static copy of the
 `parsedmarc`, under the terms of the
 [Creative Commons Attribution 4.0 International License].
 as a fallback if the [MaxMind GeoLite2 Country database] is not
-installed  However, `parsedmarc` cannot install updated versions of
+installed. However, `parsedmarc` cannot install updated versions of
 these databases as they are released, so MaxMind's databases and the
 [geoipupdate] tool is still the preferable solution.
 
@@ -91,7 +90,7 @@ regulations][to comply with various privacy regulations].
 
 Start by [registering for a free GeoLite2 account], and signing in.
 
-Then, navigate the to the [License Keys] page under your account,
+Then, navigate to the [License Keys] page under your account,
 and create a new license key for the version of
 `geoipupdate` that was installed.
 

@@ -29,7 +29,7 @@ which will cause it to crash under a heavy load. To fix this, increase the
 minimum and maximum JVM heap sizes in `/etc/elasticsearch/jvm.options` to
 more reasonable levels, depending on your server's resources.
 
-Make sure the system has at least 2 GB more RAM then the assigned JVM
+Make sure the system has at least 2 GB more RAM than the assigned JVM
 heap size.
 
 Always set the minimum and maximum JVM heap sizes to the same
@@ -180,7 +180,7 @@ sudo systemctl restart elasticsearch
 Now that Elasticsearch is up and running, use `parsedmarc` to send data to
 it.
 
-Download (right click the link and click save as) [export.ndjson].
+Download (right-click the link and click save as) [export.ndjson].
 
 Connect to kibana using the "elastic" user and the password you previously provide
 on the console ("End Kibana configuration" part).
@@ -219,7 +219,7 @@ Kibana index patterns with versions that match the upgraded indexes:
    index patterns
 4. Click Delete
 5. Click Delete on the conformation message
-6. Download (right click the link and click save as)
+6. Download (right-click the link and click save as)
    the latest version of [export.ndjson]
 7. Import `export.ndjson` by clicking Import from the Kibana
    Saved Objects page
