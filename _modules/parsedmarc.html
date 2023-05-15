@@ -335,7 +335,9 @@
                     <span class="s2">&quot;email&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">org_name</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">org_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot; &quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">org_name</span><span class="p">:</span>
-            <span class="n">org_name</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">org_name</span><span class="p">)</span>
+            <span class="n">new_org_name</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">org_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_org_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">org_name</span> <span class="o">=</span> <span class="n">new_org_name</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">org_name</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="kc">None</span>
@@ -348,6 +350,10 @@
                                       <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_id</span>
         <span class="n">date_range</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;date_range&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="o">*</span><span class="mi">86400</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;The begin and end fields span too </span><span class="se">\</span>
+<span class="s2">                                         many hours, should be max 24 hours </span><span class="se">\</span>
+<span class="s2">                                         according to RFC 7489 section 7.2&quot;</span><span class="p">)</span>
         <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span>
         <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span>
@@ -1543,7 +1549,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2018, Sean Whalen.</p>
+    <p>&#169; Copyright 2018 - 2023, Sean Whalen and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -6,7 +6,7 @@ results from incoming DMARC reports.
 
 :::{note}
 The default dashboard is DMARC Summary. To switch between dashboards,
-click on the Dashboard link in the left side menu of Kibana.
+click on the Dashboard link on the left side menu of Kibana.
 :::
 
 ## DMARC Summary

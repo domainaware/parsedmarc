@@ -89,7 +89,7 @@ draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391
 
 ## Sample forensic report output
 
-Thanks to Github user [xennn](https://github.com/xennn) for the anonymized
+Thanks to GitHub user [xennn](https://github.com/xennn) for the anonymized
 [forensic report email sample](<https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>).
 
 ### JSON forensic report

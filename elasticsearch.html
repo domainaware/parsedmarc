@@ -115,7 +115,7 @@ sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w
 which will cause it to crash under a heavy load. To fix this, increase the
 minimum and maximum JVM heap sizes in <code class="docutils literal notranslate"><span class="pre">/etc/elasticsearch/jvm.options</span></code> to
 more reasonable levels, depending on your server’s resources.</p>
-<p>Make sure the system has at least 2 GB more RAM then the assigned JVM
+<p>Make sure the system has at least 2 GB more RAM than the assigned JVM
 heap size.</p>
 <p>Always set the minimum and maximum JVM heap sizes to the same
 value.</p>
@@ -229,7 +229,7 @@ sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class=
 </div>
 <p>Now that Elasticsearch is up and running, use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> to send data to
 it.</p>
-<p>Download (right click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a>.</p>
+<p>Download (right-click the link and click save as) <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a>.</p>
 <p>Connect to kibana using the “elastic” user and the password you previously provide
 on the console (“End Kibana configuration” part).</p>
 <p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> the Saved Objects tab of the Stack management
@@ -254,7 +254,7 @@ Kibana index patterns with versions that match the upgraded indexes:</p>
 index patterns</p></li>
 <li><p>Click Delete</p></li>
 <li><p>Click Delete on the conformation message</p></li>
-<li><p>Download (right click the link and click save as)
+<li><p>Download (right-click the link and click save as)
 the latest version of <a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson">export.ndjson</a></p></li>
 <li><p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> by clicking Import from the Kibana
 Saved Objects page</p></li>
@@ -280,7 +280,7 @@ check out the Elastic guide to <a class="reference external" href="https://www.e
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2018, Sean Whalen.</p>
+    <p>&#169; Copyright 2018 - 2023, Sean Whalen and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
