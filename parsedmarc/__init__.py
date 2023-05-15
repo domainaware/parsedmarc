@@ -267,7 +267,9 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
         if (int(date_range["end"]) - int(date_range["begin"]) > 2*86400):
-            raise InvalidAggregateReport("The begin and end fields span too many hours, should be max 24 hours according to RFC 7489 section 7.2")
+            raise InvalidAggregateReport("The begin and end fields span too \
+                                         many hours, should be max 24 hours \
+                                         according to RFC 7489 section 7.2")
         date_range["begin"] = timestamp_to_human(date_range["begin"])
         date_range["end"] = timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]

@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.6.1
+-----
+
+- Fix handling of non-domain organization names (PR #411 fixes issue #410)
+- Skip processing of aggregate reports with a date range that is too long to be valid (PR #408 fixes issue #282)
+
 8.6.0
 -----
 
