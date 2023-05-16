@@ -101,6 +101,9 @@ def _main():
                 except elastic.ElasticsearchError as error_:
                     logger.error("Elasticsearch Error: {0}".format(
                         error_.__str__()))
+                except Exception as error_:
+                    logger.error("Elasticsearch exception error: {}".format(
+                        error_.__str__()))
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_aggregate_reports_to_kafka(

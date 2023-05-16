@@ -313,6 +313,11 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     date_range = [aggregate_report["begin_date"],
                   aggregate_report["end_date"]]
 
+    if not org_name or not report_id or not domain \
+        or not begin_date or not end_date:
+        raise KeyError("Elasticsearch is missing required value for the \
+                       'exist' search")
+
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
@@ -327,8 +332,14 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     query = query & begin_date_query & end_date_query
     search.query = query
 
-    existing = search.execute()
-    if len(existing) > 0:
+    existing = None
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        logger.error("Elasticsearch search for existing report error: {}".format(
+            error_.__str__()))
+
+    if not existing or len(existing) > 0:
         raise AlreadySaved("An aggregate report ID {0} from {1} about {2} "
                            "with a date range of {3} UTC to {4} UTC already "
                            "exists in "
