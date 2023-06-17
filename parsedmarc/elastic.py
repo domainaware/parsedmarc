@@ -323,7 +323,10 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
         search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
     else:
         search = Search(index="dmarc_aggregate*")
-    query = org_name_query & report_id_query & domain_query
+    if org_name is not None:
+        query = org_name_query & report_id_query & domain_query
+    else:
+        query = report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
 
