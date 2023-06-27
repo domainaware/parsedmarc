@@ -33,7 +33,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}:" .format(sample_path), end="")
+            print("Testing {0}: " .format(sample_path), end="")
             parsed_report = parsedmarc.parse_report_file(
                 sample_path)["report"]
             parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
