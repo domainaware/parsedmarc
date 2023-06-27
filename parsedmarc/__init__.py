@@ -254,6 +254,13 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
             new_org_name = get_base_domain(org_name)
             if new_org_name is not None:
                 org_name = new_org_name
+        if not org_name:
+            logger.debug("Could not parse org_name from XML.\r\n{0}".format(
+                report.__str__()
+            ))
+            raise KeyError("Organization name is missing. \
+                           This field is a requirement for \
+                           saving the report")
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         extra = None
@@ -368,13 +375,14 @@ def extract_xml(input_):
         str: The extracted XML
 
     """
-    if type(input_) == str:
-        file_object = open(input_, "rb")
-    elif type(input_) == bytes:
-        file_object = BytesIO(input_)
-    else:
-        file_object = input_
     try:
+        if type(input_) == str:
+            file_object = open(input_, "rb")
+        elif type(input_) == bytes:
+            file_object = BytesIO(input_)
+        else:
+            file_object = input_
+
         header = file_object.read(6)
         file_object.seek(0)
         if header.startswith(MAGIC_ZIP):
@@ -390,6 +398,8 @@ def extract_xml(input_):
 
         file_object.close()
 
+    except FileNotFoundError:
+        raise InvalidAggregateReport("File was not found")
     except UnicodeDecodeError:
         file_object.close()
         raise InvalidAggregateReport("File objects must be opened in binary "
