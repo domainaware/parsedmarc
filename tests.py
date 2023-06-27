@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals, absolute_import
 
 import unittest
 from glob import glob
-import json
+import os
 
 import parsedmarc
 import parsedmarc.utils
@@ -28,14 +28,16 @@ class Test(unittest.TestCase):
 
     def testAggregateSamples(self):
         """Test sample aggregate/rua DMARC reports"""
+        print()
         sample_paths = glob("samples/aggregate/*")
         for sample_path in sample_paths:
-            print("Testing {0}...\n".format(sample_path))
+            if os.path.isdir(sample_path):
+                continue
+            print("Testing {0}:" .format(sample_path), end="")
             parsed_report = parsedmarc.parse_report_file(
                 sample_path)["report"]
-            print(json.dumps(parsed_report, ensure_ascii=False, indent=2))
-            print("\n")
-            print(parsedmarc.parsed_aggregate_reports_to_csv(parsed_report))
+            parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
+            print("Passed!")
 
     def testEmptySample(self):
         """Test empty/unparasable report"""
@@ -44,16 +46,18 @@ class Test(unittest.TestCase):
 
     def testForensicSamples(self):
         """Test sample forensic/ruf/failure DMARC reports"""
+        print()
         sample_paths = glob("samples/forensic/*.eml")
         for sample_path in sample_paths:
-            print("Testing {0}...\n".format(sample_path))
+            print("Testing {0}: ".format(sample_path), end="")
             with open(sample_path) as sample_file:
                 sample_content = sample_file.read()
                 parsed_report = parsedmarc.parse_report_email(
                     sample_content)["report"]
-            print(json.dumps(parsed_report, ensure_ascii=False, indent=2))
-            print("\n")
-            print(parsedmarc.parsed_forensic_reports_to_csv(parsed_report))
+            parsed_report = parsedmarc.parse_report_file(
+                sample_path)["report"]
+            parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
+            print("Passed!")
 
 
 if __name__ == "__main__":
