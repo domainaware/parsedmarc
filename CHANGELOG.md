@@ -6,6 +6,7 @@ Changelog
 
 - Fix handling of non-domain organization names (PR #411 fixes issue #410)
 - Skip processing of aggregate reports with a date range that is too long to be valid (PR #408 fixes issue #282)
+- Better error handeling for Elasticsearch queries and file parsing (PR #417)
 
 8.6.0
 -----
