@@ -412,7 +412,12 @@
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
 
-    <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
+<span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;An aggregate report ID </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> about </span><span class="si">{2}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;with a date range of </span><span class="si">{3}</span><span class="s2"> UTC to </span><span class="si">{4}</span><span class="s2"> UTC already &quot;</span>

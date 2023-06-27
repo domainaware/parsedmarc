@@ -338,6 +338,13 @@
             <span class="n">new_org_name</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">org_name</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">new_org_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">org_name</span> <span class="o">=</span> <span class="n">new_org_name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">org_name</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Could not parse org_name from XML.</span><span class="se">\r\n</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">report</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Organization name is missing. </span><span class="se">\</span>
+<span class="s2">                           This field is a requirement for </span><span class="se">\</span>
+<span class="s2">                           saving the report&quot;</span><span class="p">)</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">org_name</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="kc">None</span>
@@ -452,13 +459,14 @@
 <span class="sd">        str: The extracted XML</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bytes</span><span class="p">:</span>
-        <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">file_object</span> <span class="o">=</span> <span class="n">input_</span>
     <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bytes</span><span class="p">:</span>
+            <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_object</span> <span class="o">=</span> <span class="n">input_</span>
+
         <span class="n">header</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">):</span>
@@ -474,6 +482,8 @@
 
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary &quot;</span>
