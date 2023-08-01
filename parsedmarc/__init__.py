@@ -119,7 +119,7 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     new_record["alignment"]["dkim"] = dkim_aligned
     new_record["alignment"]["dmarc"] = dmarc_aligned
     if "reason" in policy_evaluated:
-        if type(policy_evaluated["reason"]) == list:
+        if type(policy_evaluated["reason"]) is list:
             reasons = policy_evaluated["reason"]
         else:
             reasons = [policy_evaluated["reason"]]
@@ -130,7 +130,7 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     new_record["policy_evaluated"] = new_policy_evaluated
     new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
-    if type(new_record["identifiers"]["header_from"]) == str:
+    if type(new_record["identifiers"]["header_from"]) is str:
         lowered_from = new_record["identifiers"]["header_from"].lower()
     else:
         lowered_from = ''
@@ -320,7 +320,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         new_policy_published["fo"] = fo
         new_report["policy_published"] = new_policy_published
 
-        if type(report["record"]) == list:
+        if type(report["record"]) is list:
             for i in range(len(report["record"])):
                 if keep_alive is not None and i > 0 and i % 20 == 0:
                     logger.debug("Sending keepalive cmd")
@@ -376,9 +376,9 @@ def extract_xml(input_):
 
     """
     try:
-        if type(input_) == str:
+        if type(input_) is str:
             file_object = open(input_, "rb")
-        elif type(input_) == bytes:
+        elif type(input_) is bytes:
             file_object = BytesIO(input_)
         else:
             file_object = input_
@@ -460,7 +460,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
     def to_str(obj):
         return str(obj).lower()
 
-    if type(reports) == OrderedDict:
+    if type(reports) is OrderedDict:
         reports = [reports]
 
     rows = []
@@ -716,7 +716,7 @@ def parsed_forensic_reports_to_csv_rows(reports):
     Returns:
         list: Parsed forensic report data as a list of dicts in flat CSV format
     """
-    if type(reports) == OrderedDict:
+    if type(reports) is OrderedDict:
         reports = [reports]
 
     rows = []
@@ -802,7 +802,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
     try:
         if is_outlook_msg(input_):
             input_ = convert_outlook_msg(input_)
-        if type(input_) == bytes:
+        if type(input_) is bytes:
             input_ = input_.decode(encoding="utf8", errors="replace")
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
@@ -942,10 +942,10 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     Returns:
         OrderedDict: The parsed DMARC report
     """
-    if type(input_) == str:
+    if type(input_) is str:
         logger.debug("Parsing {0}".format(input_))
         file_object = open(input_, "rb")
-    elif type(input_) == bytes:
+    elif type(input_) is bytes:
         file_object = BytesIO(input_)
     else:
         file_object = input_
