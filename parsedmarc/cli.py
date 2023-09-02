@@ -919,7 +919,7 @@ def _main():
     pool.join()
 
     for result in results:
-        if type(result[0]) is InvalidDMARCReport:
+        if isinstance(result[0], InvalidDMARCReport):
             logger.error("Failed to parse {0} - {1}".format(result[1],
                                                             result[0]))
         else:
