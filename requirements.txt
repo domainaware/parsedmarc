@@ -38,3 +38,5 @@ google-auth-oauthlib>=0.4.6
 hatch>=1.5.0
 myst-parser>=0.18.0
 myst-parser[linkify]
+requests
+bs4

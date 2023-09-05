@@ -130,5 +130,7 @@ stage*.ini
 dev*.ini
 
 # Private samples
-
 samples/private
+
+*.html
+*.sqlite-journal
