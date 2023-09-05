@@ -31,7 +31,7 @@ import geoip2.errors
 import publicsuffixlist
 
 from parsedmarc.log import logger
-import parsedmarc.resources
+import parsedmarc.resources.dbip
 
 
 parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
@@ -272,7 +272,7 @@ def get_ip_address_country(ip_address, db_path=None):
                 break
 
     if db_path is None:
-        with pkg_resources.path(parsedmarc.resources,
+        with pkg_resources.path(parsedmarc.resources.dbip,
                                 "dbip-country-lite.mmdb") as path:
             db_path = path
 
