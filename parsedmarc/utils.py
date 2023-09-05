@@ -409,7 +409,7 @@ def is_outlook_msg(content):
     Returns:
         bool: A flag that indicates if the file is an Outlook MSG file
     """
-    return type(content) == bytes and content.startswith(
+    return isinstance(content, bytes) and content.startswith(
         b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
 
 
@@ -459,7 +459,7 @@ def parse_email(data, strip_attachment_payloads=False):
         dict: Parsed email data
     """
 
-    if type(data) == bytes:
+    if isinstance(data, bytes):
         if is_outlook_msg(data):
             data = convert_outlook_msg(data)
         data = data.decode("utf-8", errors="replace")

@@ -181,7 +181,7 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
         password (str): The password to use for authentication
         timeout (float): Timeout in seconds
     """
-    if type(hosts) != list:
+    if not isinstance(hosts, list):
         hosts = [hosts]
     conn_params = {
         "hosts": hosts,

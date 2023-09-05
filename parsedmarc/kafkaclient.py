@@ -96,8 +96,8 @@ class KafkaClient(object):
             aggregate_topic (str): The name of the Kafka topic
 
         """
-        if (type(aggregate_reports) == dict or
-           type(aggregate_reports) == OrderedDict):
+        if (isinstance(aggregate_reports, dict) or
+           isinstance(aggregate_reports, OrderedDict)):
             aggregate_reports = [aggregate_reports]
 
         if len(aggregate_reports) < 1:
@@ -141,7 +141,7 @@ class KafkaClient(object):
             forensic_topic (str): The name of the Kafka topic
 
         """
-        if type(forensic_reports) == dict:
+        if isinstance(forensic_reports, dict):
             forensic_reports = [forensic_reports]
 
         if len(forensic_reports) < 1:

@@ -144,7 +144,7 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     else:
         auth_results = new_record["auth_results"].copy()
 
-    if type(auth_results["dkim"]) != list:
+    if not isinstance(auth_results["dkim"], list):
         auth_results["dkim"] = [auth_results["dkim"]]
     for result in auth_results["dkim"]:
         if "domain" in result and result["domain"] is not None:
@@ -159,7 +159,7 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
                 new_result["result"] = "none"
             new_record["auth_results"]["dkim"].append(new_result)
 
-    if type(auth_results["spf"]) != list:
+    if not isinstance(auth_results["spf"], list):
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
         new_result = OrderedDict([("domain", result["domain"])])
@@ -282,7 +282,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
         if "error" in report["report_metadata"]:
-            if type(report["report_metadata"]["error"]) != list:
+            if not isinstance(report["report_metadata"]["error"], list):
                 errors = [report["report_metadata"]["error"]]
             else:
                 errors = report["report_metadata"]["error"]
@@ -824,7 +824,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
     for part in msg.walk():
         content_type = part.get_content_type()
         payload = part.get_payload()
-        if type(payload) != list:
+        if not isinstance(payload, list):
             payload = [payload]
         payload = payload[0].__str__()
         if content_type == "message/feedback-report":
