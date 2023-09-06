@@ -4,8 +4,8 @@ A database of information about services that send email.
 
 ## Updates
 
-To update the database with the latest information from dmarc.io][dmarc.io], start a
-[Splash][splash] Docker container, then run `updatedb.py`
+To update the database with the latest information from[ dmarc.io][dmarc.io], start a
+[Splash][splash] Docker container, then run `updatedb.py`.
 
 ## Credit
 
