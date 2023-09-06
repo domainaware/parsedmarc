@@ -1,3 +1,5 @@
+import requests
+
 import sqlite3
 
 from bs4 import BeautifulSoup
@@ -35,8 +37,8 @@ CREATE TABLE IF NOT EXISTS "reverse_dns" (
 )
 """)
 curser = db.cursor()
-with open("sources.html") as sources_file:
-    content = sources_file.read()
+content = requests.get("http://localhost:8050/render.html",
+                       params=dict(url="https://dmarc.io/sources/")).content
 soup = BeautifulSoup(content, "html.parser")
 table = soup.find("tbody")
 rows = table.find_all("tr")
@@ -54,6 +56,32 @@ for row in rows:
     SET name = ?,
         spf_aligned = ?,
         dkim_aligned = ?,
+        known_to_forward = ?
+    WHERE dmarc_io_uri = ?""", params)
+    db.commit()
+    curser.execute("""
+    INSERT OR IGNORE INTO senders(name, spf_aligned, dkim_aligned,
+    known_to_forward, dmarc_io_uri) values (?,?,?,?,?)""", params)
+    db.commit()
+content = requests.get("http://localhost:8050/render.html",
+                       params=dict(url="https://dmarc.io/forwarders/")).content
+soup = BeautifulSoup(content, "html.parser")
+table = soup.find("tbody")
+rows = table.find_all("tr")
+for row in rows:
+    data = row.find_all("td")
+    link = data[0].find("a")
+    name = link.text
+    dmarc_io_uri = link.get("href")
+    forward_dkim_intact = len(data[1].find_all("i"))
+    forward_own_envelope_domain = len(data[2].find_all("i"))
+    params = (name, forward_dkim_intact, forward_own_envelope_domain, 1,
+              dmarc_io_uri)
+    curser.execute("""
+    UPDATE senders
+    SET name = ?,
+        forward_dkim_intact = ?,
+        forward_own_envelope_domain = ?,
         known_to_forward = ?
     WHERE dmarc_io_uri = ?""", params)
     db.commit()
