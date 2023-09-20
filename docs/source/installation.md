@@ -1,15 +1,17 @@
 # Installation
 
-## Testing multiple report analyzers
+## Prerequisites
+
+`parsedmarc` works with Python 3 only.
+
+### Testing multiple report analyzers
 
 If you would like to test parsedmarc and another report processing
 solution at the same time, you can have up to two `mailto` URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.
-:::
 
-`parsedmarc` works with Python 3 only.
+### Using a web proxy
 
-:::{note}
 If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit `/etc/environment` and add your
 proxy details there, for example:
@@ -29,18 +31,17 @@ ftp_proxy=http://prox-server:3128
 ```
 
 This will set the proxy up for use system-wide, including for `parsedmarc`.
-:::
 
-:::{warning}
+### Using Microsoft Exchange
+
 If your mail server is Microsoft Exchange, ensure that it is patched to at
 least:
 
-- Exchange Server 2010 Update Rollup 22 ([KB4295699](https://support.microsoft.com/KB/4295699))
-- Exchange Server 2013 Cumulative Update 21 ([KB4099855](https://support.microsoft.com/KB/4099855))
-- Exchange Server 2016 Cumulative Update 11 ([KB4134118](https://support.microsoft.com/kb/4134118))
-:::
+- Exchange Server 2010 Update Rollup 22 ([KB4295699])
+- Exchange Server 2013 Cumulative Update 21 ([KB4099855])
+- Exchange Server 2016 Cumulative Update 11 ([KB4134118])
 
-## geoipupdate setup
+### geoipupdate setup
 
 :::{note}
 Starting in `parsedmarc` 7.1.0, a static copy of the
@@ -84,9 +85,8 @@ The latest builds for Linux, macOS, and Windows can be downloaded
 from the [geoipupdate releases page on GitHub].
 
 On December 30th, 2019, MaxMind started requiring free accounts to
-access the free Geolite2 databases, in order [to
-comply with various privacy
-regulations][to comply with various privacy regulations].
+access the free Geolite2 databases, in order 
+[to comply with various privacy regulations].
 
 Start by [registering for a free GeoLite2 account], and signing in.
 
@@ -146,7 +146,7 @@ sudo dnf install -y python39 python3-virtualenv python3-setuptools python3-devel
 ```
 
 Python 3 installers for Windows and macOS can be found at
-<https://www.python.org/downloads/>
+<https://www.python.org/downloads/>.
 
 Create a system user
 
@@ -191,6 +191,9 @@ On Debian or Ubuntu systems, run:
 sudo apt-get install libemail-outlook-message-perl
 ```
 
+[KB4295699]: https://support.microsoft.com/KB/4295699
+[KB4099855]: https://support.microsoft.com/KB/4099855
+[KB4134118]: https://support.microsoft.com/kb/4134118
 [Component "contrib"]: https://wiki.debian.org/SourcesList#Component
 [geoipupdate]: https://github.com/maxmind/geoipupdate
 [geoipupdate releases page on github]: https://github.com/maxmind/geoipupdate/releases
