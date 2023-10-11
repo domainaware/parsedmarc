@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.6.1 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 8.6.2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -36,7 +36,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.1
+                8.6.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -198,18 +198,18 @@ payloads from results</p></li>
 JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic
 JSON output file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file</p></li>
-<li><p>from MaxMind or DBIP</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file
+from MaxMind or DBIP</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation
 or DNS</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> -  str: A comma separated list of
-DNS resolvers (Default: <a class="reference external" href="https://1.1.1.1/">Cloudflare’s public resolvers</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> - str: A comma separated list of
+DNS resolvers (Default: <code class="docutils literal notranslate"><span class="pre">[Cloudflare's</span> <span class="pre">public</span> <span class="pre">resolvers]</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when
-parsing in CLI mode (Default: 1)</p></li>
+parsing in CLI mode (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> - int: Number of files to give to each process
 when running in parallel.</p>
 <div class="admonition note">
@@ -225,7 +225,7 @@ performance when processing thousands of files</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
 Gmail) where the incoming reports can be found
 (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str:  The mailbox folder (or label for
+<li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str: The mailbox folder (or label for
 Gmail) to sort processed emails into (Default: <code class="docutils literal notranslate"><span class="pre">Archive</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process</p></li>
 <li><p>messages as they arrive or poll MS Graph for new messages</p></li>
@@ -259,7 +259,7 @@ section have been moved to the <code class="docutils literal notranslate"><span 
 </div>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
-(Default: True)</p></li>
+(Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The IMAP user</p></li>
@@ -285,7 +285,7 @@ could be a shared mailbox if the user has access to the mailbox</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
 (Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">allow_unencrypted_storage</span></code> - bool: Allows the Azure Identity
-module to fall back to unencrypted token cache (Default: False).
+module to fall back to unencrypted token cache (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>).
 Even if enabled, the cache will always try encrypted storage first.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -350,7 +350,7 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hosts</span></code> - str: A comma separated list of Kafka hosts</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The Kafka user</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">passsword</span></code> - str: The Kafka password</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: True)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_topic</span></code> - str: The Kafka topic for aggregate reports</p></li>
@@ -360,7 +360,7 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: 25)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: <code class="docutils literal notranslate"><span class="pre">25</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
@@ -384,7 +384,7 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">s3</span></code></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">bucket</span></code> - str: The S3 bucket name</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: /)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - str: The path to upload reports to (Default: <code class="docutils literal notranslate"><span class="pre">/</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">region_name</span></code> - str: The region name (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">endpoint_url</span></code> - str: The endpoint URL (Optional)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">access_key_id</span></code> - str: The access key id (Optional)</p></li>
@@ -394,22 +394,22 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">syslog</span></code></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: 514)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: <code class="docutils literal notranslate"><span class="pre">514</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
-credentials, None to disable (Default: None)</p></li>
+credentials, None to disable (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
-(Default: .token)</p></li>
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
-Trash when searching reports (Default: False)</p></li>
+Trash when searching reports (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">scopes</span></code> - str: Comma separated list of scopes to use when
 acquiring credentials
 (Default: <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">oauth2_port</span></code> - int: The TCP port for the local server to
-listen on for the OAuth2 response (Default: 8080)</p></li>
+listen on for the OAuth2 response (Default: <code class="docutils literal notranslate"><span class="pre">8080</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_analytics</span></code></p>
@@ -437,8 +437,8 @@ reliable than Google, Cisco OpenDNS, or even most local resolvers.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">nameservers</span></code> option should only be used if your network
 blocks DNS requests to outside resolvers.</p>
 </div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options
 because you may not want to save forensic reports
 (also known as failure reports) to your Elasticsearch instance,

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; parsedmarc 8.6.1 documentation</title>
+  <title>Installation &mdash; parsedmarc 8.6.2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -36,7 +36,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.1
+                8.6.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -49,8 +49,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#geoipupdate-setup">geoipupdate setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-a-web-proxy">Using a web proxy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-microsoft-exchange">Using Microsoft Exchange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#geoipupdate-setup">geoipupdate setup</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#installing-parsedmarc">Installing parsedmarc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
 </ul>
@@ -92,15 +97,17 @@
              
   <section class="tex2jax_ignore mathjax_ignore" id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
 <section id="testing-multiple-report-analyzers">
-<h2>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this heading"></a></h2>
+<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this heading"></a></h3>
 <p>If you would like to test parsedmarc and another report processing
 solution at the same time, you can have up to two <code class="docutils literal notranslate"><span class="pre">mailto</span></code> URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.</p>
-<div class="docutils">
-<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+</section>
+<section id="using-a-web-proxy">
+<h3>Using a web proxy<a class="headerlink" href="#using-a-web-proxy" title="Permalink to this heading"></a></h3>
 <p>If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
 proxy details there, for example:</p>
@@ -116,10 +123,9 @@ proxy details there, for example:</p>
 </pre></div>
 </div>
 <p>This will set the proxy up for use system-wide, including for <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>.</p>
-</div>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
+</section>
+<section id="using-microsoft-exchange">
+<h3>Using Microsoft Exchange<a class="headerlink" href="#using-microsoft-exchange" title="Permalink to this heading"></a></h3>
 <p>If your mail server is Microsoft Exchange, ensure that it is patched to at
 least:</p>
 <ul class="simple">
@@ -127,10 +133,9 @@ least:</p>
 <li><p>Exchange Server 2013 Cumulative Update 21 (<a class="reference external" href="https://support.microsoft.com/KB/4099855">KB4099855</a>)</p></li>
 <li><p>Exchange Server 2016 Cumulative Update 11 (<a class="reference external" href="https://support.microsoft.com/kb/4134118">KB4134118</a>)</p></li>
 </ul>
-</div>
 </section>
 <section id="geoipupdate-setup">
-<h2>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this heading"></a></h2>
+<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the
@@ -165,9 +170,8 @@ sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> <
 <p>The latest builds for Linux, macOS, and Windows can be downloaded
 from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
 <p>On December 30th, 2019, MaxMind started requiring free accounts to
-access the free Geolite2 databases, in order <a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to
-comply with various privacy
-regulations</a>.</p>
+access the free Geolite2 databases, in order
+<a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to comply with various privacy regulations</a>.</p>
 <p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite2 account</a>, and signing in.</p>
 <p>Then, navigate to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account,
 and create a new license key for the version of
@@ -201,6 +205,7 @@ job or scheduled task.</p>
 <p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the
 <a class="reference external" href="https://dev.maxmind.com/geoip/geoipupdate/">MaxMind geoipupdate page</a>.</p>
 </section>
+</section>
 <section id="installing-parsedmarc">
 <h2>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this heading"></a></h2>
 <p>On Debian or Ubuntu systems, run:</p>
@@ -212,7 +217,7 @@ job or scheduled task.</p>
 </pre></div>
 </div>
 <p>Python 3 installers for Windows and macOS can be found at
-<a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p>
+<a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a>.</p>
 <p>Create a system user</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>mkdir<span class="w"> </span>/opt
 sudo<span class="w"> </span>useradd<span class="w"> </span>parsedmarc<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>/bin/false<span class="w"> </span>-m<span class="w"> </span>-b<span class="w"> </span>/opt
