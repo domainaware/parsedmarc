@@ -13,11 +13,11 @@ import shutil
 import tempfile
 import xml.parsers.expat as expat
 import zipfile
+import zlib
 from base64 import b64decode
 from collections import OrderedDict
 from csv import DictWriter
 from datetime import datetime
-from gzip import GzipFile
 from io import BytesIO, StringIO
 from typing import Callable
 
@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.6.1"
+__version__ = "8.6.2"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -389,7 +389,8 @@ def extract_xml(input_):
             _zip = zipfile.ZipFile(file_object)
             xml = _zip.open(_zip.namelist()[0]).read().decode(errors='ignore')
         elif header.startswith(MAGIC_GZIP):
-            xml = GzipFile(fileobj=file_object).read().decode(errors='ignore')
+            xml = zlib.decompress(file_object.getvalue(),
+                                  zlib.MAX_WBITS | 16).decode(errors='ignore')
         elif header.startswith(MAGIC_XML):
             xml = file_object.read().decode(errors='ignore')
         else:

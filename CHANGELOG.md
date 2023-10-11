@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.6.2
+-----
+
+- Use `zlib` instead of `Gzip` to decompress more `.gz` files, including the ones supplied by Mimecast (Based on #430 closes #429)
+
 8.6.1
 -----
 
