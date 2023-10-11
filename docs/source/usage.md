@@ -111,17 +111,17 @@ The full set of configuration options are:
   - `forensic_json_filename` - str: filename for the forensic
       JSON output file
   - `ip_db_path` - str: An optional custom path to a MMDB file
-  - from MaxMind or DBIP
+      from MaxMind or DBIP
   - `offline` - bool: Do not use online queries for geolocation
       or DNS
-  - `nameservers` -  str: A comma separated list of
-      DNS resolvers (Default: [Cloudflare's public resolvers])
+  - `nameservers` - str: A comma separated list of
+      DNS resolvers (Default: `[Cloudflare's public resolvers]`)
   - `dns_timeout` - float: DNS timeout period
   - `debug` - bool: Print debugging messages
-  - `silent` - bool: Only print errors (Default: True)
+  - `silent` - bool: Only print errors (Default: `True`)
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of process to run in parallel when
-      parsing in CLI mode (Default: 1)
+      parsing in CLI mode (Default: `1`)
   - `chunk_size` - int: Number of files to give to each process
       when running in parallel.
 
@@ -134,7 +134,7 @@ The full set of configuration options are:
   - `reports_folder` - str: The mailbox folder (or label for
       Gmail) where the incoming reports can be found
       (Default: `INBOX`)
-  - `archive_folder` - str:  The mailbox folder (or label for
+  - `archive_folder` - str: The mailbox folder (or label for
       Gmail) to sort processed emails into (Default: `Archive`)
   - `watch` - bool: Use the IMAP `IDLE` command to process
   - messages as they arrive or poll MS Graph for new messages
@@ -165,7 +165,7 @@ The full set of configuration options are:
     :::
 
   - `ssl` - bool: Use an encrypted SSL/TLS connection
-      (Default: True)
+      (Default: `True`)
   - `skip_certificate_verification` - bool: Skip certificate
       verification (not recommended)
   - `user` - str: The IMAP user
@@ -188,7 +188,7 @@ The full set of configuration options are:
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
   - `allow_unencrypted_storage` - bool: Allows the Azure Identity
-      module to fall back to unencrypted token cache (Default: False).
+      module to fall back to unencrypted token cache (Default: `False`).
       Even if enabled, the cache will always try encrypted storage first.
 
     :::{note}
@@ -245,14 +245,14 @@ The full set of configuration options are:
   - `hosts` - str: A comma separated list of Kafka hosts
   - `user` - str: The Kafka user
   - `passsword` - str: The Kafka password
-  - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: True)
+  - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: `True`)
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
   - `forensic_topic` - str: The Kafka topic for forensic reports
 - `smtp`
   - `host` - str: The SMTP hostname
-  - `port` - int: The SMTP port (Default: 25)
+  - `port` - int: The SMTP port (Default: `25`)
   - `ssl` - bool: Require SSL/TLS instead of using STARTTLS
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
@@ -272,26 +272,26 @@ The full set of configuration options are:
     :::
 - `s3`
   - `bucket` - str: The S3 bucket name
-  - `path` - str: The path to upload reports to (Default: /)
+  - `path` - str: The path to upload reports to (Default: `/`)
   - `region_name` - str: The region name (Optional)
   - `endpoint_url` - str: The endpoint URL (Optional)
   - `access_key_id` - str: The access key id (Optional)
   - `secret_access_key` - str: The secret access key (Optional)
 - `syslog`
   - `server` - str: The Syslog server name or IP address
-  - `port` - int: The UDP port to use (Default: 514)
+  - `port` - int: The UDP port to use (Default: `514`)
 - `gmail_api`
   - `credentials_file` - str: Path to file containing the
-      credentials, None to disable (Default: None)
+      credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
-      (Default: .token)
+      (Default: `.token`)
   - `include_spam_trash` - bool: Include messages in Spam and
-      Trash when searching reports (Default: False)
+      Trash when searching reports (Default: `False`)
   - `scopes` - str: Comma separated list of scopes to use when
       acquiring credentials
       (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
-      listen on for the OAuth2 response (Default: 8080)
+      listen on for the OAuth2 response (Default: `8080`)
 - `log_analytics`
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's client secret
@@ -315,7 +315,7 @@ The `nameservers` option should only be used if your network
 blocks DNS requests to outside resolvers.
 :::
 
-:::{warning}
+:::{note}
 `save_aggregate` and `save_forensic` are separate options
 because you may not want to save forensic reports
 (also known as failure reports) to your Elasticsearch instance,

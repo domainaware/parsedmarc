@@ -1,14 +1,12 @@
 # Elasticsearch and Kibana
 
-:::{note}
-Splunk is also supported starting with `parsedmarc` 4.3.0
-:::
-
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 :::{note}
 Elasticsearch and Kibana 6 or later are required
 :::
+
+## Installation
 
 On Debian/Ubuntu based systems, run:
 
@@ -126,7 +124,7 @@ server.ssl.certificate: /etc/kibana/kibana.crt
 server.ssl.key: /etc/kibana/kibana.key
 ```
 
-::{note}
+:::{note}
 For more security, you can configure Kibana to use a local network connexion
 to elasticsearch :
 ```text
@@ -136,6 +134,7 @@ elasticsearch.hosts: ['https://SERVER_IP:9200']
 ```text
 elasticsearch.hosts: ['https://127.0.0.1:9200']
 ```
+:::
 
 ```bash
 sudo systemctl restart kibana
