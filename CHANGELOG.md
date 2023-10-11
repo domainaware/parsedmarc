@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.6.3
+-----
+
+- Add an error message instead of raising an exception when an aggregate report timespan is greater than 24 hours
+
 8.6.2
 -----
 

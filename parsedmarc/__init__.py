@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.6.2"
+__version__ = "8.6.3"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -219,6 +219,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
     errors = []
     # Parse XML and recover from errors
     try:
+        xml.split("?>")
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
         errors.append("Invalid XML: {0}".format(e.__str__()))
@@ -273,10 +274,9 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
                                       "").replace(">", "").split("@")[0]
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
-        if (int(date_range["end"]) - int(date_range["begin"]) > 2*86400):
-            raise InvalidAggregateReport("The begin and end fields span too \
-                                         many hours, should be max 24 hours \
-                                         according to RFC 7489 section 7.2")
+        if int(date_range["end"]) - int(date_range["begin"]) > 2*86400:
+            _error = "Timespan > 24 hours - RFC 7489 section 7.2"
+            errors.append(_error)
         date_range["begin"] = timestamp_to_human(date_range["begin"])
         date_range["end"] = timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]
