@@ -105,7 +105,7 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
-  - `output` - str: Directory to place JSON and CSV files in
+  - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
   - `forensic_json_filename` - str: filename for the forensic
