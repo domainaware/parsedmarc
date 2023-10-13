@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.6.3"
+__version__ = "8.6.4"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -128,7 +128,10 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
             reason["comment"] = None
     new_policy_evaluated["policy_override_reasons"] = reasons
     new_record["policy_evaluated"] = new_policy_evaluated
-    new_record["identifiers"] = record["identifiers"].copy()
+    if "identities" in record:
+        new_record["identifiers"] = record["identities"].copy()
+    else:
+        new_record["identifiers"] = record["identifiers"].copy()
     new_record["auth_results"] = OrderedDict([("dkim", []), ("spf", [])])
     if type(new_record["identifiers"]["header_from"]) is str:
         lowered_from = new_record["identifiers"]["header_from"].lower()
@@ -162,21 +165,24 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     if not isinstance(auth_results["spf"], list):
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
-        new_result = OrderedDict([("domain", result["domain"])])
-        if "scope" in result and result["scope"] is not None:
-            new_result["scope"] = result["scope"]
-        else:
-            new_result["scope"] = "mfrom"
-        if "result" in result and result["result"] is not None:
-            new_result["result"] = result["result"]
-        else:
-            new_result["result"] = "none"
-        new_record["auth_results"]["spf"].append(new_result)
+        if "domain" in result and result["domain"] is not None:
+            new_result = OrderedDict([("domain", result["domain"])])
+            if "scope" in result and result["scope"] is not None:
+                new_result["scope"] = result["scope"]
+            else:
+                new_result["scope"] = "mfrom"
+            if "result" in result and result["result"] is not None:
+                new_result["result"] = result["result"]
+            else:
+                new_result["result"] = "none"
+            new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
         envelope_from = None
         if len(auth_results["spf"]) > 0:
-            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
+            spf_result = auth_results["spf"][-1]
+            if "domain" in spf_result:
+                envelope_from = spf_result["domain"]
         if envelope_from is not None:
             envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
@@ -219,7 +225,6 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
     errors = []
     # Parse XML and recover from errors
     try:
-        xml.split("?>")
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
         errors.append("Invalid XML: {0}".format(e.__str__()))
