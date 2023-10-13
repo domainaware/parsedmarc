@@ -10,6 +10,7 @@ Changelog
 -----
 
 - Add an error message instead of raising an exception when an aggregate report time span is greater than 24 hours
+- Properly process aggregate reports that incorrectly call `identifiers` `identities`
 
 8.6.2
 -----
