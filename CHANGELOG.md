@@ -1,6 +1,22 @@
 Changelog
 =========
 
+8.6.4
+----
+
+- Properly process aggregate reports that incorrectly call `identifiers` `identities`
+- Ignore SPF results in aggregate report records if the domain is not provided
+
+8.6.3
+-----
+
+- Add an error message instead of raising an exception when an aggregate report time span is greater than 24 hours
+
+8.6.2
+-----
+
+- Use `zlib` instead of `Gzip` to decompress more `.gz` files, including the ones supplied by Mimecast (Based on #430 closes #429)
+
 8.6.1
 -----
 
