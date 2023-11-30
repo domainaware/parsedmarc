@@ -20,7 +20,7 @@ ProofPoint Email Fraud Defense, and Valimail.
 
 ## Help Wanted
 
-This is a project is maintained by one developer. Please consider
+This project is maintained by one developer. Please consider
 reviewing the open
 [issues](https://github.com/domainaware/parsedmarc/issues) to see how
 you can contribute code, documentation, or user support. Assistance on
