@@ -169,7 +169,7 @@ class AlreadySaved(ValueError):
 
 
 def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
-              username=None, password=None, timeout=60.0):
+              username=None, password=None, apiKey=None, timeout=60.0):
     """
     Sets the Elasticsearch hosts to use
 
@@ -179,6 +179,7 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication
         password (str): The password to use for authentication
+        apiKey (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
     """
     if not isinstance(hosts, list):
@@ -196,6 +197,8 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
             conn_params['verify_certs'] = False
     if username:
         conn_params['http_auth'] = (username+":"+password)
+    if apiKey:
+        conn_params['api_key'] = apiKey
     connections.create_connection(**conn_params)
 
 
