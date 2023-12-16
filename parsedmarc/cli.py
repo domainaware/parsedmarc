@@ -306,6 +306,7 @@ def _main():
                      elasticsearch_monthly_indexes=False,
                      elasticsearch_username=None,
                      elasticsearch_password=None,
+                     elasticsearch_apiKey=None,
                      kafka_hosts=None,
                      kafka_username=None,
                      kafka_password=None,
@@ -595,6 +596,9 @@ def _main():
             if "password" in elasticsearch_config:
                 opts.elasticsearch_password = elasticsearch_config[
                     "password"]
+            if "apiKey" in elasticsearch_config:
+                opts.elasticsearch_apiKey = elasticsearch_config[
+                    "apiKey"]
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
             if "url" in hec_config:
@@ -817,6 +821,7 @@ def _main():
                                   opts.elasticsearch_ssl_cert_path,
                                   opts.elasticsearch_username,
                                   opts.elasticsearch_password,
+                                  opts.elasticsearch_apiKey,
                                   timeout=opts.elasticsearch_timeout)
                 elastic.migrate_indexes(aggregate_indexes=[es_aggregate_index],
                                         forensic_indexes=[es_forensic_index])
