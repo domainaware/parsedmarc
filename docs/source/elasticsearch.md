@@ -227,7 +227,7 @@ Kibana index patterns with versions that match the upgraded indexes:
 
 Starting in version 5.0.0, `parsedmarc` stores data in a separate
 index for each day to make it easy to comply with records
-retention regulations such as GDPR. For fore information,
+retention regulations such as GDPR. For more information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
 
 [elasticsearch]: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
