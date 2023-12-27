@@ -46,6 +46,7 @@ text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
 MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
+MAGIC_JSON = b"\7b"
 
 IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=1800)
 
@@ -56,6 +57,10 @@ class ParserError(RuntimeError):
 
 class InvalidDMARCReport(ParserError):
     """Raised when an invalid DMARC report is encountered"""
+
+
+class InvalidSMTPTLSReport(ParserError):
+    """Raised when an invalid SMTP TLS report is encountered"""
 
 
 class InvalidAggregateReport(InvalidDMARCReport):
@@ -204,9 +209,40 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     return new_record
 
 
-def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
-                               nameservers=None, timeout=2.0,
-                               parallel=False, keep_alive=None):
+def parse_smtp_tls_report_json(report):
+    """Parses and validates an SMTP TLS report"""
+    required_fields = ["organization-name", "date-range",
+                       "contact-info", "report-id",
+                       "policies", "summary"]
+    policy_types = ["tsla", "sts", "no-policy-found"]
+
+    try:
+        report = json.loads(report)
+        for required_field in required_fields:
+            if required_field not in report:
+                raise Exception(f"Missing required field: {required_field}]")
+        if not isinstance(report["policies"], list):
+            policies_type = type(report["policies"])
+            raise InvalidSMTPTLSReport(f"policies must be a list, "
+                                       f"not {policies_type}")
+        for policy in report["policies"]:
+            policy_type = policy["policy_type"]
+            if policy_type not in policy_types:
+                raise InvalidSMTPTLSReport(f"Invalid policy type "
+                                           f"{policy_type}")
+
+    except KeyError as e:
+        InvalidSMTPTLSReport(f"Missing required field: {e}")
+    except Exception as e:
+        raise InvalidSMTPTLSReport(str(e))
+
+    return report
+
+
+def \
+        parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
+                                   nameservers=None, timeout=2.0,
+                                   parallel=False, keep_alive=None):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
@@ -224,6 +260,8 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
     """
     errors = []
     # Parse XML and recover from errors
+    if isinstance(xml, bytes):
+        xml = xml.decode(errors='ignore')
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
@@ -368,16 +406,16 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
             "Unexpected error: {0}".format(error.__str__()))
 
 
-def extract_xml(input_):
+def extract_report(input_):
     """
-    Extracts xml from a zip or gzip file at the given path, file-like object,
+    Extracts text from a zip or gzip file at the given path, file-like object,
     or bytes.
 
     Args:
         input_: A path to a file, a file like object, or bytes
 
     Returns:
-        str: The extracted XML
+        str: The extracted text
 
     """
     try:
@@ -392,30 +430,30 @@ def extract_xml(input_):
         file_object.seek(0)
         if header.startswith(MAGIC_ZIP):
             _zip = zipfile.ZipFile(file_object)
-            xml = _zip.open(_zip.namelist()[0]).read().decode(errors='ignore')
+            report = _zip.open(_zip.namelist()[0]).read().decode(
+                errors='ignore')
         elif header.startswith(MAGIC_GZIP):
-            xml = zlib.decompress(file_object.getvalue(),
+            report = zlib.decompress(file_object.getvalue(),
                                   zlib.MAX_WBITS | 16).decode(errors='ignore')
-        elif header.startswith(MAGIC_XML):
-            xml = file_object.read().decode(errors='ignore')
+        elif header.startswith(MAGIC_XML) or header.startswith(MAGIC_JSON):
+            report = file_object.read().decode(errors='ignore')
         else:
             file_object.close()
-            raise InvalidAggregateReport("Not a valid zip, gzip, or xml file")
+            raise ParserError("Not a valid zip, gzip, json, or xml file")
 
         file_object.close()
 
     except FileNotFoundError:
-        raise InvalidAggregateReport("File was not found")
+        raise ParserError("File was not found")
     except UnicodeDecodeError:
         file_object.close()
-        raise InvalidAggregateReport("File objects must be opened in binary "
-                                     "(rb) mode")
+        raise ParserError("File objects must be opened in binary (rb) mode")
     except Exception as error:
         file_object.close()
-        raise InvalidAggregateReport(
+        raise ParserError(
             "Invalid archive file: {0}".format(error.__str__()))
 
-    return xml
+    return report
 
 
 def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
@@ -439,7 +477,11 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
     Returns:
         OrderedDict: The parsed DMARC aggregate report
     """
-    xml = extract_xml(_input)
+
+    try:
+        xml = extract_report(_input)
+    except Exception as e:
+        raise InvalidAggregateReport(e)
 
     return parse_aggregate_report_xml(xml,
                                       ip_db_path=ip_db_path,
@@ -822,6 +864,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
         raise InvalidDMARCReport(e.__str__())
     subject = None
     feedback_report = None
+    smtp_tls_report = None
     sample = None
     if "From" in msg_headers:
         logger.info("Parsing mail from {0}".format(msg_headers["From"]))
@@ -850,6 +893,18 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
             sample = payload
         elif content_type == "message/rfc822":
             sample = payload
+        elif content_type == "application/tlsrpt+json":
+            if "{" not in payload:
+                payload = str(b64decode(payload))
+            smtp_tls_report = parse_smtp_tls_report_json(payload)
+            return OrderedDict([("report_type", "smtp_tls"),
+                                ("report", smtp_tls_report)])
+        elif content_type == "application/tlsrpt+gzip":
+            payload = extract_report(payload)
+            smtp_tls_report = parse_smtp_tls_report_json(payload)
+            return OrderedDict([("report_type", "smtp_tls"),
+                                ("report", smtp_tls_report)])
+
         elif content_type == "text/plain":
             if "A message claiming to be from you has failed" in payload:
                 parts = payload.split("detected.")
@@ -869,15 +924,20 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
             try:
                 payload = b64decode(payload)
                 if payload.startswith(MAGIC_ZIP) or \
-                        payload.startswith(MAGIC_GZIP) or \
-                        payload.startswith(MAGIC_XML):
+                        payload.startswith(MAGIC_GZIP):
+                    payload = extract_report(payload)
                     ns = nameservers
-                    aggregate_report = parse_aggregate_report_file(
+                    if payload.startswith("{"):
+                        smtp_tls_report = parse_smtp_tls_report_json(payload)
+                        result = OrderedDict([("report_type", "smtp_tls"),
+                                              ("report", smtp_tls_report)])
+                        return result
+                    aggregate_report = parse_aggregate_report_xml(
                         payload,
                         ip_db_path=ip_db_path,
                         offline=offline,
                         nameservers=ns,
-                        dns_timeout=dns_timeout,
+                        timeout=dns_timeout,
                         parallel=parallel,
                         keep_alive=keep_alive)
                     result = OrderedDict([("report_type", "aggregate"),
@@ -923,7 +983,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
 
     if result is None:
         error = 'Message with subject "{0}" is ' \
-                'not a valid DMARC report'.format(subject)
+                'not a valid report'.format(subject)
         raise InvalidDMARCReport(error)
 
 
@@ -970,18 +1030,22 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                                ("report", report)])
     except InvalidAggregateReport:
         try:
-            sa = strip_attachment_payloads
-            results = parse_report_email(content,
-                                         ip_db_path=ip_db_path,
-                                         offline=offline,
-                                         nameservers=nameservers,
-                                         dns_timeout=dns_timeout,
-                                         strip_attachment_payloads=sa,
-                                         parallel=parallel,
-                                         keep_alive=keep_alive)
-        except InvalidDMARCReport:
-            raise InvalidDMARCReport("Not a valid aggregate or forensic "
-                                     "report")
+            report = parse_smtp_tls_report_json(content)
+            results = OrderedDict([("report_type", "smtp_tls"),
+                                   ("report", report)])
+        except InvalidSMTPTLSReport:
+            try:
+                sa = strip_attachment_payloads
+                results = parse_report_email(content,
+                                             ip_db_path=ip_db_path,
+                                             offline=offline,
+                                             nameservers=nameservers,
+                                             dns_timeout=dns_timeout,
+                                             strip_attachment_payloads=sa,
+                                             parallel=parallel,
+                                             keep_alive=keep_alive)
+            except InvalidDMARCReport:
+                raise InvalidDMARCReport("Not a valid report")
     return results
 
 
@@ -1010,6 +1074,7 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
     """
     aggregate_reports = []
     forensic_reports = []
+    smtp_tls_reports = []
     try:
         mbox = mailbox.mbox(input_)
         message_keys = mbox.keys()
@@ -1035,12 +1100,15 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
                     aggregate_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
+                elif parsed_email["report_type"] == "smtp_tls":
+                    smtp_tls_reports.append(parsed_email["report"])
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
     except mailbox.NoSuchMailboxError:
         raise InvalidDMARCReport("Mailbox {0} does not exist".format(input_))
     return OrderedDict([("aggregate_reports", aggregate_reports),
-                        ("forensic_reports", forensic_reports)])
+                        ("forensic_reports", forensic_reports),
+                        ("smtp_tls_reports", smtp_tls_reports)])
 
 
 def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
@@ -1088,20 +1156,25 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
 
     aggregate_reports = []
     forensic_reports = []
+    smtp_tls_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
+    smtp_tls_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
     invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     if results:
         aggregate_reports = results["aggregate_reports"].copy()
         forensic_reports = results["forensic_reports"].copy()
+        smtp_tls_reports = results["smtp_tls_reports"].copy()
 
     if not test and create_folders:
         connection.create_folder(archive_folder)
         connection.create_folder(aggregate_reports_folder)
         connection.create_folder(forensic_reports_folder)
+        connection.create_folder(smtp_tls_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
     messages = connection.fetch_messages(reports_folder, batch_size=batch_size)
@@ -1137,6 +1210,9 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
             elif parsed_email["report_type"] == "forensic":
                 forensic_reports.append(parsed_email["report"])
                 forensic_report_msg_uids.append(msg_uid)
+            elif parsed_email["report_type"] == "smtp_tls":
+                smtp_tls_reports.append(parsed_email["report"])
+                smtp_tls_reports.append(msg_uid)
         except InvalidDMARCReport as error:
             logger.warning(error.__str__())
             if not test:
@@ -1208,8 +1284,29 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                         e = "Error moving message UID {0}: {1}".format(
                             msg_uid, e)
                         logger.error("Mailbox error: {0}".format(e))
+                if len(smtp_tls_msg_uids) > 0:
+                    message = "Moving SMTP TLS report messages from"
+                    logger.debug(
+                        "{0} {1} to {2}".format(message,
+                                                reports_folder,
+                                                smtp_tls_reports_folder))
+                    number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
+                    for i in range(number_of_smtp_tls_uids):
+                        msg_uid = smtp_tls_msg_uids[i]
+                        message = "Moving message"
+                        logger.debug("{0} {1} of {2}: UID {3}".format(
+                            message,
+                            i + 1, smtp_tls_msg_uids, msg_uid))
+                        try:
+                            connection.move_message(msg_uid,
+                                                    smtp_tls_reports_folder)
+                        except Exception as e:
+                            e = "Error moving message UID {0}: {1}".format(
+                                msg_uid, e)
+                            logger.error("Mailbox error: {0}".format(e))
     results = OrderedDict([("aggregate_reports", aggregate_reports),
-                           ("forensic_reports", forensic_reports)])
+                           ("forensic_reports", forensic_reports),
+                           ("smtp_tls_reports", smtp_tls_reports)])
 
     total_messages = len(connection.fetch_messages(reports_folder))
 

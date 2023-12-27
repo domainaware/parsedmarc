@@ -216,12 +216,18 @@ def _main():
     arg_parser.add_argument("--forensic-json-filename",
                             help="filename for the forensic JSON output file",
                             default="forensic.json")
+    arg_parser.add_argument("--smtp-tls-json-filename",
+                            help="filename for the SMTP TLS JSON output file",
+                            default="smtp_tls.json")
     arg_parser.add_argument("--aggregate-csv-filename",
                             help="filename for the aggregate CSV output file",
                             default="aggregate.csv")
     arg_parser.add_argument("--forensic-csv-filename",
                             help="filename for the forensic CSV output file",
                             default="forensic.csv")
+    arg_parser.add_argument("--smtp-tls-csv-filename",
+                            help="filename for the SMTP TLS CSV output file",
+                            default="smtp_tls.csv")
     arg_parser.add_argument("-n", "--nameservers", nargs="+",
                             help="nameservers to query")
     arg_parser.add_argument("-t", "--dns_timeout",
@@ -247,6 +253,7 @@ def _main():
 
     aggregate_reports = []
     forensic_reports = []
+    smtp_tls_reports = []
 
     args = arg_parser.parse_args()
 
@@ -261,6 +268,8 @@ def _main():
                      aggregate_json_filename=args.aggregate_json_filename,
                      forensic_csv_filename=args.forensic_csv_filename,
                      forensic_json_filename=args.forensic_json_filename,
+                     smtp_tls_json_filename=args.smtp_tls_json_filename,
+                     smtp_tls_csv_filename=args.smtp_tls_csv_filename,
                      nameservers=args.nameservers,
                      silent=args.silent,
                      warnings=args.warnings,
@@ -269,6 +278,7 @@ def _main():
                      verbose=args.verbose,
                      save_aggregate=False,
                      save_forensic=False,
+                     save_smtp_tls=False,
                      mailbox_reports_folder="INBOX",
                      mailbox_archive_folder="Archive",
                      mailbox_watch=False,
@@ -374,12 +384,18 @@ def _main():
             if "forensic_json_filename" in general_config:
                 opts.forensic_json_filename = general_config[
                     "forensic_json_filename"]
+            if "smtp_tls_json_filename" in general_config:
+                opts.smtp_tls_json_filename = general_config[
+                    "smtp_tls_json_filename"]
             if "aggregate_csv_filename" in general_config:
                 opts.aggregate_csv_filename = general_config[
                     "aggregate_csv_filename"]
             if "forensic_csv_filename" in general_config:
                 opts.forensic_csv_filename = general_config[
                     "forensic_csv_filename"]
+            if "smtp_tls_csv_filename" in general_config:
+                opts.smtp_tls_csv_filename = general_config[
+                    "smtp_tls_csv_filename"]
             if "nameservers" in general_config:
                 opts.nameservers = _str_to_list(general_config["nameservers"])
             if "dns_timeout" in general_config:
@@ -388,6 +404,8 @@ def _main():
                 opts.save_aggregate = general_config["save_aggregate"]
             if "save_forensic" in general_config:
                 opts.save_forensic = general_config["save_forensic"]
+            if "save_smtp_tls" in general_config:
+                opts.save_forensic = general_config["save_smtp_tls"]
             if "debug" in general_config:
                 opts.debug = general_config.getboolean("debug")
             if "verbose" in general_config:
@@ -805,17 +823,21 @@ def _main():
 
     logger.info("Starting parsedmarc")
 
-    if opts.save_aggregate or opts.save_forensic:
+    if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
         try:
             if opts.elasticsearch_hosts:
                 es_aggregate_index = "dmarc_aggregate"
                 es_forensic_index = "dmarc_forensic"
+                es_smtp_tls_index = "smtp_tls"
                 if opts.elasticsearch_index_suffix:
                     suffix = opts.elasticsearch_index_suffix
                     es_aggregate_index = "{0}_{1}".format(
                         es_aggregate_index, suffix)
                     es_forensic_index = "{0}_{1}".format(
                         es_forensic_index, suffix)
+                    es_smtp_tls_index = "{0}_{1}".format(
+                        es_smtp_tls_index, suffix
+                    )
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path,
@@ -924,7 +946,7 @@ def _main():
     pool.join()
 
     for result in results:
-        if type(result[0]) is InvalidDMARCReport:
+        if type(result[0]) is ParserError:
             logger.error("Failed to parse {0} - {1}".format(result[1],
                                                             result[0]))
         else:
@@ -1034,13 +1056,15 @@ def _main():
 
             aggregate_reports += reports["aggregate_reports"]
             forensic_reports += reports["forensic_reports"]
+            smtp_tls_reports += reports["smtp_tls_reports"]
 
         except Exception:
             logger.exception("Mailbox Error")
             exit(1)
 
     results = OrderedDict([("aggregate_reports", aggregate_reports),
-                           ("forensic_reports", forensic_reports)])
+                           ("forensic_reports", forensic_reports),
+                           ("smtp_tls_reports", smtp_tls_reports)])
 
     process_reports(results)
 

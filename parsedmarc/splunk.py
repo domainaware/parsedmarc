@@ -7,7 +7,7 @@ import requests
 
 from parsedmarc import __version__
 from parsedmarc.log import logger
-from parsedmarc.utils import human_timestamp_to_timestamp
+from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -104,7 +104,7 @@ class HECClient(object):
                         "spf"]
 
                 data["sourcetype"] = "dmarc:aggregate"
-                timestamp = human_timestamp_to_timestamp(
+                timestamp = human_timestamp_to_unix_timestamp(
                     new_report["begin_date"])
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
@@ -140,7 +140,7 @@ class HECClient(object):
         for report in forensic_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:forensic"
-            timestamp = human_timestamp_to_timestamp(
+            timestamp = human_timestamp_to_unix_timestamp(
                 report["arrival_date_utc"])
             data["time"] = timestamp
             data["event"] = report.copy()

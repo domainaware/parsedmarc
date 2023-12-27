@@ -164,6 +164,86 @@ class _ForensicReportDoc(Document):
     sample = Object(_ForensicSampleDoc)
 
 
+class _SMTPTLSDateRangeDoc(InnerDoc):
+    start_datetime = Text()
+    end_datetime = Text()
+
+
+class _MTASTSMXHostPatternDoc(InnerDoc):
+    pattern = Text()
+
+
+class _SMTPTLSPolicyString:
+    policy_string = Text
+
+
+class _SMTPTLSPolicyDoc(InnerDoc):
+    policy_type = Text()
+    policy_strings = Nested(_SMTPTLSPolicyString)
+    policy_domain = Text()
+    mx_host_patterns = Nested(_MTASTSMXHostPatternDoc)
+
+    def add_policy_string(self, policy_string):
+        self.policy_strings.append(policy_string=policy_string)
+
+    def add_mx_host_pattern(self, pattern):
+        self.mx_host_patterns.append(_MTASTSMXHostPatternDoc(pattern=pattern))
+
+
+class _SMTPTLSSummaryDoc(InnerDoc):
+    total_successful_session_count = Integer()
+    total_failure_session_count = Integer()
+
+
+class _SMTPTLSFailureDetailsDoc(InnerDoc):
+    result_type = Text()
+    sending_mta_ip = Ip()
+    receiving_mx_helo = Text()
+    receiving_ip = Ip()
+    failed_session_count = Integer()
+    additional_information = Text()
+    failure_reason_code = Text()
+
+
+class _SMTPTLSFailureReportDoc(Document):
+
+    class Index:
+        name = "smtp_tls"
+
+    organization_name = Text()
+    date_range = Object(_SMTPTLSDateRangeDoc)
+    contact_info = Text()
+    report_id = Text()
+    policies = Nested(_SMTPTLSPolicyDoc)
+    summary = Object(_SMTPTLSSummaryDoc)
+    failure_details = Nested(_SMTPTLSFailureDetailsDoc)
+
+    def add_policy(self, policy_type, policy_domain, policy_string=None,
+                   mx_host_patterns=None):
+        self.policies.append(policy_type=policy_type,
+                             policy_domain=policy_domain,
+                             policy_string=policy_string,
+                             mx_host_patterns=mx_host_patterns)
+
+    def add_failure_details(self, result_type, ip_address,
+                            receiving_mx_hostname,
+                            receiving_mx_helo,
+                            receiving_ip,
+                            failed_session_count,
+                            additional_information=None,
+                            failure_reason_code=None):
+        self.failure_details.append(
+            result_type=result_type,
+            ip_address=ip_address,
+            receiving_mx_hostname=receiving_mx_hostname,
+            receiving_mx_helo=receiving_mx_helo,
+            receiving_ip=receiving_ip,
+            failed_session_count=failed_session_count,
+            additional_information=additional_information,
+            failure_reason_code=failure_reason_code
+        )
+
+
 class AlreadySaved(ValueError):
     """Raised when a report to be saved matches an existing report"""
 

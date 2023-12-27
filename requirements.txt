@@ -40,3 +40,4 @@ myst-parser>=0.18.0
 myst-parser[linkify]
 requests
 bs4
+pytest

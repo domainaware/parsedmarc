@@ -218,7 +218,7 @@ def human_timestamp_to_datetime(human_timestamp, to_utc=False):
     return dt.astimezone(timezone.utc) if to_utc else dt
 
 
-def human_timestamp_to_timestamp(human_timestamp):
+def human_timestamp_to_unix_timestamp(human_timestamp):
     """
     Converts a human-readable timestamp into a UNIX timestamp
 

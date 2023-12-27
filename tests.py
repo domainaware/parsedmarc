@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
 
     def testEmptySample(self):
         """Test empty/unparasable report"""
-        with self.assertRaises(parsedmarc.InvalidDMARCReport):
+        with self.assertRaises(parsedmarc.ParserError):
             parsedmarc.parse_report_file('samples/empty.xml')
 
     def testForensicSamples(self):
