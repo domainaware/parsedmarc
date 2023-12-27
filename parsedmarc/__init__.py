@@ -433,8 +433,9 @@ def extract_report(input_):
             report = _zip.open(_zip.namelist()[0]).read().decode(
                 errors='ignore')
         elif header.startswith(MAGIC_GZIP):
-            report = zlib.decompress(file_object.getvalue(),
-                                  zlib.MAX_WBITS | 16).decode(errors='ignore')
+            report = zlib.decompress(
+                file_object.getvalue(),
+                zlib.MAX_WBITS | 16).decode(errors='ignore')
         elif header.startswith(MAGIC_XML) or header.startswith(MAGIC_JSON):
             report = file_object.read().decode(errors='ignore')
         else:

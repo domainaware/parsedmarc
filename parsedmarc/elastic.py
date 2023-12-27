@@ -173,8 +173,8 @@ class _MTASTSMXHostPatternDoc(InnerDoc):
     pattern = Text()
 
 
-class _SMTPTLSPolicyString:
-    policy_string = Text
+class _SMTPTLSPolicyString(InnerDoc):
+    policy_string = Text()
 
 
 class _SMTPTLSPolicyDoc(InnerDoc):
