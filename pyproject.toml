@@ -28,6 +28,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3"
 ]
+
+requires-python = ">=3.7"
+
 dependencies = [
     "azure-identity>=1.8.0",
     "azure-monitor-ingestion>=1.0.0",

@@ -107,7 +107,7 @@ class LogAnalyticsClient(object):
                 The stream name where the DMARC reports needs to be pushed.
         """
         try:
-            logs_client.upload(self.conf.dcr_immutable_id, dcr_stream, results)
+            logs_client.upload(self.conf.dcr_immutable_id, dcr_stream, results)  # type: ignore[attr-defined]
         except HttpResponseError as e:
             raise LogAnalyticsException(
                 "Upload failed: {error}"

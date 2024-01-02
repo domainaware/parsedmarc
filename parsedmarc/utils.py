@@ -16,16 +16,18 @@ import base64
 import atexit
 import mailbox
 import re
+from typing import List, Dict, Any, Optional, Union
 try:
     import importlib.resources as pkg_resources
 except ImportError:
     # Try backported to PY<37 `importlib_resources`
-    import importlib_resources as pkg_resources
+    import importlib_resources as pkg_resources  # type: ignore[no-redef]
 
 from dateutil.parser import parse as parse_date
 import dns.reversename
 import dns.resolver
 import dns.exception
+from expiringdict import ExpiringDict
 import geoip2.database
 import geoip2.errors
 import publicsuffixlist
@@ -59,7 +61,7 @@ class DownloadError(RuntimeError):
     """Raised when an error occurs when downloading a file"""
 
 
-def decode_base64(data):
+def decode_base64(data: str) -> bytes:
     """
     Decodes a base64 string, with padding being optional
 
@@ -67,17 +69,17 @@ def decode_base64(data):
         data: A base64 encoded string
 
     Returns:
-        bytes: The decoded bytes
+        The decoded bytes
 
     """
-    data = bytes(data, encoding="ascii")
-    missing_padding = len(data) % 4
+    data_bytes = bytes(data, encoding="ascii")
+    missing_padding = len(data_bytes) % 4
     if missing_padding != 0:
-        data += b'=' * (4 - missing_padding)
-    return base64.b64decode(data)
+        data_bytes += b'=' * (4 - missing_padding)
+    return base64.b64decode(data_bytes)
 
 
-def get_base_domain(domain):
+def get_base_domain(domain: str) -> str:
     """
     Gets the base domain name for the given domain
 
@@ -86,30 +88,36 @@ def get_base_domain(domain):
         https://publicsuffix.org/list/public_suffix_list.dat.
 
     Args:
-        domain (str): A domain or subdomain
+        domain: A domain or subdomain
 
     Returns:
-        str: The base domain of the given domain
+        The base domain of the given domain
 
     """
     psl = publicsuffixlist.PublicSuffixList()
     return psl.privatesuffix(domain)
 
 
-def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
+def query_dns(
+    domain: str,
+    record_type: str,
+    cache: Optional[ExpiringDict] = None,
+    nameservers: Optional[List[str]] = None,
+    timeout: float = 2.0,
+) -> List[str]:
     """
     Queries DNS
 
     Args:
-        domain (str): The domain or subdomain to query about
-        record_type (str): The record type to query for
-        cache (ExpiringDict): Cache storage
-        nameservers (list): A list of one or more nameservers to use
+        domain: The domain or subdomain to query about
+        record_type: The record type to query for
+        cache: Cache storage
+        nameservers: A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+        timeout: Sets the DNS timeout in seconds
 
     Returns:
-        list: A list of answers
+        A list of answers
     """
     domain = str(domain).lower()
     record_type = record_type.upper()
@@ -146,23 +154,28 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     return records
 
 
-def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
+def get_reverse_dns(
+    ip_address: str,
+    cache: Optional[ExpiringDict] = None,
+    nameservers: Optional[List[str]] = None,
+    timeout: float = 2.0,
+) -> Optional[str]:
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
     Args:
-        ip_address (str): The IP address to resolve
-        cache (ExpiringDict): Cache storage
-        nameservers (list): A list of one or more nameservers to use
+        ip_address: The IP address to resolve
+        cache: Cache storage
+        nameservers: A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS query timeout in seconds
+        timeout: Sets the DNS query timeout in seconds
 
     Returns:
-        str: The reverse DNS hostname (if any)
+        The reverse DNS hostname (if any)
     """
-    hostname = None
+    hostname: Optional[str] = None
     try:
-        address = dns.reversename.from_address(ip_address)
+        address = str(dns.reversename.from_address(ip_address))
         hostname = query_dns(address, "PTR", cache=cache,
                              nameservers=nameservers,
                              timeout=timeout)[0]
@@ -173,20 +186,20 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
     return hostname
 
 
-def timestamp_to_datetime(timestamp):
+def timestamp_to_datetime(timestamp: int) -> datetime:
     """
     Converts a UNIX/DMARC timestamp to a Python ``datetime`` object
 
     Args:
-        timestamp (int): The timestamp
+        timestamp: The timestamp
 
     Returns:
-        datetime: The converted timestamp as a Python ``datetime`` object
+        The converted timestamp as a Python ``datetime`` object
     """
     return datetime.fromtimestamp(int(timestamp))
 
 
-def timestamp_to_human(timestamp):
+def timestamp_to_human(timestamp: int) -> str:
     """
     Converts a UNIX/DMARC timestamp to a human-readable string
 
@@ -194,21 +207,21 @@ def timestamp_to_human(timestamp):
         timestamp: The timestamp
 
     Returns:
-        str: The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
+        The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
     """
     return timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def human_timestamp_to_datetime(human_timestamp, to_utc=False):
+def human_timestamp_to_datetime(human_timestamp: str, to_utc: bool = False) -> datetime:
     """
     Converts a human-readable timestamp into a Python ``datetime`` object
 
     Args:
-        human_timestamp (str): A timestamp string
-        to_utc (bool): Convert the timestamp to UTC
+        human_timestamp: A timestamp string
+        to_utc: Convert the timestamp to UTC
 
     Returns:
-        datetime: The converted timestamp
+        The converted timestamp
     """
 
     human_timestamp = human_timestamp.replace("-0000", "")
@@ -218,31 +231,31 @@ def human_timestamp_to_datetime(human_timestamp, to_utc=False):
     return dt.astimezone(timezone.utc) if to_utc else dt
 
 
-def human_timestamp_to_timestamp(human_timestamp):
+def human_timestamp_to_timestamp(human_timestamp: str) -> float:
     """
     Converts a human-readable timestamp into a UNIX timestamp
 
     Args:
-        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+        human_timestamp: A timestamp in `YYYY-MM-DD HH:MM:SS`` format
 
     Returns:
-        float: The converted timestamp
+        The converted timestamp
     """
     human_timestamp = human_timestamp.replace("T", " ")
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address, db_path=None):
+def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Optional[str]:
     """
     Returns the ISO code for the country associated
     with the given IPv4 or IPv6 address
 
     Args:
-        ip_address (str): The IP address to query for
-        db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_address: The IP address to query for
+        db_path: Path to a MMDB file from MaxMind or DBIP
 
     Returns:
-        str: And ISO country code associated with the given IP address
+        And ISO country code associated with the given IP address
     """
     db_paths = [
         "GeoLite2-Country.mmdb",
@@ -274,7 +287,7 @@ def get_ip_address_country(ip_address, db_path=None):
     if db_path is None:
         with pkg_resources.path(parsedmarc.resources.dbip,
                                 "dbip-country-lite.mmdb") as path:
-            db_path = path
+            db_path = str(path)
 
         db_age = datetime.now() - datetime.fromtimestamp(
             os.stat(db_path).st_mtime)
@@ -293,23 +306,30 @@ def get_ip_address_country(ip_address, db_path=None):
     return country
 
 
-def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
-                        nameservers=None, timeout=2.0, parallel=False):
+def get_ip_address_info(
+    ip_address: str,
+    ip_db_path: Optional[str] = None,
+    cache: Optional[ExpiringDict] = None,
+    offline: bool = False,
+    nameservers: Optional[List[str]] = None,
+    timeout: float = 2.0,
+    parallel: bool = False
+) -> OrderedDict:
     """
     Returns reverse DNS and country information for the given IP address
 
     Args:
-        ip_address (str): The IP address to check
-        ip_db_path (str): path to a MMDB file from MaxMind or DBIP
-        cache (ExpiringDict): Cache storage
-        offline (bool): Do not make online queries for geolocation or DNS
-        nameservers (list): A list of one or more nameservers to use
+        ip_address: The IP address to check
+        ip_db_path: path to a MMDB file from MaxMind or DBIP
+        cache: Cache storage
+        offline: Do not make online queries for geolocation or DNS
+        nameservers: A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
-        parallel (bool): parallel processing
+        timeout: Sets the DNS timeout in seconds
+        parallel: parallel processing (not used)
 
     Returns:
-        OrderedDict: ``ip_address``, ``reverse_dns``
+        Dictionary of (`ip_address`, `country`, `reverse_dns`, `base_domain`)
 
     """
     ip_address = ip_address.lower()
@@ -336,7 +356,7 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
     return info
 
 
-def parse_email_address(original_address):
+def parse_email_address(original_address: str) -> OrderedDict:
     if original_address[0] == "":
         display_name = None
     else:
@@ -355,15 +375,15 @@ def parse_email_address(original_address):
                         ("domain", domain)])
 
 
-def get_filename_safe_string(string):
+def get_filename_safe_string(string: str) -> str:
     """
     Converts a string to a string that is safe for a filename
 
     Args:
-        string (str): A string to make safe for a filename
+        string: A string to make safe for a filename
 
     Returns:
-        str: A string safe for a filename
+        A string safe for a filename
     """
     invalid_filename_chars = ['\\', '/', ':', '"', '*', '?', '|', '\n',
                               '\r']
@@ -378,15 +398,15 @@ def get_filename_safe_string(string):
     return string
 
 
-def is_mbox(path):
+def is_mbox(path: str) -> bool:
     """
     Checks if the given content is an MBOX mailbox file
 
     Args:
-        path: Content to check
+        Content to check
 
     Returns:
-        bool: A flag that indicates if the file is an MBOX mailbox file
+        If the file is an MBOX mailbox file
     """
     _is_mbox = False
     try:
@@ -399,7 +419,7 @@ def is_mbox(path):
     return _is_mbox
 
 
-def is_outlook_msg(content):
+def is_outlook_msg(content: Any) -> bool:
     """
     Checks if the given content is an Outlook msg OLE/MSG file
 
@@ -407,19 +427,19 @@ def is_outlook_msg(content):
         content: Content to check
 
     Returns:
-        bool: A flag that indicates if the file is an Outlook MSG file
+        If the file is an Outlook MSG file
     """
     return isinstance(content, bytes) and content.startswith(
         b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
 
 
-def convert_outlook_msg(msg_bytes):
+def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     """
     Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
     standard RFC 822 format
 
     Args:
-        msg_bytes (bytes): the content of the .msg file
+        msg_bytes: the content of the .msg file
 
     Returns:
         A RFC 822 string
@@ -447,16 +467,16 @@ def convert_outlook_msg(msg_bytes):
     return rfc822
 
 
-def parse_email(data, strip_attachment_payloads=False):
+def parse_email(data: Union[bytes, str], strip_attachment_payloads: bool = False) -> Dict[str, Any]:
     """
     A simplified email parser
 
     Args:
         data: The RFC 822 message string, or MSG binary
-        strip_attachment_payloads (bool): Remove attachment payloads
+        strip_attachment_payloads: Remove attachment payloads
 
     Returns:
-        dict: Parsed email data
+        Parsed email data
     """
 
     if isinstance(data, bytes):

@@ -2,7 +2,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
-from typing import List, Optional
+from typing import Dict, List, Optional, Union, Any
 
 from azure.identity import UsernamePasswordCredential, \
     DeviceCodeCredential, ClientSecretCredential, \
@@ -18,13 +18,15 @@ class AuthMethod(Enum):
     UsernamePassword = 2
     ClientSecret = 3
 
+Credential = Union[DeviceCodeCredential, UsernamePasswordCredential, ClientSecretCredential]
 
-def _get_cache_args(token_path: Path, allow_unencrypted_storage):
-    cache_args = {
+def _get_cache_args(token_path: Path, allow_unencrypted_storage: bool):
+    cache_args: Dict[str, Any] = {
         'cache_persistence_options':
             TokenCachePersistenceOptions(
                 name='parsedmarc',
-                allow_unencrypted_storage=allow_unencrypted_storage)
+                allow_unencrypted_storage=allow_unencrypted_storage,
+            )
     }
     auth_record = _load_token(token_path)
     if auth_record:
@@ -46,7 +48,8 @@ def _cache_auth_record(record: AuthenticationRecord, token_path: Path):
         token_file.write(token)
 
 
-def _generate_credential(auth_method: str, token_path: Path, **kwargs):
+def _generate_credential(auth_method: str, token_path: Path, **kwargs) -> Credential:
+    credential: Credential
     if auth_method == AuthMethod.DeviceCode.name:
         credential = DeviceCodeCredential(
             client_id=kwargs['client_id'],
@@ -57,7 +60,9 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
                 token_path,
                 allow_unencrypted_storage=kwargs['allow_unencrypted_storage'])
         )
-    elif auth_method == AuthMethod.UsernamePassword.name:
+        return credential
+
+    if auth_method == AuthMethod.UsernamePassword.name:
         credential = UsernamePasswordCredential(
             client_id=kwargs['client_id'],
             client_credential=kwargs['client_secret'],
@@ -68,15 +73,16 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
                 token_path,
                 allow_unencrypted_storage=kwargs['allow_unencrypted_storage'])
         )
-    elif auth_method == AuthMethod.ClientSecret.name:
+        return credential
+
+    if auth_method == AuthMethod.ClientSecret.name:
         credential = ClientSecretCredential(
             client_id=kwargs['client_id'],
             tenant_id=kwargs['tenant_id'],
             client_secret=kwargs['client_secret']
         )
-    else:
-        raise RuntimeError(f'Auth method {auth_method} not found')
-    return credential
+        return credential
+    raise RuntimeError(f'Auth method {auth_method} not found')
 
 
 class MSGraphConnection(MailboxConnection):
@@ -100,10 +106,10 @@ class MSGraphConnection(MailboxConnection):
             tenant_id=tenant_id,
             token_path=token_path,
             allow_unencrypted_storage=allow_unencrypted_storage)
-        client_params = {
+        client_params: Dict[str, Any] = {
             'credential': credential
         }
-        if not isinstance(credential, ClientSecretCredential):
+        if isinstance(credential, (DeviceCodeCredential, UsernamePasswordCredential)):
             scopes = ['Mail.ReadWrite']
             # Detect if mailbox is shared
             if mailbox and username != mailbox:
@@ -115,7 +121,7 @@ class MSGraphConnection(MailboxConnection):
         self._client = GraphClient(**client_params)
         self.mailbox_name = mailbox
 
-    def create_folder(self, folder_name: str):
+    def create_folder(self, folder_name: str) -> None:
         sub_url = ''
         path_parts = folder_name.split('/')
         if len(path_parts) > 1:  # Folder is a subFolder
@@ -140,9 +146,9 @@ class MSGraphConnection(MailboxConnection):
             logger.warning(f'Unknown response '
                            f'{resp.status_code} {resp.json()}')
 
-    def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         """ Returns a list of message UIDs in the specified folder """
-        folder_id = self._find_folder_id_from_folder_path(folder_name)
+        folder_id = self._find_folder_id_from_folder_path(reports_folder)
         url = f'/users/{self.mailbox_name}/mailFolders/' \
               f'{folder_id}/messages'
         batch_size = kwargs.get('batch_size')
@@ -151,9 +157,9 @@ class MSGraphConnection(MailboxConnection):
         emails = self._get_all_messages(url, batch_size)
         return [email['id'] for email in emails]
 
-    def _get_all_messages(self, url, batch_size):
+    def _get_all_messages(self, url: str, batch_size: int):
         messages: list
-        params = {
+        params: Dict[str, Any] = {
             '$select': 'id'
         }
         if batch_size and batch_size > 0:
@@ -182,7 +188,7 @@ class MSGraphConnection(MailboxConnection):
             raise RuntimeWarning(f"Failed to mark message read"
                                  f"{resp.status_code}: {resp.json()}")
 
-    def fetch_message(self, message_id: str):
+    def fetch_message(self, message_id: str) -> str:
         url = f'/users/{self.mailbox_name}/messages/{message_id}/$value'
         result = self._client.get(url)
         if result.status_code != 200:
