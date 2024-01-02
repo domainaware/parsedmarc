@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-
+from collections import OrderedDict
 import json
-from ssl import create_default_context
+from ssl import create_default_context, SSLContext
+from typing import Optional, Union, List, Dict, Any
 
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
-from collections import OrderedDict
-from parsedmarc.utils import human_timestamp_to_datetime
 
+from parsedmarc.utils import human_timestamp_to_datetime
 from parsedmarc import __version__
 from parsedmarc.log import logger
 
@@ -15,31 +14,38 @@ from parsedmarc.log import logger
 class KafkaError(RuntimeError):
     """Raised when a Kafka error occurs"""
 
+    def __init__(self, message: Union[str, Exception]):
+        if isinstance(message, Exception):
+            message = repr(message)
+        super().__init__(f"Kafka Error: {message}")
+        return
+
 
 class KafkaClient(object):
-    def __init__(self, kafka_hosts, ssl=False, username=None, password=None, ssl_context=None):
+    def __init__(
+        self,
+        kafka_hosts: List[str],
+        ssl: bool = False,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        ssl_context: Optional[SSLContext] = None,
+    ):
         """
-        Initializes the Kafka client
         Args:
-            kafka_hosts (list): A list of Kafka hostnames
-            (with optional port numbers)
-            ssl (bool): Use a SSL/TLS connection
-            username (str): An optional username
-            password (str):  An optional password
+            kafka_hosts: A list of Kafka hostnames (with optional port numbers)
+            ssl: Use a SSL/TLS connection. This is implied `True` if `username` or `password` is supplied.
+            username: An optional username
+            password:  An optional password
             ssl_context: SSL context options
 
-        Notes:
-            ``use_ssl=True`` is implied when a username or password are
-            supplied.
-
-            When using Azure Event Hubs, the username is literally
-            ``$ConnectionString``, and the password is the
+        Note:
+            When using Azure Event Hubs, the `username` is literally `$ConnectionString`, and the `password` is the
             Azure Event Hub connection string.
         """
         config = dict(
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             bootstrap_servers=kafka_hosts,
-            client_id="parsedmarc-{0}".format(__version__),
+            client_id=f"parsedmarc-{__version__}",
         )
         if ssl or username or password:
             config["security_protocol"] = "SSL"
@@ -81,23 +87,24 @@ class KafkaClient(object):
         begin_date_human = begin_date.strftime("%Y-%m-%dT%H:%M:%S")
         end_date_human = end_date.strftime("%Y-%m-%dT%H:%M:%S")
         date_range = [begin_date_human, end_date_human]
-        logger.debug("date_range is {}".format(date_range))
+        logger.debug(f"date_range is {date_range}")
         return date_range
 
-    def save_aggregate_reports_to_kafka(self, aggregate_reports, aggregate_topic):
+    def save_aggregate_reports_to_kafka(
+        self, aggregate_reports: Union[OrderedDict, List[OrderedDict]], aggregate_topic: str
+    ) -> None:
         """
         Saves aggregate DMARC reports to Kafka
 
         Args:
-            aggregate_reports (list):  A list of aggregate report dictionaries
-            to save to Kafka
-            aggregate_topic (str): The name of the Kafka topic
+            aggregate_reports:  Aggregate reports to save to Kafka
+            aggregate_topic: The name of the Kafka topic
 
         """
-        if isinstance(aggregate_reports, dict) or isinstance(aggregate_reports, OrderedDict):
+        if isinstance(aggregate_reports, dict):
             aggregate_reports = [aggregate_reports]
 
-        if len(aggregate_reports) < 1:
+        if not aggregate_reports:
             return
 
         for report in aggregate_reports:
@@ -115,40 +122,43 @@ class KafkaClient(object):
                     logger.debug("Saving aggregate report to Kafka")
                     self.producer.send(aggregate_topic, slice)
                 except UnknownTopicOrPartitionError:
-                    raise KafkaError("Kafka error: Unknown topic or partition on broker")
+                    raise KafkaError("Unknown topic or partition on broker")
                 except Exception as e:
-                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError(e)
                 try:
                     self.producer.flush()
                 except Exception as e:
-                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError(e)
+        return
 
-    def save_forensic_reports_to_kafka(self, forensic_reports, forensic_topic):
+    def save_forensic_reports_to_kafka(
+        self, forensic_reports: Union[OrderedDict, List[OrderedDict]], forensic_topic: str
+    ) -> None:
         """
         Saves forensic DMARC reports to Kafka, sends individual
         records (slices) since Kafka requires messages to be <= 1MB
         by default.
 
         Args:
-            forensic_reports (list):  A list of forensic report dicts
-            to save to Kafka
-            forensic_topic (str): The name of the Kafka topic
+            forensic_reports:  Forensic reports to save to Kafka
+            forensic_topic: The name of the Kafka topic
 
         """
         if isinstance(forensic_reports, dict):
             forensic_reports = [forensic_reports]
 
-        if len(forensic_reports) < 1:
+        if not forensic_reports:
             return
 
         try:
             logger.debug("Saving forensic reports to Kafka")
             self.producer.send(forensic_topic, forensic_reports)
         except UnknownTopicOrPartitionError:
-            raise KafkaError("Kafka error: Unknown topic or partition on broker")
+            raise KafkaError("Unknown topic or partition on broker")
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(e)
         try:
             self.producer.flush()
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(e)
+        return

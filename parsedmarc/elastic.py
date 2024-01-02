@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
+from typing import Optional, Union, List, Dict, Any
 
 from elasticsearch_dsl.search import Q
 from elasticsearch_dsl import (
@@ -26,6 +25,12 @@ from parsedmarc import InvalidForensicReport
 
 class ElasticsearchError(Exception):
     """Raised when an Elasticsearch error occurs"""
+
+    def __init__(self, message: Union[str, Exception]):
+        if isinstance(message, Exception):
+            message = repr(message)
+        super().__init__(f"Elasticsearch Error: {message}")
+        return
 
 
 class _PolicyOverride(InnerDoc):
@@ -173,27 +178,26 @@ class AlreadySaved(ValueError):
 
 
 def set_hosts(
-    hosts,
-    use_ssl=False,
-    ssl_cert_path=None,
-    username=None,
-    password=None,
-    apiKey=None,
-    timeout=60.0,
-):
-    """
-    Sets the Elasticsearch hosts to use
+    hosts: Union[str, List[str]],
+    use_ssl: bool = False,
+    ssl_cert_path: Optional[str] = None,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    apiKey: Optional[str] = None,
+    timeout: float = 60.0,
+) -> None:
+    """Set the Elasticsearch host(s) to use
 
     Args:
-        hosts (str): A single hostname or URL, or list of hostnames or URLs
-        use_ssl (bool): Use a HTTPS connection to the server
-        ssl_cert_path (str): Path to the certificate chain
-        username (str): The username to use for authentication
-        password (str): The password to use for authentication
-        apiKey (str): The Base64 encoded API key to use for authentication
-        timeout (float): Timeout in seconds
+        hosts: A single hostname or URL, or list of hostnames or URLs
+        use_ssl: Use a HTTPS connection to the server
+        ssl_cert_path: Path to the certificate chain
+        username: The username to use for authentication
+        password: The password to use for authentication
+        apiKey: The Base64 encoded API key to use for authentication
+        timeout: Timeout in seconds
     """
-    if not isinstance(hosts, list):
+    if isinstance(hosts, str):
         hosts = [hosts]
     conn_params = {"hosts": hosts, "timeout": timeout}
     if use_ssl:
@@ -203,43 +207,45 @@ def set_hosts(
             conn_params["ca_certs"] = ssl_cert_path
         else:
             conn_params["verify_certs"] = False
-    if username:
+    if username and password:
         conn_params["http_auth"] = username + ":" + password
     if apiKey:
         conn_params["api_key"] = apiKey
     connections.create_connection(**conn_params)
+    return
 
 
-def create_indexes(names, settings=None):
-    """
-    Create Elasticsearch indexes
+def create_indexes(names: List[str], settings: Optional[Dict[str, int]] = None) -> None:
+    """Create Elasticsearch indexes
 
     Args:
-        names (list): A list of index names
-        settings (dict): Index settings
+        names: A list of index names
+        settings: Index settings
 
     """
     for name in names:
         index = Index(name)
         try:
             if not index.exists():
-                logger.debug("Creating Elasticsearch index: {0}".format(name))
+                logger.debug(f"Creating Elasticsearch index: {name}")
                 if settings is None:
                     index.settings(number_of_shards=1, number_of_replicas=0)
                 else:
                     index.settings(**settings)
                 index.create()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(e)
+    return
 
 
-def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
-    """
-    Updates index mappings
+def migrate_indexes(
+    aggregate_indexes: Optional[List[str]] = None, forensic_indexes: Optional[List[str]] = None
+):
+    """Update index mappings
 
     Args:
-        aggregate_indexes (list): A list of aggregate index names
-        forensic_indexes (list): A list of forensic index names
+        aggregate_indexes: A list of aggregate index names
+        forensic_indexes: A list of forensic index names
     """
     version = 2
     if aggregate_indexes is None:
@@ -261,7 +267,7 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
         fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
         fo_type = fo_mapping["type"]
         if fo_type == "long":
-            new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
+            new_index_name = f"{aggregate_index_name}-v{version}"
             body = {
                 "properties": {
                     "published_policy.fo": {
@@ -280,21 +286,21 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
 
 
 def save_aggregate_report_to_elasticsearch(
-    aggregate_report,
-    index_suffix=None,
-    monthly_indexes=False,
-    number_of_shards=1,
-    number_of_replicas=0,
-):
+    aggregate_report: OrderedDict[str, Any],
+    index_suffix: Optional[str] = None,
+    monthly_indexes: bool = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
+) -> None:
     """
     Saves a parsed DMARC aggregate report to ElasticSearch
 
     Args:
-        aggregate_report (OrderedDict): A parsed forensic report
-        index_suffix (str): The suffix of the name of the index to save to
-        monthly_indexes (bool): Use monthly indexes instead of daily indexes
-        number_of_shards (int): The number of shards to use in the index
-        number_of_replicas (int): The number of replicas to use in the index
+        aggregate_report: A parsed forensic report
+        index_suffix: The suffix of the name of the index to save to
+        monthly_indexes: Use monthly indexes instead of daily indexes
+        number_of_shards: The number of shards to use in the index
+        number_of_replicas: The number of replicas to use in the index
 
     Raises:
             AlreadySaved
@@ -324,7 +330,7 @@ def save_aggregate_report_to_elasticsearch(
     end_date_query = Q(dict(match=dict(date_end=end_date)))
 
     if index_suffix is not None:
-        search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
+        search = Search(index=f"dmarc_aggregate_{index_suffix}*")
     else:
         search = Search(index="dmarc_aggregate*")
     query = org_name_query & report_id_query & domain_query
@@ -333,20 +339,14 @@ def save_aggregate_report_to_elasticsearch(
 
     try:
         existing = search.execute()
-    except Exception as error_:
-        raise ElasticsearchError(
-            "Elasticsearch's search for existing report \
-            error: {}".format(
-                error_.__str__()
-            )
-        )
+    except Exception as e:
+        raise ElasticsearchError(f"Search for existing report error: {e!r}")
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "An aggregate report ID {0} from {1} about {2} "
-            "with a date range of {3} UTC to {4} UTC already "
-            "exists in "
-            "Elasticsearch".format(report_id, org_name, domain, begin_date_human, end_date_human)
+            f"An aggregate report ID {report_id} from {org_name} about {domain} "
+            f"with a date range of {begin_date_human} UTC to {end_date_human} UTC already "
+            "exists in Elasticsearch"
         )
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
@@ -402,8 +402,8 @@ def save_aggregate_report_to_elasticsearch(
 
         index = "dmarc_aggregate"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
-        index = "{0}-{1}".format(index, index_date)
+            index = f"{index}_{index_suffix}"
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -413,31 +413,28 @@ def save_aggregate_report_to_elasticsearch(
         try:
             agg_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(e)
+    return
 
 
 def save_forensic_report_to_elasticsearch(
-    forensic_report,
-    index_suffix=None,
-    monthly_indexes=False,
-    number_of_shards=1,
-    number_of_replicas=0,
-):
-    """
-    Saves a parsed DMARC forensic report to ElasticSearch
+    forensic_report: OrderedDict[str, Any],
+    index_suffix: Optional[str] = None,
+    monthly_indexes: bool = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
+) -> None:
+    """Save a parsed DMARC forensic report to ElasticSearch
 
     Args:
-        forensic_report (OrderedDict): A parsed forensic report
-        index_suffix (str): The suffix of the name of the index to save to
-        monthly_indexes (bool): Use monthly indexes instead of daily
-                                indexes
-        number_of_shards (int): The number of shards to use in the index
-        number_of_replicas (int): The number of replicas to use in the
-                                  index
+        forensic_report: A parsed forensic report
+        index_suffix: The suffix of the name of the index to save to
+        monthly_indexes: Use monthly indexes instead of daily indexes
+        number_of_shards: The number of shards to use in the index
+        number_of_replicas: The number of replicas to use in the index
 
     Raises:
         AlreadySaved
-
     """
     logger.info("Saving forensic report to Elasticsearch")
     forensic_report = forensic_report.copy()
@@ -454,7 +451,7 @@ def save_forensic_report_to_elasticsearch(
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
     if index_suffix is not None:
-        search = Search(index="dmarc_forensic_{0}*".format(index_suffix))
+        search = Search(index=f"dmarc_forensic_{index_suffix}*")
     else:
         search = Search(index="dmarc_forensic*")
     arrival_query = {"match": {"arrival_date": arrival_date}}
@@ -481,10 +478,8 @@ def save_forensic_report_to_elasticsearch(
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "A forensic sample to {0} from {1} "
-            "with a subject of {2} and arrival date of {3} "
-            "already exists in "
-            "Elasticsearch".format(to_, from_, subject, arrival_date_human)
+            f"A forensic sample to {to_} from {from_} with a subject of {subject} "
+            f"and arrival date of {arrival_date_human} already exists in Elasticsearch"
         )
 
     parsed_sample = forensic_report["parsed_sample"]
@@ -536,12 +531,12 @@ def save_forensic_report_to_elasticsearch(
 
         index = "dmarc_forensic"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
+            index = f"{index}_{index_suffix}"
         if monthly_indexes:
             index_date = arrival_date.strftime("%Y-%m")
         else:
             index_date = arrival_date.strftime("%Y-%m-%d")
-        index = "{0}-{1}".format(index, index_date)
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -550,8 +545,7 @@ def save_forensic_report_to_elasticsearch(
         try:
             forensic_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(e)
     except KeyError as e:
-        raise InvalidForensicReport(
-            "Forensic report missing required field: {0}".format(e.__str__())
-        )
+        raise InvalidForensicReport(f"Forensic report missing required field: {e!r}")
+    return

@@ -16,6 +16,8 @@ class Test(unittest.TestCase):
         decoded_str = parsedmarc.utils.decode_base64(b64_str)
         assert decoded_str == b"any carnal pleas"
 
+        return
+
     def testPSLDownload(self):
         subdomain = "foo.example.com"
         result = parsedmarc.utils.get_base_domain(subdomain)
@@ -26,6 +28,8 @@ class Test(unittest.TestCase):
         result = parsedmarc.utils.get_base_domain(subdomain)
         assert result == "c.akamaiedge.net"
 
+        return
+
     def testAggregateSamples(self):
         """Test sample aggregate/rua DMARC reports"""
         print()
@@ -33,16 +37,18 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: " .format(sample_path), end="")
-            parsed_report = parsedmarc.parse_report_file(
-                sample_path)["report"]
+            print(f"Testing {sample_path}: ", end="")
+            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
             parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
             print("Passed!")
+
+        return
 
     def testEmptySample(self):
         """Test empty/unparasable report"""
         with self.assertRaises(parsedmarc.InvalidDMARCReport):
-            parsedmarc.parse_report_file('samples/empty.xml')
+            parsedmarc.parse_report_file("samples/empty.xml")
+        return
 
     def testForensicSamples(self):
         """Test sample forensic/ruf/failure DMARC reports"""
@@ -52,12 +58,11 @@ class Test(unittest.TestCase):
             print("Testing {0}: ".format(sample_path), end="")
             with open(sample_path) as sample_file:
                 sample_content = sample_file.read()
-                parsed_report = parsedmarc.parse_report_email(
-                    sample_content)["report"]
-            parsed_report = parsedmarc.parse_report_file(
-                sample_path)["report"]
+                parsed_report = parsedmarc.parse_report_email(sample_content)["report"]
+            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
             parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
             print("Passed!")
+        return
 
 
 if __name__ == "__main__":

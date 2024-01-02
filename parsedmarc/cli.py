@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """A CLI for parsing DMARC reports"""
 
 from argparse import Namespace, ArgumentParser
@@ -85,7 +83,7 @@ def _main():
     """Called when the module is executed"""
 
     def process_reports(reports_):
-        output_str = "{0}\n".format(json.dumps(reports_, ensure_ascii=False, indent=2))
+        output_str = json.dumps(reports_, ensure_ascii=False, indent=2) + "\n"
 
         if not opts.silent:
             print(output_str)
@@ -114,31 +112,31 @@ def _main():
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
-                    logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+                    logger.error(f"Elasticsearch Error: {error_!r}")
                 except Exception as error_:
-                    logger.error("Elasticsearch exception error: {}".format(error_.__str__()))
+                    logger.error(f"Elasticsearch exception error: {error_!r}")
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_aggregate_reports_to_kafka(report, kafka_aggregate_topic)
                 except Exception as error_:
-                    logger.error("Kafka Error: {0}".format(error_.__str__()))
+                    logger.error(f"Kafka Error: {error_!r}")
                 try:
                     if opts.s3_bucket:
                         s3_client.save_aggregate_report_to_s3(report)
                 except Exception as error_:
-                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                    logger.error(f"S3 Error: {error_!r}")
                 try:
                     if opts.syslog_server:
                         syslog_client.save_aggregate_report_to_syslog(report)
                 except Exception as error_:
-                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+                    logger.error(f"Syslog Error: {error_!r}")
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
                     if len(aggregate_reports_) > 0:
                         hec_client.save_aggregate_reports_to_splunk(aggregate_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+                    logger.error(f"Splunk HEC error: {e!r}")
         if opts.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
@@ -155,31 +153,31 @@ def _main():
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
-                    logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+                    logger.error(f"Elasticsearch Error: {error_!r}")
                 except InvalidDMARCReport as error_:
                     logger.error(error_.__str__())
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_forensic_reports_to_kafka(report, kafka_forensic_topic)
                 except Exception as error_:
-                    logger.error("Kafka Error: {0}".format(error_.__str__()))
+                    logger.error(f"Kafka Error: {error_!r}")
                 try:
                     if opts.s3_bucket:
                         s3_client.save_forensic_report_to_s3(report)
                 except Exception as error_:
-                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                    logger.error(f"S3 Error: {error_!r}")
                 try:
                     if opts.syslog_server:
                         syslog_client.save_forensic_report_to_syslog(report)
                 except Exception as error_:
-                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+                    logger.error(f"Syslog Error: {error_!r}")
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
                     if len(forensic_reports_) > 0:
                         hec_client.save_forensic_reports_to_splunk(forensic_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+                    logger.error(f"Splunk HEC error: {e!r}")
         if opts.la_dce:
             try:
                 la_client = loganalytics.LogAnalyticsClient(
@@ -193,7 +191,7 @@ def _main():
                 )
                 la_client.publish_results(reports_, opts.save_aggregate, opts.save_forensic)
             except loganalytics.LogAnalyticsException as e:
-                logger.error("Log Analytics error: {0}".format(e.__str__()))
+                logger.error(f"Log Analytics error: {e!r}")
             except Exception as e:
                 logger.error(
                     "Unknown error occured"
@@ -368,7 +366,7 @@ def _main():
     if args.config_file:
         abs_path = os.path.abspath(args.config_file)
         if not os.path.exists(abs_path):
-            logger.error("A file does not exist at {0}".format(abs_path))
+            logger.error(f"A file does not exist at {abs_path}")
             exit(-1)
         opts.silent = True
         config = ConfigParser()
@@ -773,7 +771,7 @@ def _main():
             fh.setFormatter(formatter)
             logger.addHandler(fh)
         except Exception as error:
-            logger.warning("Unable to write to log file: {}".format(error))
+            logger.warning(f"Unable to write to log file: {error!r}")
 
     if (
         opts.imap_host is None
@@ -793,8 +791,8 @@ def _main():
                 es_forensic_index = "dmarc_forensic"
                 if opts.elasticsearch_index_suffix:
                     suffix = opts.elasticsearch_index_suffix
-                    es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
-                    es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
+                    es_aggregate_index = f"{es_aggregate_index}_{suffix}"
+                    es_forensic_index = f"{es_forensic_index}_{suffix}"
                 elastic.set_hosts(
                     opts.elasticsearch_hosts,
                     opts.elasticsearch_ssl,
@@ -822,7 +820,7 @@ def _main():
                 secret_access_key=opts.s3_secret_access_key,
             )
         except Exception as error_:
-            logger.error("S3 Error: {0}".format(error_.__str__()))
+            logger.error(f"S3 Error: {error_!r}")
 
     if opts.syslog_server:
         try:
@@ -831,7 +829,7 @@ def _main():
                 server_port=int(opts.syslog_port),
             )
         except Exception as error_:
-            logger.error("Syslog Error: {0}".format(error_.__str__()))
+            logger.error(f"Syslog Error: {error_!r}")
 
     if opts.hec:
         if opts.hec_token is None or opts.hec_index is None:
@@ -858,7 +856,7 @@ def _main():
                 ssl_context=ssl_context,
             )
         except Exception as error_:
-            logger.error("Kafka Error: {0}".format(error_.__str__()))
+            logger.error(f"Kafka Error: {error!r}")
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic
@@ -908,7 +906,7 @@ def _main():
 
     for result in results:
         if type(result[0]) is InvalidDMARCReport:
-            logger.error("Failed to parse {0} - {1}".format(result[1], result[0]))
+            logger.error(f"Failed to parse {result[1]} - {result[0]}")
         else:
             if result[0]["report_type"] == "aggregate":
                 aggregate_reports.append(result[0]["report"])
@@ -1070,7 +1068,7 @@ def _main():
                 offline=opts.offline,
             )
         except FileExistsError as error:
-            logger.error("{0}".format(error.__str__()))
+            logger.error(f"{error!r}")
             exit(1)
 
 

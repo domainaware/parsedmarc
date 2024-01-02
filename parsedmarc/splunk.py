@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 import socket
 import json
+from typing import Union, Optional, Dict, List, Any
 
 import urllib3
 import requests
@@ -15,6 +16,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class SplunkError(RuntimeError):
     """Raised when a Splunk API error occurs"""
 
+    def __init__(self, message: Union[str, Exception]):
+        if isinstance(message, Exception):
+            message = repr(message)
+        super().__init__(f"Splunk Error: {message}")
+        return
+
 
 class HECClient(object):
     """A client for a Splunk HTTP Events Collector (HEC)"""
@@ -22,21 +29,26 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
-    def __init__(self, url, access_token, index, source="parsedmarc", verify=True, timeout=60):
+    def __init__(
+        self,
+        url: str,
+        access_token: str,
+        index: str,
+        source: str = "parsedmarc",
+        verify: bool = True,
+        timeout: int = 60,
+    ):
         """
-        Initializes the HECClient
-
         Args:
-            url (str): The URL of the HEC
-            access_token (str): The HEC access token
-            index (str): The name of the index
-            source (str): The source name
-            verify (bool): Verify SSL certificates
-            timeout (float): Number of seconds to wait for the server to send
-                data before giving up
+            url: The URL of the HEC
+            access_token: The HEC access token
+            index: The name of the index
+            source: The source name
+            verify: Verify SSL certificates
+            timeout: Number of seconds to wait for the server to send data before giving up
         """
-        url = urlparse(url)
-        self.url = "{0}://{1}/services/collector/event/1.0".format(url.scheme, url.netloc)
+        parsed = urlparse(url)
+        self.url = f"{parsed.scheme}://{parsed.netloc}/services/collector/event/1.0"
         self.access_token = access_token.lstrip("Splunk ")
         self.index = index
         self.host = socket.getfqdn()
@@ -44,27 +56,29 @@ class HECClient(object):
         self.session = requests.Session()
         self.timeout = timeout
         self.session.verify = verify
-        self._common_data = dict(host=self.host, source=self.source, index=self.index)
+        self._common_data: Dict[str, Any] = dict(
+            host=self.host, source=self.source, index=self.index
+        )
 
         self.session.headers = {
-            "User-Agent": "parsedmarc/{0}".format(__version__),
-            "Authorization": "Splunk {0}".format(self.access_token),
+            "User-Agent": f"parsedmarc/{__version__}",
+            "Authorization": f"Splunk {self.access_token}",
         }
+        return
 
-    def save_aggregate_reports_to_splunk(self, aggregate_reports):
-        """
-        Saves aggregate DMARC reports to Splunk
+    def save_aggregate_reports_to_splunk(
+        self, aggregate_reports: Union[Dict, List[Dict[str, Any]]]
+    ):
+        """Save aggregate DMARC reports to Splunk
 
         Args:
-            aggregate_reports: A list of aggregate report dictionaries
-                to save in Splunk
-
+            aggregate_reports: Aggregate reports to save in Splunk
         """
         logger.debug("Saving aggregate reports to Splunk")
         if isinstance(aggregate_reports, dict):
             aggregate_reports = [aggregate_reports]
 
-        if len(aggregate_reports) < 1:
+        if not aggregate_reports:
             return
 
         data = self._common_data.copy()
@@ -95,31 +109,29 @@ class HECClient(object):
                 timestamp = human_timestamp_to_timestamp(new_report["begin_date"])
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
-                json_str += "{0}\n".format(json.dumps(data))
+                json_str += json.dumps(data) + "\n"
 
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
-            response = response.json()
+            response = self.session.post(self.url, data=json_str, timeout=self.timeout).json()
         except Exception as e:
-            raise SplunkError(e.__str__())
+            raise SplunkError(e)
         if response["code"] != 0:
             raise SplunkError(response["text"])
+        return
 
-    def save_forensic_reports_to_splunk(self, forensic_reports):
-        """
-        Saves forensic DMARC reports to Splunk
+    def save_forensic_reports_to_splunk(self, forensic_reports: Union[Dict, List[Dict[str, Any]]]):
+        """Save forensic DMARC reports to Splunk
 
         Args:
-            forensic_reports (list): A list of forensic report dictionaries
-                to save in Splunk
+            forensic_reports: Forensic reports to save in Splunk
         """
         logger.debug("Saving forensic reports to Splunk")
         if isinstance(forensic_reports, dict):
             forensic_reports = [forensic_reports]
 
-        if len(forensic_reports) < 1:
+        if not forensic_reports:
             return
 
         json_str = ""
@@ -129,14 +141,14 @@ class HECClient(object):
             timestamp = human_timestamp_to_timestamp(report["arrival_date_utc"])
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+            json_str += json.dumps(data) + "\n"
 
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
-            response = response.json()
+            response = self.session.post(self.url, data=json_str, timeout=self.timeout).json()
         except Exception as e:
-            raise SplunkError(e.__str__())
+            raise SplunkError(e)
         if response["code"] != 0:
             raise SplunkError(response["text"])
+        return

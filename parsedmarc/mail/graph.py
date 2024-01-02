@@ -104,6 +104,18 @@ class MSGraphConnection(MailboxConnection):
         token_file: str,
         allow_unencrypted_storage: bool,
     ):
+        """
+        Args:
+            auth_method:
+            mailbox:
+            client_id:
+            client_secret:
+            username:
+            password:
+            tenant_id:
+            token_file:
+            allow_unencrypted_storage:
+        """
         token_path = Path(token_file)
         credential = _generate_credential(
             auth_method,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import logging.handlers
 import json
@@ -10,12 +8,11 @@ from parsedmarc import parsed_aggregate_reports_to_csv_rows, parsed_forensic_rep
 class SyslogClient(object):
     """A client for Syslog"""
 
-    def __init__(self, server_name, server_port):
+    def __init__(self, server_name: str, server_port: int):
         """
-        Initializes the SyslogClient
         Args:
-            server_name (str): The Syslog server
-            server_port (int): The Syslog UDP port
+            server_name: The Syslog server
+            server_port: The Syslog UDP port
         """
         self.server_name = server_name
         self.server_port = server_port

@@ -1,4 +1,5 @@
 from time import sleep
+from typing import Optional
 
 from imapclient.exceptions import IMAPClientError
 from mailsuite.imap import IMAPClient
@@ -13,15 +14,26 @@ class IMAPConnection(MailboxConnection):
 
     def __init__(
         self,
-        host=None,
-        user=None,
-        password=None,
-        port=None,
-        ssl=True,
-        verify=True,
-        timeout=30,
-        max_retries=4,
+        host: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        port: Optional[int] = None,
+        ssl: bool = True,
+        verify: bool = True,
+        timeout: int = 30,
+        max_retries: int = 4,
     ):
+        """
+        Args:
+            host: Host to connect to
+            user:
+            password:
+            port: Port to connect to
+            ssl: Use SSL/TLS
+            verify: Verify the SSL/TLS certification
+            timeout:
+            max_retries:
+        """
         self._username = user
         self._password = password
         self._verify = verify
@@ -80,5 +92,5 @@ class IMAPConnection(MailboxConnection):
                 logger.warning("IMAP connection timeout. Reconnecting...")
                 sleep(check_timeout)
             except Exception as e:
-                logger.warning("IMAP connection error. {0}. " "Reconnecting...".format(e))
+                logger.warning(f"IMAP connection error. {e!r}. " "Reconnecting...")
                 sleep(check_timeout)

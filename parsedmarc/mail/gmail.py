@@ -52,6 +52,15 @@ class GmailConnection(MailboxConnection):
         reports_folder: str,
         oauth2_port: int,
     ):
+        """
+        Args:
+            token_file:
+            credentials_file:
+            scopes:
+            include_spam_trash:
+            reports_folder:
+            oauth2_port:
+        """
         creds = _get_creds(token_file, credentials_file, scopes, oauth2_port)
         self.service = build("gmail", "v1", credentials=creds)
         self.include_spam_trash = include_spam_trash

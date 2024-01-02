@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """A Python package for parsing DMARC reports"""
 
 import binascii
@@ -36,7 +34,7 @@ from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
 __version__ = "8.6.4"
 
-logger.debug("parsedmarc v{0}".format(__version__))
+logger.debug(f"parsedmarc v{__version__}")
 
 feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
@@ -241,7 +239,7 @@ def parse_aggregate_report_xml(
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
-        errors.append("Invalid XML: {0}".format(e.__str__()))
+        errors.append(f"Invalid XML: {e!r}")
         try:
             tree = etree.parse(
                 BytesIO(xml.encode("utf-8")), etree.XMLParser(recover=True, resolve_entities=False)
@@ -274,11 +272,9 @@ def parse_aggregate_report_xml(
             if new_org_name is not None:
                 org_name = new_org_name
         if not org_name:
-            logger.debug("Could not parse org_name from XML.\r\n{0}".format(report.__str__()))
+            logger.debug(f"Could not parse org_name from XML.\r\n{report}")
             raise KeyError(
-                "Organization name is missing. \
-                           This field is a requirement for \
-                           saving the report"
+                "Organization name is missing. This field is a requirement for saving the report"
             )
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
@@ -338,11 +334,12 @@ def parse_aggregate_report_xml(
         new_report["policy_published"] = new_policy_published
 
         if type(report["record"]) is list:
-            for i in range(len(report["record"])):
+            record_count = len(report["record"])
+            for i in range(record_count):
                 if keep_alive is not None and i > 0 and i % 20 == 0:
                     logger.debug("Sending keepalive cmd")
                     keep_alive()
-                    logger.debug("Processed {0}/{1}".format(i, len(report["record"])))
+                    logger.debug(f"Processed {i}/{record_count}")
                 report_record = _parse_report_record(
                     report["record"][i],
                     ip_db_path=ip_db_path,
@@ -369,15 +366,15 @@ def parse_aggregate_report_xml(
         return new_report
 
     except expat.ExpatError as error:
-        raise InvalidAggregateReport("Invalid XML: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(f"Invalid XML: {error!r}")
 
     except KeyError as error:
-        raise InvalidAggregateReport("Missing field: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(f"Missing field: {error!r}")
     except AttributeError:
         raise InvalidAggregateReport("Report missing required section")
 
     except Exception as error:
-        raise InvalidAggregateReport("Unexpected error: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(f"Unexpected error: {error!r}")
 
 
 def extract_xml(input_: Union[str, bytes, BinaryIO]) -> str:
@@ -388,7 +385,6 @@ def extract_xml(input_: Union[str, bytes, BinaryIO]) -> str:
 
     Returns:
         The extracted XML
-
     """
     file_object: BinaryIO
     try:
@@ -425,7 +421,7 @@ def extract_xml(input_: Union[str, bytes, BinaryIO]) -> str:
         raise InvalidAggregateReport("File objects must be opened in binary " "(rb) mode")
     except Exception as error:
         file_object.close()
-        raise InvalidAggregateReport("Invalid archive file: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(f"Invalid archive file: {error!r}")
 
     return xml
 
@@ -659,11 +655,9 @@ def parse_forensic_report(
         msg_date: The message's date header
         offline: Do not query online for geolocation or DNS
         ip_db_path: Path to a MMDB file from MaxMind or DBIP
-        nameservers (list): A list of one or more nameservers to use
-            (Cloudflare's public DNS resolvers by default)
+        nameservers (list): A list of one or more nameservers to use (Cloudflare's public DNS resolvers by default)
         dns_timeout: Sets the DNS timeout in seconds
-        strip_attachment_payloads: Remove attachment payloads from
-            forensic report results
+        strip_attachment_payloads: Remove attachment payloads from forensic report results
         parallel: Parallel processing
 
     Returns:
@@ -761,10 +755,10 @@ def parse_forensic_report(
         return parsed_report
 
     except KeyError as error:
-        raise InvalidForensicReport("Missing value: {0}".format(error.__str__()))
+        raise InvalidForensicReport(f"Missing value: {error!r}")
 
     except Exception as error:
-        raise InvalidForensicReport("Unexpected error: {0}".format(error.__str__()))
+        raise InvalidForensicReport("Unexpected error: {error!r}")
 
 
 def parsed_forensic_reports_to_csv_rows(
@@ -867,8 +861,7 @@ def parse_report_email(
         ip_db_path: Path to a MMDB file from MaxMind or DBIP
         nameservers: A list of one or more nameservers to use
         dns_timeout: Sets the DNS timeout in seconds
-        strip_attachment_payloads: Remove attachment payloads from
-            forensic report results
+        strip_attachment_payloads: Remove attachment payloads from forensic report results
         parallel: Parallel processing
         keep_alive: keep alive function
 
@@ -894,7 +887,7 @@ def parse_report_email(
     feedback_report = None
     sample = None
     if "From" in msg_headers:
-        logger.info("Parsing mail from {0}".format(msg_headers["From"]))
+        logger.info(f"Parsing mail from {msg_headers['From']}")
     if "Subject" in msg_headers:
         subject = msg_headers["Subject"]
     for part in msg.walk():
@@ -927,11 +920,7 @@ def parse_report_email(
                 for match in field_matches:
                     field_name = match[0].lower().replace(" ", "-")
                     fields[field_name] = match[1].strip()
-                feedback_report = (
-                    "Arrival-Date: {}\n"
-                    "Source-IP: {}"
-                    "".format(fields["received-date"], fields["sender-ip-address"])
-                )
+                feedback_report = f"Arrival-Date: {fields['received-date']}\nSource-IP: {fields['sender-ip-address']}"
                 sample = parts[1].lstrip()
                 sample = sample.replace("=\r\n", "")
                 logger.debug(sample)
@@ -960,14 +949,12 @@ def parse_report_email(
 
             except InvalidAggregateReport as e:
                 error = (
-                    'Message with subject "{0}" '
-                    "is not a valid "
-                    "aggregate DMARC report: {1}".format(subject, e)
+                    f"Message with subject {subject!r} is not a valid aggregate DMARC report: {e!r}"
                 )
                 raise InvalidAggregateReport(error)
 
             except Exception as e:
-                error = "Unable to parse message with " 'subject "{0}": {1}'.format(subject, e)
+                error = f"Unable to parse message with subject {subject!r}: {e!r}"
                 raise InvalidDMARCReport(error)
 
     if feedback_report and sample:
@@ -983,18 +970,14 @@ def parse_report_email(
                 parallel=parallel,
             )
         except InvalidForensicReport as e:
-            error = (
-                'Message with subject "{0}" '
-                "is not a valid "
-                "forensic DMARC report: {1}".format(subject, e)
-            )
+            error = f"Message with subject {subject!r} is not a valid forensic DMARC report: {e!r}"
             raise InvalidForensicReport(error)
         except Exception as e:
-            raise InvalidForensicReport(e.__str__())
+            raise InvalidForensicReport(repr(e))
 
         return OrderedDict([("report_type", "forensic"), ("report", forensic_report)])
 
-    error = 'Message with subject "{0}" is not a valid DMARC report'.format(subject)
+    error = f"Message with subject {subject!r} is not a valid DMARC report"
     raise InvalidDMARCReport(error)
 
 
@@ -1025,7 +1008,7 @@ def parse_report_file(
     """
     file_object: BinaryIO
     if isinstance(input_, str):
-        logger.debug("Parsing {0}".format(input_))
+        logger.debug(f"Parsing {input_}")
         file_object = open(input_, "rb")
     elif isinstance(input_, bytes):
         file_object = BytesIO(input_)
@@ -1087,7 +1070,6 @@ def get_dmarc_reports_from_mbox(
 
     Returns:
         Dictionary of Lists of ``aggregate_reports`` and ``forensic_reports``
-
     """
     aggregate_reports: List[OrderedDict] = []
     forensic_reports: List[OrderedDict] = []
@@ -1095,10 +1077,10 @@ def get_dmarc_reports_from_mbox(
         mbox = mailbox.mbox(input_)
         message_keys = mbox.keys()
         total_messages = len(message_keys)
-        logger.debug("Found {0} messages in {1}".format(total_messages, input_))
+        logger.debug(f"Found {total_messages} messages in {input_}")
         for i in range(len(message_keys)):
             message_key = message_keys[i]
-            logger.info("Processing message {0} of {1}".format(i + 1, total_messages))
+            logger.info(f"Processing message {i+1} of {total_messages}")
             msg_content = mbox.get_string(message_key)
             try:
                 sa = strip_attachment_payloads
@@ -1118,7 +1100,7 @@ def get_dmarc_reports_from_mbox(
             except InvalidDMARCReport as error:
                 logger.warning(error.__str__())
     except mailbox.NoSuchMailboxError:
-        raise InvalidDMARCReport("Mailbox {0} does not exist".format(input_))
+        raise InvalidDMARCReport(f"Mailbox {input_} does not exist")
     return OrderedDict(
         [("aggregate_reports", aggregate_reports), ("forensic_reports", forensic_reports)]
     )
@@ -1169,9 +1151,9 @@ def get_dmarc_reports_from_mailbox(
     forensic_reports = []
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
-    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
+    aggregate_reports_folder = f"{archive_folder}/Aggregate"
+    forensic_reports_folder = f"{archive_folder}/Forensic"
+    invalid_reports_folder = f"{archive_folder}/Invalid"
 
     if results:
         aggregate_reports = results["aggregate_reports"].copy()
@@ -1185,18 +1167,18 @@ def get_dmarc_reports_from_mailbox(
 
     messages = connection.fetch_messages(reports_folder, batch_size=batch_size)
     total_messages = len(messages)
-    logger.debug("Found {0} messages in {1}".format(len(messages), reports_folder))
+    logger.debug(f"Found {len(messages)} messages in {reports_folder}")
 
     if batch_size:
         message_limit = min(total_messages, batch_size)
     else:
         message_limit = total_messages
 
-    logger.debug("Processing {0} messages".format(message_limit))
+    logger.debug(f"Processing {message_limit} messages")
 
     for i in range(message_limit):
         msg_uid = messages[i]
-        logger.debug("Processing message {0} of {1}: UID {2}".format(i + 1, message_limit, msg_uid))
+        logger.debug(f"Processing message {i+1} of {message_limit}: UID {msg_uid}")
         msg_content = connection.fetch_message(msg_uid)
         try:
             sa = strip_attachment_payloads
@@ -1219,12 +1201,10 @@ def get_dmarc_reports_from_mailbox(
             logger.warning(error.__str__())
             if not test:
                 if delete:
-                    logger.debug("Deleting message UID {0}".format(msg_uid))
+                    logger.debug(f"Deleting message UID {msg_uid}")
                     connection.delete_message(msg_uid)
                 else:
-                    logger.debug(
-                        "Moving message UID {0} to {1}".format(msg_uid, invalid_reports_folder)
-                    )
+                    logger.debug(f"Moving message UID {msg_uid} to {invalid_reports_folder}")
                     connection.move_message(msg_uid, invalid_reports_folder)
 
     if not test:
@@ -1234,61 +1214,42 @@ def get_dmarc_reports_from_mailbox(
             number_of_processed_msgs = len(processed_messages)
             for i in range(number_of_processed_msgs):
                 msg_uid = processed_messages[i]
-                logger.debug(
-                    "Deleting message {0} of {1}: UID {2}".format(
-                        i + 1, number_of_processed_msgs, msg_uid
-                    )
-                )
+                logger.debug(f"Deleting message {i+1} of {number_of_processed_msgs}: UID {msg_uid}")
                 try:
                     connection.delete_message(msg_uid)
 
                 except Exception as e:
-                    message = "Mailbox error: Error deleting message UID {0}: {1}".format(
-                        msg_uid, repr(e)
-                    )
-                    logger.error(message)
+                    logger.error(f"Mailbox error: Error deleting message UID {msg_uid}: {e!r}")
         else:
             if len(aggregate_report_msg_uids) > 0:
-                log_message = "Moving aggregate report messages from"
                 logger.debug(
-                    "{0} {1} to {2}".format(log_message, reports_folder, aggregate_reports_folder)
+                    f"Moving aggregate report messages from {reports_folder} to {aggregate_reports_folder}"
                 )
                 number_of_agg_report_msgs = len(aggregate_report_msg_uids)
                 for i in range(number_of_agg_report_msgs):
                     msg_uid = aggregate_report_msg_uids[i]
                     logger.debug(
-                        "Moving message {0} of {1}: UID {2}".format(
-                            i + 1, number_of_agg_report_msgs, msg_uid
-                        )
+                        f"Moving message {i+1} of {number_of_agg_report_msgs}: UID {msg_uid}"
                     )
                     try:
                         connection.move_message(msg_uid, aggregate_reports_folder)
                     except Exception as e:
-                        message = "Mailbox error: Error moving message UID {0}: {1}".format(
-                            msg_uid, repr(e)
-                        )
-                        logger.error(message)
+                        logger.error(f"Mailbox error: Error moving message UID {msg_uid}: {e!r}")
             if len(forensic_report_msg_uids) > 0:
-                message = "Moving forensic report messages from"
                 logger.debug(
-                    "{0} {1} to {2}".format(message, reports_folder, forensic_reports_folder)
+                    f"Moving forensic report messages from {reports_folder} to {forensic_reports_folder}"
                 )
                 number_of_forensic_msgs = len(forensic_report_msg_uids)
                 for i in range(number_of_forensic_msgs):
                     msg_uid = forensic_report_msg_uids[i]
-                    message = "Moving message"
                     logger.debug(
-                        "{0} {1} of {2}: UID {3}".format(
-                            message, i + 1, number_of_forensic_msgs, msg_uid
-                        )
+                        f"Moving message {i+1} of {number_of_forensic_msgs}: UID {msg_uid}"
                     )
                     try:
                         connection.move_message(msg_uid, forensic_reports_folder)
                     except Exception as e:
-                        message = "Mailbox error: Error moving message UID {0}: {1}".format(
-                            msg_uid, repr(e)
-                        )
-                        logger.error(message)
+                        logger.error(f"Mailbox error: Error moving message UID {msg_uid}: {e!r}")
+
     results = OrderedDict(
         [("aggregate_reports", aggregate_reports), ("forensic_reports", forensic_reports)]
     )
@@ -1429,7 +1390,7 @@ def save_output(
 
     if os.path.exists(output_directory):
         if not os.path.isdir(output_directory):
-            raise ValueError("{0} is not a directory".format(output_directory))
+            raise ValueError(f"{output_directory} is not a directory")
     else:
         os.makedirs(output_directory)
 
@@ -1461,11 +1422,11 @@ def save_output(
 
         while filename in sample_filenames:
             message_count += 1
-            filename = "{0} ({1})".format(subject, message_count)
+            filename = f"{subject} ({message_count})"
 
         sample_filenames.append(filename)
 
-        filename = "{0}.eml".format(filename)
+        filename = f"{filename}.eml"
         path = os.path.join(samples_directory, filename)
         with open(path, "w", newline="\n", encoding="utf-8") as sample_file:
             sample_file.write(sample)
@@ -1550,21 +1511,21 @@ def email_results(
         attachment_filename: Override the default attachment filename
         message: Override the default plain text body
     """
-    logger.debug("Emailing report to: {0}".format(",".join(mail_to)))
+    logger.debug(f"Emailing report to: {''.join(mail_to)}")
     date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):
             attachment_filename += ".zip"
         filename = attachment_filename
     else:
-        filename = "DMARC-{0}.zip".format(date_string)
+        filename = f"DMARC-{date_string}.zip"
 
     assert isinstance(mail_to, list)
 
     if subject is None:
-        subject = "DMARC results for {0}".format(date_string)
+        subject = f"DMARC results for {date_string}"
     if message is None:
-        message = "DMARC results for {0}".format(date_string)
+        message = f"DMARC results for {date_string}"
     zip_bytes = get_report_zip(results)
     attachments = [(filename, zip_bytes)]
 

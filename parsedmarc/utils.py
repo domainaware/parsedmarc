@@ -119,7 +119,7 @@ def query_dns(
     """
     domain = str(domain).lower()
     record_type = record_type.upper()
-    cache_key = "{0}_{1}".format(domain, record_type)
+    cache_key = f"{domain}_{record_type}"
     if cache:
         records = cache.get(cache_key, None)
         if records:
@@ -191,13 +191,13 @@ def get_reverse_dns(
 
 
 def timestamp_to_datetime(timestamp: int) -> datetime:
-    """Converts a UNIX/DMARC timestamp to a Python ``datetime`` object
+    """Converts a UNIX/DMARC timestamp to a Python `datetime` object
 
     Args:
         timestamp: The timestamp
 
     Returns:
-        The converted timestamp as a Python ``datetime`` object
+        The converted timestamp as a Python `datetime` object
     """
     return datetime.fromtimestamp(int(timestamp))
 
@@ -209,13 +209,13 @@ def timestamp_to_human(timestamp: int) -> str:
         timestamp: The timestamp
 
     Returns:
-        The converted timestamp in ``YYYY-MM-DD HH:MM:SS`` format
+        The converted timestamp in `YYYY-MM-DD HH:MM:SS` format
     """
     return timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def human_timestamp_to_datetime(human_timestamp: str, to_utc: bool = False) -> datetime:
-    """Converts a human-readable timestamp into a Python ``datetime`` object
+    """Converts a human-readable timestamp into a Python `datetime` object
 
     Args:
         human_timestamp: A timestamp string
@@ -236,7 +236,7 @@ def human_timestamp_to_timestamp(human_timestamp: str) -> float:
     """Converts a human-readable timestamp into a UNIX timestamp
 
     Args:
-        human_timestamp: A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+        human_timestamp: A timestamp in `YYYY-MM-DD HH:MM:SS` format
 
     Returns:
         The converted timestamp
@@ -272,9 +272,7 @@ def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Op
         if os.path.isfile(db_path) is False:
             db_path = None
             logger.warning(
-                f"No file exists at {db_path}. Falling back to an "
-                "included copy of the IPDB IP to Country "
-                "Lite database."
+                f"No file exists at {db_path}. Falling back to an included copy of the IPDB IP to Country Lite database."
             )
 
     if db_path is None:
@@ -404,7 +402,7 @@ def is_mbox(path: str) -> bool:
         if len(mbox.keys()) > 0:
             _is_mbox = True
     except Exception as e:
-        logger.debug("Error checking for MBOX file: {0}".format(e.__str__()))
+        logger.debug(f"Error checking for MBOX file: {e!r}")
 
     return _is_mbox
 
@@ -424,7 +422,7 @@ def is_outlook_msg(content: Any) -> bool:
 def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     """Convert an Outlook MS file to standard RFC 822 format
 
-    Requires the ``msgconvert`` Perl utility to be installed.
+    Requires the `msgconvert` Perl utility to be installed.
 
     Args:
         msg_bytes: the content of the .msg file
@@ -535,7 +533,7 @@ def parse_email(data: Union[bytes, str], strip_attachment_payloads: bool = False
                             payload = str.encode(payload)
                     attachment["sha256"] = hashlib.sha256(payload).hexdigest()
                 except Exception as e:
-                    logger.debug("Unable to decode attachment: {0}".format(e.__str__()))
+                    logger.debug(f"Unable to decode attachment: {e!r}")
         if strip_attachment_payloads:
             for attachment in parsed_email["attachments"]:
                 if "payload" in attachment:
