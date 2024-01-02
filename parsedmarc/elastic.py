@@ -654,8 +654,6 @@ def save_smtp_tls_report_to_elasticsearch(report,
         index_date = begin_date.strftime("%Y-%m-%d")
     report["begin_date"] = begin_date
     report["end_date"] = end_date
-    date_range = [report["begin_date"],
-                  report["end_date"]]
 
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
