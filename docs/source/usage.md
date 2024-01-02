@@ -137,7 +137,7 @@ The full set of configuration options are:
   - `archive_folder` - str: The mailbox folder (or label for
       Gmail) to sort processed emails into (Default: `Archive`)
   - `watch` - bool: Use the IMAP `IDLE` command to process
-  - messages as they arrive or poll MS Graph for new messages
+      messages as they arrive or poll MS Graph for new messages
   - `delete` - bool: Delete messages after processing them,
       instead of archiving them
   - `test` - bool: Do not move or delete messages
