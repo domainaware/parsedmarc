@@ -81,8 +81,10 @@ def _main():
             save_output(results, output_directory=opts.output,
                         aggregate_json_filename=opts.aggregate_json_filename,
                         forensic_json_filename=opts.forensic_json_filename,
+                        smtp_tls_json_filename=opts.smtp_tls_json_filename,
                         aggregate_csv_filename=opts.aggregate_csv_filename,
-                        forensic_csv_filename=opts.forensic_csv_filename)
+                        forensic_csv_filename=opts.forensic_csv_filename,
+                        smtp_tls_csv_filename=opts.smtp_tls_csv_filename)
         if opts.save_aggregate:
             for report in reports_["aggregate_reports"]:
                 try:
@@ -954,6 +956,8 @@ def _main():
                 aggregate_reports.append(result[0]["report"])
             elif result[0]["report_type"] == "forensic":
                 forensic_reports.append(result[0]["report"])
+            elif result[0]["report_type"] == "smtp_tls":
+                smtp_tls_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
         strip = opts.strip_attachment_payloads
@@ -966,6 +970,7 @@ def _main():
                                               parallel=False)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
+        smtp_tls_reports += reports["smtp_tls_reports"]
 
     mailbox_connection = None
     if opts.imap_host:

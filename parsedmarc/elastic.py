@@ -164,73 +164,31 @@ class _ForensicReportDoc(Document):
     sample = Object(_ForensicSampleDoc)
 
 
-class _SMTPTLSDateRangeDoc(InnerDoc):
-    start_datetime = Text()
-    end_datetime = Text()
-
-
-class _MTASTSMXHostPatternDoc(InnerDoc):
-    pattern = Text()
-
-
-class _SMTPTLSPolicyString(InnerDoc):
-    policy_string = Text()
-
-
-class _SMTPTLSPolicyDoc(InnerDoc):
-    policy_type = Text()
-    policy_strings = Nested(_SMTPTLSPolicyString)
-    policy_domain = Text()
-    mx_host_patterns = Nested(_MTASTSMXHostPatternDoc)
-
-    def add_policy_string(self, policy_string):
-        self.policy_strings.append(policy_string=policy_string)
-
-    def add_mx_host_pattern(self, pattern):
-        self.mx_host_patterns.append(_MTASTSMXHostPatternDoc(pattern=pattern))
-
-
-class _SMTPTLSSummaryDoc(InnerDoc):
-    total_successful_session_count = Integer()
-    total_failure_session_count = Integer()
-
-
 class _SMTPTLSFailureDetailsDoc(InnerDoc):
     result_type = Text()
     sending_mta_ip = Ip()
     receiving_mx_helo = Text()
     receiving_ip = Ip()
     failed_session_count = Integer()
-    additional_information = Text()
+    additional_information_uri = Text()
     failure_reason_code = Text()
 
 
-class _SMTPTLSFailureReportDoc(Document):
-
-    class Index:
-        name = "smtp_tls"
-
-    organization_name = Text()
-    date_range = Object(_SMTPTLSDateRangeDoc)
-    contact_info = Text()
-    report_id = Text()
-    policies = Nested(_SMTPTLSPolicyDoc)
-    summary = Object(_SMTPTLSSummaryDoc)
+class _SMTPTLSPolicyDoc(InnerDoc):
+    policy_domain = Text()
+    policy_type = Text()
+    policy_strings = Text()
+    mx_host_patterns = Text()
+    successful_session_count = Integer()
+    failed_session_count = Integer()
     failure_details = Nested(_SMTPTLSFailureDetailsDoc)
 
-    def add_policy(self, policy_type, policy_domain, policy_string=None,
-                   mx_host_patterns=None):
-        self.policies.append(policy_type=policy_type,
-                             policy_domain=policy_domain,
-                             policy_string=policy_string,
-                             mx_host_patterns=mx_host_patterns)
-
     def add_failure_details(self, result_type, ip_address,
-                            receiving_mx_hostname,
-                            receiving_mx_helo,
                             receiving_ip,
+                            receiving_mx_helo,
                             failed_session_count,
-                            additional_information=None,
+                            receiving_mx_hostname=None,
+                            additional_information_uri=None,
                             failure_reason_code=None):
         self.failure_details.append(
             result_type=result_type,
@@ -239,9 +197,37 @@ class _SMTPTLSFailureReportDoc(Document):
             receiving_mx_helo=receiving_mx_helo,
             receiving_ip=receiving_ip,
             failed_session_count=failed_session_count,
-            additional_information=additional_information,
+            additional_information=additional_information_uri,
             failure_reason_code=failure_reason_code
         )
+
+
+class _SMTPTLSFailureReportDoc(Document):
+
+    class Index:
+        name = "smtp_tls"
+
+    organization_name = Text()
+    date_range = Date()
+    date_begin = Date()
+    date_end = Date()
+    contact_info = Text()
+    report_id = Text()
+    policies = Nested(_SMTPTLSPolicyDoc)
+
+    def add_policy(self, policy_type, policy_domain,
+                   successful_session_count,
+                   failed_session_count,
+                   policy_string=None,
+                   mx_host_patterns=None,
+                   failure_details=None):
+        self.policies.append(policy_type=policy_type,
+                             policy_domain=policy_domain,
+                             successful_session_count=successful_session_count,
+                             failed_session_count=failed_session_count,
+                             policy_string=policy_string,
+                             mx_host_patterns=mx_host_patterns,
+                             failure_details=failure_details)
 
 
 class AlreadySaved(ValueError):
@@ -633,3 +619,129 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     except KeyError as e:
         raise InvalidForensicReport(
             "Forensic report missing required field: {0}".format(e.__str__()))
+
+
+def save_smtp_tls_report_to_elasticsearch(report,
+                                          index_suffix=None,
+                                          monthly_indexes=False,
+                                          number_of_shards=1,
+                                          number_of_replicas=0):
+    """
+    Saves a parsed SMTP TLS report to elasticSearch
+
+    Args:
+        report (OrderedDict): A parsed SMTP TLS report
+        index_suffix (str): The suffix of the name of the index to save to
+        monthly_indexes (bool): Use monthly indexes instead of daily indexes
+        number_of_shards (int): The number of shards to use in the index
+        number_of_replicas (int): The number of replicas to use in the index
+
+    Raises:
+            AlreadySaved
+    """
+    logger.info("Saving aggregate report to Elasticsearch")
+    org_name = report["org_name"]
+    report_id = report["report_id"]
+    begin_date = human_timestamp_to_datetime(report["begin_date"],
+                                             to_utc=True)
+    end_date = human_timestamp_to_datetime(report["end_date"],
+                                           to_utc=True)
+    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    if monthly_indexes:
+        index_date = begin_date.strftime("%Y-%m")
+    else:
+        index_date = begin_date.strftime("%Y-%m-%d")
+    report["begin_date"] = begin_date
+    report["end_date"] = end_date
+    date_range = [report["begin_date"],
+                  report["end_date"]]
+
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
+    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
+    end_date_query = Q(dict(match=dict(date_end=end_date)))
+
+    if index_suffix is not None:
+        search = Search(index="smtp_tls_{0}*".format(index_suffix))
+    else:
+        search = Search(index="smtp_tls")
+    query = org_name_query & report_id_query
+    query = query & begin_date_query & end_date_query
+    search.query = query
+
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        raise ElasticsearchError("Elasticsearch's search for existing report \
+            error: {}".format(error_.__str__()))
+
+    if len(existing) > 0:
+        raise AlreadySaved(f"An SMTP TLS report ID {report_id} from "
+                           f" {org_name} with a date range of "
+                           f"{begin_date_human} UTC to "
+                           f"{end_date_human} UTC already "
+                           "exists in Elasticsearch")
+
+    index = "smtp_tls"
+    if index_suffix:
+        index = "{0}_{1}".format(index, index_suffix)
+    index = "{0}-{1}".format(index, index_date)
+    index_settings = dict(number_of_shards=number_of_shards,
+                          number_of_replicas=number_of_replicas)
+
+    smtp_tls_doc = _SMTPTLSFailureReportDoc(
+        organization_name=report["organization_name"],
+        date_range=[report["date_begin"], report["date_end"]],
+        date_begin=report["date_begin"],
+        date_end=report["date_end"],
+        contact_info=report["contact_info"],
+        report_id=report["report_id"]
+    )
+
+    for policy in report['policies']:
+        policy_strings = None
+        mx_host_patterns = None
+        if "policy_strings" in policy:
+            policy_strings = policy["policy_strings"]
+        if "mx_host_patterns" in policy:
+            mx_host_patterns = policy["mx_host_patterns"]
+        policy_doc = _SMTPTLSPolicyDoc(
+            policy_domain=policy["policy_domain"],
+            policy_type=policy["policy_type"],
+            policy_string=policy_strings,
+            mx_host_patterns=mx_host_patterns
+        )
+        if "failure_details" in policy:
+            failure_details = policy["failure_details"]
+            receiving_mx_hostname = None
+            additional_information_uri = None
+            failure_reason_code = None
+            if "receiving_mx_hostname" in failure_details:
+                receiving_mx_hostname = failure_details[
+                    "receiving_mx_hostname"]
+            if "additional_information_uri" in failure_details:
+                additional_information_uri = failure_details[
+                    "additional_information_uri"]
+            if "failure_reason_code" in failure_details:
+                failure_reason_code = failure_details["failure_reason_code"]
+            policy_doc.add_failure_details(
+                result_type=failure_details["result_type"],
+                ip_address=failure_details["ip_address"],
+                receiving_ip=failure_details["receiving_ip"],
+                receiving_mx_helo=failure_details["receiving_mx_helo"],
+                failed_session_count=failure_details["failed_session_count"],
+                receiving_mx_hostname=receiving_mx_hostname,
+                additional_information_uri=additional_information_uri,
+                failure_reason_code=failure_reason_code
+            )
+        smtp_tls_doc.policies.append(policy_doc)
+
+    create_indexes([index], index_settings)
+    smtp_tls_doc.meta.index = index
+
+    try:
+        smtp_tls_doc.save()
+    except Exception as e:
+        raise ElasticsearchError(
+            "Elasticsearch error: {0}".format(e.__str__()))

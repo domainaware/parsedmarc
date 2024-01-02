@@ -11,6 +11,8 @@ from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from parsedmarc import flatten_smtp_tls_report
+
 
 class SplunkError(RuntimeError):
     """Raised when a Splunk API error occurs"""
@@ -142,6 +144,46 @@ class HECClient(object):
             data["sourcetype"] = "dmarc:forensic"
             timestamp = human_timestamp_to_unix_timestamp(
                 report["arrival_date_utc"])
+            data["time"] = timestamp
+            data["event"] = report.copy()
+            json_str += "{0}\n".format(json.dumps(data))
+
+        if not self.session.verify:
+            logger.debug("Skipping certificate verification for Splunk HEC")
+        try:
+            response = self.session.post(self.url, data=json_str,
+                                         timeout=self.timeout)
+            response = response.json()
+        except Exception as e:
+            raise SplunkError(e.__str__())
+        if response["code"] != 0:
+            raise SplunkError(response["text"])
+
+    def save_smtp_tls_reports_to_splunk(self, reports):
+        """
+        Saves aggregate DMARC reports to Splunk
+
+        Args:
+            reports: A list of SMTP TLS report dictionaries
+                to save in Splunk
+
+        """
+        logger.debug("Saving SMTP TLS reports to Splunk")
+        if isinstance(reports, dict):
+            reports = [reports]
+
+        if len(reports) < 1:
+            return
+
+        data = self._common_data.copy()
+        json_str = ""
+        flattened_reports = []
+        for report in reports:
+            flattened_reports += flatten_smtp_tls_report(report)
+        for report in flattened_reports:
+            data["sourcetype"] = "smtp:tls"
+            timestamp = human_timestamp_to_unix_timestamp(
+                report["begin_date"])
             data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
