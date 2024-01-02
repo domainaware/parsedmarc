@@ -22,8 +22,7 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
-    def __init__(self, url, access_token, index,
-                 source="parsedmarc", verify=True, timeout=60):
+    def __init__(self, url, access_token, index, source="parsedmarc", verify=True, timeout=60):
         """
         Initializes the HECClient
 
@@ -37,8 +36,7 @@ class HECClient(object):
                 data before giving up
         """
         url = urlparse(url)
-        self.url = "{0}://{1}/services/collector/event/1.0".format(url.scheme,
-                                                                   url.netloc)
+        self.url = "{0}://{1}/services/collector/event/1.0".format(url.scheme, url.netloc)
         self.access_token = access_token.lstrip("Splunk ")
         self.index = index
         self.host = socket.getfqdn()
@@ -46,12 +44,11 @@ class HECClient(object):
         self.session = requests.Session()
         self.timeout = timeout
         self.session.verify = verify
-        self._common_data = dict(host=self.host, source=self.source,
-                                 index=self.index)
+        self._common_data = dict(host=self.host, source=self.source, index=self.index)
 
         self.session.headers = {
             "User-Agent": "parsedmarc/{0}".format(__version__),
-            "Authorization": "Splunk {0}".format(self.access_token)
+            "Authorization": "Splunk {0}".format(self.access_token),
         }
 
     def save_aggregate_reports_to_splunk(self, aggregate_reports):
@@ -78,34 +75,24 @@ class HECClient(object):
                 for metadata in report["report_metadata"]:
                     new_report[metadata] = report["report_metadata"][metadata]
                 new_report["published_policy"] = report["policy_published"]
-                new_report["source_ip_address"] = record["source"][
-                    "ip_address"]
+                new_report["source_ip_address"] = record["source"]["ip_address"]
                 new_report["source_country"] = record["source"]["country"]
-                new_report["source_reverse_dns"] = record["source"][
-                    "reverse_dns"]
-                new_report["source_base_domain"] = record["source"][
-                    "base_domain"]
+                new_report["source_reverse_dns"] = record["source"]["reverse_dns"]
+                new_report["source_base_domain"] = record["source"]["base_domain"]
                 new_report["message_count"] = record["count"]
-                new_report["disposition"] = record["policy_evaluated"][
-                    "disposition"
-                ]
+                new_report["disposition"] = record["policy_evaluated"]["disposition"]
                 new_report["spf_aligned"] = record["alignment"]["spf"]
                 new_report["dkim_aligned"] = record["alignment"]["dkim"]
                 new_report["passed_dmarc"] = record["alignment"]["dmarc"]
-                new_report["header_from"] = record["identifiers"][
-                    "header_from"]
-                new_report["envelope_from"] = record["identifiers"][
-                    "envelope_from"]
+                new_report["header_from"] = record["identifiers"]["header_from"]
+                new_report["envelope_from"] = record["identifiers"]["envelope_from"]
                 if "dkim" in record["auth_results"]:
-                    new_report["dkim_results"] = record["auth_results"][
-                        "dkim"]
+                    new_report["dkim_results"] = record["auth_results"]["dkim"]
                 if "spf" in record["auth_results"]:
-                    new_report["spf_results"] = record["auth_results"][
-                        "spf"]
+                    new_report["spf_results"] = record["auth_results"]["spf"]
 
                 data["sourcetype"] = "dmarc:aggregate"
-                timestamp = human_timestamp_to_timestamp(
-                    new_report["begin_date"])
+                timestamp = human_timestamp_to_timestamp(new_report["begin_date"])
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
                 json_str += "{0}\n".format(json.dumps(data))
@@ -113,8 +100,7 @@ class HECClient(object):
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str,
-                                         timeout=self.timeout)
+            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
@@ -140,8 +126,7 @@ class HECClient(object):
         for report in forensic_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:forensic"
-            timestamp = human_timestamp_to_timestamp(
-                report["arrival_date_utc"])
+            timestamp = human_timestamp_to_timestamp(report["arrival_date_utc"])
             data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
@@ -149,8 +134,7 @@ class HECClient(object):
         if not self.session.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str,
-                                         timeout=self.timeout)
+            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())

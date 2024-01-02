@@ -3,9 +3,8 @@ from typing import List, Union
 
 
 class MailboxConnection(ABC):
-    """
-    Interface for a mailbox connection
-    """
+    """Interface for a mailbox connection"""
+
     def create_folder(self, folder_name: str) -> None:
         raise NotImplementedError
 

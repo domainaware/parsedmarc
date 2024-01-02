@@ -17,8 +17,7 @@ class KafkaError(RuntimeError):
 
 
 class KafkaClient(object):
-    def __init__(self, kafka_hosts, ssl=False, username=None,
-                 password=None, ssl_context=None):
+    def __init__(self, kafka_hosts, ssl=False, username=None, password=None, ssl_context=None):
         """
         Initializes the Kafka client
         Args:
@@ -37,10 +36,11 @@ class KafkaClient(object):
             ``$ConnectionString``, and the password is the
             Azure Event Hub connection string.
         """
-        config = dict(value_serializer=lambda v: json.dumps(v).encode(
-                              'utf-8'),
-                      bootstrap_servers=kafka_hosts,
-                      client_id="parsedmarc-{0}".format(__version__))
+        config = dict(
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            bootstrap_servers=kafka_hosts,
+            client_id="parsedmarc-{0}".format(__version__),
+        )
         if ssl or username or password:
             config["security_protocol"] = "SSL"
             config["ssl_context"] = ssl_context or create_default_context()
@@ -55,14 +55,14 @@ class KafkaClient(object):
     @staticmethod
     def strip_metadata(report):
         """
-          Duplicates org_name, org_email and report_id into JSON root
-          and removes report_metadata key to bring it more inline
-          with Elastic output.
+        Duplicates org_name, org_email and report_id into JSON root
+        and removes report_metadata key to bring it more inline
+        with Elastic output.
         """
-        report['org_name'] = report['report_metadata']['org_name']
-        report['org_email'] = report['report_metadata']['org_email']
-        report['report_id'] = report['report_metadata']['report_id']
-        report.pop('report_metadata')
+        report["org_name"] = report["report_metadata"]["org_name"]
+        report["org_email"] = report["report_metadata"]["org_email"]
+        report["report_id"] = report["report_metadata"]["report_id"]
+        report.pop("report_metadata")
 
         return report
 
@@ -80,13 +80,11 @@ class KafkaClient(object):
         end_date = human_timestamp_to_datetime(metadata["end_date"])
         begin_date_human = begin_date.strftime("%Y-%m-%dT%H:%M:%S")
         end_date_human = end_date.strftime("%Y-%m-%dT%H:%M:%S")
-        date_range = [begin_date_human,
-                      end_date_human]
+        date_range = [begin_date_human, end_date_human]
         logger.debug("date_range is {}".format(date_range))
         return date_range
 
-    def save_aggregate_reports_to_kafka(self, aggregate_reports,
-                                        aggregate_topic):
+    def save_aggregate_reports_to_kafka(self, aggregate_reports, aggregate_topic):
         """
         Saves aggregate DMARC reports to Kafka
 
@@ -96,38 +94,34 @@ class KafkaClient(object):
             aggregate_topic (str): The name of the Kafka topic
 
         """
-        if (isinstance(aggregate_reports, dict) or
-           isinstance(aggregate_reports, OrderedDict)):
+        if isinstance(aggregate_reports, dict) or isinstance(aggregate_reports, OrderedDict):
             aggregate_reports = [aggregate_reports]
 
         if len(aggregate_reports) < 1:
             return
 
         for report in aggregate_reports:
-            report['date_range'] = self.generate_daterange(report)
+            report["date_range"] = self.generate_daterange(report)
             report = self.strip_metadata(report)
 
-            for slice in report['records']:
-                slice['date_range'] = report['date_range']
-                slice['org_name'] = report['org_name']
-                slice['org_email'] = report['org_email']
-                slice['policy_published'] = report['policy_published']
-                slice['report_id'] = report['report_id']
+            for slice in report["records"]:
+                slice["date_range"] = report["date_range"]
+                slice["org_name"] = report["org_name"]
+                slice["org_email"] = report["org_email"]
+                slice["policy_published"] = report["policy_published"]
+                slice["report_id"] = report["report_id"]
                 logger.debug("Sending slice.")
                 try:
                     logger.debug("Saving aggregate report to Kafka")
                     self.producer.send(aggregate_topic, slice)
                 except UnknownTopicOrPartitionError:
-                    raise KafkaError(
-                        "Kafka error: Unknown topic or partition on broker")
+                    raise KafkaError("Kafka error: Unknown topic or partition on broker")
                 except Exception as e:
-                    raise KafkaError(
-                        "Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
                 try:
                     self.producer.flush()
                 except Exception as e:
-                    raise KafkaError(
-                        "Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
     def save_forensic_reports_to_kafka(self, forensic_reports, forensic_topic):
         """
@@ -151,13 +145,10 @@ class KafkaClient(object):
             logger.debug("Saving forensic reports to Kafka")
             self.producer.send(forensic_topic, forensic_reports)
         except UnknownTopicOrPartitionError:
-            raise KafkaError(
-                "Kafka error: Unknown topic or partition on broker")
+            raise KafkaError("Kafka error: Unknown topic or partition on broker")
         except Exception as e:
-            raise KafkaError(
-                "Kafka error: {0}".format(e.__str__()))
+            raise KafkaError("Kafka error: {0}".format(e.__str__()))
         try:
             self.producer.flush()
         except Exception as e:
-            raise KafkaError(
-                "Kafka error: {0}".format(e.__str__()))
+            raise KafkaError("Kafka error: {0}".format(e.__str__()))

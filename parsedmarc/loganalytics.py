@@ -1,163 +1,90 @@
-# -*- coding: utf-8 -*-
-from parsedmarc.log import logger
+from typing import List, Dict, Optional
+
 from azure.core.exceptions import HttpResponseError
 from azure.identity import ClientSecretCredential
 from azure.monitor.ingestion import LogsIngestionClient
 
+from parsedmarc.log import logger
+
 
 class LogAnalyticsException(Exception):
-    """Raised when an Elasticsearch error occurs"""
+    """Errors originating from LogsIngestionClient"""
 
 
-class LogAnalyticsConfig():
+class LogAnalyticsClient(object):
+    """Azure Log Analytics Client
+
+    Pushes the  DMARC reports to Log Analytics via Data Collection Rules.
+
+    References:
+      - https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-ingestion-api-overview
     """
-    The LogAnalyticsConfig class is used to define the configuration
-    for the Log Analytics Client.
 
-    Properties:
-        client_id (str):
-            The client ID of the service principle.
-        client_secret (str):
-            The client secret of the service principle.
-        tenant_id (str):
-            The tenant ID where
-            the service principle resides.
-        dce (str):
-            The Data Collection Endpoint (DCE)
-            used by the Data Collection Rule (DCR).
-        dcr_immutable_id (str):
-            The immutable ID of
-            the Data Collection Rule (DCR).
-        dcr_aggregate_stream (str):
-            The Stream name where
-            the Aggregate DMARC reports
-            need to be pushed.
-        dcr_forensic_stream (str):
-            The Stream name where
-            the Forensic DMARC reports
-            need to be pushed.
-    """
     def __init__(
-            self,
-            client_id: str,
-            client_secret: str,
-            tenant_id: str,
-            dce: str,
-            dcr_immutable_id: str,
-            dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
+        self,
+        client_id: str,
+        client_secret: str,
+        tenant_id: str,
+        dce: str,
+        dcr_immutable_id: str,
+        dcr_aggregate_stream: Optional[str] = None,
+        dcr_forensic_stream: Optional[str] = None,
+    ):
+        """
+        Args:
+            client_id: The client ID of the service principle.
+            client_secret: The client secret of the service principle.
+            tenant_id: The tenant ID where the service principle resides.
+            dce: The Data Collection Endpoint (DCE) used by the Data Collection Rule (DCR).
+            dcr_immutable_id: The immutable ID of the Data Collection Rule (DCR).
+            dcr_aggregate_stream: The Stream name where the Aggregate DMARC reports need to be pushed.
+            dcr_forensic_stream: The Stream name where the Forensic DMARC reports need to be pushed.
+        """
         self.client_id = client_id
-        self.client_secret = client_secret
+        self._client_secret = client_secret
         self.tenant_id = tenant_id
         self.dce = dce
         self.dcr_immutable_id = dcr_immutable_id
         self.dcr_aggregate_stream = dcr_aggregate_stream
         self.dcr_forensic_stream = dcr_forensic_stream
 
-
-class LogAnalyticsClient(object):
-    """
-    The LogAnalyticsClient is used to push
-    the generated DMARC reports to Log Analytics
-    via Data Collection Rules.
-    """
-    def __init__(
-            self,
-            client_id: str,
-            client_secret: str,
-            tenant_id: str,
-            dce: str,
-            dcr_immutable_id: str,
-            dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
-        self.conf = LogAnalyticsConfig(
-            client_id=client_id,
-            client_secret=client_secret,
-            tenant_id=tenant_id,
-            dce=dce,
-            dcr_immutable_id=dcr_immutable_id,
-            dcr_aggregate_stream=dcr_aggregate_stream,
-            dcr_forensic_stream=dcr_forensic_stream
+        self._credential = ClientSecretCredential(
+            tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
         )
-        if (
-                not self.conf.client_id or
-                not self.conf.client_secret or
-                not self.conf.tenant_id or
-                not self.conf.dce or
-                not self.conf.dcr_immutable_id):
-            raise LogAnalyticsException(
-                "Invalid configuration. " +
-                "One or more required settings are missing.")
+        self.logs_client = LogsIngestionClient(dce, credential=self._credential)
+        return
 
-    def publish_json(
-            self,
-            results,
-            logs_client: LogsIngestionClient,
-            dcr_stream: str):
-        """
-        Background function to publish given
-        DMARC reprot to specific Data Collection Rule.
+    def _publish_json(self, reports: List[Dict], dcr_stream: str) -> None:
+        """Publish DMARC reports to the given Data Collection Rule.
 
         Args:
-            results (list):
-                The results generated by parsedmarc.
-            logs_client (LogsIngestionClient):
-                The client used to send the DMARC reports.
-            dcr_stream (str):
-                The stream name where the DMARC reports needs to be pushed.
+            results: The results generated by parsedmarc.
+            logs_client: The client used to send the DMARC reports.
+            dcr_stream: The stream name where the DMARC reports needs to be pushed.
         """
         try:
-            logs_client.upload(self.conf.dcr_immutable_id, dcr_stream, results)  # type: ignore[attr-defined]
+            self.logs_client.upload(self.dcr_immutable_id, dcr_stream, reports)  # type: ignore[attr-defined]
         except HttpResponseError as e:
-            raise LogAnalyticsException(
-                "Upload failed: {error}"
-                .format(error=e))
+            raise LogAnalyticsException(f"Upload failed: {e!r}")
+        return
 
     def publish_results(
-            self,
-            results,
-            save_aggregate: bool,
-            save_forensic: bool):
-        """
-        Function to publish DMARC reports to Log Analytics
-        via Data Collection Rules (DCR).
-        Look below for docs:
-        https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-ingestion-api-overview
+        self, results: Dict[str, List[Dict]], save_aggregate: bool, save_forensic: bool
+    ) -> None:
+        """Publish DMARC reports to Log Analytics via Data Collection Rules (DCR).
 
         Args:
-            results (list):
-                The DMARC reports (Aggregate & Forensic)
-            save_aggregate (bool):
-                Whether Aggregate reports can be saved into Log Analytics
-            save_forensic (bool):
-                Whether Forensic reports can be saved into Log Analytics
+            results: The DMARC reports (Aggregate & Forensic)
+            save_aggregate: Whether Aggregate reports can be saved into Log Analytics
+            save_forensic: Whether Forensic reports can be saved into Log Analytics
         """
-        conf = self.conf
-        credential = ClientSecretCredential(
-            tenant_id=conf.tenant_id,
-            client_id=conf.client_id,
-            client_secret=conf.client_secret
-        )
-        logs_client = LogsIngestionClient(conf.dce, credential=credential)
-        if (
-                results['aggregate_reports'] and
-                conf.dcr_aggregate_stream and
-                len(results['aggregate_reports']) > 0 and
-                save_aggregate):
+        if results["aggregate_reports"] and self.dcr_aggregate_stream and save_aggregate:
             logger.info("Publishing aggregate reports.")
-            self.publish_json(
-                results['aggregate_reports'],
-                logs_client,
-                conf.dcr_aggregate_stream)
+            self._publish_json(results["aggregate_reports"], self.dcr_aggregate_stream)
             logger.info("Successfully pushed aggregate reports.")
-        if (
-                results['forensic_reports'] and
-                conf.dcr_forensic_stream and
-                len(results['forensic_reports']) > 0 and
-                save_forensic):
+
+        if results["forensic_reports"] and self.dcr_forensic_stream and save_forensic:
             logger.info("Publishing forensic reports.")
-            self.publish_json(
-                results['forensic_reports'],
-                logs_client,
-                conf.dcr_forensic_stream)
+            self._publish_json(results["forensic_reports"], self.dcr_forensic_stream)
             logger.info("Successfully pushed forensic reports.")
+        return
