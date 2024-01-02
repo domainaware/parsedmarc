@@ -6,12 +6,11 @@ import urllib3
 import requests
 
 from parsedmarc import __version__
+from parsedmarc import flatten_smtp_tls_report
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-from parsedmarc import flatten_smtp_tls_report
 
 
 class SplunkError(RuntimeError):
