@@ -117,9 +117,11 @@ class LogAnalyticsClient(object):
             self,
             results,
             save_aggregate: bool,
-            save_forensic: bool):
+            save_forensic: bool,
+            save_smtp_tls: bool
+    ):
         """
-        Function to publish DMARC reports to Log Analytics
+        Function to publish DMARC and/or SMTP TLS reports to Log Analytics
         via Data Collection Rules (DCR).
         Look below for docs:
         https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-ingestion-api-overview
@@ -130,6 +132,8 @@ class LogAnalyticsClient(object):
             save_aggregate (bool):
                 Whether Aggregate reports can be saved into Log Analytics
             save_forensic (bool):
+                Whether Forensic reports can be saved into Log Analytics
+            save_smtp_tls (bool):
                 Whether Forensic reports can be saved into Log Analytics
         """
         conf = self.conf
@@ -161,3 +165,14 @@ class LogAnalyticsClient(object):
                 logs_client,
                 conf.dcr_forensic_stream)
             logger.info("Successfully pushed forensic reports.")
+        if (
+                results['smtp_tls_reports'] and
+                conf.dcr_smtp_tls_stream and
+                len(results['smtp_tls_reports']) > 0 and
+                save_smtp_tls):
+            logger.info("Publishing SMTP TLS reports.")
+            self.publish_json(
+                results['smtp_tls_reports'],
+                logs_client,
+                conf.dcr_forensic_stream)
+            logger.info("Successfully pushed SMTP TLS reports.")

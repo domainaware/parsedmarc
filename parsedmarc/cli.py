@@ -236,7 +236,8 @@ def _main():
                 la_client.publish_results(
                     reports_,
                     opts.save_aggregate,
-                    opts.save_forensic)
+                    opts.save_forensic,
+                    opts.save_smtp_tls)
             except loganalytics.LogAnalyticsException as e:
                 logger.error(
                     "Log Analytics error: {0}".format(e.__str__()))
