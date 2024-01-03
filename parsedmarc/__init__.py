@@ -1061,7 +1061,6 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                                   "".format(fields["received-date"],
                                             fields["sender-ip-address"])
                 sample = parts[1].lstrip()
-                sample = sample.replace("=\r\n", "")
                 logger.debug(sample)
         else:
             try:
