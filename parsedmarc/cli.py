@@ -175,29 +175,77 @@ def _main():
                             forensic_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
-        if opts.la_dce:
-            try:
-                la_client = loganalytics.LogAnalyticsClient(
-                    client_id=opts.la_client_id,
-                    client_secret=opts.la_client_secret,
-                    tenant_id=opts.la_tenant_id,
-                    dce=opts.la_dce,
-                    dcr_immutable_id=opts.la_dcr_immutable_id,
-                    dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
-                    dcr_forensic_stream=opts.la_dcr_forensic_stream
-                )
-                la_client.publish_results(
-                    reports_,
-                    opts.save_aggregate,
-                    opts.save_forensic)
-            except loganalytics.LogAnalyticsException as e:
-                logger.error("Log Analytics error: {0}".format(e.__str__()))
-            except Exception as e:
-                logger.error(
-                    "Unknown error occured" +
-                    " during the publishing" +
-                    " to Log Analitics: " +
-                    e.__str__())
+        if opts.save_smtp_tls:
+            for report in reports_["smtp_tls_reports"]:
+                try:
+                    shards = opts.elasticsearch_number_of_shards
+                    replicas = opts.elasticsearch_number_of_replicas
+                    if opts.elasticsearch_hosts:
+                        elastic.save_smtp_tls_report_to_elasticsearch(
+                            report,
+                            index_suffix=opts.elasticsearch_index_suffix,
+                            monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas)
+                except elastic.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except elastic.ElasticsearchError as error_:
+                    logger.error("Elasticsearch Error: {0}".format(
+                        error_.__str__()))
+                except InvalidDMARCReport as error_:
+                    logger.error(error_.__str__())
+                try:
+                    if opts.kafka_hosts:
+                        pass
+                        # TODO: save SMTP TLS reports to Kafka
+                except Exception as error_:
+                    logger.error("Kafka Error: {0}".format(
+                        error_.__str__()))
+                try:
+                    if opts.s3_bucket:
+                        pass
+                        # TODO: save SMTP TLS reports to S3
+                except Exception as error_:
+                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                try:
+                    if opts.syslog_server:
+                        if opts.s3_bucket:
+                            pass
+                    # TODO: save SMTP TLS reports to syslog
+                except Exception as error_:
+                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+            if opts.hec:
+                try:
+                    smtp_tls_reports_ = reports_["smtp_tls_reports"]
+                    if len(smtp_tls_reports_) > 0:
+                        hec_client.save_smtp_tls_reports_to_splunk(
+                            smtp_tls_reports_)
+                except splunk.SplunkError as e:
+                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+            if opts.la_dce:
+                try:
+                    la_client = loganalytics.LogAnalyticsClient(
+                        client_id=opts.la_client_id,
+                        client_secret=opts.la_client_secret,
+                        tenant_id=opts.la_tenant_id,
+                        dce=opts.la_dce,
+                        dcr_immutable_id=opts.la_dcr_immutable_id,
+                        dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
+                        dcr_forensic_stream=opts.la_dcr_forensic_stream
+                    )
+                    la_client.publish_results(
+                        reports_,
+                        opts.save_aggregate,
+                        opts.save_forensic)
+                except loganalytics.LogAnalyticsException as e:
+                    logger.error(
+                        "Log Analytics error: {0}".format(e.__str__()))
+                except Exception as e:
+                    logger.error(
+                        "Unknown error occurred" +
+                        " during the publishing" +
+                        " to Log Analytics: " +
+                        e.__str__())
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("-c", "--config-file",

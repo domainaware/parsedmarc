@@ -96,7 +96,7 @@ class LogAnalyticsClient(object):
             dcr_stream: str):
         """
         Background function to publish given
-        DMARC reprot to specific Data Collection Rule.
+        DMARC report to specific Data Collection Rule.
 
         Args:
             results (list):
