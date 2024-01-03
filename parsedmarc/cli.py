@@ -203,8 +203,7 @@ def _main():
                         error_.__str__()))
                 try:
                     if opts.s3_bucket:
-                        pass
-                        # TODO: save SMTP TLS reports to S3
+                        s3_client.save_smtp_tls_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
                 try:

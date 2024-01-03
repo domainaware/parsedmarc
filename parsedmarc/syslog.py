@@ -35,7 +35,7 @@ class SyslogClient(object):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
- 
+
     def save_smtp_tls_report_to_syslog(self, smtp_tls_reports):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
