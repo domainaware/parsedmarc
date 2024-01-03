@@ -4,7 +4,8 @@ Changelog
 8.7.0
 -----
 
-- Add support for SMTP TLS reports (PR #453 closes issue #71) 
+- Add support for SMTP TLS reports (PR #453 closes issue #71)
+- Do not replace content in forensic samples (fix #403)
 
 8.6.4
 -----
