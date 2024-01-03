@@ -222,30 +222,30 @@ def _main():
                             smtp_tls_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
-            if opts.la_dce:
-                try:
-                    la_client = loganalytics.LogAnalyticsClient(
-                        client_id=opts.la_client_id,
-                        client_secret=opts.la_client_secret,
-                        tenant_id=opts.la_tenant_id,
-                        dce=opts.la_dce,
-                        dcr_immutable_id=opts.la_dcr_immutable_id,
-                        dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
-                        dcr_forensic_stream=opts.la_dcr_forensic_stream
-                    )
-                    la_client.publish_results(
-                        reports_,
-                        opts.save_aggregate,
-                        opts.save_forensic)
-                except loganalytics.LogAnalyticsException as e:
-                    logger.error(
-                        "Log Analytics error: {0}".format(e.__str__()))
-                except Exception as e:
-                    logger.error(
-                        "Unknown error occurred" +
-                        " during the publishing" +
-                        " to Log Analytics: " +
-                        e.__str__())
+        if opts.la_dce:
+            try:
+                la_client = loganalytics.LogAnalyticsClient(
+                    client_id=opts.la_client_id,
+                    client_secret=opts.la_client_secret,
+                    tenant_id=opts.la_tenant_id,
+                    dce=opts.la_dce,
+                    dcr_immutable_id=opts.la_dcr_immutable_id,
+                    dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
+                    dcr_forensic_stream=opts.la_dcr_forensic_stream
+                )
+                la_client.publish_results(
+                    reports_,
+                    opts.save_aggregate,
+                    opts.save_forensic)
+            except loganalytics.LogAnalyticsException as e:
+                logger.error(
+                    "Log Analytics error: {0}".format(e.__str__()))
+            except Exception as e:
+                logger.error(
+                    "Unknown error occurred" +
+                    " during the publishing" +
+                    " to Log Analytics: " +
+                    e.__str__())
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument("-c", "--config-file",
