@@ -1,8 +1,13 @@
 Changelog
 =========
 
+8.7.0
+-----
+
+- Add support for SMTP TLS reports (PR #453 closes issue #71) 
+
 8.6.4
-----
+-----
 
 - Properly process aggregate reports that incorrectly call `identifiers` `identities`
 - Ignore SPF results in aggregate report records if the domain is not provided
