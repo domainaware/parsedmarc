@@ -174,5 +174,5 @@ class LogAnalyticsClient(object):
             self.publish_json(
                 results['smtp_tls_reports'],
                 logs_client,
-                conf.dcr_forensic_stream)
+                conf.dcr_smtp_tls_stream)
             logger.info("Successfully pushed SMTP TLS reports.")
