@@ -11,7 +11,7 @@ dynamic = [
 ]
 description = "A Python package and CLI for parsing aggregate and forensic DMARC reports"
 readme = "README.md"
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
 authors = [
     { name = "Sean Whalen", email = "whalenster@gmail.com" },
 ]
@@ -26,7 +26,13 @@ classifiers = [
     "Intended Audience :: Information Technology",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3"
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 requires-python = ">=3.7"
@@ -58,6 +64,31 @@ dependencies = [
     "xmltodict>=0.12.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    ## Type Stubs
+    "google-api-python-client-stubs",
+    "google-auth-stubs",
+    "lxml-stubs",
+    "types-boto3",
+    "types-python-dateutil",
+    "types-requests",
+    "types-tqdm",
+    "types-xmltodict",
+    ### dev.sh dependencies
+    ## Formatting / Linting
+    "validate-pyproject[all]",
+    "black",
+    "isort",
+    #"pylint",
+    "mypy",
+    ## Testing
+    "flake8",
+    #"pytest",
+    ## REPL
+    "bpython",
+]
+
 [project.scripts]
 parsedmarc = "parsedmarc.cli:_main"
 
@@ -71,3 +102,15 @@ path = "parsedmarc/__init__.py"
 include = [
     "/parsedmarc",
 ]
+
+[tool.isort]
+profile = "black"
+force_sort_within_sections = true
+src_paths = ["parsedmarc", "tests.py"]
+
+# Section Headings
+import_heading_future = "Future"
+import_heading_stdlib = "Standard Library"
+import_heading_thirdparty = "Installed"
+import_heading_firstparty = "Package"
+import_heading_localfolder = "Local"

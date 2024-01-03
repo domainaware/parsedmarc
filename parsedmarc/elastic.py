@@ -1,26 +1,29 @@
+# Standard Library
 from collections import OrderedDict
-from typing import Optional, Union, List, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
-from elasticsearch_dsl.search import Q
+# Installed
+from elasticsearch.helpers import reindex
 from elasticsearch_dsl import (
-    connections,
-    Object,
+    Boolean,
+    Date,
     Document,
     Index,
-    Nested,
     InnerDoc,
     Integer,
-    Text,
-    Boolean,
     Ip,
-    Date,
+    Nested,
+    Object,
     Search,
+    Text,
+    connections,
 )
-from elasticsearch.helpers import reindex
+from elasticsearch_dsl.search import Q
 
+# Package
+from parsedmarc import InvalidForensicReport
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
-from parsedmarc import InvalidForensicReport
 
 
 class ElasticsearchError(Exception):

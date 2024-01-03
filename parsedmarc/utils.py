@@ -1,41 +1,36 @@
 """Utility functions that might be useful for other projects"""
 
-import logging
-import os
-from datetime import datetime
-from datetime import timezone
-from datetime import timedelta
-from collections import OrderedDict
-import tempfile
-import subprocess
-import shutil
-import mailparser
-import json
-import hashlib
-import base64
+# Standard Library
 import atexit
+import base64
+from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
+import hashlib
+import importlib.resources
+import json
+import logging
 import mailbox
+import os
 import re
-from typing import List, Dict, Any, Optional, Union
+import shutil
+import subprocess
+import tempfile
+from typing import Any, Dict, List, Optional, Union
 
-try:
-    import importlib.resources as pkg_resources
-except ImportError:
-    # Try backported to PY<37 `importlib_resources`
-    import importlib_resources as pkg_resources  # type: ignore[no-redef]
-
+# Installed
 from dateutil.parser import parse as parse_date
-import dns.reversename
-import dns.resolver
 import dns.exception
+import dns.resolver
+import dns.reversename
 from expiringdict import ExpiringDict
 import geoip2.database
 import geoip2.errors
+import mailparser
 import publicsuffixlist
 
+# Package
 from parsedmarc.log import logger
 import parsedmarc.resources.dbip
-
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
@@ -272,7 +267,8 @@ def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Op
         if os.path.isfile(db_path) is False:
             db_path = None
             logger.warning(
-                f"No file exists at {db_path}. Falling back to an included copy of the IPDB IP to Country Lite database."
+                f"No file exists at {db_path}. "
+                "Falling back to an included copy of the IPDB IP to Country Lite database."
             )
 
     if db_path is None:
@@ -282,7 +278,7 @@ def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Op
                 break
 
     if db_path is None:
-        with pkg_resources.path(parsedmarc.resources.dbip, "dbip-country-lite.mmdb") as path:
+        with importlib.resources.path(parsedmarc.resources.dbip, "dbip-country-lite.mmdb") as path:
             db_path = str(path)
 
         db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)

@@ -1,14 +1,17 @@
+# Standard Library
 from collections import OrderedDict
 import json
-from ssl import create_default_context, SSLContext
-from typing import Optional, Union, List, Dict, Any
+from ssl import SSLContext, create_default_context
+from typing import List, Optional, Union
 
+# Installed
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
 
-from parsedmarc.utils import human_timestamp_to_datetime
+# Package
 from parsedmarc import __version__
 from parsedmarc.log import logger
+from parsedmarc.utils import human_timestamp_to_datetime
 
 
 class KafkaError(RuntimeError):

@@ -1,9 +1,11 @@
+# Standard Library
 from base64 import urlsafe_b64decode
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
 from typing import TYPE_CHECKING, List
 
+# Installed
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -14,6 +16,7 @@ if TYPE_CHECKING:
     # https://github.com/henribru/google-api-python-client-stubs?tab=readme-ov-file#explicit-annotations
     from googleapiclient._apis.gmail.v1.schemas import ModifyMessageRequest, Label
 
+# Package
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 

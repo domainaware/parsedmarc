@@ -1,8 +1,11 @@
+# Standard Library
 import json
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
+# Installed
 import boto3
 
+# Package
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 

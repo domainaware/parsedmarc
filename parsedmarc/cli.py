@@ -1,42 +1,44 @@
 #!/usr/bin/env python3
 """A CLI for parsing DMARC reports"""
 
-from argparse import Namespace, ArgumentParser
-import os
+# Standard Library
+from argparse import ArgumentParser, Namespace
+from collections import OrderedDict
 from configparser import ConfigParser
 from glob import glob
-import logging
-from collections import OrderedDict
-import json
-from ssl import CERT_NONE, create_default_context
-from multiprocessing import Pool, Value
 from itertools import repeat
+import json
+import logging
+from multiprocessing import Pool, Value
+import os
+from ssl import CERT_NONE, create_default_context
 import sys
 import time
+
+# Installed
 from tqdm import tqdm
 
+# Package
 from parsedmarc import (
-    get_dmarc_reports_from_mailbox,
-    watch_inbox,
-    parse_report_file,
-    get_dmarc_reports_from_mbox,
-    elastic,
-    kafkaclient,
-    splunk,
-    save_output,
-    email_results,
+    InvalidDMARCReport,
     ParserError,
     __version__,
-    InvalidDMARCReport,
-    s3,
-    syslog,
+    elastic,
+    email_results,
+    get_dmarc_reports_from_mailbox,
+    get_dmarc_reports_from_mbox,
+    kafkaclient,
     loganalytics,
+    parse_report_file,
+    s3,
+    save_output,
+    splunk,
+    syslog,
+    watch_inbox,
 )
-
-from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
-from parsedmarc.mail.graph import AuthMethod
-
 from parsedmarc.log import logger
+from parsedmarc.mail import GmailConnection, IMAPConnection, MSGraphConnection
+from parsedmarc.mail.graph import AuthMethod
 from parsedmarc.utils import is_mbox
 
 formatter = logging.Formatter(
@@ -856,7 +858,7 @@ def _main():
                 ssl_context=ssl_context,
             )
         except Exception as error_:
-            logger.error(f"Kafka Error: {error!r}")
+            logger.error(f"Kafka Error: {error_!r}")
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic

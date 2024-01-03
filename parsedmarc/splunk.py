@@ -1,11 +1,14 @@
-from urllib.parse import urlparse
-import socket
+# Standard Library
 import json
-from typing import Union, Optional, Dict, List, Any
+import socket
+from typing import Any, Dict, List, Union
+from urllib.parse import urlparse
 
-import urllib3
+# Installed
 import requests
+import urllib3
 
+# Package
 from parsedmarc import __version__
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_timestamp

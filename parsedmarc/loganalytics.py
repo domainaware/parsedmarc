@@ -1,9 +1,12 @@
-from typing import List, Dict, Optional
+# Standard Library
+from typing import Dict, List, Optional
 
+# Installed
 from azure.core.exceptions import HttpResponseError
 from azure.identity import ClientSecretCredential
 from azure.monitor.ingestion import LogsIngestionClient
 
+# Package
 from parsedmarc.log import logger
 
 

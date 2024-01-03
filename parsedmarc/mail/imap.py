@@ -1,10 +1,13 @@
+# Standard Library
+from socket import timeout
 from time import sleep
 from typing import Optional
 
+# Installed
 from imapclient.exceptions import IMAPClientError
 from mailsuite.imap import IMAPClient
-from socket import timeout
 
+# Package
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 

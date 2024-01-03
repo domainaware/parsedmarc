@@ -1,8 +1,13 @@
+# Standard Library
+import json
 import logging
 import logging.handlers
-import json
 
-from parsedmarc import parsed_aggregate_reports_to_csv_rows, parsed_forensic_reports_to_csv_rows
+# Package
+from parsedmarc import (
+    parsed_aggregate_reports_to_csv_rows,
+    parsed_forensic_reports_to_csv_rows,
+)
 
 
 class SyslogClient(object):

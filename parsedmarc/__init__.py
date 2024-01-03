@@ -1,36 +1,44 @@
 """A Python package for parsing DMARC reports"""
 
+# Standard Library
+from base64 import b64decode
 import binascii
+from collections import OrderedDict
+from csv import DictWriter
+from datetime import datetime
 import email
 import email.utils
+from io import BytesIO, StringIO
 import json
 import mailbox
 import os
 import re
 import shutil
 import tempfile
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, Union, cast
 import xml.parsers.expat as expat
 import zipfile
 import zlib
-from base64 import b64decode
-from collections import OrderedDict
-from csv import DictWriter
-from datetime import datetime
-from io import BytesIO, StringIO
-from typing import List, Dict, Any, Optional, Union, Callable, BinaryIO, cast
 
-import mailparser
-import xmltodict
+# Installed
 from expiringdict import ExpiringDict
 from lxml import etree
+import mailparser
 from mailsuite.smtp import send_email
+import xmltodict
 
+# Package
 from parsedmarc.log import logger
 from parsedmarc.mail import MailboxConnection
-from parsedmarc.utils import get_base_domain, get_ip_address_info
-from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
-from parsedmarc.utils import parse_email
-from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
+from parsedmarc.utils import (
+    convert_outlook_msg,
+    get_base_domain,
+    get_ip_address_info,
+    human_timestamp_to_datetime,
+    is_outlook_msg,
+    parse_email,
+    timestamp_to_human,
+)
 
 __version__ = "8.6.4"
 
@@ -758,7 +766,7 @@ def parse_forensic_report(
         raise InvalidForensicReport(f"Missing value: {error!r}")
 
     except Exception as error:
-        raise InvalidForensicReport("Unexpected error: {error!r}")
+        raise InvalidForensicReport(f"Unexpected error: {error!r}")
 
 
 def parsed_forensic_reports_to_csv_rows(
@@ -1299,7 +1307,7 @@ def watch_inbox(
         archive_folder: The folder to move processed mail to
         delete: Delete  messages after processing them
         test: Do not move or delete messages after processing them
-        check_timeout: Number of seconds to wait for a IMAP IDLE response or the number of seconds until the next mail check
+        check_timeout: Number of seconds to wait for a IMAP IDLE response or the next mail check
         ip_db_path: Path to a MMDB file from MaxMind or DBIP
         offline: Do not query online for geolocation or DNS
         nameservers: A list of one or more nameservers to use (Cloudflare's public DNS resolvers by default)

@@ -1,18 +1,21 @@
+# Standard Library
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
+# Installed
 from azure.identity import (
-    UsernamePasswordCredential,
-    DeviceCodeCredential,
-    ClientSecretCredential,
-    TokenCachePersistenceOptions,
     AuthenticationRecord,
+    ClientSecretCredential,
+    DeviceCodeCredential,
+    TokenCachePersistenceOptions,
+    UsernamePasswordCredential,
 )
 from msgraph.core import GraphClient
 
+# Package
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
