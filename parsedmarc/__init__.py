@@ -315,34 +315,39 @@ def parse_smtp_tls_report_json(report):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def flatten_smtp_tls_report(report):
-    """Converts a parsed SMTP TLS report into a list of single layer
-    OrderedDict objects"""
-    records = []
-    common_fields = OrderedDict(
-        organization_name=report["organization_name"],
-        begin_date=report["begin_date"],
-        end_date=report["end_date"],
-        report_id=report["report_id"]
-    )
-    record = common_fields.copy()
-    for policy in report["policies"]:
-        if "policy_strings" in policy:
-            record["policy_strings"] = "|".join(policy["policy_strings"])
-        if "mx_host_patterns" in policy:
-            record["mx_host_patterns"] = "|".join(policy["mx_host_patterns"])
-        successful_record = record.copy()
-        successful_record["successful_session_count"] = policy[
-            "successful_session_count"]
-        records.append(successful_record)
-        if "failure_details" in policy:
-            for failure_details in policy["failure_details"]:
-                failure_record = record.copy()
-                for key in failure_details.keys():
-                    failure_record[key] = failure_details[key]
-                records.append(failure_record)
+def parsed_smtp_tls_reports_to_csv_rows(reports):
+    """Converts one oor more parsed SMTP TLS reports into a list of single
+    layer OrderedDict objects suitable for use in a CSV"""
+    if type(reports) is OrderedDict:
+        reports = [reports]
 
-    return records
+    rows = []
+    for report in reports:
+        common_fields = OrderedDict(
+            organization_name=report["organization_name"],
+            begin_date=report["begin_date"],
+            end_date=report["end_date"],
+            report_id=report["report_id"]
+        )
+        record = common_fields.copy()
+        for policy in report["policies"]:
+            if "policy_strings" in policy:
+                record["policy_strings"] = "|".join(policy["policy_strings"])
+            if "mx_host_patterns" in policy:
+                record["mx_host_patterns"] = "|".join(
+                    policy["mx_host_patterns"])
+            successful_record = record.copy()
+            successful_record["successful_session_count"] = policy[
+                "successful_session_count"]
+            rows.append(successful_record)
+            if "failure_details" in policy:
+                for failure_details in policy["failure_details"]:
+                    failure_record = record.copy()
+                    for key in failure_details.keys():
+                        failure_record[key] = failure_details[key]
+                    rows.append(failure_record)
+
+    return rows
 
 
 def parsed_smtp_tls_reports_to_csv(reports):
@@ -368,9 +373,7 @@ def parsed_smtp_tls_reports_to_csv(reports):
     writer = DictWriter(csv_file_object, fields)
     writer.writeheader()
 
-    rows = []
-    for report in reports:
-        rows += flatten_smtp_tls_report(report)
+    rows = parsed_smtp_tls_reports_to_csv_rows(reports)
 
     for row in rows:
         writer.writerow(row)

@@ -209,9 +209,7 @@ def _main():
                     logger.error("S3 Error: {0}".format(error_.__str__()))
                 try:
                     if opts.syslog_server:
-                        if opts.s3_bucket:
-                            pass
-                    # TODO: save SMTP TLS reports to syslog
+                        syslog_client.save_smtp_tls_report_to_syslog(report)
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
             if opts.hec:
