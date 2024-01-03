@@ -161,3 +161,36 @@ class KafkaClient(object):
         except Exception as e:
             raise KafkaError(
                 "Kafka error: {0}".format(e.__str__()))
+
+    def save_smtp_tls_reports_to_kafka(self, smtp_tls_reports, smtp_tls_topic):
+        """
+        Saves SMTP TLS reports to Kafka, sends individual
+        records (slices) since Kafka requires messages to be <= 1MB
+        by default.
+
+        Args:
+            smtp_tls_reports (list):  A list of forensic report dicts
+            to save to Kafka
+            smtp_tls_topic (str): The name of the Kafka topic
+
+        """
+        if isinstance(smtp_tls_reports, dict):
+            smtp_tls_reports = [smtp_tls_reports]
+
+        if len(smtp_tls_reports) < 1:
+            return
+
+        try:
+            logger.debug("Saving forensic reports to Kafka")
+            self.producer.send(smtp_tls_topic, smtp_tls_reports)
+        except UnknownTopicOrPartitionError:
+            raise KafkaError(
+                "Kafka error: Unknown topic or partition on broker")
+        except Exception as e:
+            raise KafkaError(
+                "Kafka error: {0}".format(e.__str__()))
+        try:
+            self.producer.flush()
+        except Exception as e:
+            raise KafkaError(
+                "Kafka error: {0}".format(e.__str__()))

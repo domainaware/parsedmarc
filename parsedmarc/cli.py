@@ -196,8 +196,8 @@ def _main():
                     logger.error(error_.__str__())
                 try:
                     if opts.kafka_hosts:
-                        pass
-                        # TODO: save SMTP TLS reports to Kafka
+                        kafka_client.save_smtp_tls_reports_to_kafka(
+                            smtp_tls_reports, kafka_smtp_tls_topic)
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
@@ -370,6 +370,7 @@ def _main():
                      kafka_password=None,
                      kafka_aggregate_topic=None,
                      kafka_forensic_topic=None,
+                     kafka_smtp_tls_topic=None,
                      kafka_ssl=False,
                      kafka_skip_certificate_verification=False,
                      smtp_host=None,
@@ -724,6 +725,11 @@ def _main():
                 opts.kafka_username = kafka_config["forensic_topic"]
             else:
                 logger.critical("forensic_topic setting missing from the "
+                                "kafka config section")
+            if "smtp_tls_topic" in kafka_config:
+                opts.kafka_username = kafka_config["smtp_tls_topic"]
+            else:
+                logger.critical("forensic_topic setting missing from the "
                                 "splunk_hec config section")
         if "smtp" in config.sections():
             smtp_config = config["smtp"]
@@ -953,6 +959,7 @@ def _main():
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic
+    kafka_smtp_tls_topic = opts.kafka_smtp_tls_topic
 
     file_paths = []
     mbox_paths = []
