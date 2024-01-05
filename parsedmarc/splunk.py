@@ -6,7 +6,6 @@ import urllib3
 import requests
 
 from parsedmarc import __version__
-from parsedmarc import parsed_smtp_tls_reports_to_csv_rows
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
