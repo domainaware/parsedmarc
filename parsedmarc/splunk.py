@@ -176,7 +176,6 @@ class HECClient(object):
 
         data = self._common_data.copy()
         json_str = ""
-        reports = parsed_smtp_tls_reports_to_csv_rows(reports)
         for report in reports:
             data["sourcetype"] = "smtp:tls"
             timestamp = human_timestamp_to_unix_timestamp(
