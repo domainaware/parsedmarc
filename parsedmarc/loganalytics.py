@@ -36,6 +36,10 @@ class LogAnalyticsConfig():
             The Stream name where
             the Forensic DMARC reports
             need to be pushed.
+        dcr_smtp_tls_stream (str):
+            The Stream name where
+            the SMTP TLS Reports
+            need to be pushed.
     """
     def __init__(
             self,
@@ -45,7 +49,8 @@ class LogAnalyticsConfig():
             dce: str,
             dcr_immutable_id: str,
             dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
+            dcr_forensic_stream: str,
+            dcr_smtp_tls_stream: str):
         self.client_id = client_id
         self.client_secret = client_secret
         self.tenant_id = tenant_id
@@ -53,6 +58,7 @@ class LogAnalyticsConfig():
         self.dcr_immutable_id = dcr_immutable_id
         self.dcr_aggregate_stream = dcr_aggregate_stream
         self.dcr_forensic_stream = dcr_forensic_stream
+        self.dcr_smtp_tls_stream = dcr_smtp_tls_stream
 
 
 class LogAnalyticsClient(object):
@@ -69,7 +75,8 @@ class LogAnalyticsClient(object):
             dce: str,
             dcr_immutable_id: str,
             dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
+            dcr_forensic_stream: str,
+            dcr_smtp_tls_stream: str):
         self.conf = LogAnalyticsConfig(
             client_id=client_id,
             client_secret=client_secret,
@@ -77,7 +84,8 @@ class LogAnalyticsClient(object):
             dce=dce,
             dcr_immutable_id=dcr_immutable_id,
             dcr_aggregate_stream=dcr_aggregate_stream,
-            dcr_forensic_stream=dcr_forensic_stream
+            dcr_forensic_stream=dcr_forensic_stream,
+            dcr_smtp_tls_stream=dcr_smtp_tls_stream
         )
         if (
                 not self.conf.client_id or
