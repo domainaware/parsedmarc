@@ -187,3 +187,46 @@ Thanks to GitHub user [xennn](https://github.com/xennn) for the anonymized
 feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only
 auth-failure,Lua/1.0,1.0,,sharepoint@domain.de,peter.pan@domain.de,"Mon, 01 Oct 2018 11:20:27 +0200",2018-10-01 09:20:27,Subject,<38.E7.30937.BD6E1BB5@ mailrelay.de>,"dmarc=fail (p=none, dis=none) header.from=domain.de",,10.10.10.10,,,,policy,dmarc,domain.de,,False
 ```
+
+### JSON SMTP TLS report
+
+```json
+[
+  {
+    "organization_name": "Example Inc.",
+    "begin_date": "2024-01-09T00:00:00Z",
+    "end_date": "2024-01-09T23:59:59Z",
+    "report_id": "2024-01-09T00:00:00Z_example.com",
+    "policies": [
+      {
+        "policy_domain": "example.com",
+        "policy_type": "sts",
+        "policy_strings": [
+          "version: STSv1",
+          "mode: testing",
+          "mx: example.com",
+          "max_age: 86400"
+        ],
+        "successful_session_count": 0,
+        "failed_session_count": 3,
+        "failure_details": [
+          {
+            "result_type": "validation-failure",
+            "failed_session_count": 2,
+            "sending_mta_ip": "209.85.222.201",
+            "receiving_ip": "173.212.201.41",
+            "receiving_mx_hostname": "example.com"
+          },
+          {
+            "result_type": "validation-failure",
+            "failed_session_count": 1,
+            "sending_mta_ip": "209.85.208.176",
+            "receiving_ip": "173.212.201.41",
+            "receiving_mx_hostname": "example.com"
+          }
+        ]
+      }
+    ]
+  }
+]
+```
