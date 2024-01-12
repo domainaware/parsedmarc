@@ -1,4 +1,4 @@
-<form theme="dark" version="1.1">
+<form theme="dark">
   <label>Aggregate DMARC data</label>
   <description>A summary of aggregate DMARC report data</description>
   <fieldset submitButton="false" autoRun="true">
@@ -39,16 +39,6 @@
       <label>Envelope from</label>
       <default>*</default>
     </input>
-    <input type="text" token="dkim_selector" searchWhenChanged="true">
-      <label>DKIM selector</label>
-      <default>*</default>
-      <initialValue>*</initialValue>
-    </input>
-    <input type="text" token="dkim_domain" searchWhenChanged="true">
-      <label>DKIM domain</label>
-      <default>*</default>
-      <initialValue>*</initialValue>
-    </input>
     <input type="dropdown" token="disposition" searchWhenChanged="true">
       <label>Message disposition</label>
       <choice value="*">any</choice>
@@ -59,6 +49,10 @@
     </input>
     <input type="text" token="source_ip_address" searchWhenChanged="true">
       <label>Source IP address</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_base_domain" searchWhenChanged="true">
+      <label>Source base domain</label>
       <default>*</default>
     </input>
     <input type="text" token="source_country" searchWhenChanged="true">
@@ -78,34 +72,32 @@
       <title>SPF alignment</title>
       <chart>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by spf_aligned</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by spf_aligned</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
         <option name="charting.chart">pie</option>
         <option name="charting.drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
       </chart>
     </panel>
     <panel>
       <title>DKIM alignment</title>
       <chart>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by dkim_aligned</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by dkim_aligned</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
         <option name="charting.chart">pie</option>
         <option name="charting.drilldown">none</option>
         <option name="height">250</option>
-        <option name="refresh.display">progressbar</option>
       </chart>
     </panel>
     <panel>
       <title>Passed DMARC</title>
       <chart>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by passed_dmarc</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by passed_dmarc</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -119,7 +111,7 @@
       <title>Reporting organizations</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by org_name | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by org_name | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -133,7 +125,7 @@
       <title>Message sources by reverse DNS</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | fillnull value="none" | chart sum(message_count) by source_base_domain | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | fillnull value="none" | chart sum(message_count) by source_base_domain | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -147,7 +139,7 @@
       <title>Message volume by header from</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by header_from  | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by header_from  | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -163,7 +155,7 @@
       <title>DMARC passage over time</title>
       <chart>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by _time,passed_dmarc</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by _time,passed_dmarc</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -184,7 +176,7 @@
       <title>Message disposition over time</title>
       <chart>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | chart sum(message_count) by _time,disposition</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | chart sum(message_count) by _time,disposition</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -200,7 +192,7 @@
       <title>Message volume by source country</title>
       <map>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | iplocation source_ip_address | stats count by Country | geom geo_countries featureIdField="Country"</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | iplocation source_ip_address | stats count by Country | geom geo_countries featureIdField="Country"</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -215,7 +207,7 @@
       <title>Source countries</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | stats sum(message_count) by source_country | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | stats sum(message_count) by source_country | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -233,7 +225,7 @@
       <title>Message sources by IP address</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | stats sum(message_count) by source_ip_address,source_reverse_dns,source_base_domain,source_country | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | stats sum(message_count) by source_ip_address,source_reverse_dns,source_base_domain,source_country | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -249,7 +241,7 @@
       <title>SPF alignment details</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | fillnull value="none" | stats sum(message_count) by header_from,envelope_from,spf_results{}.result,spf_aligned,source_base_domain  | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | fillnull value="none" | stats sum(message_count) by header_from,envelope_from,spf_results{}.result,spf_aligned,source_base_domain  | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
@@ -265,7 +257,7 @@
       <title>DKIM alignment details</title>
       <table>
         <search>
-          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ "dkim_results{}.selector"=$dkim_selector$ "dkim_results{}.domain"=$dkim_domain$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_country=$source_country$ | fillnull value="none" | stats sum(message_count) by header_from,dkim_results{}.selector,dkim_results{}.domain,dkim_results{}.result,dkim_aligned,source_base_domain | sort -sum(message_count)</query>
+          <query>index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$ | fillnull value="none" | stats sum(message_count) by header_from,dkim_results{}.selector,dkim_results{}.domain,dkim_results{}.result,dkim_aligned,source_base_domain | sort -sum(message_count)</query>
           <earliest>$time_range.earliest$</earliest>
           <latest>$time_range.latest$</latest>
         </search>
