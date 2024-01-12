@@ -1,0 +1,43 @@
+{
+    "organization-name":"Example Inc.",
+    "date-range":{
+       "start-datetime":"2024-01-09T00:00:00Z",
+       "end-datetime":"2024-01-09T23:59:59Z"
+    },
+    "contact-info":"smtp-tls-reporting@example.com",
+    "report-id":"2024-01-09T00:00:00Z_example.com",
+    "policies":[
+       {
+          "policy":{
+             "policy-type":"sts",
+             "policy-string":[
+                "version: STSv1",
+                "mode: testing",
+                "mx: example.com",
+                "max_age: 86400"
+             ],
+             "policy-domain":"example.com"
+          },
+          "summary":{
+             "total-successful-session-count":0,
+             "total-failure-session-count":3
+          },
+          "failure-details":[
+             {
+                "result-type":"validation-failure",
+                "sending-mta-ip":"209.85.222.201",
+                "receiving-ip":"173.212.201.41",
+                "receiving-mx-hostname":"example.com",
+                "failed-session-count":2
+             },
+             {
+                "result-type":"validation-failure",
+                "sending-mta-ip":"209.85.208.176",
+                "receiving-ip":"173.212.201.41",
+                "receiving-mx-hostname":"example.com",
+                "failed-session-count":1
+             }
+          ]
+       }
+    ]
+}

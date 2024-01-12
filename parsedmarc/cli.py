@@ -228,7 +228,8 @@ def _main():
                     dce=opts.la_dce,
                     dcr_immutable_id=opts.la_dcr_immutable_id,
                     dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
-                    dcr_forensic_stream=opts.la_dcr_forensic_stream
+                    dcr_forensic_stream=opts.la_dcr_forensic_stream,
+                    dcr_smtp_tls_stream=opts.la_dcr_smtp_tls_stream
                 )
                 la_client.publish_results(
                     reports_,
@@ -406,7 +407,8 @@ def _main():
                      la_dce=None,
                      la_dcr_immutable_id=None,
                      la_dcr_aggregate_stream=None,
-                     la_dcr_forensic_stream=None
+                     la_dcr_forensic_stream=None,
+                     la_dcr_smtp_tls_stream=None
                      )
     args = arg_parser.parse_args()
 
@@ -454,7 +456,7 @@ def _main():
             if "save_forensic" in general_config:
                 opts.save_forensic = general_config["save_forensic"]
             if "save_smtp_tls" in general_config:
-                opts.save_forensic = general_config["save_smtp_tls"]
+                opts.save_smtp_tls = general_config["save_smtp_tls"]
             if "debug" in general_config:
                 opts.debug = general_config.getboolean("debug")
             if "verbose" in general_config:
@@ -846,6 +848,8 @@ def _main():
                 log_analytics_config.get("dcr_aggregate_stream")
             opts.la_dcr_forensic_stream = \
                 log_analytics_config.get("dcr_forensic_stream")
+            opts.la_dcr_smtp_tls_stream = \
+                log_analytics_config.get("dcr_smtp_tls_stream")
 
     logger.setLevel(logging.ERROR)
 
