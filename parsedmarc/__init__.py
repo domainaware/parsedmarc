@@ -824,7 +824,7 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
     feedback_report = None
     sample = None
     if "From" in msg_headers:
-        logger.info("Parsing mail from {0}".format(msg_headers["From"]))
+        logger.info("Parsing mail from {0} on {1}".format(msg_headers["From"], date))
     if "Subject" in msg_headers:
         subject = msg_headers["Subject"]
     for part in msg.walk():
