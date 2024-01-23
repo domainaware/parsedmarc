@@ -274,7 +274,7 @@ def _main():
                      mailbox_watch=False,
                      mailbox_delete=False,
                      mailbox_test=False,
-                     mailbox_batch_size=None,
+                     mailbox_batch_size=10,
                      mailbox_check_timeout=30,
                      imap_host=None,
                      imap_skip_certificate_verification=False,
