@@ -225,9 +225,12 @@ The full set of configuration options are:
     Special characters in the username or password must be
     [URL encoded].
     :::
-
+  - `user` - str: Basic auth username
+  - `password` - str: Basic auth password
+  - `apiKey` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
+  - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
   - `index_suffix` - str: A suffix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
