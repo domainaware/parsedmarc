@@ -65,16 +65,30 @@ class GmailConnection(MailboxConnection):
             else:
                 raise e
 
+    def _fetch_all_message_ids(self, reports_label_id, page_token=None):
+        results = (
+            self.service.users()
+            .messages()
+            .list(
+                userId="me",
+                includeSpamTrash=self.include_spam_trash,
+                labelIds=[reports_label_id],
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        messages = results.get("messages", [])
+        for message in messages:
+            yield message["id"]
+
+        if "nextPageToken" in results:
+            yield from self._fetch_all_message_ids(
+                reports_label_id, results["nextPageToken"]
+            )
+
     def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
-        results = self.service.users().messages()\
-            .list(userId='me',
-                  includeSpamTrash=self.include_spam_trash,
-                  labelIds=[reports_label_id]
-                  )\
-            .execute()
-        messages = results.get('messages', [])
-        return [message['id'] for message in messages]
+        return [id for id in self._fetch_all_message_ids(reports_label_id)]
 
     def fetch_message(self, message_id):
         msg = self.service.users().messages()\
