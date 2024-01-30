@@ -42,11 +42,13 @@ class GmailConnection(MailboxConnection):
                  scopes: List[str],
                  include_spam_trash: bool,
                  reports_folder: str,
-                 oauth2_port: int):
+                 oauth2_port: int,
+                 paginate_messages: bool):
         creds = _get_creds(token_file, credentials_file, scopes, oauth2_port)
         self.service = build('gmail', 'v1', credentials=creds)
         self.include_spam_trash = include_spam_trash
         self.reports_label_id = self._find_label_id_for_label(reports_folder)
+        self.paginate_messages = paginate_messages
 
     def create_folder(self, folder_name: str):
         # Gmail doesn't support the name Archive
@@ -81,7 +83,7 @@ class GmailConnection(MailboxConnection):
         for message in messages:
             yield message["id"]
 
-        if "nextPageToken" in results:
+        if "nextPageToken" in results and self.paginate_messages:
             yield from self._fetch_all_message_ids(
                 reports_label_id, results["nextPageToken"]
             )
