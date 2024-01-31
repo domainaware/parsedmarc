@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 # Standard Library
 from socket import timeout
 from time import sleep
-from typing import Optional
 
 # Installed
 from imapclient.exceptions import IMAPClientError
@@ -17,10 +18,10 @@ class IMAPConnection(MailboxConnection):
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        port: Optional[int] = None,
+        host: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        port: int | None = None,
         ssl: bool = True,
         verify: bool = True,
         timeout: int = 30,

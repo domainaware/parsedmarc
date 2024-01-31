@@ -42,7 +42,8 @@ from parsedmarc.mail.graph import AuthMethod
 from parsedmarc.utils import is_mbox
 
 formatter = logging.Formatter(
-    fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s", datefmt="%Y-%m-%d:%H:%M:%S"
+    fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
+    datefmt="%Y-%m-%d:%H:%M:%S",
 )
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -204,7 +205,9 @@ def _main():
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument(
-        "-c", "--config-file", help="a path to a configuration file " "(--silent implied)"
+        "-c",
+        "--config-file",
+        help="a path to a configuration file " "(--silent implied)",
     )
     arg_parser.add_argument(
         "file_path",
@@ -251,7 +254,10 @@ def _main():
     )
     arg_parser.add_argument("-s", "--silent", action="store_true", help="only print errors")
     arg_parser.add_argument(
-        "-w", "--warnings", action="store_true", help="print warnings in addition to errors"
+        "-w",
+        "--warnings",
+        action="store_true",
+        help="print warnings in addition to errors",
     )
     arg_parser.add_argument("--verbose", action="store_true", help="more verbose output")
     arg_parser.add_argument("--debug", action="store_true", help="print debugging information")
@@ -805,7 +811,8 @@ def _main():
                     timeout=opts.elasticsearch_timeout,
                 )
                 elastic.migrate_indexes(
-                    aggregate_indexes=[es_aggregate_index], forensic_indexes=[es_forensic_index]
+                    aggregate_indexes=[es_aggregate_index],
+                    forensic_indexes=[es_forensic_index],
                 )
         except elastic.ElasticsearchError:
             logger.exception("Elasticsearch Error")
@@ -1025,7 +1032,10 @@ def _main():
             exit(1)
 
     results = OrderedDict(
-        [("aggregate_reports", aggregate_reports), ("forensic_reports", forensic_reports)]
+        [
+            ("aggregate_reports", aggregate_reports),
+            ("forensic_reports", forensic_reports),
+        ]
     )
 
     process_reports(results)

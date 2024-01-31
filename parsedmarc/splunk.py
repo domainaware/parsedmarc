@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 # Standard Library
 import json
 import socket
-from typing import Any, Dict, List, Union
+from typing import Any
 from urllib.parse import urlparse
 
 # Installed
@@ -19,14 +21,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class SplunkError(RuntimeError):
     """Raised when a Splunk API error occurs"""
 
-    def __init__(self, message: Union[str, Exception]):
+    def __init__(self, message: str | Exception):
         if isinstance(message, Exception):
             message = repr(message)
         super().__init__(f"Splunk Error: {message}")
         return
 
 
-class HECClient(object):
+class HECClient:
     """A client for a Splunk HTTP Events Collector (HEC)"""
 
     # http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
@@ -59,7 +61,7 @@ class HECClient(object):
         self.session = requests.Session()
         self.timeout = timeout
         self.session.verify = verify
-        self._common_data: Dict[str, Any] = dict(
+        self._common_data: dict[str, Any] = dict(
             host=self.host, source=self.source, index=self.index
         )
 
@@ -69,9 +71,7 @@ class HECClient(object):
         }
         return
 
-    def save_aggregate_reports_to_splunk(
-        self, aggregate_reports: Union[Dict, List[Dict[str, Any]]]
-    ):
+    def save_aggregate_reports_to_splunk(self, aggregate_reports: dict | list[dict[str, Any]]):
         """Save aggregate DMARC reports to Splunk
 
         Args:
@@ -124,7 +124,7 @@ class HECClient(object):
             raise SplunkError(response["text"])
         return
 
-    def save_forensic_reports_to_splunk(self, forensic_reports: Union[Dict, List[Dict[str, Any]]]):
+    def save_forensic_reports_to_splunk(self, forensic_reports: dict | list[dict[str, Any]]):
         """Save forensic DMARC reports to Splunk
 
         Args:

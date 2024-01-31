@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 # Standard Library
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, TypeAlias
 
 # Installed
 from azure.identity import (
@@ -26,11 +28,11 @@ class AuthMethod(Enum):
     ClientSecret = 3
 
 
-Credential = Union[DeviceCodeCredential, UsernamePasswordCredential, ClientSecretCredential]
+Credential: TypeAlias = "DeviceCodeCredential | UsernamePasswordCredential | ClientSecretCredential"
 
 
 def _get_cache_args(token_path: Path, allow_unencrypted_storage: bool):
-    cache_args: Dict[str, Any] = {
+    cache_args: dict[str, Any] = {
         "cache_persistence_options": TokenCachePersistenceOptions(
             name="parsedmarc",
             allow_unencrypted_storage=allow_unencrypted_storage,
@@ -42,7 +44,7 @@ def _get_cache_args(token_path: Path, allow_unencrypted_storage: bool):
     return cache_args
 
 
-def _load_token(token_path: Path) -> Optional[str]:
+def _load_token(token_path: Path) -> str | None:
     if not token_path.exists():
         return None
     with token_path.open() as token_file:
@@ -64,7 +66,8 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs) -> Creden
             disable_automatic_authentication=True,
             tenant_id=kwargs["tenant_id"],
             **_get_cache_args(
-                token_path, allow_unencrypted_storage=kwargs["allow_unencrypted_storage"]
+                token_path,
+                allow_unencrypted_storage=kwargs["allow_unencrypted_storage"],
             ),
         )
         return credential
@@ -77,7 +80,8 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs) -> Creden
             username=kwargs["username"],
             password=kwargs["password"],
             **_get_cache_args(
-                token_path, allow_unencrypted_storage=kwargs["allow_unencrypted_storage"]
+                token_path,
+                allow_unencrypted_storage=kwargs["allow_unencrypted_storage"],
             ),
         )
         return credential
@@ -130,7 +134,7 @@ class MSGraphConnection(MailboxConnection):
             token_path=token_path,
             allow_unencrypted_storage=allow_unencrypted_storage,
         )
-        client_params: Dict[str, Any] = {"credential": credential}
+        client_params: dict[str, Any] = {"credential": credential}
         if isinstance(credential, (DeviceCodeCredential, UsernamePasswordCredential)):
             scopes = ["Mail.ReadWrite"]
             # Detect if mailbox is shared
@@ -157,13 +161,13 @@ class MSGraphConnection(MailboxConnection):
         request_url = f"/users/{self.mailbox_name}/mailFolders{sub_url}"
         resp = self._client.post(request_url, json=request_body)
         if resp.status_code == 409:
-            logger.debug(f"Folder {folder_name} already exists, " f"skipping creation")
+            logger.debug(f"Folder {folder_name} already exists, skipping creation")
         elif resp.status_code == 201:
             logger.debug(f"Created folder {folder_name}")
         else:
-            logger.warning(f"Unknown response " f"{resp.status_code} {resp.json()}")
+            logger.warning(f"Unknown response {resp.status_code} {resp.json()}")
 
-    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> list[str]:
         """Returns a list of message UIDs in the specified folder"""
         folder_id = self._find_folder_id_from_folder_path(reports_folder)
         url = f"/users/{self.mailbox_name}/mailFolders/" f"{folder_id}/messages"
@@ -175,7 +179,7 @@ class MSGraphConnection(MailboxConnection):
 
     def _get_all_messages(self, url: str, batch_size: int):
         messages: list
-        params: Dict[str, Any] = {"$select": "id"}
+        params: dict[str, Any] = {"$select": "id"}
         if batch_size and batch_size > 0:
             params["$top"] = batch_size
         else:
@@ -199,17 +203,13 @@ class MSGraphConnection(MailboxConnection):
         url = f"/users/{self.mailbox_name}/messages/{message_id}"
         resp = self._client.patch(url, json={"isRead": "true"})
         if resp.status_code != 200:
-            raise RuntimeWarning(
-                f"Failed to mark message read" f"{resp.status_code}: {resp.json()}"
-            )
+            raise RuntimeWarning(f"Failed to mark message read {resp.status_code}: {resp.json()}")
 
     def fetch_message(self, message_id: str) -> str:
         url = f"/users/{self.mailbox_name}/messages/{message_id}/$value"
         result = self._client.get(url)
         if result.status_code != 200:
-            raise RuntimeWarning(
-                f"Failed to fetch message" f"{result.status_code}: {result.json()}"
-            )
+            raise RuntimeWarning(f"Failed to fetch message {result.status_code}: {result.json()}")
         self.mark_message_read(message_id)
         return result.text
 
@@ -217,7 +217,7 @@ class MSGraphConnection(MailboxConnection):
         url = f"/users/{self.mailbox_name}/messages/{message_id}"
         resp = self._client.delete(url)
         if resp.status_code != 204:
-            raise RuntimeWarning(f"Failed to delete message " f"{resp.status_code}: {resp.json()}")
+            raise RuntimeWarning(f"Failed to delete message {resp.status_code}: {resp.json()}")
 
     def move_message(self, message_id: str, folder_name: str):
         folder_id = self._find_folder_id_from_folder_path(folder_name)
@@ -225,7 +225,7 @@ class MSGraphConnection(MailboxConnection):
         url = f"/users/{self.mailbox_name}/messages/{message_id}/move"
         resp = self._client.post(url, json=request_body)
         if resp.status_code != 201:
-            raise RuntimeWarning(f"Failed to move message " f"{resp.status_code}: {resp.json()}")
+            raise RuntimeWarning(f"Failed to move message {resp.status_code}: {resp.json()}")
 
     def keepalive(self):
         # Not needed
@@ -249,7 +249,7 @@ class MSGraphConnection(MailboxConnection):
         else:
             return self._find_folder_id_with_parent(folder_name, None)
 
-    def _find_folder_id_with_parent(self, folder_name: str, parent_folder_id: Optional[str]):
+    def _find_folder_id_with_parent(self, folder_name: str, parent_folder_id: str | None):
         sub_url = ""
         if parent_folder_id is not None:
             sub_url = f"/{parent_folder_id}/childFolders"
@@ -257,7 +257,7 @@ class MSGraphConnection(MailboxConnection):
         filter = f"?$filter=displayName eq '{folder_name}'"
         folders_resp = self._client.get(url + filter)
         if folders_resp.status_code != 200:
-            raise RuntimeWarning(f"Failed to list folders." f"{folders_resp.json()}")
+            raise RuntimeWarning(f"Failed to list folders. {folders_resp.json()}")
         folders: list = folders_resp.json()["value"]
         matched_folders = [folder for folder in folders if folder["displayName"] == folder_name]
         if len(matched_folders) == 0:

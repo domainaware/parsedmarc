@@ -10,7 +10,7 @@ from parsedmarc import (
 )
 
 
-class SyslogClient(object):
+class SyslogClient:
     """A client for Syslog"""
 
     def __init__(self, server_name: str, server_port: int):

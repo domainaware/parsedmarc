@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 # Standard Library
 from collections import OrderedDict
 import json
 from ssl import SSLContext, create_default_context
-from typing import List, Optional, Union
 
 # Installed
 from kafka import KafkaProducer
@@ -17,21 +18,21 @@ from parsedmarc.utils import human_timestamp_to_datetime
 class KafkaError(RuntimeError):
     """Raised when a Kafka error occurs"""
 
-    def __init__(self, message: Union[str, Exception]):
+    def __init__(self, message: str | Exception):
         if isinstance(message, Exception):
             message = repr(message)
         super().__init__(f"Kafka Error: {message}")
         return
 
 
-class KafkaClient(object):
+class KafkaClient:
     def __init__(
         self,
-        kafka_hosts: List[str],
+        kafka_hosts: list[str],
         ssl: bool = False,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        ssl_context: Optional[SSLContext] = None,
+        username: str | None = None,
+        password: str | None = None,
+        ssl_context: SSLContext | None = None,
     ):
         """
         Args:
@@ -94,7 +95,7 @@ class KafkaClient(object):
         return date_range
 
     def save_aggregate_reports_to_kafka(
-        self, aggregate_reports: Union[OrderedDict, List[OrderedDict]], aggregate_topic: str
+        self, aggregate_reports: OrderedDict | list[OrderedDict], aggregate_topic: str
     ) -> None:
         """
         Saves aggregate DMARC reports to Kafka
@@ -135,7 +136,7 @@ class KafkaClient(object):
         return
 
     def save_forensic_reports_to_kafka(
-        self, forensic_reports: Union[OrderedDict, List[OrderedDict]], forensic_topic: str
+        self, forensic_reports: OrderedDict | list[OrderedDict], forensic_topic: str
     ) -> None:
         """
         Saves forensic DMARC reports to Kafka, sends individual

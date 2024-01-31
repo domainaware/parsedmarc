@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 # Standard Library
-from typing import Dict, List, Optional
 
 # Installed
 from azure.core.exceptions import HttpResponseError
@@ -14,7 +15,7 @@ class LogAnalyticsException(Exception):
     """Errors originating from LogsIngestionClient"""
 
 
-class LogAnalyticsClient(object):
+class LogAnalyticsClient:
     """Azure Log Analytics Client
 
     Pushes the  DMARC reports to Log Analytics via Data Collection Rules.
@@ -30,8 +31,8 @@ class LogAnalyticsClient(object):
         tenant_id: str,
         dce: str,
         dcr_immutable_id: str,
-        dcr_aggregate_stream: Optional[str] = None,
-        dcr_forensic_stream: Optional[str] = None,
+        dcr_aggregate_stream: str | None = None,
+        dcr_forensic_stream: str | None = None,
     ):
         """
         Args:
@@ -57,7 +58,7 @@ class LogAnalyticsClient(object):
         self.logs_client = LogsIngestionClient(dce, credential=self._credential)
         return
 
-    def _publish_json(self, reports: List[Dict], dcr_stream: str) -> None:
+    def _publish_json(self, reports: list[dict], dcr_stream: str) -> None:
         """Publish DMARC reports to the given Data Collection Rule.
 
         Args:
@@ -72,7 +73,7 @@ class LogAnalyticsClient(object):
         return
 
     def publish_results(
-        self, results: Dict[str, List[Dict]], save_aggregate: bool, save_forensic: bool
+        self, results: dict[str, list[dict]], save_aggregate: bool, save_forensic: bool
     ) -> None:
         """Publish DMARC reports to Log Analytics via Data Collection Rules (DCR).
 

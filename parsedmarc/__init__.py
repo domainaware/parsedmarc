@@ -1,5 +1,7 @@
 """A Python package for parsing DMARC reports"""
 
+from __future__ import annotations
+
 # Standard Library
 from base64 import b64decode
 import binascii
@@ -15,7 +17,7 @@ import os
 import re
 import shutil
 import tempfile
-from typing import Any, BinaryIO, Callable, Dict, List, Optional, Union, cast
+from typing import Any, BinaryIO, Callable, cast
 import xml.parsers.expat as expat
 import zipfile
 import zlib
@@ -74,9 +76,9 @@ class InvalidForensicReport(InvalidDMARCReport):
 
 def _parse_report_record(
     record: OrderedDict,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     parallel: bool = False,
 ) -> OrderedDict:
@@ -221,12 +223,12 @@ def _parse_report_record(
 
 def parse_aggregate_report_xml(
     xml: str,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     timeout: float = 2.0,
     parallel: bool = False,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
 ) -> OrderedDict[str, Any]:
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
@@ -250,7 +252,8 @@ def parse_aggregate_report_xml(
         errors.append(f"Invalid XML: {e!r}")
         try:
             tree = etree.parse(
-                BytesIO(xml.encode("utf-8")), etree.XMLParser(recover=True, resolve_entities=False)
+                BytesIO(xml.encode("utf-8")),
+                etree.XMLParser(recover=True, resolve_entities=False),
             )
             s = etree.tostring(tree)
             xml = "" if s is None else s.decode("utf-8")
@@ -385,7 +388,7 @@ def parse_aggregate_report_xml(
         raise InvalidAggregateReport(f"Unexpected error: {error!r}")
 
 
-def extract_xml(input_: Union[str, bytes, BinaryIO]) -> str:
+def extract_xml(input_: str | bytes | BinaryIO) -> str:
     """Extracts xml from a zip or gzip file at the given path, file-like object, or bytes.
 
     Args:
@@ -435,13 +438,13 @@ def extract_xml(input_: Union[str, bytes, BinaryIO]) -> str:
 
 
 def parse_aggregate_report_file(
-    _input: Union[bytes, str, BinaryIO],
+    _input: bytes | str | BinaryIO,
     offline: bool = False,
-    ip_db_path: Optional[str] = None,
-    nameservers: Optional[List[str]] = None,
+    ip_db_path: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     parallel: bool = False,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
 ) -> OrderedDict[str, Any]:
     """Parse a file at the given path, a file-like object. or bytes as an aggregate DMARC report
 
@@ -472,8 +475,8 @@ def parse_aggregate_report_file(
 
 
 def parsed_aggregate_reports_to_csv_rows(
-    reports: Union[OrderedDict, List[OrderedDict]]
-) -> List[Dict[str, Union[str, int, bool]]]:
+    reports: OrderedDict | list[OrderedDict],
+) -> list[dict[str, str | int | bool]]:
     """Convert one or more parsed aggregate reports to list of dicts in flat CSV format
 
     Args:
@@ -483,10 +486,10 @@ def parsed_aggregate_reports_to_csv_rows(
         Parsed aggregate report data as a list of dicts in flat CSV format
     """
 
-    def to_str(obj):
+    def to_str(obj) -> str:
         return str(obj).lower()
 
-    if type(reports) is OrderedDict:
+    if not isinstance(reports, list):
         reports = [reports]
 
     rows = []
@@ -538,7 +541,10 @@ def parsed_aggregate_reports_to_csv_rows(
             row["dmarc_aligned"] = record["alignment"]["dmarc"]
             row["disposition"] = record["policy_evaluated"]["disposition"]
             policy_override_reasons = list(
-                map(lambda r_: r_["type"], record["policy_evaluated"]["policy_override_reasons"])
+                map(
+                    lambda r_: r_["type"],
+                    record["policy_evaluated"]["policy_override_reasons"],
+                )
             )
             policy_override_comments = list(
                 map(
@@ -583,7 +589,7 @@ def parsed_aggregate_reports_to_csv_rows(
     return rows
 
 
-def parsed_aggregate_reports_to_csv(reports: Union[OrderedDict, List[OrderedDict]]) -> str:
+def parsed_aggregate_reports_to_csv(reports: OrderedDict | list[OrderedDict]) -> str:
     """Convert one or more parsed aggregate reports to flat CSV format, including headers
 
     Args:
@@ -649,8 +655,8 @@ def parse_forensic_report(
     sample: str,
     msg_date: datetime,
     offline: bool = False,
-    ip_db_path: Optional[str] = None,
-    nameservers: Optional[List[str]] = None,
+    ip_db_path: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     parallel: bool = False,
@@ -770,8 +776,8 @@ def parse_forensic_report(
 
 
 def parsed_forensic_reports_to_csv_rows(
-    reports: Union[OrderedDict, List[OrderedDict]]
-) -> List[Dict[str, Any]]:
+    reports: OrderedDict | list[OrderedDict],
+) -> list[dict[str, Any]]:
     """Convert one or more parsed forensic reports to a list of dicts in flat CSV format
 
     Args:
@@ -803,7 +809,7 @@ def parsed_forensic_reports_to_csv_rows(
     return rows
 
 
-def parsed_forensic_reports_to_csv(reports: Union[OrderedDict, List[OrderedDict]]) -> str:
+def parsed_forensic_reports_to_csv(reports: OrderedDict | list[OrderedDict]) -> str:
     """Convert one or more parsed forensic reports to flat CSV format, including headers
 
     Args:
@@ -843,7 +849,7 @@ def parsed_forensic_reports_to_csv(reports: Union[OrderedDict, List[OrderedDict]
     rows = parsed_forensic_reports_to_csv_rows(reports)
 
     for row in rows:
-        new_row: Dict[str, Any] = {}
+        new_row: dict[str, Any] = {}
         for key in new_row.keys():
             new_row[key] = row[key]
         csv_writer.writerow(new_row)
@@ -852,15 +858,15 @@ def parsed_forensic_reports_to_csv(reports: Union[OrderedDict, List[OrderedDict]
 
 
 def parse_report_email(
-    input_: Union[bytes, str],
+    input_: bytes | str,
     offline: bool = False,
-    ip_db_path: Optional[str] = None,
-    nameservers: Optional[List[str]] = None,
+    ip_db_path: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     parallel: bool = False,
-    keep_alive: Optional[Callable] = None,
-) -> OrderedDict[str, Union[str, OrderedDict]]:
+    keep_alive: Callable | None = None,
+) -> OrderedDict[str, str | OrderedDict]:
     """Parse a DMARC report from an email
 
     Args:
@@ -990,14 +996,14 @@ def parse_report_email(
 
 
 def parse_report_file(
-    input_: Union[str, bytes, BinaryIO],
-    nameservers: Optional[List[str]] = None,
+    input_: str | bytes | BinaryIO,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
     parallel: bool = False,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
 ) -> OrderedDict:
     """Parse a DMARC aggregate or forensic file at the given path, a file-like object. or bytes
 
@@ -1026,7 +1032,7 @@ def parse_report_file(
     content = file_object.read()
     file_object.close()
 
-    results: OrderedDict[str, Union[str, OrderedDict]]
+    results: OrderedDict[str, str | OrderedDict]
     try:
         report = parse_aggregate_report_file(
             content,
@@ -1058,13 +1064,13 @@ def parse_report_file(
 
 def get_dmarc_reports_from_mbox(
     input_: str,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
     parallel: bool = False,
-) -> OrderedDict[str, List[OrderedDict]]:
+) -> OrderedDict[str, list[OrderedDict]]:
     """Parses a mailbox in mbox format containing e-mails with attached DMARC reports
 
     Args:
@@ -1079,8 +1085,8 @@ def get_dmarc_reports_from_mbox(
     Returns:
         Dictionary of Lists of ``aggregate_reports`` and ``forensic_reports``
     """
-    aggregate_reports: List[OrderedDict] = []
-    forensic_reports: List[OrderedDict] = []
+    aggregate_reports: list[OrderedDict] = []
+    forensic_reports: list[OrderedDict] = []
     try:
         mbox = mailbox.mbox(input_)
         message_keys = mbox.keys()
@@ -1110,7 +1116,10 @@ def get_dmarc_reports_from_mbox(
     except mailbox.NoSuchMailboxError:
         raise InvalidDMARCReport(f"Mailbox {input_} does not exist")
     return OrderedDict(
-        [("aggregate_reports", aggregate_reports), ("forensic_reports", forensic_reports)]
+        [
+            ("aggregate_reports", aggregate_reports),
+            ("forensic_reports", forensic_reports),
+        ]
     )
 
 
@@ -1120,15 +1129,15 @@ def get_dmarc_reports_from_mailbox(
     archive_folder: str = "Archive",
     delete: bool = False,
     test: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
-    results: Optional[OrderedDict[str, List[OrderedDict]]] = None,
+    results: OrderedDict[str, list[OrderedDict]] | None = None,
     batch_size: int = 10,
     create_folders: bool = True,
-) -> OrderedDict[str, List[OrderedDict]]:
+) -> OrderedDict[str, list[OrderedDict]]:
     """Fetches and parses DMARC reports from a mailbox
 
     Args:
@@ -1259,7 +1268,10 @@ def get_dmarc_reports_from_mailbox(
                         logger.error(f"Mailbox error: Error moving message UID {msg_uid}: {e!r}")
 
     results = OrderedDict(
-        [("aggregate_reports", aggregate_reports), ("forensic_reports", forensic_reports)]
+        [
+            ("aggregate_reports", aggregate_reports),
+            ("forensic_reports", forensic_reports),
+        ]
     )
 
     total_messages = len(connection.fetch_messages(reports_folder))
@@ -1291,12 +1303,12 @@ def watch_inbox(
     delete: bool = False,
     test: bool = False,
     check_timeout: int = 30,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     offline: bool = False,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
-    batch_size: Optional[int] = None,
+    batch_size: int | None = None,
 ) -> None:
     """Watches a mailbox for new messages and sends the results to a callback function
 
@@ -1337,7 +1349,7 @@ def watch_inbox(
     mailbox_connection.watch(check_callback=check_callback, check_timeout=check_timeout)
 
 
-def append_json(filename: str, reports: List[OrderedDict]) -> None:
+def append_json(filename: str, reports: list[OrderedDict]) -> None:
     with open(filename, "a+", newline="\n", encoding="utf-8") as output:
         output_json = json.dumps(reports, ensure_ascii=False, indent=2)
         if output.seek(0, os.SEEK_END) != 0:
@@ -1375,7 +1387,7 @@ def append_csv(filename: str, csv: str) -> None:
 
 
 def save_output(
-    results: OrderedDict[str, List[OrderedDict]],
+    results: OrderedDict[str, list[OrderedDict]],
     output_directory: str = "output",
     aggregate_json_filename: str = "aggregate.json",
     forensic_json_filename: str = "forensic.json",
@@ -1441,7 +1453,7 @@ def save_output(
     return
 
 
-def get_report_zip(results: OrderedDict[str, List[OrderedDict]]) -> bytes:
+def get_report_zip(results: OrderedDict[str, list[OrderedDict]]) -> bytes:
     """Creates a zip file of parsed report output
 
     Args:
@@ -1486,20 +1498,20 @@ def get_report_zip(results: OrderedDict[str, List[OrderedDict]]) -> bytes:
 
 
 def email_results(
-    results: OrderedDict[str, List[OrderedDict]],
+    results: OrderedDict[str, list[OrderedDict]],
     host: str,
     mail_from: str,
-    mail_to: List[str],
-    mail_cc: Optional[List[str]] = None,
-    mail_bcc: Optional[List[str]] = None,
+    mail_to: list[str],
+    mail_cc: list[str] | None = None,
+    mail_bcc: list[str] | None = None,
     port: int = 0,
     require_encryption: bool = False,
     verify: bool = True,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    subject: Optional[str] = None,
-    attachment_filename: Optional[str] = None,
-    message: Optional[str] = None,
+    username: str | None = None,
+    password: str | None = None,
+    subject: str | None = None,
+    attachment_filename: str | None = None,
+    message: str | None = None,
 ) -> None:
     """Emails parsing results as a zip file
 

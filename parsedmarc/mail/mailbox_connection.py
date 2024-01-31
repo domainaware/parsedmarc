@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 # Standard Library
 from abc import ABC
-from typing import List, Union
 
 
 class MailboxConnection(ABC):
@@ -9,10 +10,10 @@ class MailboxConnection(ABC):
     def create_folder(self, folder_name: str) -> None:
         raise NotImplementedError
 
-    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> list[str]:
         raise NotImplementedError
 
-    def fetch_message(self, message_id: str) -> Union[str, bytes]:
+    def fetch_message(self, message_id: str) -> str | bytes:
         raise NotImplementedError
 
     def delete_message(self, message_id: str) -> None:

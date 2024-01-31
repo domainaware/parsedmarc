@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 # Standard Library
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Installed
 import boto3
@@ -10,17 +12,17 @@ from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 
 
-class S3Client(object):
+class S3Client:
     """A client for a Amazon S3"""
 
     def __init__(
         self,
         bucket_name: str,
         bucket_path: str,
-        region_name: Optional[str] = None,
-        endpoint_url: Optional[str] = None,
-        access_key_id: Optional[str] = None,
-        secret_access_key: Optional[str] = None,
+        region_name: str | None = None,
+        endpoint_url: str | None = None,
+        access_key_id: str | None = None,
+        secret_access_key: str | None = None,
     ):
         """
         Args:
@@ -52,15 +54,15 @@ class S3Client(object):
         self.bucket = self.s3.Bucket(self.bucket_name)
         return
 
-    def save_aggregate_report_to_s3(self, report: Dict[str, Any]) -> None:
+    def save_aggregate_report_to_s3(self, report: dict[str, Any]) -> None:
         self.save_report_to_s3(report, "aggregate")
         return
 
-    def save_forensic_report_to_s3(self, report: Dict[str, Any]) -> None:
+    def save_forensic_report_to_s3(self, report: dict[str, Any]) -> None:
         self.save_report_to_s3(report, "forensic")
         return
 
-    def save_report_to_s3(self, report: Dict[str, Any], report_type: str):
+    def save_report_to_s3(self, report: dict[str, Any], report_type: str):
         report_date = human_timestamp_to_datetime(report["report_metadata"]["begin_date"])
         report_id = report["report_metadata"]["report_id"]
         path_template = "{0}/{1}/year={2}/month={3:02d}/day={4:02d}/{5}.json"

@@ -41,6 +41,7 @@ dependencies = [
     "azure-identity>=1.8.0",
     "azure-monitor-ingestion>=1.0.0",
     "boto3>=1.16.63",
+    "bs4",
     "dateparser>=1.1.1",
     "dnspython>=2.0.0",
     "elasticsearch-dsl==7.4.0",
@@ -75,19 +76,28 @@ dev = [
     "types-requests",
     "types-tqdm",
     "types-xmltodict",
-    ### dev.sh dependencies
     ## Formatting / Linting
     "validate-pyproject[all]",
+    "pyupgrade",
     "black",
     "isort",
     #"pylint",
     "mypy",
-    ## Testing
     "flake8",
-    #"pytest",
-    ## REPL
-    "bpython",
+    ## Testing
+    "codecov",
 ]
+
+docs = [
+    "alabaster>=0.7.12",
+    "Babel>=2.7.0",
+    "docutils>=0.14,<0.18",
+    "myst-parser[linkify]>=0.18.0",
+    "pygments>=2.11.1",
+    "sphinx>=1.0.5",
+    "sphinx_rtd_theme>=0.4.3",
+]
+
 
 [project.scripts]
 parsedmarc = "parsedmarc.cli:_main"
@@ -114,3 +124,7 @@ import_heading_stdlib = "Standard Library"
 import_heading_thirdparty = "Installed"
 import_heading_firstparty = "Package"
 import_heading_localfolder = "Local"
+
+[tool.black]
+line-length = 100
+target-version = ["py37", "py38", "py39", "py310", "py311", "py312"]

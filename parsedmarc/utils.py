@@ -1,5 +1,7 @@
 """Utility functions that might be useful for other projects"""
 
+from __future__ import annotations
+
 # Standard Library
 import atexit
 import base64
@@ -15,7 +17,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Installed
 from dateutil.parser import parse as parse_date
@@ -95,10 +97,10 @@ def get_base_domain(domain: str) -> str:
 def query_dns(
     domain: str,
     record_type: str,
-    cache: Optional[ExpiringDict] = None,
-    nameservers: Optional[List[str]] = None,
+    cache: ExpiringDict | None = None,
+    nameservers: list[str] | None = None,
     timeout: float = 2.0,
-) -> List[str]:
+) -> list[str]:
     """Make a DNS query
 
     Args:
@@ -134,7 +136,10 @@ def query_dns(
     resolver.lifetime = timeout
     if record_type == "TXT":
         resource_records = list(
-            map(lambda r: r.strings, resolver.resolve(domain, record_type, lifetime=timeout))
+            map(
+                lambda r: r.strings,
+                resolver.resolve(domain, record_type, lifetime=timeout),
+            )
         )
         _resource_record = [
             resource_record[0][:0].join(resource_record)
@@ -157,10 +162,10 @@ def query_dns(
 
 def get_reverse_dns(
     ip_address: str,
-    cache: Optional[ExpiringDict] = None,
-    nameservers: Optional[List[str]] = None,
+    cache: ExpiringDict | None = None,
+    nameservers: list[str] | None = None,
     timeout: float = 2.0,
-) -> Optional[str]:
+) -> str | None:
     """Resolve an IP address to a hostname using a reverse DNS query
 
     Args:
@@ -172,7 +177,7 @@ def get_reverse_dns(
     Returns:
         The reverse DNS hostname (if any)
     """
-    hostname: Optional[str] = None
+    hostname: str | None = None
     try:
         address = str(dns.reversename.from_address(ip_address))
         hostname = query_dns(address, "PTR", cache=cache, nameservers=nameservers, timeout=timeout)[
@@ -240,7 +245,7 @@ def human_timestamp_to_timestamp(human_timestamp: str) -> float:
     return human_timestamp_to_datetime(human_timestamp).timestamp()
 
 
-def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Optional[str]:
+def get_ip_address_country(ip_address: str, db_path: str | None = None) -> str | None:
     """Get the ISO code for the country associated with the given IPv4 or IPv6 address
 
     Args:
@@ -299,10 +304,10 @@ def get_ip_address_country(ip_address: str, db_path: Optional[str] = None) -> Op
 
 def get_ip_address_info(
     ip_address: str,
-    ip_db_path: Optional[str] = None,
-    cache: Optional[ExpiringDict] = None,
+    ip_db_path: str | None = None,
+    cache: ExpiringDict | None = None,
     offline: bool = False,
-    nameservers: Optional[List[str]] = None,
+    nameservers: list[str] | None = None,
     timeout: float = 2.0,
     parallel: bool = False,
 ) -> OrderedDict:
@@ -358,7 +363,12 @@ def parse_email_address(original_address: str) -> OrderedDict:
         domain = address_parts[-1].lower()
 
     return OrderedDict(
-        [("display_name", display_name), ("address", address), ("local", local), ("domain", domain)]
+        [
+            ("display_name", display_name),
+            ("address", address),
+            ("local", local),
+            ("domain", domain),
+        ]
     )
 
 
@@ -447,7 +457,7 @@ def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     return rfc822
 
 
-def parse_email(data: Union[bytes, str], strip_attachment_payloads: bool = False) -> Dict[str, Any]:
+def parse_email(data: bytes | str, strip_attachment_payloads: bool = False) -> dict[str, Any]:
     """A simplified email parser
 
     Args:

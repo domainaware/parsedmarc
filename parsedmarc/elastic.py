@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 # Standard Library
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Installed
 from elasticsearch.helpers import reindex
@@ -29,7 +31,7 @@ from parsedmarc.utils import human_timestamp_to_datetime
 class ElasticsearchError(Exception):
     """Raised when an Elasticsearch error occurs"""
 
-    def __init__(self, message: Union[str, Exception]):
+    def __init__(self, message: str | Exception):
         if isinstance(message, Exception):
             message = repr(message)
         super().__init__(f"Elasticsearch Error: {message}")
@@ -181,12 +183,12 @@ class AlreadySaved(ValueError):
 
 
 def set_hosts(
-    hosts: Union[str, List[str]],
+    hosts: str | list[str],
     use_ssl: bool = False,
-    ssl_cert_path: Optional[str] = None,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    apiKey: Optional[str] = None,
+    ssl_cert_path: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    apiKey: str | None = None,
     timeout: float = 60.0,
 ) -> None:
     """Set the Elasticsearch host(s) to use
@@ -218,7 +220,7 @@ def set_hosts(
     return
 
 
-def create_indexes(names: List[str], settings: Optional[Dict[str, int]] = None) -> None:
+def create_indexes(names: list[str], settings: dict[str, int] | None = None) -> None:
     """Create Elasticsearch indexes
 
     Args:
@@ -242,7 +244,8 @@ def create_indexes(names: List[str], settings: Optional[Dict[str, int]] = None) 
 
 
 def migrate_indexes(
-    aggregate_indexes: Optional[List[str]] = None, forensic_indexes: Optional[List[str]] = None
+    aggregate_indexes: list[str] | None = None,
+    forensic_indexes: list[str] | None = None,
 ):
     """Update index mappings
 
@@ -290,7 +293,7 @@ def migrate_indexes(
 
 def save_aggregate_report_to_elasticsearch(
     aggregate_report: OrderedDict[str, Any],
-    index_suffix: Optional[str] = None,
+    index_suffix: str | None = None,
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
@@ -400,7 +403,9 @@ def save_aggregate_report_to_elasticsearch(
 
         for spf_result in record["auth_results"]["spf"]:
             agg_doc.add_spf_result(
-                domain=spf_result["domain"], scope=spf_result["scope"], result=spf_result["result"]
+                domain=spf_result["domain"],
+                scope=spf_result["scope"],
+                result=spf_result["result"],
             )
 
         index = "dmarc_aggregate"
@@ -422,7 +427,7 @@ def save_aggregate_report_to_elasticsearch(
 
 def save_forensic_report_to_elasticsearch(
     forensic_report: OrderedDict[str, Any],
-    index_suffix: Optional[str] = None,
+    index_suffix: str | None = None,
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 # Standard Library
 from base64 import urlsafe_b64decode
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 # Installed
 from google.auth.transport.requests import Request
@@ -50,7 +52,7 @@ class GmailConnection(MailboxConnection):
         self,
         token_file: str,
         credentials_file: str,
-        scopes: List[str],
+        scopes: list[str],
         include_spam_trash: bool,
         reports_folder: str,
         oauth2_port: int,
@@ -75,7 +77,7 @@ class GmailConnection(MailboxConnection):
             return
 
         logger.debug(f"Creating label {folder_name}")
-        request_body: "Label" = {"name": folder_name, "messageListVisibility": "show"}
+        request_body: Label = {"name": folder_name, "messageListVisibility": "show"}
         try:
             self.service.users().labels().create(userId="me", body=request_body).execute()
         except HttpError as e:
@@ -85,13 +87,15 @@ class GmailConnection(MailboxConnection):
                 raise e
         return
 
-    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> list[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
         results = (
             self.service.users()
             .messages()
             .list(
-                userId="me", includeSpamTrash=self.include_spam_trash, labelIds=[reports_label_id]
+                userId="me",
+                includeSpamTrash=self.include_spam_trash,
+                labelIds=[reports_label_id],
             )
             .execute()
         )
@@ -111,7 +115,7 @@ class GmailConnection(MailboxConnection):
     def move_message(self, message_id: str, folder_name: str):
         label_id = self._find_label_id_for_label(folder_name)
         logger.debug(f"Moving message UID {message_id} to {folder_name}")
-        request_body: "ModifyMessageRequest" = {
+        request_body: ModifyMessageRequest = {
             "addLabelIds": [label_id],
             "removeLabelIds": [self.reports_label_id],
         }
