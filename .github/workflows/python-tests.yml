@@ -30,6 +30,10 @@ jobs:
         sudo apt-get update && sudo apt-get install elasticsearch
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
+        # Note: We set a static password as ES8 requires that a password is set.
+        # We can't use the randomly generateds one in our CI script so we set one here
+        # For real world applications you should NOT commit passwords to git like this.
+        echo "y\nWFXvAZ6xvcAhx\nWFXvAZ6xvcAhx" | sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password --interactive -u elastic
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
