@@ -11,6 +11,7 @@ import json
 import logging
 from multiprocessing import Pool, Value
 import os
+import os.path
 from ssl import CERT_NONE, create_default_context
 import sys
 import time
@@ -879,8 +880,8 @@ def _main():
         if is_mbox(file_path):
             mbox_paths.append(file_path)
 
-    file_paths = list(set(file_paths))
-    mbox_paths = list(set(mbox_paths))
+    file_paths = [p for p in set(file_paths) if os.path.isfile(p)]
+    mbox_paths = [p for p in set(mbox_paths) if os.path.isfile(p)]
 
     for mbox_path in mbox_paths:
         file_paths.remove(mbox_path)
