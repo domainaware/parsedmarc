@@ -51,6 +51,7 @@ jobs:
     - name: Check code style
       run: |
         flake8 *.py parsedmarc/*.py
+        black parsedmarc --check --diff
     - name: Run unit tests
       run: |
         coverage run tests.py

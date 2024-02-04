@@ -87,6 +87,8 @@ dev = [
     "flake8",
     ## Testing
     "codecov",
+    ## Building
+    "hatchling",
 ]
 
 docs = [
