@@ -698,7 +698,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["dmarc_aligned"] = record["alignment"]["dmarc"]
             row["disposition"] = record["policy_evaluated"]["disposition"]
             policy_override_reasons = list(map(
-                lambda r_: r_["type"],
+                lambda r_: r_["type"] or "none",
                 record["policy_evaluated"]
                 ["policy_override_reasons"]))
             policy_override_comments = list(map(

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feedback>
+  <version>1.0</version>
+  <report_metadata>
+    <org_name>example.org</org_name>
+    <email>noreply-dmarc-support@example.org</email>
+    <extra_contact_info>https://support.example.org/dmarc</extra_contact_info>
+    <report_id>20240125141224705995</report_id>
+    <date_range>
+      <begin>1706159544</begin>
+      <end>1706185733</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>example.com</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>quarantine</p>
+    <sp>quarantine</sp>
+    <pct>100</pct>
+    <fo>1</fo>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>198.51.100.123</source_ip>
+      <count>2</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>fail</spf>
+        <reason>
+          <type></type>
+          <comment></comment>
+        </reason>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <envelope_to>example.net</envelope_to>
+      <envelope_from>example.edu</envelope_from>
+      <header_from>example.com</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>example.com</domain>
+        <selector>example</selector>
+        <result>pass</result>
+        <human_result>2048-bit key</human_result>
+      </dkim>
+      <spf>
+        <domain>example.edu</domain>
+        <scope>mfrom</scope>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>
