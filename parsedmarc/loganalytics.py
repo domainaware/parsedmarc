@@ -36,6 +36,10 @@ class LogAnalyticsConfig():
             The Stream name where
             the Forensic DMARC reports
             need to be pushed.
+        dcr_smtp_tls_stream (str):
+            The Stream name where
+            the SMTP TLS Reports
+            need to be pushed.
     """
     def __init__(
             self,
@@ -45,7 +49,8 @@ class LogAnalyticsConfig():
             dce: str,
             dcr_immutable_id: str,
             dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
+            dcr_forensic_stream: str,
+            dcr_smtp_tls_stream: str):
         self.client_id = client_id
         self.client_secret = client_secret
         self.tenant_id = tenant_id
@@ -53,6 +58,7 @@ class LogAnalyticsConfig():
         self.dcr_immutable_id = dcr_immutable_id
         self.dcr_aggregate_stream = dcr_aggregate_stream
         self.dcr_forensic_stream = dcr_forensic_stream
+        self.dcr_smtp_tls_stream = dcr_smtp_tls_stream
 
 
 class LogAnalyticsClient(object):
@@ -69,7 +75,8 @@ class LogAnalyticsClient(object):
             dce: str,
             dcr_immutable_id: str,
             dcr_aggregate_stream: str,
-            dcr_forensic_stream: str):
+            dcr_forensic_stream: str,
+            dcr_smtp_tls_stream: str):
         self.conf = LogAnalyticsConfig(
             client_id=client_id,
             client_secret=client_secret,
@@ -77,7 +84,8 @@ class LogAnalyticsClient(object):
             dce=dce,
             dcr_immutable_id=dcr_immutable_id,
             dcr_aggregate_stream=dcr_aggregate_stream,
-            dcr_forensic_stream=dcr_forensic_stream
+            dcr_forensic_stream=dcr_forensic_stream,
+            dcr_smtp_tls_stream=dcr_smtp_tls_stream
         )
         if (
                 not self.conf.client_id or
@@ -96,7 +104,7 @@ class LogAnalyticsClient(object):
             dcr_stream: str):
         """
         Background function to publish given
-        DMARC reprot to specific Data Collection Rule.
+        DMARC report to specific Data Collection Rule.
 
         Args:
             results (list):
@@ -117,9 +125,11 @@ class LogAnalyticsClient(object):
             self,
             results,
             save_aggregate: bool,
-            save_forensic: bool):
+            save_forensic: bool,
+            save_smtp_tls: bool
+    ):
         """
-        Function to publish DMARC reports to Log Analytics
+        Function to publish DMARC and/or SMTP TLS reports to Log Analytics
         via Data Collection Rules (DCR).
         Look below for docs:
         https://learn.microsoft.com/en-us/azure/azure-monitor/logs/logs-ingestion-api-overview
@@ -130,6 +140,8 @@ class LogAnalyticsClient(object):
             save_aggregate (bool):
                 Whether Aggregate reports can be saved into Log Analytics
             save_forensic (bool):
+                Whether Forensic reports can be saved into Log Analytics
+            save_smtp_tls (bool):
                 Whether Forensic reports can be saved into Log Analytics
         """
         conf = self.conf
@@ -161,3 +173,14 @@ class LogAnalyticsClient(object):
                 logs_client,
                 conf.dcr_forensic_stream)
             logger.info("Successfully pushed forensic reports.")
+        if (
+                results['smtp_tls_reports'] and
+                conf.dcr_smtp_tls_stream and
+                len(results['smtp_tls_reports']) > 0 and
+                save_smtp_tls):
+            logger.info("Publishing SMTP TLS reports.")
+            self.publish_json(
+                results['smtp_tls_reports'],
+                logs_client,
+                conf.dcr_smtp_tls_stream)
+            logger.info("Successfully pushed SMTP TLS reports.")

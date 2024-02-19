@@ -27,7 +27,7 @@ sphinx_rtd_theme>=0.4.3
 codecov>=2.0.15
 lxml>=4.4.0
 boto3>=1.16.63
-msgraph-core>=0.2.2
+msgraph-core==0.2.2
 azure-identity>=1.8.0
 azure-monitor-ingestion>=1.0.0
 google-api-core>=2.4.0
@@ -40,3 +40,4 @@ myst-parser>=0.18.0
 myst-parser[linkify]
 requests
 bs4
+pytest

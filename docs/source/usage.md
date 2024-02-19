@@ -300,6 +300,7 @@ The full set of configuration options are:
   - `dcr_immutable_id` - str: The immutable ID of the Data Collection Rule (DCR)
   - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
   - `dcr_forensic_stream` - str: The stream name for the forensic reports in the DCR
+  - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
 
   :::{note}
     Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).

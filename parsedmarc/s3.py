@@ -48,11 +48,18 @@ class S3Client(object):
     def save_forensic_report_to_s3(self, report):
         self.save_report_to_s3(report, 'forensic')
 
+    def save_smtp_tls_report_to_s3(self, report):
+        self.save_report_to_s3(report, "smtp_tls")
+
     def save_report_to_s3(self, report, report_type):
-        report_date = human_timestamp_to_datetime(
-            report["report_metadata"]["begin_date"]
-        )
-        report_id = report["report_metadata"]["report_id"]
+        if report_type == "smtp_tls":
+            report_date = report["begin_date"]
+            report_id = report["report_id"]
+        else:
+            report_date = human_timestamp_to_datetime(
+                report["report_metadata"]["begin_date"]
+            )
+            report_id = report["report_metadata"]["report_id"]
         path_template = "{0}/{1}/year={2}/month={3:02d}/day={4:02d}/{5}.json"
         object_path = path_template.format(
             self.bucket_path,
