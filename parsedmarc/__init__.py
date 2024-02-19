@@ -1056,16 +1056,23 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
 
         elif content_type == "text/plain":
             if "A message claiming to be from you has failed" in payload:
-                parts = payload.split("detected.")
-                field_matches = text_report_regex.findall(parts[0])
-                fields = dict()
-                for match in field_matches:
-                    field_name = match[0].lower().replace(" ", "-")
-                    fields[field_name] = match[1].strip()
-                feedback_report = "Arrival-Date: {}\n" \
-                                  "Source-IP: {}" \
-                                  "".format(fields["received-date"],
-                                            fields["sender-ip-address"])
+                try:
+                    parts = payload.split("detected.", 1)
+                    field_matches = text_report_regex.findall(parts[0])
+                    fields = dict()
+                    for match in field_matches:
+                        field_name = match[0].lower().replace(" ", "-")
+                        fields[field_name] = match[1].strip()
+
+                    feedback_report = "Arrival-Date: {}\n" \
+                                    "Source-IP: {}" \
+                                    "".format(fields["received-date"],
+                                                fields["sender-ip-address"])
+                except Exception as e:
+                    error = 'Unable to parse message with ' \
+                            'subject "{0}": {1}'.format(subject, e)
+                    raise InvalidDMARCReport(error)
+
                 sample = parts[1].lstrip()
                 logger.debug(sample)
         else:
