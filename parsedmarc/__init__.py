@@ -1377,7 +1377,8 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
     if not test:
         if delete:
             processed_messages = aggregate_report_msg_uids + \
-                                 forensic_report_msg_uids
+                                 forensic_report_msg_uids + \
+                                 smtp_tls_msg_uids
 
             number_of_processed_msgs = len(processed_messages)
             for i in range(number_of_processed_msgs):
@@ -1432,26 +1433,26 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                         e = "Error moving message UID {0}: {1}".format(
                             msg_uid, e)
                         logger.error("Mailbox error: {0}".format(e))
-                if len(smtp_tls_msg_uids) > 0:
-                    message = "Moving SMTP TLS report messages from"
-                    logger.debug(
-                        "{0} {1} to {2}".format(message,
-                                                reports_folder,
-                                                smtp_tls_reports_folder))
-                    number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
-                    for i in range(number_of_smtp_tls_uids):
-                        msg_uid = smtp_tls_msg_uids[i]
-                        message = "Moving message"
-                        logger.debug("{0} {1} of {2}: UID {3}".format(
-                            message,
-                            i + 1, smtp_tls_msg_uids, msg_uid))
-                        try:
-                            connection.move_message(msg_uid,
-                                                    smtp_tls_reports_folder)
-                        except Exception as e:
-                            e = "Error moving message UID {0}: {1}".format(
-                                msg_uid, e)
-                            logger.error("Mailbox error: {0}".format(e))
+            if len(smtp_tls_msg_uids) > 0:
+                message = "Moving SMTP TLS report messages from"
+                logger.debug(
+                    "{0} {1} to {2}".format(message,
+                                            reports_folder,
+                                            smtp_tls_reports_folder))
+                number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
+                for i in range(number_of_smtp_tls_uids):
+                    msg_uid = smtp_tls_msg_uids[i]
+                    message = "Moving message"
+                    logger.debug("{0} {1} of {2}: UID {3}".format(
+                        message,
+                        i + 1, smtp_tls_msg_uids, msg_uid))
+                    try:
+                        connection.move_message(msg_uid,
+                                                smtp_tls_reports_folder)
+                    except Exception as e:
+                        e = "Error moving message UID {0}: {1}".format(
+                            msg_uid, e)
+                        logger.error("Mailbox error: {0}".format(e))
     results = OrderedDict([("aggregate_reports", aggregate_reports),
                            ("forensic_reports", forensic_reports),
                            ("smtp_tls_reports", smtp_tls_reports)])
