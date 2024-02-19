@@ -395,6 +395,7 @@ def _main():
                      gmail_api_credentials_file=None,
                      gmail_api_token_file=None,
                      gmail_api_include_spam_trash=False,
+                     gmail_api_paginate_messages=True,
                      gmail_api_scopes=[],
                      gmail_api_oauth2_port=8080,
                      log_file=args.log_file,
@@ -829,6 +830,8 @@ def _main():
                 gmail_api_config.get("token_file", ".token")
             opts.gmail_api_include_spam_trash = \
                 gmail_api_config.getboolean("include_spam_trash", False)
+            opts.gmail_api_paginate_messages = \
+                gmail_api_config.getboolean("paginate_messages", True)
             opts.gmail_api_scopes = \
                 gmail_api_config.get("scopes",
                                      default_gmail_api_scope)
@@ -1098,6 +1101,7 @@ def _main():
                 token_file=opts.gmail_api_token_file,
                 scopes=opts.gmail_api_scopes,
                 include_spam_trash=opts.gmail_api_include_spam_trash,
+                paginate_messages=opts.gmail_api_paginate_messages,
                 reports_folder=opts.mailbox_reports_folder,
                 oauth2_port=opts.gmail_api_oauth2_port
             )

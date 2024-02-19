@@ -295,6 +295,8 @@ The full set of configuration options are:
       (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
       listen on for the OAuth2 response (Default: `8080`)
+  - `paginate_messages` - bool: When `True`, fetch all applicable Gmail messages.
+      When `False`, only fetch up to 100 new messages per run (Default: `True`)
 - `log_analytics`
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's client secret

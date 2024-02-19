@@ -42,11 +42,13 @@ class GmailConnection(MailboxConnection):
                  scopes: List[str],
                  include_spam_trash: bool,
                  reports_folder: str,
-                 oauth2_port: int):
+                 oauth2_port: int,
+                 paginate_messages: bool):
         creds = _get_creds(token_file, credentials_file, scopes, oauth2_port)
         self.service = build('gmail', 'v1', credentials=creds)
         self.include_spam_trash = include_spam_trash
         self.reports_label_id = self._find_label_id_for_label(reports_folder)
+        self.paginate_messages = paginate_messages
 
     def create_folder(self, folder_name: str):
         # Gmail doesn't support the name Archive
@@ -65,16 +67,30 @@ class GmailConnection(MailboxConnection):
             else:
                 raise e
 
+    def _fetch_all_message_ids(self, reports_label_id, page_token=None):
+        results = (
+            self.service.users()
+            .messages()
+            .list(
+                userId="me",
+                includeSpamTrash=self.include_spam_trash,
+                labelIds=[reports_label_id],
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        messages = results.get("messages", [])
+        for message in messages:
+            yield message["id"]
+
+        if "nextPageToken" in results and self.paginate_messages:
+            yield from self._fetch_all_message_ids(
+                reports_label_id, results["nextPageToken"]
+            )
+
     def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
-        results = self.service.users().messages()\
-            .list(userId='me',
-                  includeSpamTrash=self.include_spam_trash,
-                  labelIds=[reports_label_id]
-                  )\
-            .execute()
-        messages = results.get('messages', [])
-        return [message['id'] for message in messages]
+        return [id for id in self._fetch_all_message_ids(reports_label_id)]
 
     def fetch_message(self, message_id):
         msg = self.service.users().messages()\
