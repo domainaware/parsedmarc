@@ -593,6 +593,10 @@ def _main():
                     logger.critical("password setting missing from the "
                                     "msgraph config section")
                     exit(-1)
+            
+            if opts.graph_auth_method == AuthMethod.DeviceCode.name:
+                if "user" in graph_config:
+                        opts.graph_user = graph_config["user"]
 
             if opts.graph_auth_method != AuthMethod.UsernamePassword.name:
                 if "tenant_id" in graph_config:
@@ -602,12 +606,13 @@ def _main():
                                     "msgraph config section")
                     exit(-1)
 
-            if "client_secret" in graph_config:
-                opts.graph_client_secret = graph_config["client_secret"]
-            else:
-                logger.critical("client_secret setting missing from the "
-                                "msgraph config section")
-                exit(-1)
+            if opts.graph_auth_method == AuthMethod.ClientSecret.name:
+                if "client_secret" in graph_config:
+                    opts.graph_client_secret = graph_config["client_secret"]
+                else:
+                    logger.critical("client_secret setting missing from the "
+                                    "msgraph config section")
+                    exit(-1)
 
             if "client_id" in graph_config:
                 opts.graph_client_id = graph_config["client_id"]
