@@ -561,8 +561,14 @@ def extract_report(input_):
 
     """
     try:
+        file_object = BytesIO()
         if type(input_) is str:
-            file_object = open(input_, "rb")
+            try:
+                file_object = BytesIO(b64decode(input_))
+            except binascii.Error:
+                pass
+            if file_object is None:
+                file_object = open(input_, "rb")
         elif type(input_) is bytes:
             file_object = BytesIO(input_)
         else:
@@ -1355,7 +1361,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
             elif parsed_email["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(parsed_email["report"])
                 smtp_tls_reports.append(msg_uid)
-        except InvalidDMARCReport as error:
+        except ParserError as error:
             logger.warning(error.__str__())
             if not test:
                 if delete:

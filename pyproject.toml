@@ -47,7 +47,7 @@ dependencies = [
     "kafka-python>=1.4.4",
     "lxml>=4.4.0",
     "mailsuite>=1.6.1",
-    "msgraph-core>=0.2.2",
+    "msgraph-core==0.2.2",
     "publicsuffixlist>=0.10.0",
     "requests>=2.22.0",
     "tqdm>=4.31.1",
