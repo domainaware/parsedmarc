@@ -105,6 +105,9 @@ ENV/
 # PyCharm Project settings
 .idea/
 
+# VS Code launch config
+.vscode/launch.json
+
 # Visual Studio Code settings
 #.vscode/
 
