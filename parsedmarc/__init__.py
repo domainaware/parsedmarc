@@ -1360,7 +1360,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                 forensic_report_msg_uids.append(msg_uid)
             elif parsed_email["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(parsed_email["report"])
-                smtp_tls_reports.append(msg_uid)
+                smtp_tls_msg_uids.append(msg_uid)
         except ParserError as error:
             logger.warning(error.__str__())
             if not test:
