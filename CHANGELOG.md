@@ -6,9 +6,15 @@ Changelog
 
 - Add support for SMTP TLS reports (PR #453 closes issue #71)
 - Do not replace content in forensic samples (fix #403)
-- Pin `msgraph-core` dependency at version `0.2.2` until Microsoft provides better documentation
-- Properly handle base64-encoded email attachments
-- Do not crash when attempting to parse invalid email content
+- Pin `msgraph-core` dependency at version `0.2.2` until Microsoft provides better documentation (PR #466 Close [#464](https://github.com/domainaware/parsedmarc/issues/464))
+- Properly handle base64-encoded email attachments (PR #453)
+- Do not crash when attempting to parse invalid email content (PR #453)
+- Ignore errors when parsing text-based forensic reports (PR #460)
+- Add email date to email processing debug logs (PR #462)
+- Set default batch size to 10 to match the documentation (PR #465)
+- Properly handle none values (PR #468)
+- Add Gmail pagination (PR #469)
+- Use the correct `msgraph` scope (PR #471)
 
 8.6.4
 -----
