@@ -1016,7 +1016,8 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
     smtp_tls_report = None
     sample = None
     if "From" in msg_headers:
-        logger.info("Parsing mail from {0} on {1}".format(msg_headers["From"], date))
+        logger.info("Parsing mail from {0} on {1}".format(msg_headers["From"],
+                                                          date))
     if "Subject" in msg_headers:
         subject = msg_headers["Subject"]
     for part in msg.walk():
@@ -1065,8 +1066,8 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                         fields[field_name] = match[1].strip()
 
                     feedback_report = "Arrival-Date: {}\n" \
-                                    "Source-IP: {}" \
-                                    "".format(fields["received-date"],
+                                      "Source-IP: {}" \
+                                      "".format(fields["received-date"],
                                                 fields["sender-ip-address"])
                 except Exception as e:
                     error = 'Unable to parse message with ' \
