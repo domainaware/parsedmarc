@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.6.4 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>parsedmarc &mdash; parsedmarc 8.7.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -33,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.4
+                8.7.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -118,7 +120,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.6.4&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.7.0&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -130,6 +132,7 @@
 <span class="n">MAGIC_ZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x50\x4B\x03\x04</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_GZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1F\x8B</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_XML</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3c\x3f\x78\x6d\x6c\x20</span><span class="s2">&quot;</span>
+<span class="n">MAGIC_JSON</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\7</span><span class="s2">b&quot;</span>
 
 <span class="n">IP_ADDRESS_CACHE</span> <span class="o">=</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">1800</span><span class="p">)</span>
 
@@ -140,6 +143,10 @@
 
 <div class="viewcode-block" id="InvalidDMARCReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidDMARCReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidDMARCReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC report is encountered&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidSMTPTLSReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidSMTPTLSReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidSMTPTLSReport</span><span class="p">(</span><span class="n">ParserError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid SMTP TLS report is encountered&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="InvalidAggregateReport"><a class="viewcode-back" href="../api.html#parsedmarc.InvalidAggregateReport">[docs]</a><span class="k">class</span> <span class="nc">InvalidAggregateReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
@@ -288,6 +295,179 @@
     <span class="k">return</span> <span class="n">new_record</span>
 
 
+<span class="k">def</span> <span class="nf">_parse_smtp_tls_failure_details</span><span class="p">(</span><span class="n">failure_details</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">new_failure_details</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="n">result_type</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;result-type&quot;</span><span class="p">],</span>
+            <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failed-session-count&quot;</span><span class="p">],</span>
+            <span class="n">sending_mta_ip</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;sending-mta-ip&quot;</span><span class="p">],</span>
+            <span class="n">receiving_ip</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving-ip&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;receiving-mx-hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+            <span class="n">new_failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                <span class="s2">&quot;receiving-mx-hostname&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;receiving-mx-helo&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+            <span class="n">new_failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                <span class="s2">&quot;receiving-mx-helo&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;additional-info-uri&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+            <span class="n">new_failure_details</span><span class="p">[</span><span class="s2">&quot;additional_info_uri&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                <span class="s2">&quot;additional-info-uri&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;failure-reason-code&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+            <span class="n">new_failure_details</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                <span class="s2">&quot;failure-reason-code&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">new_failure_details</span>
+
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required failure details field:&quot;</span>
+                                   <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">):</span>
+    <span class="n">policy_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tlsa&quot;</span><span class="p">,</span> <span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="s2">&quot;no-policy-found&quot;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">policy_domain</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-domain&quot;</span><span class="p">]</span>
+        <span class="n">policy_type</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-type&quot;</span><span class="p">]</span>
+        <span class="n">failure_details</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">policy_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">policy_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid policy type &quot;</span>
+                                       <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">policy_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">new_policy</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="n">policy_domain</span><span class="o">=</span><span class="n">policy_domain</span><span class="p">,</span>
+                                 <span class="n">policy_type</span><span class="o">=</span><span class="n">policy_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;policy-string&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-string&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-string&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">new_policy</span><span class="p">[</span><span class="s2">&quot;policy_strings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span>
+                        <span class="s2">&quot;policy-string&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s2">&quot;mx-host-pattern&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;mx-host-pattern&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;mx-host-pattern&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">new_policy</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span>
+                        <span class="s2">&quot;mx-host-pattern&quot;</span><span class="p">]</span>
+        <span class="n">new_policy</span><span class="p">[</span><span class="s2">&quot;successful_session_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;total-successful-session-count&quot;</span><span class="p">]</span>
+        <span class="n">new_policy</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;total-failure-session-count&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;failure-details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">details</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure-details&quot;</span><span class="p">]:</span>
+                <span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_smtp_tls_failure_details</span><span class="p">(</span>
+                    <span class="n">details</span><span class="p">))</span>
+            <span class="n">new_policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span>
+
+        <span class="k">return</span> <span class="n">new_policy</span>
+
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required policy field: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="parse_smtp_tls_report_json"><a class="viewcode-back" href="../api.html#parsedmarc.parse_smtp_tls_report_json">[docs]</a><span class="k">def</span> <span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses and validates an SMTP TLS report&quot;&quot;&quot;</span>
+    <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;organization-name&quot;</span><span class="p">,</span> <span class="s2">&quot;date-range&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;contact-info&quot;</span><span class="p">,</span> <span class="s2">&quot;report-id&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;policies&quot;</span><span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">policies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">required_field</span> <span class="ow">in</span> <span class="n">required_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">required_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">report</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required field: </span><span class="si">{</span><span class="n">required_field</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">policies_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">])</span>
+            <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;policies must be a list, &quot;</span>
+                                       <span class="sa">f</span><span class="s2">&quot;not </span><span class="si">{</span><span class="n">policies_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">]:</span>
+            <span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">))</span>
+
+        <span class="n">new_report</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization-name&quot;</span><span class="p">],</span>
+            <span class="n">begin_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;start-datetime&quot;</span><span class="p">],</span>
+            <span class="n">end_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;end-datetime&quot;</span><span class="p">],</span>
+            <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report-id&quot;</span><span class="p">],</span>
+            <span class="n">policies</span><span class="o">=</span><span class="n">policies</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_report</span>
+
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required field: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv_rows"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">[docs]</a><span class="k">def</span> <span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts one oor more parsed SMTP TLS reports into a list of single</span>
+<span class="sd">    layer OrderedDict objects suitable for use in a CSV&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="ow">is</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="n">reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">reports</span><span class="p">]</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">reports</span><span class="p">:</span>
+        <span class="n">common_fields</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
+            <span class="n">begin_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
+            <span class="n">end_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span>
+            <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">common_fields</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">&quot;policy_strings&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_strings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_strings&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;mx_host_patterns&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">])</span>
+            <span class="n">successful_record</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">successful_record</span><span class="p">[</span><span class="s2">&quot;successful_session_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span>
+                <span class="s2">&quot;successful_session_count&quot;</span><span class="p">]</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">successful_record</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;failure_details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">failure_details</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]:</span>
+                    <span class="n">failure_record</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">failure_record</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">failure_record</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rows</span></div>
+
+
+<div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv"><a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">[docs]</a><span class="k">def</span> <span class="nf">parsed_smtp_tls_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts one or more parsed SMTP TLS reports to flat CSV format, including</span>
+<span class="sd">    headers</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        reports: A parsed aggregate report or list of parsed aggregate reports</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Parsed aggregate report data in flat CSV format, including headers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">,</span> <span class="s2">&quot;begin_date&quot;</span><span class="p">,</span> <span class="s2">&quot;end_date&quot;</span><span class="p">,</span> <span class="s2">&quot;report_id&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;successful_session_count&quot;</span><span class="p">,</span> <span class="s2">&quot;failed_session_count&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;policy_domain&quot;</span><span class="p">,</span> <span class="s2">&quot;policy_type&quot;</span><span class="p">,</span> <span class="s2">&quot;policy_strings&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">,</span> <span class="s2">&quot;sending_mta_ip&quot;</span><span class="p">,</span> <span class="s2">&quot;receiving_ip&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">,</span> <span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;additional_info_uri&quot;</span><span class="p">,</span> <span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
+
+    <span class="n">csv_file_object</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span><span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">DictWriter</span><span class="p">(</span><span class="n">csv_file_object</span><span class="p">,</span> <span class="n">fields</span><span class="p">)</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="n">csv_file_object</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">csv_file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="parse_aggregate_report_xml"><a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_xml">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -308,6 +488,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="c1"># Parse XML and recover from errors</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">xml</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -452,21 +634,27 @@
             <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="extract_xml"><a class="viewcode-back" href="../api.html#parsedmarc.extract_xml">[docs]</a><span class="k">def</span> <span class="nf">extract_xml</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
+<div class="viewcode-block" id="extract_report"><a class="viewcode-back" href="../api.html#parsedmarc.extract_report">[docs]</a><span class="k">def</span> <span class="nf">extract_report</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Extracts xml from a zip or gzip file at the given path, file-like object,</span>
+<span class="sd">    Extracts text from a zip or gzip file at the given path, file-like object,</span>
 <span class="sd">    or bytes.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_: A path to a file, a file like object, or bytes</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str: The extracted XML</span>
+<span class="sd">        str: The extracted text</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
+        <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
-            <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">if</span> <span class="n">file_object</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
             <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -476,30 +664,31 @@
         <span class="n">file_object</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">):</span>
             <span class="n">_zip</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file_object</span><span class="p">)</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">_zip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">_zip</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="n">_zip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">_zip</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+                <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_GZIP</span><span class="p">):</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
-                                  <span class="n">zlib</span><span class="o">.</span><span class="n">MAX_WBITS</span> <span class="o">|</span> <span class="mi">16</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_XML</span><span class="p">):</span>
-            <span class="n">xml</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span>
+                <span class="n">file_object</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
+                <span class="n">zlib</span><span class="o">.</span><span class="n">MAX_WBITS</span> <span class="o">|</span> <span class="mi">16</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_XML</span><span class="p">)</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_JSON</span><span class="p">):</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;Not a valid zip, gzip, or xml file&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;Not a valid zip, gzip, json, or xml file&quot;</span><span class="p">)</span>
 
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
     <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary &quot;</span>
-                                     <span class="s2">&quot;(rb) mode&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary (rb) mode&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span>
             <span class="s2">&quot;Invalid archive file: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
-    <span class="k">return</span> <span class="n">xml</span></div>
+    <span class="k">return</span> <span class="n">report</span></div>
 
 
 <div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span><span class="n">_input</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -523,7 +712,11 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed DMARC aggregate report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">xml</span> <span class="o">=</span> <span class="n">extract_xml</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">xml</span> <span class="o">=</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">parse_aggregate_report_xml</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span>
                                       <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
@@ -591,7 +784,7 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dmarc_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
             <span class="n">policy_override_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
-                <span class="k">lambda</span> <span class="n">r_</span><span class="p">:</span> <span class="n">r_</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="k">lambda</span> <span class="n">r_</span><span class="p">:</span> <span class="n">r_</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
                 <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span>
                 <span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]))</span>
             <span class="n">policy_override_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
@@ -903,12 +1096,14 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">message_from_string</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
     <span class="n">subject</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">feedback_report</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">smtp_tls_report</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">sample</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s2">&quot;From&quot;</span> <span class="ow">in</span> <span class="n">msg_headers</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parsing mail from </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_headers</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parsing mail from </span><span class="si">{0}</span><span class="s2"> on </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_headers</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">],</span>
+                                                          <span class="n">date</span><span class="p">))</span>
     <span class="k">if</span> <span class="s2">&quot;Subject&quot;</span> <span class="ow">in</span> <span class="n">msg_headers</span><span class="p">:</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="n">msg_headers</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">walk</span><span class="p">():</span>
@@ -934,34 +1129,57 @@
             <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
         <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">:</span>
             <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
+        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;application/tlsrpt+json&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;{&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
+                <span class="n">payload</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
+            <span class="n">smtp_tls_report</span> <span class="o">=</span> <span class="n">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">smtp_tls_report</span><span class="p">)])</span>
+        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;application/tlsrpt+gzip&quot;</span><span class="p">:</span>
+            <span class="n">payload</span> <span class="o">=</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">smtp_tls_report</span> <span class="o">=</span> <span class="n">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">smtp_tls_report</span><span class="p">)])</span>
+
         <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/plain&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;A message claiming to be from you has failed&quot;</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
-                <span class="n">parts</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;detected.&quot;</span><span class="p">)</span>
-                <span class="n">field_matches</span> <span class="o">=</span> <span class="n">text_report_regex</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">fields</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-                <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">field_matches</span><span class="p">:</span>
-                    <span class="n">field_name</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
-                    <span class="n">fields</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                <span class="n">feedback_report</span> <span class="o">=</span> <span class="s2">&quot;Arrival-Date: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span> \
-                                  <span class="s2">&quot;Source-IP: </span><span class="si">{}</span><span class="s2">&quot;</span> \
-                                  <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;received-date&quot;</span><span class="p">],</span>
-                                            <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;sender-ip-address&quot;</span><span class="p">])</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">parts</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;detected.&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">field_matches</span> <span class="o">=</span> <span class="n">text_report_regex</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">fields</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">field_matches</span><span class="p">:</span>
+                        <span class="n">field_name</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+                        <span class="n">fields</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+                    <span class="n">feedback_report</span> <span class="o">=</span> <span class="s2">&quot;Arrival-Date: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span> \
+                                      <span class="s2">&quot;Source-IP: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+                                      <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;received-date&quot;</span><span class="p">],</span>
+                                                <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;sender-ip-address&quot;</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Unable to parse message with &#39;</span> \
+                            <span class="s1">&#39;subject &quot;</span><span class="si">{0}</span><span class="s1">&quot;: </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
                 <span class="n">sample</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
-                <span class="n">sample</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;=</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">payload</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">)</span> <span class="ow">or</span> \
-                        <span class="n">payload</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_GZIP</span><span class="p">)</span> <span class="ow">or</span> \
-                        <span class="n">payload</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_XML</span><span class="p">):</span>
+                        <span class="n">payload</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_GZIP</span><span class="p">):</span>
+                    <span class="n">payload</span> <span class="o">=</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
                     <span class="n">ns</span> <span class="o">=</span> <span class="n">nameservers</span>
-                    <span class="n">aggregate_report</span> <span class="o">=</span> <span class="n">parse_aggregate_report_file</span><span class="p">(</span>
+                    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">):</span>
+                        <span class="n">smtp_tls_report</span> <span class="o">=</span> <span class="n">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+                        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">),</span>
+                                              <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">smtp_tls_report</span><span class="p">)])</span>
+                        <span class="k">return</span> <span class="n">result</span>
+                    <span class="n">aggregate_report</span> <span class="o">=</span> <span class="n">parse_aggregate_report_xml</span><span class="p">(</span>
                         <span class="n">payload</span><span class="p">,</span>
                         <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
                         <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
                         <span class="n">nameservers</span><span class="o">=</span><span class="n">ns</span><span class="p">,</span>
-                        <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                        <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
                         <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span>
                         <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">)</span>
                     <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">),</span>
@@ -975,12 +1193,12 @@
                 <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Message with subject &quot;</span><span class="si">{0}</span><span class="s1">&quot; &#39;</span> \
                         <span class="s1">&#39;is not a valid &#39;</span> \
                         <span class="s1">&#39;aggregate DMARC report: </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
 
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Unable to parse message with &#39;</span> \
                         <span class="s1">&#39;subject &quot;</span><span class="si">{0}</span><span class="s1">&quot;: </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">feedback_report</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1007,7 +1225,7 @@
 
     <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;Message with subject &quot;</span><span class="si">{0}</span><span class="s1">&quot; is &#39;</span> \
-                <span class="s1">&#39;not a valid DMARC report&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span>
+                <span class="s1">&#39;not a valid report&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span></div>
 
 
@@ -1054,18 +1272,22 @@
                                <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">report</span><span class="p">)])</span>
     <span class="k">except</span> <span class="n">InvalidAggregateReport</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">content</span><span class="p">,</span>
-                                         <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
-                                         <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                                         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                         <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
-                                         <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
-                                         <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span>
-                                         <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InvalidDMARCReport</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="s2">&quot;Not a valid aggregate or forensic &quot;</span>
-                                     <span class="s2">&quot;report&quot;</span><span class="p">)</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="n">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">),</span>
+                                   <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">report</span><span class="p">)])</span>
+        <span class="k">except</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">content</span><span class="p">,</span>
+                                             <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+                                             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                                             <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                                             <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                                             <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
+                                             <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span>
+                                             <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">InvalidDMARCReport</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;Not a valid report&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">results</span></div>
 
 
@@ -1094,6 +1316,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">mbox</span> <span class="o">=</span> <span class="n">mailbox</span><span class="o">.</span><span class="n">mbox</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
         <span class="n">message_keys</span> <span class="o">=</span> <span class="n">mbox</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -1119,12 +1342,15 @@
                     <span class="n">aggregate_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;forensic&quot;</span><span class="p">:</span>
                     <span class="n">forensic_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">:</span>
+                    <span class="n">smtp_tls_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
             <span class="k">except</span> <span class="n">InvalidDMARCReport</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
     <span class="k">except</span> <span class="n">mailbox</span><span class="o">.</span><span class="n">NoSuchMailboxError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="s2">&quot;Mailbox </span><span class="si">{0}</span><span class="s2"> does not exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">),</span>
-                        <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">)])</span></div>
+                        <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">,</span> <span class="n">smtp_tls_reports</span><span class="p">)])</span></div>
 
 
 <div class="viewcode-block" id="get_dmarc_reports_from_mailbox"><a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mailbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mailbox</span><span class="p">(</span><span class="n">connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
@@ -1172,20 +1398,25 @@
 
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">smtp_tls_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Aggregate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
     <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="n">smtp_tls_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/SMTP-TLS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
     <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">forensic_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span> <span class="ow">and</span> <span class="n">create_folders</span><span class="p">:</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">)</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">smtp_tls_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
 
     <span class="n">messages</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
@@ -1221,7 +1452,10 @@
             <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;forensic&quot;</span><span class="p">:</span>
                 <span class="n">forensic_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="n">forensic_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InvalidDMARCReport</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">:</span>
+                <span class="n">smtp_tls_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
+                <span class="n">smtp_tls_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ParserError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
@@ -1237,7 +1471,8 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
             <span class="n">processed_messages</span> <span class="o">=</span> <span class="n">aggregate_report_msg_uids</span> <span class="o">+</span> \
-                                 <span class="n">forensic_report_msg_uids</span>
+                                 <span class="n">forensic_report_msg_uids</span> <span class="o">+</span> \
+                                 <span class="n">smtp_tls_msg_uids</span>
 
             <span class="n">number_of_processed_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_messages</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_processed_msgs</span><span class="p">):</span>
@@ -1292,8 +1527,29 @@
                         <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                             <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Mailbox error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">smtp_tls_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving SMTP TLS report messages from&quot;</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> to </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span>
+                                            <span class="n">reports_folder</span><span class="p">,</span>
+                                            <span class="n">smtp_tls_reports_folder</span><span class="p">))</span>
+                <span class="n">number_of_smtp_tls_uids</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">smtp_tls_msg_uids</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_smtp_tls_uids</span><span class="p">):</span>
+                    <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">smtp_tls_msg_uids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving message&quot;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> of </span><span class="si">{2}</span><span class="s2">: UID </span><span class="si">{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">message</span><span class="p">,</span>
+                        <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">smtp_tls_msg_uids</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">))</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">connection</span><span class="o">.</span><span class="n">move_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span>
+                                                <span class="n">smtp_tls_reports_folder</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Mailbox error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">),</span>
-                           <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">)])</span>
+                           <span class="p">(</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">,</span> <span class="n">smtp_tls_reports</span><span class="p">)])</span>
 
     <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">))</span>
 
@@ -1405,8 +1661,10 @@
 <div class="viewcode-block" id="save_output"><a class="viewcode-back" href="../api.html#parsedmarc.save_output">[docs]</a><span class="k">def</span> <span class="nf">save_output</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_json_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
                 <span class="n">forensic_json_filename</span><span class="o">=</span><span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
+                <span class="n">smtp_tls_json_filename</span><span class="o">=</span><span class="s2">&quot;smtp_tls.json&quot;</span><span class="p">,</span>
                 <span class="n">aggregate_csv_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
-                <span class="n">forensic_csv_filename</span><span class="o">=</span><span class="s2">&quot;forensic.csv&quot;</span><span class="p">):</span>
+                <span class="n">forensic_csv_filename</span><span class="o">=</span><span class="s2">&quot;forensic.csv&quot;</span><span class="p">,</span>
+                <span class="n">smtp_tls_csv_filename</span><span class="o">=</span><span class="s2">&quot;smtp_tls.csv&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save report data in the given directory</span>
 
@@ -1415,12 +1673,15 @@
 <span class="sd">        output_directory (str): The path to the directory to save in</span>
 <span class="sd">        aggregate_json_filename (str): Filename for the aggregate JSON file</span>
 <span class="sd">        forensic_json_filename (str): Filename for the forensic JSON file</span>
+<span class="sd">        smtp_tls_json_filename (str): Filename for the SMTP TLS JSON file</span>
 <span class="sd">        aggregate_csv_filename (str): Filename for the aggregate CSV file</span>
 <span class="sd">        forensic_csv_filename (str): Filename for the forensic CSV file</span>
+<span class="sd">        smtp_tls_csv_filename (str): Filename for the SMTP TLS CSV file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">]</span>
+    <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_directory</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output_directory</span><span class="p">):</span>
@@ -1439,6 +1700,12 @@
 
     <span class="n">append_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">forensic_csv_filename</span><span class="p">),</span>
                <span class="n">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">))</span>
+
+    <span class="n">append_json</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">smtp_tls_json_filename</span><span class="p">),</span>
+                <span class="n">smtp_tls_reports</span><span class="p">)</span>
+
+    <span class="n">append_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">smtp_tls_csv_filename</span><span class="p">),</span>
+               <span class="n">parsed_smtp_tls_reports_to_csv</span><span class="p">(</span><span class="n">smtp_tls_reports</span><span class="p">))</span>
 
     <span class="n">samples_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="s2">&quot;samples&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">samples_directory</span><span class="p">):</span>

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 8.6.4 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>API reference &mdash; parsedmarc 8.7.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -35,7 +37,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.4
+                8.7.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -61,9 +63,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.InvalidAggregateReport"><code class="docutils literal notranslate"><span class="pre">InvalidAggregateReport</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.InvalidDMARCReport"><code class="docutils literal notranslate"><span class="pre">InvalidDMARCReport</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.InvalidForensicReport"><code class="docutils literal notranslate"><span class="pre">InvalidForensicReport</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.InvalidSMTPTLSReport"><code class="docutils literal notranslate"><span class="pre">InvalidSMTPTLSReport</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.ParserError"><code class="docutils literal notranslate"><span class="pre">ParserError</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.email_results"><code class="docutils literal notranslate"><span class="pre">email_results()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_xml"><code class="docutils literal notranslate"><span class="pre">extract_xml()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_report"><code class="docutils literal notranslate"><span class="pre">extract_report()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mailbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mailbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_report_zip"><code class="docutils literal notranslate"><span class="pre">get_report_zip()</span></code></a></li>
@@ -72,10 +75,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parse_forensic_report"><code class="docutils literal notranslate"><span class="pre">parse_forensic_report()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parse_report_email"><code class="docutils literal notranslate"><span class="pre">parse_report_email()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parse_report_file"><code class="docutils literal notranslate"><span class="pre">parse_report_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parse_smtp_tls_report_json"><code class="docutils literal notranslate"><span class="pre">parse_smtp_tls_report_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_aggregate_reports_to_csv"><code class="docutils literal notranslate"><span class="pre">parsed_aggregate_reports_to_csv()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_aggregate_reports_to_csv_rows"><code class="docutils literal notranslate"><span class="pre">parsed_aggregate_reports_to_csv_rows()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_forensic_reports_to_csv"><code class="docutils literal notranslate"><span class="pre">parsed_forensic_reports_to_csv()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_forensic_reports_to_csv_rows"><code class="docutils literal notranslate"><span class="pre">parsed_forensic_reports_to_csv_rows()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_smtp_tls_reports_to_csv"><code class="docutils literal notranslate"><span class="pre">parsed_smtp_tls_reports_to_csv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.parsed_smtp_tls_reports_to_csv_rows"><code class="docutils literal notranslate"><span class="pre">parsed_smtp_tls_reports_to_csv_rows()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.save_output"><code class="docutils literal notranslate"><span class="pre">save_output()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.watch_inbox"><code class="docutils literal notranslate"><span class="pre">watch_inbox()</span></code></a></li>
 </ul>
@@ -87,6 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.elastic.migrate_indexes"><code class="docutils literal notranslate"><span class="pre">migrate_indexes()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.elastic.save_aggregate_report_to_elasticsearch"><code class="docutils literal notranslate"><span class="pre">save_aggregate_report_to_elasticsearch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.elastic.save_forensic_report_to_elasticsearch"><code class="docutils literal notranslate"><span class="pre">save_forensic_report_to_elasticsearch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch"><code class="docutils literal notranslate"><span class="pre">save_smtp_tls_report_to_elasticsearch()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.elastic.set_hosts"><code class="docutils literal notranslate"><span class="pre">set_hosts()</span></code></a></li>
 </ul>
 </li>
@@ -94,6 +101,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.splunk.HECClient"><code class="docutils literal notranslate"><span class="pre">HECClient</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk"><code class="docutils literal notranslate"><span class="pre">HECClient.save_aggregate_reports_to_splunk()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk"><code class="docutils literal notranslate"><span class="pre">HECClient.save_forensic_reports_to_splunk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk"><code class="docutils literal notranslate"><span class="pre">HECClient.save_smtp_tls_reports_to_splunk()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.splunk.SplunkError"><code class="docutils literal notranslate"><span class="pre">SplunkError</span></code></a></li>
@@ -110,7 +118,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_ip_address_info"><code class="docutils literal notranslate"><span class="pre">get_ip_address_info()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_reverse_dns"><code class="docutils literal notranslate"><span class="pre">get_reverse_dns()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_datetime"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_datetime()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_timestamp"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_timestamp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_unix_timestamp"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_unix_timestamp()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.is_mbox"><code class="docutils literal notranslate"><span class="pre">is_mbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.is_outlook_msg"><code class="docutils literal notranslate"><span class="pre">is_outlook_msg()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.parse_email"><code class="docutils literal notranslate"><span class="pre">parse_email()</span></code></a></li>
@@ -172,6 +180,12 @@
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="parsedmarc.InvalidSMTPTLSReport">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">InvalidSMTPTLSReport</span></span><a class="reference internal" href="_modules/parsedmarc.html#InvalidSMTPTLSReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.InvalidSMTPTLSReport" title="Permalink to this definition"></a></dt>
+<dd><p>Raised when an invalid SMTP TLS report is encountered</p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="parsedmarc.ParserError">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">ParserError</span></span><a class="reference internal" href="_modules/parsedmarc.html#ParserError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.ParserError" title="Permalink to this definition"></a></dt>
 <dd><p>Raised whenever the parser fails for some reason</p>
@@ -204,16 +218,16 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="parsedmarc.extract_xml">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_xml" title="Permalink to this definition"></a></dt>
-<dd><p>Extracts xml from a zip or gzip file at the given path, file-like object,
+<dt class="sig sig-object py" id="parsedmarc.extract_report">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_report" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts text from a zip or gzip file at the given path, file-like object,
 or bytes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>input</strong> – A path to a file, a file like object, or bytes</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The extracted XML</p>
+<dd class="field-even"><p>The extracted text</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>str</p>
@@ -443,6 +457,12 @@ forensic report results</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.parse_smtp_tls_report_json">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parse_smtp_tls_report_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">report</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parse_smtp_tls_report_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parse_smtp_tls_report_json" title="Permalink to this definition"></a></dt>
+<dd><p>Parses and validates an SMTP TLS report</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.parsed_aggregate_reports_to_csv">
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_aggregate_reports_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_aggregate_reports_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_aggregate_reports_to_csv" title="Permalink to this definition"></a></dt>
 <dd><p>Converts one or more parsed aggregate reports to flat CSV format, including
@@ -516,8 +536,33 @@ format</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.parsed_smtp_tls_reports_to_csv">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_smtp_tls_reports_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_smtp_tls_reports_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_smtp_tls_reports_to_csv" title="Permalink to this definition"></a></dt>
+<dd><p>Converts one or more parsed SMTP TLS reports to flat CSV format, including
+headers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reports</strong> – A parsed aggregate report or list of parsed aggregate reports</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parsed aggregate report data in flat CSV format, including headers</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.parsed_smtp_tls_reports_to_csv_rows">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">parsed_smtp_tls_reports_to_csv_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#parsed_smtp_tls_reports_to_csv_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.parsed_smtp_tls_reports_to_csv_rows" title="Permalink to this definition"></a></dt>
+<dd><p>Converts one oor more parsed SMTP TLS reports into a list of single
+layer OrderedDict objects suitable for use in a CSV</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.save_output">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">save_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">save_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'output'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_json_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'smtp_tls.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aggregate.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forensic_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'forensic.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_csv_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'smtp_tls.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#save_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.save_output" title="Permalink to this definition"></a></dt>
 <dd><p>Save report data in the given directory</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -526,8 +571,10 @@ format</p>
 <li><p><strong>output_directory</strong> (<em>str</em>) – The path to the directory to save in</p></li>
 <li><p><strong>aggregate_json_filename</strong> (<em>str</em>) – Filename for the aggregate JSON file</p></li>
 <li><p><strong>forensic_json_filename</strong> (<em>str</em>) – Filename for the forensic JSON file</p></li>
+<li><p><strong>smtp_tls_json_filename</strong> (<em>str</em>) – Filename for the SMTP TLS JSON file</p></li>
 <li><p><strong>aggregate_csv_filename</strong> (<em>str</em>) – Filename for the aggregate CSV file</p></li>
 <li><p><strong>forensic_csv_filename</strong> (<em>str</em>) – Filename for the forensic CSV file</p></li>
+<li><p><strong>smtp_tls_csv_filename</strong> (<em>str</em>) – Filename for the SMTP TLS CSV file</p></li>
 </ul>
 </dd>
 </dl>
@@ -650,8 +697,28 @@ index</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">save_smtp_tls_report_to_elasticsearch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monthly_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_shards</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#save_smtp_tls_report_to_elasticsearch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch" title="Permalink to this definition"></a></dt>
+<dd><p>Saves a parsed SMTP TLS report to elasticSearch</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report</strong> (<em>OrderedDict</em>) – A parsed SMTP TLS report</p></li>
+<li><p><strong>index_suffix</strong> (<em>str</em>) – The suffix of the name of the index to save to</p></li>
+<li><p><strong>monthly_indexes</strong> (<em>bool</em>) – Use monthly indexes instead of daily indexes</p></li>
+<li><p><strong>number_of_shards</strong> (<em>int</em>) – The number of shards to use in the index</p></li>
+<li><p><strong>number_of_replicas</strong> (<em>int</em>) – The number of replicas to use in the index</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="#parsedmarc.elastic.AlreadySaved" title="parsedmarc.elastic.AlreadySaved"><strong>AlreadySaved</strong></a> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.elastic.set_hosts">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">set_hosts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_cert_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">set_hosts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ssl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_cert_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apiKey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#set_hosts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.set_hosts" title="Permalink to this definition"></a></dt>
 <dd><p>Sets the Elasticsearch hosts to use</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -661,6 +728,7 @@ index</p></li>
 <li><p><strong>ssl_cert_path</strong> (<em>str</em>) – Path to the certificate chain</p></li>
 <li><p><strong>username</strong> (<em>str</em>) – The username to use for authentication</p></li>
 <li><p><strong>password</strong> (<em>str</em>) – The password to use for authentication</p></li>
+<li><p><strong>apiKey</strong> (<em>str</em>) – The Base64 encoded API key to use for authentication</p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Timeout in seconds</p></li>
 </ul>
 </dd>
@@ -706,6 +774,18 @@ to save in Splunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>forensic_reports</strong> (<em>list</em>) – A list of forensic report dictionaries
+to save in Splunk</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">
+<span class="sig-name descname"><span class="pre">save_smtp_tls_reports_to_splunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/splunk.html#HECClient.save_smtp_tls_reports_to_splunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk" title="Permalink to this definition"></a></dt>
+<dd><p>Saves aggregate DMARC reports to Splunk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reports</strong> – A list of SMTP TLS report dictionaries
 to save in Splunk</p>
 </dd>
 </dl>
@@ -897,8 +977,8 @@ with the given IPv4 or IPv6 address</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="parsedmarc.utils.human_timestamp_to_timestamp">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_timestamp" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="parsedmarc.utils.human_timestamp_to_unix_timestamp">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">human_timestamp_to_unix_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">human_timestamp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/utils.html#human_timestamp_to_unix_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.human_timestamp_to_unix_timestamp" title="Permalink to this definition"></a></dt>
 <dd><p>Converts a human-readable timestamp into a UNIX timestamp</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

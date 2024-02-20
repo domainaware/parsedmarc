@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; parsedmarc 8.6.4 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Index &mdash; parsedmarc 8.7.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -33,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.4
+                8.7.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -142,7 +144,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.utils.EmailParserError">EmailParserError</a>
 </li>
-      <li><a href="api.html#parsedmarc.extract_xml">extract_xml() (in module parsedmarc)</a>
+      <li><a href="api.html#parsedmarc.extract_report">extract_report() (in module parsedmarc)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -180,7 +182,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.utils.human_timestamp_to_datetime">human_timestamp_to_datetime() (in module parsedmarc.utils)</a>
 </li>
-      <li><a href="api.html#parsedmarc.utils.human_timestamp_to_timestamp">human_timestamp_to_timestamp() (in module parsedmarc.utils)</a>
+      <li><a href="api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">human_timestamp_to_unix_timestamp() (in module parsedmarc.utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -192,9 +194,11 @@
 </li>
       <li><a href="api.html#parsedmarc.InvalidDMARCReport">InvalidDMARCReport</a>
 </li>
+      <li><a href="api.html#parsedmarc.InvalidForensicReport">InvalidForensicReport</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#parsedmarc.InvalidForensicReport">InvalidForensicReport</a>
+      <li><a href="api.html#parsedmarc.InvalidSMTPTLSReport">InvalidSMTPTLSReport</a>
 </li>
       <li><a href="api.html#parsedmarc.utils.is_mbox">is_mbox() (in module parsedmarc.utils)</a>
 </li>
@@ -239,15 +243,21 @@
 </li>
       <li><a href="api.html#parsedmarc.parse_report_file">parse_report_file() (in module parsedmarc)</a>
 </li>
+      <li><a href="api.html#parsedmarc.parse_smtp_tls_report_json">parse_smtp_tls_report_json() (in module parsedmarc)</a>
+</li>
       <li><a href="api.html#parsedmarc.parsed_aggregate_reports_to_csv">parsed_aggregate_reports_to_csv() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">parsed_aggregate_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.parsed_forensic_reports_to_csv">parsed_forensic_reports_to_csv() (in module parsedmarc)</a>
 </li>
+      <li><a href="api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">parsed_forensic_reports_to_csv_rows() (in module parsedmarc)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">parsed_forensic_reports_to_csv_rows() (in module parsedmarc)</a>
+      <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">parsed_smtp_tls_reports_to_csv() (in module parsedmarc)</a>
+</li>
+      <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">parsed_smtp_tls_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
       <li>
     parsedmarc
@@ -299,11 +309,15 @@
 </li>
       <li><a href="api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">save_forensic_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">save_forensic_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.save_output">save_output() (in module parsedmarc)</a>
+</li>
+      <li><a href="api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">save_smtp_tls_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
+</li>
+      <li><a href="api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">save_smtp_tls_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
 </li>
       <li><a href="api.html#parsedmarc.elastic.set_hosts">set_hosts() (in module parsedmarc.elastic)</a>
 </li>

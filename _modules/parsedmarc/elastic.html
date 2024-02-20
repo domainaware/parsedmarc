@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 8.6.4 documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>parsedmarc.elastic &mdash; parsedmarc 8.7.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -33,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.4
+                8.7.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -249,12 +251,78 @@
     <span class="n">sample</span> <span class="o">=</span> <span class="n">Object</span><span class="p">(</span><span class="n">_ForensicSampleDoc</span><span class="p">)</span>
 
 
+<span class="k">class</span> <span class="nc">_SMTPTLSFailureDetailsDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="n">result_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
+    <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">receiving_ip</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
+    <span class="n">failed_session_count</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
+    <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_SMTPTLSPolicyDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="n">policy_domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">policy_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">policy_strings</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">mx_host_patterns</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">successful_session_count</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
+    <span class="n">failed_session_count</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
+    <span class="n">failure_details</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SMTPTLSFailureDetailsDoc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_failure_details</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result_type</span><span class="p">,</span> <span class="n">ip_address</span><span class="p">,</span>
+                            <span class="n">receiving_ip</span><span class="p">,</span>
+                            <span class="n">receiving_mx_helo</span><span class="p">,</span>
+                            <span class="n">failed_session_count</span><span class="p">,</span>
+                            <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">additional_information_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">failure_reason_code</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">result_type</span><span class="o">=</span><span class="n">result_type</span><span class="p">,</span>
+            <span class="n">ip_address</span><span class="o">=</span><span class="n">ip_address</span><span class="p">,</span>
+            <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
+            <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
+            <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
+            <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failed_session_count</span><span class="p">,</span>
+            <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
+            <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_SMTPTLSFailureReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+
+    <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
+
+    <span class="n">organization_name</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">date_range</span> <span class="o">=</span> <span class="n">Date</span><span class="p">()</span>
+    <span class="n">date_begin</span> <span class="o">=</span> <span class="n">Date</span><span class="p">()</span>
+    <span class="n">date_end</span> <span class="o">=</span> <span class="n">Date</span><span class="p">()</span>
+    <span class="n">contact_info</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">report_id</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">policies</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SMTPTLSPolicyDoc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy_type</span><span class="p">,</span> <span class="n">policy_domain</span><span class="p">,</span>
+                   <span class="n">successful_session_count</span><span class="p">,</span>
+                   <span class="n">failed_session_count</span><span class="p">,</span>
+                   <span class="n">policy_string</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">mx_host_patterns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">failure_details</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_type</span><span class="o">=</span><span class="n">policy_type</span><span class="p">,</span>
+                             <span class="n">policy_domain</span><span class="o">=</span><span class="n">policy_domain</span><span class="p">,</span>
+                             <span class="n">successful_session_count</span><span class="o">=</span><span class="n">successful_session_count</span><span class="p">,</span>
+                             <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failed_session_count</span><span class="p">,</span>
+                             <span class="n">policy_string</span><span class="o">=</span><span class="n">policy_string</span><span class="p">,</span>
+                             <span class="n">mx_host_patterns</span><span class="o">=</span><span class="n">mx_host_patterns</span><span class="p">,</span>
+                             <span class="n">failure_details</span><span class="o">=</span><span class="n">failure_details</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-              <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
+              <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">apiKey</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
 
@@ -264,6 +332,7 @@
 <span class="sd">        ssl_cert_path (str): Path to the certificate chain</span>
 <span class="sd">        username (str): The username to use for authentication</span>
 <span class="sd">        password (str): The password to use for authentication</span>
+<span class="sd">        apiKey (str): The Base64 encoded API key to use for authentication</span>
 <span class="sd">        timeout (float): Timeout in seconds</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -281,6 +350,8 @@
             <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;verify_certs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">username</span><span class="p">:</span>
         <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;http_auth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="o">+</span><span class="s2">&quot;:&quot;</span><span class="o">+</span><span class="n">password</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">apiKey</span><span class="p">:</span>
+        <span class="n">conn_params</span><span class="p">[</span><span class="s1">&#39;api_key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">apiKey</span>
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 
@@ -635,6 +706,130 @@
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span>
             <span class="s2">&quot;Forensic report missing required field: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+
+
+<div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span><span class="n">report</span><span class="p">,</span>
+                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                          <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                          <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                          <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Saves a parsed SMTP TLS report to elasticSearch</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        report (OrderedDict): A parsed SMTP TLS report</span>
+<span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
+<span class="sd">        number_of_shards (int): The number of shards to use in the index</span>
+<span class="sd">        number_of_replicas (int): The number of replicas to use in the index</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">            AlreadySaved</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to Elasticsearch&quot;</span><span class="p">)</span>
+    <span class="n">org_name</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
+    <span class="n">report_id</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
+    <span class="n">begin_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
+                                             <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">end_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span>
+                                           <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">monthly_indexes</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_date</span>
+    <span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_date</span>
+
+    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
+    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
+    <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_begin</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
+    <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls&quot;</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
+<span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An SMTP TLS report ID </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2"> from &quot;</span>
+                           <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">org_name</span><span class="si">}</span><span class="s2"> with a date range of &quot;</span>
+                           <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">begin_date_human</span><span class="si">}</span><span class="s2"> UTC to &quot;</span>
+                           <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">end_date_human</span><span class="si">}</span><span class="s2"> UTC already &quot;</span>
+                           <span class="s2">&quot;exists in Elasticsearch&quot;</span><span class="p">)</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
+    <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+    <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span>
+                          <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span><span class="p">)</span>
+
+    <span class="n">smtp_tls_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSFailureReportDoc</span><span class="p">(</span>
+        <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
+        <span class="n">date_range</span><span class="o">=</span><span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">]],</span>
+        <span class="n">date_begin</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span>
+        <span class="n">date_end</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">],</span>
+        <span class="n">contact_info</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;contact_info&quot;</span><span class="p">],</span>
+        <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;policies&#39;</span><span class="p">]:</span>
+        <span class="n">policy_strings</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mx_host_patterns</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;policy_strings&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+            <span class="n">policy_strings</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_strings&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;mx_host_patterns&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+            <span class="n">mx_host_patterns</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">]</span>
+        <span class="n">policy_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSPolicyDoc</span><span class="p">(</span>
+            <span class="n">policy_domain</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">],</span>
+            <span class="n">policy_type</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">],</span>
+            <span class="n">policy_string</span><span class="o">=</span><span class="n">policy_strings</span><span class="p">,</span>
+            <span class="n">mx_host_patterns</span><span class="o">=</span><span class="n">mx_host_patterns</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;failure_details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
+            <span class="n">failure_details</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]</span>
+            <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                    <span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                    <span class="s2">&quot;additional_information_uri&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;failure_reason_code&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
+            <span class="n">policy_doc</span><span class="o">.</span><span class="n">add_failure_details</span><span class="p">(</span>
+                <span class="n">result_type</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;result_type&quot;</span><span class="p">],</span>
+                <span class="n">ip_address</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">],</span>
+                <span class="n">receiving_ip</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_ip&quot;</span><span class="p">],</span>
+                <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">],</span>
+                <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
+                <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
+                <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
+                <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span>
+            <span class="p">)</span>
+        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
+
+    <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
+    <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
+            <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 </pre></div>
 
            </div>

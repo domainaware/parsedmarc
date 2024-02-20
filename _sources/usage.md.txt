@@ -137,9 +137,9 @@ The full set of configuration options are:
   - `archive_folder` - str: The mailbox folder (or label for
       Gmail) to sort processed emails into (Default: `Archive`)
   - `watch` - bool: Use the IMAP `IDLE` command to process
-  - messages as they arrive or poll MS Graph for new messages
+      messages as they arrive or poll MS Graph for new messages
   - `delete` - bool: Delete messages after processing them,
-  - instead of archiving them
+      instead of archiving them
   - `test` - bool: Do not move or delete messages
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
@@ -225,9 +225,12 @@ The full set of configuration options are:
     Special characters in the username or password must be
     [URL encoded].
     :::
-
+  - `user` - str: Basic auth username
+  - `password` - str: Basic auth password
+  - `apiKey` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
+  - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
   - `index_suffix` - str: A suffix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
@@ -292,6 +295,8 @@ The full set of configuration options are:
       (Default: `https://www.googleapis.com/auth/gmail.modify`)
   - `oauth2_port` - int: The TCP port for the local server to
       listen on for the OAuth2 response (Default: `8080`)
+  - `paginate_messages` - bool: When `True`, fetch all applicable Gmail messages.
+      When `False`, only fetch up to 100 new messages per run (Default: `True`)
 - `log_analytics`
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's client secret
@@ -300,6 +305,7 @@ The full set of configuration options are:
   - `dcr_immutable_id` - str: The immutable ID of the Data Collection Rule (DCR)
   - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
   - `dcr_forensic_stream` - str: The stream name for the forensic reports in the DCR
+  - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
 
   :::{note}
     Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).

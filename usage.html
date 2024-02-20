@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.6.4 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Using parsedmarc &mdash; parsedmarc 8.7.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -36,7 +38,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.6.4
+                8.7.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -227,10 +229,10 @@ Gmail) where the incoming reports can be found
 (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">archive_folder</span></code> - str: The mailbox folder (or label for
 Gmail) to sort processed emails into (Default: <code class="docutils literal notranslate"><span class="pre">Archive</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process</p></li>
-<li><p>messages as they arrive or poll MS Graph for new messages</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,</p></li>
-<li><p>instead of archiving them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watch</span></code> - bool: Use the IMAP <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> command to process
+messages as they arrive or poll MS Graph for new messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,
+instead of archiving them</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
 before saving. Default <code class="docutils literal notranslate"><span class="pre">10</span></code>. Use <code class="docutils literal notranslate"><span class="pre">0</span></code> for no limit.</p></li>
@@ -325,8 +327,12 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 <a class="reference external" href="https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters">URL encoded</a>.</p>
 </div>
 </li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">apiKey</span></code> - str: API key</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
 (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
@@ -410,6 +416,8 @@ acquiring credentials
 (Default: <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">oauth2_port</span></code> - int: The TCP port for the local server to
 listen on for the OAuth2 response (Default: <code class="docutils literal notranslate"><span class="pre">8080</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">paginate_messages</span></code> - bool: When <code class="docutils literal notranslate"><span class="pre">True</span></code>, fetch all applicable Gmail messages.
+When <code class="docutils literal notranslate"><span class="pre">False</span></code>, only fetch up to 100 new messages per run (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_analytics</span></code></p>
@@ -421,6 +429,7 @@ listen on for the OAuth2 response (Default: <code class="docutils literal notran
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_immutable_id</span></code> - str: The immutable ID of the Data Collection Rule (DCR)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_aggregate_stream</span></code> - str: The stream name for aggregate reports in the DCR</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_forensic_stream</span></code> - str: The stream name for the forensic reports in the DCR</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dcr_smtp_tls_stream</span></code> - str: The stream name for the SMTP TLS reports in the DCR</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
