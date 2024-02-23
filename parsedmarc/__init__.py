@@ -304,6 +304,7 @@ def parse_smtp_tls_report_json(report):
             organization_name=report["organization-name"],
             begin_date=report["date-range"]["start-datetime"],
             end_date=report["date-range"]["end-datetime"],
+            contact_info=report["contact-info"],
             report_id=report["report-id"],
             policies=policies
         )

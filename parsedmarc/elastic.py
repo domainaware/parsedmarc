@@ -690,9 +690,9 @@ def save_smtp_tls_report_to_elasticsearch(report,
 
     smtp_tls_doc = _SMTPTLSFailureReportDoc(
         organization_name=report["organization_name"],
-        date_range=[report["date_begin"], report["date_end"]],
-        date_begin=report["date_begin"],
-        date_end=report["date_end"],
+        date_range=[report["begin_date"], report["end_date"]],
+        date_begin=report["begin_date"],
+        date_end=report["end_date"],
         contact_info=report["contact_info"],
         report_id=report["report_id"]
     )
@@ -735,6 +735,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
             )
         smtp_tls_doc.policies.append(policy_doc)
 
+    logger.info("create index: {}".format(index))
     create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index
 
