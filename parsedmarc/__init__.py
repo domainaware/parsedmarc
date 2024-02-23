@@ -1454,7 +1454,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                     message = "Moving message"
                     logger.debug("{0} {1} of {2}: UID {3}".format(
                         message,
-                        i + 1, smtp_tls_msg_uids, msg_uid))
+                        i + 1, number_of_smtp_tls_uids, msg_uid))
                     try:
                         connection.move_message(msg_uid,
                                                 smtp_tls_reports_folder)
