@@ -640,7 +640,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
             AlreadySaved
     """
     logger.info("Saving smtp tls report to Elasticsearch")
-    org_name = report["org_name"]
+    organization_name = report["organization_name"]
     report_id = report["report_id"]
     begin_date = human_timestamp_to_datetime(report["begin_date"],
                                              to_utc=True)
@@ -655,7 +655,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     report["begin_date"] = begin_date
     report["end_date"] = end_date
 
-    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
+    org_name_query = Q(dict(match_phrase=dict(organization_name=organization_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
     end_date_query = Q(dict(match=dict(date_end=end_date)))
@@ -676,7 +676,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
 
     if len(existing) > 0:
         raise AlreadySaved(f"An SMTP TLS report ID {report_id} from "
-                           f" {org_name} with a date range of "
+                           f" {organization_name} with a date range of "
                            f"{begin_date_human} UTC to "
                            f"{end_date_human} UTC already "
                            "exists in Elasticsearch")
