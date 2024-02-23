@@ -187,12 +187,14 @@ class _SMTPTLSPolicyDoc(InnerDoc):
                             receiving_ip,
                             receiving_mx_helo,
                             failed_session_count,
+                            sending_mta_ip=None,
                             receiving_mx_hostname=None,
                             additional_information_uri=None,
                             failure_reason_code=None):
         self.failure_details.append(
             result_type=result_type,
             ip_address=ip_address,
+            sending_mta_ip=sending_mta_ip,
             receiving_mx_hostname=receiving_mx_hostname,
             receiving_mx_helo=receiving_mx_helo,
             receiving_ip=receiving_ip,
@@ -202,7 +204,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
         )
 
 
-class _SMTPTLSFailureReportDoc(Document):
+class _SMTPTLSReportDoc(Document):
 
     class Index:
         name = "smtp_tls"
@@ -688,7 +690,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     index_settings = dict(number_of_shards=number_of_shards,
                           number_of_replicas=number_of_replicas)
 
-    smtp_tls_doc = _SMTPTLSFailureReportDoc(
+    smtp_tls_doc = _SMTPTLSReportDoc(
         org_name=report["organization_name"],
         date_range=[report["begin_date"], report["end_date"]],
         date_begin=report["begin_date"],
@@ -707,6 +709,8 @@ def save_smtp_tls_report_to_elasticsearch(report,
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
             policy_type=policy["policy_type"],
+            succesful_session_count=policy["successful_session_count"],
+            failed_session_count=policy["failed_session_count"],
             policy_string=policy_strings,
             mx_host_patterns=mx_host_patterns
         )
@@ -715,6 +719,11 @@ def save_smtp_tls_report_to_elasticsearch(report,
             receiving_mx_hostname = None
             additional_information_uri = None
             failure_reason_code = None
+            ip_address = None
+            receiving_ip = None
+            receiving_mx_helo = None
+            sending_mta_ip = None
+
             if "receiving_mx_hostname" in failure_details:
                 receiving_mx_hostname = failure_details[
                     "receiving_mx_hostname"]
@@ -723,12 +732,21 @@ def save_smtp_tls_report_to_elasticsearch(report,
                     "additional_information_uri"]
             if "failure_reason_code" in failure_details:
                 failure_reason_code = failure_details["failure_reason_code"]
+            if "ip_address" in failure_details:
+                ip_address = failure_details["ip_address"]
+            if "receiving_ip" in failure_details:
+                receiving_ip = failure_details["receiving_ip"]
+            if "receiving_mx_helo" in failure_details:
+                receiving_mx_helo = failure_details["receiving_mx_helo"]
+            if "sending_mta_ip" in failure_details:
+                sending_mta_ip = failure_details["sending_mta_ip"]
             policy_doc.add_failure_details(
                 result_type=failure_details["result_type"],
-                ip_address=failure_details["ip_address"],
-                receiving_ip=failure_details["receiving_ip"],
-                receiving_mx_helo=failure_details["receiving_mx_helo"],
+                ip_address=ip_address,
+                receiving_ip=receiving_ip,
+                receiving_mx_helo=receiving_mx_helo,
                 failed_session_count=failure_details["failed_session_count"],
+                sending_mta_ip=sending_mta_ip,
                 receiving_mx_hostname=receiving_mx_hostname,
                 additional_information_uri=additional_information_uri,
                 failure_reason_code=failure_reason_code
