@@ -215,9 +215,10 @@ def _parse_smtp_tls_failure_details(failure_details):
             result_type=failure_details["result-type"],
             failed_session_count=failure_details["failed-session-count"],
             sending_mta_ip=failure_details["sending-mta-ip"],
-            receiving_ip=failure_details["receiving-ip"]
         )
 
+        if "receiving-ip" in failure_details:
+            new_failure_details["receiving_ip"] = failure_details["receiving-ip"]
         if "receiving-mx-hostname" in failure_details:
             new_failure_details["receiving_mx_hostname"] = failure_details[
                 "receiving-mx-hostname"]
@@ -363,7 +364,7 @@ def parsed_smtp_tls_reports_to_csv(reports):
     """
 
     fields = ["organization_name", "begin_date", "end_date", "report_id",
-              "successful_session_count", "failed_session_count",
+              "result_type", "successful_session_count", "failed_session_count",
               "policy_domain", "policy_type", "policy_strings",
               "mx_host_patterns", "sending_mta_ip", "receiving_ip",
               "receiving_mx_hostname", "receiving_mx_helo",

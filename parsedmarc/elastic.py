@@ -739,6 +739,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     smtp_tls_doc.meta.index = index
 
     try:
+        logger.debug("Save smtp tls report in elasticsearch: {}".format(smtp_tls_doc))
         smtp_tls_doc.save()
     except Exception as e:
         raise ElasticsearchError(
