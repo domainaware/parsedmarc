@@ -639,7 +639,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     Raises:
             AlreadySaved
     """
-    logger.info("Saving aggregate report to Elasticsearch")
+    logger.info("Saving smtp tls report to Elasticsearch")
     org_name = report["org_name"]
     report_id = report["report_id"]
     begin_date = human_timestamp_to_datetime(report["begin_date"],
