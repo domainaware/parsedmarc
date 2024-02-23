@@ -214,9 +214,10 @@ def _parse_smtp_tls_failure_details(failure_details):
         new_failure_details = OrderedDict(
             result_type=failure_details["result-type"],
             failed_session_count=failure_details["failed-session-count"],
-            sending_mta_ip=failure_details["sending-mta-ip"],
         )
 
+        if "sending-mta-ip" in failure_details:
+            new_failure_details["sending_mta_ip"] = failure_details["sending-mta-ip"]
         if "receiving-ip" in failure_details:
             new_failure_details["receiving_ip"] = failure_details["receiving-ip"]
         if "receiving-mx-hostname" in failure_details:
