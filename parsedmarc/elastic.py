@@ -191,7 +191,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
                             receiving_mx_hostname=None,
                             additional_information_uri=None,
                             failure_reason_code=None):
-        self.failure_details.append(
+        _details = _SMTPTLSFailureDetailsDoc(
             result_type=result_type,
             ip_address=ip_address,
             sending_mta_ip=sending_mta_ip,
@@ -202,6 +202,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             additional_information=additional_information_uri,
             failure_reason_code=failure_reason_code
         )
+        self.failure_details.append(_details)
 
 
 class _SMTPTLSReportDoc(Document):
@@ -715,42 +716,42 @@ def save_smtp_tls_report_to_elasticsearch(report,
             mx_host_patterns=mx_host_patterns
         )
         if "failure_details" in policy:
-            failure_details = policy["failure_details"]
-            receiving_mx_hostname = None
-            additional_information_uri = None
-            failure_reason_code = None
-            ip_address = None
-            receiving_ip = None
-            receiving_mx_helo = None
-            sending_mta_ip = None
+            for failure_detail in policy["failure_details"]:
+                receiving_mx_hostname = None
+                additional_information_uri = None
+                failure_reason_code = None
+                ip_address = None
+                receiving_ip = None
+                receiving_mx_helo = None
+                sending_mta_ip = None
 
-            if "receiving_mx_hostname" in failure_details:
-                receiving_mx_hostname = failure_details[
-                    "receiving_mx_hostname"]
-            if "additional_information_uri" in failure_details:
-                additional_information_uri = failure_details[
-                    "additional_information_uri"]
-            if "failure_reason_code" in failure_details:
-                failure_reason_code = failure_details["failure_reason_code"]
-            if "ip_address" in failure_details:
-                ip_address = failure_details["ip_address"]
-            if "receiving_ip" in failure_details:
-                receiving_ip = failure_details["receiving_ip"]
-            if "receiving_mx_helo" in failure_details:
-                receiving_mx_helo = failure_details["receiving_mx_helo"]
-            if "sending_mta_ip" in failure_details:
-                sending_mta_ip = failure_details["sending_mta_ip"]
-            policy_doc.add_failure_details(
-                result_type=failure_details["result_type"],
-                ip_address=ip_address,
-                receiving_ip=receiving_ip,
-                receiving_mx_helo=receiving_mx_helo,
-                failed_session_count=failure_details["failed_session_count"],
-                sending_mta_ip=sending_mta_ip,
-                receiving_mx_hostname=receiving_mx_hostname,
-                additional_information_uri=additional_information_uri,
-                failure_reason_code=failure_reason_code
-            )
+                if "receiving_mx_hostname" in failure_detail:
+                    receiving_mx_hostname = failure_detail[
+                        "receiving_mx_hostname"]
+                if "additional_information_uri" in failure_detail:
+                    additional_information_uri = failure_detail[
+                        "additional_information_uri"]
+                if "failure_reason_code" in failure_detail:
+                    failure_reason_code = failure_detail["failure_reason_code"]
+                if "ip_address" in failure_detail:
+                    ip_address = failure_detail["ip_address"]
+                if "receiving_ip" in failure_detail:
+                    receiving_ip = failure_detail["receiving_ip"]
+                if "receiving_mx_helo" in failure_detail:
+                    receiving_mx_helo = failure_detail["receiving_mx_helo"]
+                if "sending_mta_ip" in failure_detail:
+                    sending_mta_ip = failure_detail["sending_mta_ip"]
+                policy_doc.add_failure_details(
+                    result_type=failure_detail["result_type"],
+                    ip_address=ip_address,
+                    receiving_ip=receiving_ip,
+                    receiving_mx_helo=receiving_mx_helo,
+                    failed_session_count=failure_detail["failed_session_count"],
+                    sending_mta_ip=sending_mta_ip,
+                    receiving_mx_hostname=receiving_mx_hostname,
+                    additional_information_uri=additional_information_uri,
+                    failure_reason_code=failure_reason_code
+                )
         smtp_tls_doc.policies.append(policy_doc)
 
     create_indexes([index], index_settings)
