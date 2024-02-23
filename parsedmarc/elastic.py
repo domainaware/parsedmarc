@@ -640,7 +640,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
             AlreadySaved
     """
     logger.info("Saving smtp tls report to Elasticsearch")
-    organization_name = report["organization_name"]
+    org_name = report["organization_name"]
     report_id = report["report_id"]
     begin_date = human_timestamp_to_datetime(report["begin_date"],
                                              to_utc=True)
@@ -655,7 +655,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     report["begin_date"] = begin_date
     report["end_date"] = end_date
 
-    org_name_query = Q(dict(match_phrase=dict(organization_name=organization_name)))
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
     end_date_query = Q(dict(match=dict(date_end=end_date)))
@@ -663,7 +663,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     if index_suffix is not None:
         search = Search(index="smtp_tls_{0}*".format(index_suffix))
     else:
-        search = Search(index="smtp_tls")
+        search = Search(index="smtp_tls*")
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
     search.query = query
@@ -676,7 +676,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
 
     if len(existing) > 0:
         raise AlreadySaved(f"An SMTP TLS report ID {report_id} from "
-                           f" {organization_name} with a date range of "
+                           f" {org_name} with a date range of "
                            f"{begin_date_human} UTC to "
                            f"{end_date_human} UTC already "
                            "exists in Elasticsearch")
@@ -689,7 +689,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
                           number_of_replicas=number_of_replicas)
 
     smtp_tls_doc = _SMTPTLSFailureReportDoc(
-        organization_name=report["organization_name"],
+        org_name=report["organization_name"],
         date_range=[report["begin_date"], report["end_date"]],
         date_begin=report["begin_date"],
         date_end=report["end_date"],
@@ -735,12 +735,10 @@ def save_smtp_tls_report_to_elasticsearch(report,
             )
         smtp_tls_doc.policies.append(policy_doc)
 
-    logger.info("create index: {}".format(index))
     create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index
 
     try:
-        logger.debug("Save smtp tls report in elasticsearch: {}".format(smtp_tls_doc))
         smtp_tls_doc.save()
     except Exception as e:
         raise ElasticsearchError(
