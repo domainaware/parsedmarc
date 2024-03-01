@@ -14,6 +14,14 @@
    :members:
 ```
 
+## parsedmarc.opensearch
+
+```{eval-rst}
+.. automodule:: parsedmarc.opensearch
+   :members:
+```
+
+
 ## parsedmarc.splunk
 
 ```{eval-rst}
