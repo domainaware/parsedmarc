@@ -2,18 +2,17 @@
 
 from collections import OrderedDict
 
-from elasticsearch_dsl.search import Q
-from elasticsearch_dsl import connections, Object, Document, Index, Nested, \
+from opensearchpy import Q, connections, Object, Document, Index, Nested, \
     InnerDoc, Integer, Text, Boolean, Ip, Date, Search
-from elasticsearch.helpers import reindex
+from opensearchpy.helpers import reindex
 
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 from parsedmarc import InvalidForensicReport
 
 
-class ElasticsearchError(Exception):
-    """Raised when an Elasticsearch error occurs"""
+class OpenSearchError(Exception):
+    """Raised when an OpenSearch error occurs"""
 
 
 class _PolicyOverride(InnerDoc):
@@ -237,11 +236,11 @@ class AlreadySaved(ValueError):
 def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
               username=None, password=None, apiKey=None, timeout=60.0):
     """
-    Sets the Elasticsearch hosts to use
+    Sets the OpenSearch hosts to use
 
     Args:
-        hosts (str): A single hostname or URL, or list of hostnames or URLs
-        use_ssl (bool): Use a HTTPS connection to the server
+        hosts (str|list): A single hostname or URL, or list of hostnames or URLs
+        use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication
         password (str): The password to use for authentication
@@ -270,7 +269,7 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
 
 def create_indexes(names, settings=None):
     """
-    Create Elasticsearch indexes
+    Create OpenSearch indexes
 
     Args:
         names (list): A list of index names
@@ -281,7 +280,7 @@ def create_indexes(names, settings=None):
         index = Index(name)
         try:
             if not index.exists():
-                logger.debug("Creating Elasticsearch index: {0}".format(name))
+                logger.debug("Creating OpenSearch index: {0}".format(name))
                 if settings is None:
                     index.settings(number_of_shards=1,
                                    number_of_replicas=0)
@@ -289,8 +288,8 @@ def create_indexes(names, settings=None):
                     index.settings(**settings)
                 index.create()
         except Exception as e:
-            raise ElasticsearchError(
-                "Elasticsearch error: {0}".format(e.__str__()))
+            raise OpenSearchError(
+                "OpenSearch error: {0}".format(e.__str__()))
 
 
 def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
@@ -343,13 +342,13 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
         pass
 
 
-def save_aggregate_report_to_elasticsearch(aggregate_report,
-                                           index_suffix=None,
-                                           monthly_indexes=False,
-                                           number_of_shards=1,
-                                           number_of_replicas=0):
+def save_aggregate_report_to_opensearch(aggregate_report,
+                                        index_suffix=None,
+                                        monthly_indexes=False,
+                                        number_of_shards=1,
+                                        number_of_replicas=0):
     """
-    Saves a parsed DMARC aggregate report to Elasticsearch
+    Saves a parsed DMARC aggregate report to OpenSearch
 
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
@@ -361,7 +360,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     Raises:
             AlreadySaved
     """
-    logger.info("Saving aggregate report to Elasticsearch")
+    logger.info("Saving aggregate report to OpenSearch")
     aggregate_report = aggregate_report.copy()
     metadata = aggregate_report["report_metadata"]
     org_name = metadata["org_name"]
@@ -399,14 +398,14 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     try:
         existing = search.execute()
     except Exception as error_:
-        raise ElasticsearchError("Elasticsearch's search for existing report \
+        raise OpenSearchError("OpenSearch's search for existing report \
             error: {}".format(error_.__str__()))
 
     if len(existing) > 0:
         raise AlreadySaved("An aggregate report ID {0} from {1} about {2} "
                            "with a date range of {3} UTC to {4} UTC already "
                            "exists in "
-                           "Elasticsearch".format(report_id,
+                           "OpenSearch".format(report_id,
                                                   org_name,
                                                   domain,
                                                   begin_date_human,
@@ -474,17 +473,17 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
         try:
             agg_doc.save()
         except Exception as e:
-            raise ElasticsearchError(
-                "Elasticsearch error: {0}".format(e.__str__()))
+            raise OpenSearchError(
+                "OpenSearch error: {0}".format(e.__str__()))
 
 
-def save_forensic_report_to_elasticsearch(forensic_report,
-                                          index_suffix=None,
-                                          monthly_indexes=False,
-                                          number_of_shards=1,
-                                          number_of_replicas=0):
+def save_forensic_report_to_opensearch(forensic_report,
+                                       index_suffix=None,
+                                       monthly_indexes=False,
+                                       number_of_shards=1,
+                                       number_of_replicas=0):
     """
-        Saves a parsed DMARC forensic report to Elasticsearch
+        Saves a parsed DMARC forensic report to OpenSearch
 
         Args:
             forensic_report (OrderedDict): A parsed forensic report
@@ -499,7 +498,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
             AlreadySaved
 
         """
-    logger.info("Saving forensic report to Elasticsearch")
+    logger.info("Saving forensic report to OpenSearch")
     forensic_report = forensic_report.copy()
     sample_date = None
     if forensic_report["parsed_sample"]["date"] is not None:
@@ -543,7 +542,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         raise AlreadySaved("A forensic sample to {0} from {1} "
                            "with a subject of {2} and arrival date of {3} "
                            "already exists in "
-                           "Elasticsearch".format(to_,
+                           "OpenSearch".format(to_,
                                                   from_,
                                                   subject,
                                                   arrival_date_human
@@ -614,20 +613,20 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         try:
             forensic_doc.save()
         except Exception as e:
-            raise ElasticsearchError(
-                "Elasticsearch error: {0}".format(e.__str__()))
+            raise OpenSearchError(
+                "OpenSearch error: {0}".format(e.__str__()))
     except KeyError as e:
         raise InvalidForensicReport(
             "Forensic report missing required field: {0}".format(e.__str__()))
 
 
-def save_smtp_tls_report_to_elasticsearch(report,
-                                          index_suffix=None,
-                                          monthly_indexes=False,
-                                          number_of_shards=1,
-                                          number_of_replicas=0):
+def save_smtp_tls_report_to_opensearch(report,
+                                       index_suffix=None,
+                                       monthly_indexes=False,
+                                       number_of_shards=1,
+                                       number_of_replicas=0):
     """
-    Saves a parsed SMTP TLS report to Elasticsearch
+    Saves a parsed SMTP TLS report to OpenSearch
 
     Args:
         report (OrderedDict): A parsed SMTP TLS report
@@ -639,7 +638,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     Raises:
             AlreadySaved
     """
-    logger.info("Saving aggregate report to Elasticsearch")
+    logger.info("Saving aggregate report to OpenSearch")
     org_name = report["org_name"]
     report_id = report["report_id"]
     begin_date = human_timestamp_to_datetime(report["begin_date"],
@@ -671,7 +670,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     try:
         existing = search.execute()
     except Exception as error_:
-        raise ElasticsearchError("Elasticsearch's search for existing report \
+        raise OpenSearchError("OpenSearch's search for existing report \
             error: {}".format(error_.__str__()))
 
     if len(existing) > 0:
@@ -679,7 +678,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
                            f" {org_name} with a date range of "
                            f"{begin_date_human} UTC to "
                            f"{end_date_human} UTC already "
-                           "exists in Elasticsearch")
+                           "exists in OpenSearch")
 
     index = "smtp_tls"
     if index_suffix:
@@ -741,5 +740,5 @@ def save_smtp_tls_report_to_elasticsearch(report,
     try:
         smtp_tls_doc.save()
     except Exception as e:
-        raise ElasticsearchError(
-            "Elasticsearch error: {0}".format(e.__str__()))
+        raise OpenSearchError(
+            "OpenSearch error: {0}".format(e.__str__()))

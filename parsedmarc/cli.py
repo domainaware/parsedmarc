@@ -18,7 +18,7 @@ import time
 from tqdm import tqdm
 
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
-    parse_report_file, get_dmarc_reports_from_mbox, elastic, kafkaclient, \
+    parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, kafkaclient, \
     splunk, save_output, email_results, ParserError, __version__, \
     InvalidDMARCReport, s3, syslog, loganalytics
 
@@ -106,6 +106,27 @@ def _main():
                 except Exception as error_:
                     logger.error("Elasticsearch exception error: {}".format(
                         error_.__str__()))
+
+                try:
+                    if opts.opensearch_hosts:
+                        shards = opts.opensearch_number_of_shards
+                        replicas = opts.opensearch_number_of_replicas
+                        opensearch.save_aggregate_report_to_opensearch(
+                            report,
+                            index_suffix=opts.opensearch_index_suffix,
+                            monthly_indexes=opts.opensearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas
+                        )
+                except opensearch.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except opensearch.OpenSearchError as error_:
+                    logger.error("OpenSearch Error: {0}".format(
+                        error_.__str__()))
+                except Exception as error_:
+                    logger.error("OpenSearch exception error: {}".format(
+                        error_.__str__()))
+
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_aggregate_reports_to_kafka(
@@ -113,16 +134,19 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                          error_.__str__()))
+
                 try:
                     if opts.s3_bucket:
                         s3_client.save_aggregate_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+
                 try:
                     if opts.syslog_server:
                         syslog_client.save_aggregate_report_to_syslog(report)
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -131,6 +155,7 @@ def _main():
                             aggregate_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
+
         if opts.save_forensic:
             for report in reports_["forensic_reports"]:
                 try:
@@ -150,6 +175,25 @@ def _main():
                         error_.__str__()))
                 except InvalidDMARCReport as error_:
                     logger.error(error_.__str__())
+
+                try:
+                    shards = opts.opensearch_number_of_shards
+                    replicas = opts.opensearch_number_of_replicas
+                    if opts.opensearch_hosts:
+                        opensearch.save_forensic_report_to_opensearch(
+                            report,
+                            index_suffix=opts.opensearch_index_suffix,
+                            monthly_indexes=opts.opensearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas)
+                except opensearch.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except opensearch.OpenSearchError as error_:
+                    logger.error("OpenSearch Error: {0}".format(
+                        error_.__str__()))
+                except InvalidDMARCReport as error_:
+                    logger.error(error_.__str__())
+
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_forensic_reports_to_kafka(
@@ -157,16 +201,19 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
+
                 try:
                     if opts.s3_bucket:
                         s3_client.save_forensic_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+
                 try:
                     if opts.syslog_server:
                         syslog_client.save_forensic_report_to_syslog(report)
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -175,6 +222,7 @@ def _main():
                             forensic_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
+
         if opts.save_smtp_tls:
             for report in reports_["smtp_tls_reports"]:
                 try:
@@ -194,6 +242,25 @@ def _main():
                         error_.__str__()))
                 except InvalidDMARCReport as error_:
                     logger.error(error_.__str__())
+
+                try:
+                    shards = opts.opensearch_number_of_shards
+                    replicas = opts.opensearch_number_of_replicas
+                    if opts.opensearch_hosts:
+                        opensearch.save_smtp_tls_report_to_opensearch(
+                            report,
+                            index_suffix=opts.opensearch_index_suffix,
+                            monthly_indexes=opts.opensearch_monthly_indexes,
+                            number_of_shards=shards,
+                            number_of_replicas=replicas)
+                except opensearch.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except opensearch.OpenSearchError as error_:
+                    logger.error("OpenSearch Error: {0}".format(
+                        error_.__str__()))
+                except InvalidDMARCReport as error_:
+                    logger.error(error_.__str__())
+
                 try:
                     if opts.kafka_hosts:
                         kafka_client.save_smtp_tls_reports_to_kafka(
@@ -201,16 +268,19 @@ def _main():
                 except Exception as error_:
                     logger.error("Kafka Error: {0}".format(
                         error_.__str__()))
+
                 try:
                     if opts.s3_bucket:
                         s3_client.save_smtp_tls_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+
                 try:
                     if opts.syslog_server:
                         syslog_client.save_smtp_tls_report_to_syslog(report)
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     smtp_tls_reports_ = reports_["smtp_tls_reports"]
@@ -219,6 +289,7 @@ def _main():
                             smtp_tls_reports_)
                 except splunk.SplunkError as e:
                     logger.error("Splunk HEC error: {0}".format(e.__str__()))
+
         if opts.la_dce:
             try:
                 la_client = loganalytics.LogAnalyticsClient(
@@ -366,6 +437,17 @@ def _main():
                      elasticsearch_username=None,
                      elasticsearch_password=None,
                      elasticsearch_apiKey=None,
+                     opensearch_hosts=None,
+                     opensearch_timeout=60,
+                     opensearch_number_of_shards=1,
+                     opensearch_number_of_replicas=0,
+                     opensearch_index_suffix=None,
+                     opensearch_ssl=True,
+                     opensearch_ssl_cert_path=None,
+                     opensearch_monthly_indexes=False,
+                     opensearch_username=None,
+                     opensearch_password=None,
+                     opensearch_apiKey=None,
                      kafka_hosts=None,
                      kafka_username=None,
                      kafka_password=None,
@@ -674,6 +756,49 @@ def _main():
             if "apiKey" in elasticsearch_config:
                 opts.elasticsearch_apiKey = elasticsearch_config[
                     "apiKey"]
+
+        if "opensearch" in config:
+            opensearch_config = config["opensearch"]
+            if "hosts" in opensearch_config:
+                opts.opensearch_hosts = _str_to_list(opensearch_config[
+                                                            "hosts"])
+            else:
+                logger.critical("hosts setting missing from the "
+                                "opensearch config section")
+                exit(-1)
+            if "timeout" in opensearch_config:
+                timeout = opensearch_config.getfloat("timeout")
+                opts.opensearch_timeout = timeout
+            if "number_of_shards" in opensearch_config:
+                number_of_shards = opensearch_config.getint(
+                    "number_of_shards")
+                opts.opensearch_number_of_shards = number_of_shards
+                if "number_of_replicas" in opensearch_config:
+                    number_of_replicas = opensearch_config.getint(
+                        "number_of_replicas")
+                    opts.opensearch_number_of_replicas = number_of_replicas
+            if "index_suffix" in opensearch_config:
+                opts.opensearch_index_suffix = opensearch_config[
+                    "index_suffix"]
+            if "monthly_indexes" in opensearch_config:
+                monthly = opensearch_config.getboolean("monthly_indexes")
+                opts.opensearch_monthly_indexes = monthly
+            if "ssl" in opensearch_config:
+                opts.opensearch_ssl = opensearch_config.getboolean(
+                    "ssl")
+            if "cert_path" in opensearch_config:
+                opts.opensearch_ssl_cert_path = opensearch_config[
+                    "cert_path"]
+            if "user" in opensearch_config:
+                opts.opensearch_username = opensearch_config[
+                    "user"]
+            if "password" in opensearch_config:
+                opts.opensearch_password = opensearch_config[
+                    "password"]
+            if "apiKey" in opensearch_config:
+                opts.opensearch_apiKey = opensearch_config[
+                    "apiKey"]
+
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
             if "url" in hec_config:
@@ -697,6 +822,7 @@ def _main():
             if "skip_certificate_verification" in hec_config:
                 opts.hec_skip_certificate_verification = hec_config[
                     "skip_certificate_verification"]
+
         if "kafka" in config.sections():
             kafka_config = config["kafka"]
             if "hosts" in kafka_config:
@@ -739,6 +865,7 @@ def _main():
             else:
                 logger.critical("forensic_topic setting missing from the "
                                 "splunk_hec config section")
+
         if "smtp" in config.sections():
             smtp_config = config["smtp"]
             if "host" in smtp_config:
@@ -783,6 +910,7 @@ def _main():
                 opts.smtp_attachment = smtp_config["attachment"]
             if "message" in smtp_config:
                 opts.smtp_message = smtp_config["message"]
+
         if "s3" in config.sections():
             s3_config = config["s3"]
             if "bucket" in s3_config:
@@ -840,6 +968,7 @@ def _main():
             if "oauth2_port" in gmail_api_config:
                 opts.gmail_api_oauth2_port = \
                     gmail_api_config.get("oauth2_port", 8080)
+
         if "log_analytics" in config.sections():
             log_analytics_config = config["log_analytics"]
             opts.la_client_id = \
@@ -915,6 +1044,33 @@ def _main():
                                         forensic_indexes=[es_forensic_index])
         except elastic.ElasticsearchError:
             logger.exception("Elasticsearch Error")
+            exit(1)
+
+        try:
+            if opts.opensearch_hosts:
+                os_aggregate_index = "dmarc_aggregate"
+                os_forensic_index = "dmarc_forensic"
+                os_smtp_tls_index = "smtp_tls"
+                if opts.opensearch_index_suffix:
+                    suffix = opts.opensearch_index_suffix
+                    os_aggregate_index = "{0}_{1}".format(
+                        os_aggregate_index, suffix)
+                    os_forensic_index = "{0}_{1}".format(
+                        os_forensic_index, suffix)
+                    os_smtp_tls_index = "{0}_{1}".format(
+                        os_smtp_tls_index, suffix
+                    )
+                opensearch.set_hosts(opts.opensearch_hosts,
+                                     opts.opensearch_ssl,
+                                     opts.opensearch_ssl_cert_path,
+                                     opts.opensearch_username,
+                                     opts.opensearch_password,
+                                     opts.opensearch_apiKey,
+                                     timeout=opts.opensearch_timeout)
+                opensearch.migrate_indexes(aggregate_indexes=[os_aggregate_index],
+                                           forensic_indexes=[os_forensic_index])
+        except opensearch.OpenSearchError:
+            logger.exception("OpenSearch Error")
             exit(1)
 
     if opts.s3_bucket:
