@@ -26,7 +26,7 @@ Thanks to all [contributors]!
 ```
 
 `parsedmarc` is a Python module and CLI utility for parsing DMARC reports.
-When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
+When used with Elasticsearch and Kibana (or Splunk), or with OpenSearch and Grafana, it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
 as Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
 and Valimail.
@@ -40,7 +40,7 @@ and Valimail.
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch and/or Splunk, for use with
+- Optionally send the results to Elasticsearch/OpenSearch and/or Splunk, for use with
   premade dashboards
 - Optionally send reports to Apache Kafka
 
@@ -52,6 +52,7 @@ installation
 usage
 output
 elasticsearch
+opensearch
 kibana
 splunk
 davmail
