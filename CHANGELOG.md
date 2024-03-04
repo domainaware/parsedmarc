@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.8.0
+-----
+
+- Add support for OpenSearch (PR #481 closes #480)
+- Fix SMTP TLS reporting to Elasticsearch (PR #470)
+
 8.7.0
 -----
 
