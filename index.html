@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.7.0 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 8.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -37,7 +37,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.7.0
+                8.8.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Using parsedmarc</a></li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opensearch.html">OpenSearch and Grafana</a></li>
 <li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a></li>
 <li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
 <li class="toctree-l1"><a class="reference internal" href="davmail.html">Accessing an inbox using OWA/EWS</a></li>
@@ -101,7 +102,7 @@ Assistance on the pinned issues would be particularly helpful.</p>
 </div>
 <a class="reference external image-reference" href="_static/screenshots/dmarc-summary-charts.png"><img alt="A screenshot of DMARC summary charts in Kibana" class="align-center" src="_images/dmarc-summary-charts.png" style="width: 754.0px; height: 449.0px;" /></a>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is a Python module and CLI utility for parsing DMARC reports.
-When used with Elasticsearch and Kibana (or Splunk), it works as a self-hosted
+When used with Elasticsearch and Kibana (or Splunk), or with OpenSearch and Grafana, it works as a self-hosted
 open source alternative to commercial DMARC report processing services such
 as Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud Defense,
 and Valimail.</p>
@@ -115,7 +116,7 @@ and Valimail.</p>
 <li><p>Consistent data structures</p></li>
 <li><p>Simple JSON and/or CSV output</p></li>
 <li><p>Optionally email the results</p></li>
-<li><p>Optionally send the results to Elasticsearch and/or Splunk, for use with
+<li><p>Optionally send the results to Elasticsearch/OpenSearch and/or Splunk, for use with
 premade dashboards</p></li>
 <li><p>Optionally send reports to Apache Kafka</p></li>
 </ul>
@@ -145,6 +146,11 @@ premade dashboards</p></li>
 <li class="toctree-l2"><a class="reference internal" href="elasticsearch.html#records-retention">Records retention</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="opensearch.html">OpenSearch and Grafana</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="opensearch.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="opensearch.html#records-retention">Records retention</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="kibana.html#dmarc-summary">DMARC Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kibana.html#dmarc-forensic-samples">DMARC Forensic Samples</a></li>
@@ -170,6 +176,7 @@ premade dashboards</p></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-parsedmarc">parsedmarc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-parsedmarc.elastic">parsedmarc.elastic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-parsedmarc.opensearch">parsedmarc.opensearch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-parsedmarc.splunk">parsedmarc.splunk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-parsedmarc.utils">parsedmarc.utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#indices-and-tables">Indices and tables</a></li>

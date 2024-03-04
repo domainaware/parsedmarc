@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contributing to parsedmarc &mdash; parsedmarc 8.8.0 documentation</title>
+  <title>OpenSearch and Grafana &mdash; parsedmarc 8.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -22,8 +22,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API reference" href="api.html" />
-    <link rel="prev" title="Understanding DMARC" href="dmarc.html" /> 
+    <link rel="next" title="Using the Kibana dashboards" href="kibana.html" />
+    <link rel="prev" title="Elasticsearch and Kibana" href="elasticsearch.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -54,15 +54,16 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Using parsedmarc</a></li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a></li>
-<li class="toctree-l1"><a class="reference internal" href="opensearch.html">OpenSearch and Grafana</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">OpenSearch and Grafana</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#records-retention">Records retention</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="kibana.html">Using the Kibana dashboards</a></li>
 <li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
 <li class="toctree-l1"><a class="reference internal" href="davmail.html">Accessing an inbox using OWA/EWS</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dmarc.html">Understanding DMARC</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing to parsedmarc</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#bug-reports">Bug reports</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to parsedmarc</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
 </ul>
 
@@ -80,9 +81,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Contributing to parsedmarc</li>
+      <li class="breadcrumb-item active">OpenSearch and Grafana</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/contributing.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/opensearch.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -90,12 +91,19 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section class="tex2jax_ignore mathjax_ignore" id="contributing-to-parsedmarc">
-<h1>Contributing to parsedmarc<a class="headerlink" href="#contributing-to-parsedmarc" title="Permalink to this heading"></a></h1>
-<section id="bug-reports">
-<h2>Bug reports<a class="headerlink" href="#bug-reports" title="Permalink to this heading"></a></h2>
-<p>Please report bugs on the GitHub issue tracker</p>
-<p><a class="reference external" href="https://github.com/domainaware/parsedmarc/issues">https://github.com/domainaware/parsedmarc/issues</a></p>
+  <section class="tex2jax_ignore mathjax_ignore" id="opensearch-and-grafana">
+<h1>OpenSearch and Grafana<a class="headerlink" href="#opensearch-and-grafana" title="Permalink to this heading"></a></h1>
+<p>To set up visual dashboards of DMARC data, install OpenSearch and Grafana.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p>OpenSearch: <a class="reference external" href="https://opensearch.org/docs/latest/install-and-configure/install-opensearch/index/">https://opensearch.org/docs/latest/install-and-configure/install-opensearch/index/</a>
+Grafana: <a class="reference external" href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/">https://grafana.com/docs/grafana/latest/setup-grafana/installation/</a></p>
+</section>
+<section id="records-retention">
+<h2>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this heading"></a></h2>
+<p>Starting in version 5.0.0, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> stores data in a separate
+index for each day to make it easy to comply with records
+retention regulations such as GDPR.</p>
 </section>
 </section>
 
@@ -103,8 +111,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="dmarc.html" class="btn btn-neutral float-left" title="Understanding DMARC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="api.html" class="btn btn-neutral float-right" title="API reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="elasticsearch.html" class="btn btn-neutral float-left" title="Elasticsearch and Kibana" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="kibana.html" class="btn btn-neutral float-right" title="Using the Kibana dashboards" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

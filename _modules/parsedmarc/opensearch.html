@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 8.8.0 documentation</title>
+  <title>parsedmarc.opensearch &mdash; parsedmarc 8.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -76,7 +76,7 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
           <li class="breadcrumb-item"><a href="../parsedmarc.html">parsedmarc</a></li>
-      <li class="breadcrumb-item active">parsedmarc.elastic</li>
+      <li class="breadcrumb-item active">parsedmarc.opensearch</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -85,23 +85,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for parsedmarc.elastic</h1><div class="highlight"><pre>
+  <h1>Source code for parsedmarc.opensearch</h1><div class="highlight"><pre>
 <span></span><span class="c1"># -*- coding: utf-8 -*-</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 
-<span class="kn">from</span> <span class="nn">elasticsearch_dsl.search</span> <span class="kn">import</span> <span class="n">Q</span>
-<span class="kn">from</span> <span class="nn">elasticsearch_dsl</span> <span class="kn">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
+<span class="kn">from</span> <span class="nn">opensearchpy</span> <span class="kn">import</span> <span class="n">Q</span><span class="p">,</span> <span class="n">connections</span><span class="p">,</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Document</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Nested</span><span class="p">,</span> \
     <span class="n">InnerDoc</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">,</span> <span class="n">Ip</span><span class="p">,</span> <span class="n">Date</span><span class="p">,</span> <span class="n">Search</span>
-<span class="kn">from</span> <span class="nn">elasticsearch.helpers</span> <span class="kn">import</span> <span class="n">reindex</span>
+<span class="kn">from</span> <span class="nn">opensearchpy.helpers</span> <span class="kn">import</span> <span class="n">reindex</span>
 
 <span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">human_timestamp_to_datetime</span>
 <span class="kn">from</span> <span class="nn">parsedmarc</span> <span class="kn">import</span> <span class="n">InvalidForensicReport</span>
 
 
-<div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="OpenSearchError"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.OpenSearchError">[docs]</a><span class="k">class</span> <span class="nc">OpenSearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an OpenSearch error occurs&quot;&quot;&quot;</span></div>
 
 
 <span class="k">class</span> <span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -275,14 +274,12 @@
                             <span class="n">receiving_ip</span><span class="p">,</span>
                             <span class="n">receiving_mx_helo</span><span class="p">,</span>
                             <span class="n">failed_session_count</span><span class="p">,</span>
-                            <span class="n">sending_mta_ip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">additional_information_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">failure_reason_code</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">_details</span> <span class="o">=</span> <span class="n">_SMTPTLSFailureDetailsDoc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">result_type</span><span class="o">=</span><span class="n">result_type</span><span class="p">,</span>
             <span class="n">ip_address</span><span class="o">=</span><span class="n">ip_address</span><span class="p">,</span>
-            <span class="n">sending_mta_ip</span><span class="o">=</span><span class="n">sending_mta_ip</span><span class="p">,</span>
             <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
             <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
             <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
@@ -290,10 +287,9 @@
             <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
             <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_SMTPTLSReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_SMTPTLSFailureReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
 
     <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
@@ -321,18 +317,18 @@
                              <span class="n">failure_details</span><span class="o">=</span><span class="n">failure_details</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">username</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">apiKey</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">60.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Sets the Elasticsearch hosts to use</span>
+<span class="sd">    Sets the OpenSearch hosts to use</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        hosts (str): A single hostname or URL, or list of hostnames or URLs</span>
-<span class="sd">        use_ssl (bool): Use a HTTPS connection to the server</span>
+<span class="sd">        hosts (str|list): A hostname or URL, or list of hostnames or URLs</span>
+<span class="sd">        use_ssl (bool): Use an HTTPS connection to the server</span>
 <span class="sd">        ssl_cert_path (str): Path to the certificate chain</span>
 <span class="sd">        username (str): The username to use for authentication</span>
 <span class="sd">        password (str): The password to use for authentication</span>
@@ -359,9 +355,9 @@
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Create Elasticsearch indexes</span>
+<span class="sd">    Create OpenSearch indexes</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        names (list): A list of index names</span>
@@ -372,7 +368,7 @@
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating OpenSearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">index</span><span class="o">.</span><span class="n">settings</span><span class="p">(</span><span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                    <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -380,11 +376,11 @@
                     <span class="n">index</span><span class="o">.</span><span class="n">settings</span><span class="p">(</span><span class="o">**</span><span class="n">settings</span><span class="p">)</span>
                 <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-                <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+            <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span>
+                <span class="s2">&quot;OpenSearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates index mappings</span>
 
@@ -434,13 +430,13 @@
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
-                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                           <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="save_aggregate_report_to_opensearch"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.save_aggregate_report_to_opensearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_opensearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
+                                        <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                        <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                        <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                        <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Saves a parsed DMARC aggregate report to Elasticsearch</span>
+<span class="sd">    Saves a parsed DMARC aggregate report to OpenSearch</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_report (OrderedDict): A parsed forensic report</span>
@@ -452,7 +448,7 @@
 <span class="sd">    Raises:</span>
 <span class="sd">            AlreadySaved</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to Elasticsearch&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to OpenSearch&quot;</span><span class="p">)</span>
     <span class="n">aggregate_report</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span>
     <span class="n">org_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
@@ -490,18 +486,18 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
+        <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span><span class="s2">&quot;OpenSearch&#39;s search for existing report </span><span class="se">\</span>
 <span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;An aggregate report ID </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> about </span><span class="si">{2}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;with a date range of </span><span class="si">{3}</span><span class="s2"> UTC to </span><span class="si">{4}</span><span class="s2"> UTC already &quot;</span>
                            <span class="s2">&quot;exists in &quot;</span>
-                           <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">report_id</span><span class="p">,</span>
-                                                  <span class="n">org_name</span><span class="p">,</span>
-                                                  <span class="n">domain</span><span class="p">,</span>
-                                                  <span class="n">begin_date_human</span><span class="p">,</span>
-                                                  <span class="n">end_date_human</span><span class="p">))</span>
+                           <span class="s2">&quot;OpenSearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">report_id</span><span class="p">,</span>
+                                               <span class="n">org_name</span><span class="p">,</span>
+                                               <span class="n">domain</span><span class="p">,</span>
+                                               <span class="n">begin_date_human</span><span class="p">,</span>
+                                               <span class="n">end_date_human</span><span class="p">))</span>
     <span class="n">published_policy</span> <span class="o">=</span> <span class="n">_PublishedPolicy</span><span class="p">(</span>
         <span class="n">domain</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
         <span class="n">adkim</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;adkim&quot;</span><span class="p">],</span>
@@ -565,17 +561,17 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-                <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+            <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span>
+                <span class="s2">&quot;OpenSearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
-                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                          <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                          <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                          <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="save_forensic_report_to_opensearch"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.save_forensic_report_to_opensearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_opensearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
+                                       <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                       <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                       <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                       <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Saves a parsed DMARC forensic report to Elasticsearch</span>
+<span class="sd">        Saves a parsed DMARC forensic report to OpenSearch</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            forensic_report (OrderedDict): A parsed forensic report</span>
@@ -590,7 +586,7 @@
 <span class="sd">            AlreadySaved</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving forensic report to Elasticsearch&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving forensic report to OpenSearch&quot;</span><span class="p">)</span>
     <span class="n">forensic_report</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">sample_date</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -634,11 +630,9 @@
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span><span class="s2">&quot;A forensic sample to </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;with a subject of </span><span class="si">{2}</span><span class="s2"> and arrival date of </span><span class="si">{3}</span><span class="s2"> &quot;</span>
                            <span class="s2">&quot;already exists in &quot;</span>
-                           <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">to_</span><span class="p">,</span>
-                                                  <span class="n">from_</span><span class="p">,</span>
-                                                  <span class="n">subject</span><span class="p">,</span>
-                                                  <span class="n">arrival_date_human</span>
-                                                  <span class="p">))</span>
+                           <span class="s2">&quot;OpenSearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                               <span class="n">to_</span><span class="p">,</span> <span class="n">from_</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">arrival_date_human</span>
+                               <span class="p">))</span>
 
     <span class="n">parsed_sample</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span>
     <span class="n">sample</span> <span class="o">=</span> <span class="n">_ForensicSampleDoc</span><span class="p">(</span>
@@ -705,20 +699,20 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">forensic_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-                <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+            <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span>
+                <span class="s2">&quot;OpenSearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span>
             <span class="s2">&quot;Forensic report missing required field: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span><span class="n">report</span><span class="p">,</span>
-                                          <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                          <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                          <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                          <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="save_smtp_tls_report_to_opensearch"><a class="viewcode-back" href="../../api.html#parsedmarc.opensearch.save_smtp_tls_report_to_opensearch">[docs]</a><span class="k">def</span> <span class="nf">save_smtp_tls_report_to_opensearch</span><span class="p">(</span><span class="n">report</span><span class="p">,</span>
+                                       <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                       <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                       <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                       <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Saves a parsed SMTP TLS report to Elasticsearch</span>
+<span class="sd">    Saves a parsed SMTP TLS report to OpenSearch</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        report (OrderedDict): A parsed SMTP TLS report</span>
@@ -730,8 +724,8 @@
 <span class="sd">    Raises:</span>
 <span class="sd">            AlreadySaved</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving smtp tls report to Elasticsearch&quot;</span><span class="p">)</span>
-    <span class="n">org_name</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to OpenSearch&quot;</span><span class="p">)</span>
+    <span class="n">org_name</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
     <span class="n">report_id</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
     <span class="n">begin_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
                                              <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -754,7 +748,7 @@
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls*&quot;</span><span class="p">)</span>
+        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls&quot;</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
@@ -762,7 +756,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
+        <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span><span class="s2">&quot;OpenSearch&#39;s search for existing report </span><span class="se">\</span>
 <span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -770,7 +764,7 @@
                            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">org_name</span><span class="si">}</span><span class="s2"> with a date range of &quot;</span>
                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">begin_date_human</span><span class="si">}</span><span class="s2"> UTC to &quot;</span>
                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">end_date_human</span><span class="si">}</span><span class="s2"> UTC already &quot;</span>
-                           <span class="s2">&quot;exists in Elasticsearch&quot;</span><span class="p">)</span>
+                           <span class="s2">&quot;exists in OpenSearch&quot;</span><span class="p">)</span>
 
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
     <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
@@ -779,11 +773,11 @@
     <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span>
                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span><span class="p">)</span>
 
-    <span class="n">smtp_tls_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSReportDoc</span><span class="p">(</span>
-        <span class="n">org_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
-        <span class="n">date_range</span><span class="o">=</span><span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]],</span>
-        <span class="n">date_begin</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
-        <span class="n">date_end</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span>
+    <span class="n">smtp_tls_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSFailureReportDoc</span><span class="p">(</span>
+        <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
+        <span class="n">date_range</span><span class="o">=</span><span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">]],</span>
+        <span class="n">date_begin</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span>
+        <span class="n">date_end</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">],</span>
         <span class="n">contact_info</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;contact_info&quot;</span><span class="p">],</span>
         <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
     <span class="p">)</span>
@@ -798,49 +792,32 @@
         <span class="n">policy_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSPolicyDoc</span><span class="p">(</span>
             <span class="n">policy_domain</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">],</span>
             <span class="n">policy_type</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">],</span>
-            <span class="n">succesful_session_count</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;successful_session_count&quot;</span><span class="p">],</span>
-            <span class="n">failed_session_count</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
             <span class="n">policy_string</span><span class="o">=</span><span class="n">policy_strings</span><span class="p">,</span>
             <span class="n">mx_host_patterns</span><span class="o">=</span><span class="n">mx_host_patterns</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;failure_details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">failure_detail</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]:</span>
-                <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">ip_address</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">receiving_ip</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="kc">None</span>
-
-                <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span>
-                        <span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span>
-                        <span class="s2">&quot;additional_information_uri&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;failure_reason_code&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;ip_address&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">ip_address</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;receiving_ip&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">receiving_ip</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_ip&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;receiving_mx_helo&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;sending_mta_ip&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
-                    <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;sending_mta_ip&quot;</span><span class="p">]</span>
-                <span class="n">policy_doc</span><span class="o">.</span><span class="n">add_failure_details</span><span class="p">(</span>
-                    <span class="n">result_type</span><span class="o">=</span><span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;result_type&quot;</span><span class="p">],</span>
-                    <span class="n">ip_address</span><span class="o">=</span><span class="n">ip_address</span><span class="p">,</span>
-                    <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
-                    <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
-                    <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_detail</span><span class="p">[</span>
-                        <span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
-                    <span class="n">sending_mta_ip</span><span class="o">=</span><span class="n">sending_mta_ip</span><span class="p">,</span>
-                    <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
-                    <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
-                    <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span>
-                <span class="p">)</span>
+            <span class="n">failure_details</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]</span>
+            <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                    <span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
+                    <span class="s2">&quot;additional_information_uri&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;failure_reason_code&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
+                <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
+            <span class="n">policy_doc</span><span class="o">.</span><span class="n">add_failure_details</span><span class="p">(</span>
+                <span class="n">result_type</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;result_type&quot;</span><span class="p">],</span>
+                <span class="n">ip_address</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">],</span>
+                <span class="n">receiving_ip</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_ip&quot;</span><span class="p">],</span>
+                <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">],</span>
+                <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
+                <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
+                <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
+                <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span>
+            <span class="p">)</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
 
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
@@ -849,8 +826,8 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-            <span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+        <span class="k">raise</span> <span class="n">OpenSearchError</span><span class="p">(</span>
+            <span class="s2">&quot;OpenSearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 </pre></div>
 
            </div>

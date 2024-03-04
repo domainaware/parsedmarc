@@ -82,6 +82,10 @@ delete = False
 hosts = 127.0.0.1:9200
 ssl = False
 
+[opensearch]
+hosts = https://admin:admin@127.0.0.1:9200
+ssl = True
+
 [splunk_hec]
 url = https://splunkhec.example.com
 token = HECTokenGoesHere
@@ -220,6 +224,28 @@ The full set of configuration options are:
   - `hosts` - str: A comma separated list of hostnames and ports
       or URLs (e.g. `127.0.0.1:9200` or
       `https://user:secret@localhost`)
+
+    :::{note}
+    Special characters in the username or password must be
+    [URL encoded].
+    :::
+  - `user` - str: Basic auth username
+  - `password` - str: Basic auth password
+  - `apiKey` - str: API key
+  - `ssl` - bool: Use an encrypted SSL/TLS connection
+    (Default: `True`)
+  - `timeout` - float: Timeout in seconds (Default: 60)
+  - `cert_path` - str: Path to a trusted certificates
+  - `index_suffix` - str: A suffix to apply to the index names
+  - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
+  - `number_of_shards` - int: The number of shards to use when
+    creating the index (Default: `1`)
+  - `number_of_replicas` - int: The number of replicas to use when
+    creating the index (Default: `0`)
+- `opensearch`
+  - `hosts` - str: A comma separated list of hostnames and ports
+    or URLs (e.g. `127.0.0.1:9200` or
+    `https://user:secret@localhost`)
 
     :::{note}
     Special characters in the username or password must be
