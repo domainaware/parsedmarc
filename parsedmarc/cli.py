@@ -18,10 +18,9 @@ import time
 from tqdm import tqdm
 
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
-    parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, kafkaclient, \
-    splunk, save_output, email_results, ParserError, __version__, \
-    InvalidDMARCReport, s3, syslog, loganalytics
-
+    parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
+    kafkaclient, splunk, save_output, email_results, ParserError, \
+    __version__, InvalidDMARCReport, s3, syslog, loganalytics
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 from parsedmarc.mail.graph import AuthMethod
 
@@ -1067,8 +1066,9 @@ def _main():
                                      opts.opensearch_password,
                                      opts.opensearch_apiKey,
                                      timeout=opts.opensearch_timeout)
-                opensearch.migrate_indexes(aggregate_indexes=[os_aggregate_index],
-                                           forensic_indexes=[os_forensic_index])
+                opensearch.migrate_indexes(
+                    aggregate_indexes=[os_aggregate_index],
+                    forensic_indexes=[os_forensic_index])
         except opensearch.OpenSearchError:
             logger.exception("OpenSearch Error")
             exit(1)

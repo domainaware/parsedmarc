@@ -239,7 +239,7 @@ def set_hosts(hosts, use_ssl=False, ssl_cert_path=None,
     Sets the OpenSearch hosts to use
 
     Args:
-        hosts (str|list): A single hostname or URL, or list of hostnames or URLs
+        hosts (str|list): A hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication
@@ -406,10 +406,10 @@ def save_aggregate_report_to_opensearch(aggregate_report,
                            "with a date range of {3} UTC to {4} UTC already "
                            "exists in "
                            "OpenSearch".format(report_id,
-                                                  org_name,
-                                                  domain,
-                                                  begin_date_human,
-                                                  end_date_human))
+                                               org_name,
+                                               domain,
+                                               begin_date_human,
+                                               end_date_human))
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
         adkim=aggregate_report["policy_published"]["adkim"],
@@ -542,11 +542,9 @@ def save_forensic_report_to_opensearch(forensic_report,
         raise AlreadySaved("A forensic sample to {0} from {1} "
                            "with a subject of {2} and arrival date of {3} "
                            "already exists in "
-                           "OpenSearch".format(to_,
-                                                  from_,
-                                                  subject,
-                                                  arrival_date_human
-                                                  ))
+                           "OpenSearch".format(
+                               to_, from_, subject, arrival_date_human
+                               ))
 
     parsed_sample = forensic_report["parsed_sample"]
     sample = _ForensicSampleDoc(

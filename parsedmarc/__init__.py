@@ -217,9 +217,11 @@ def _parse_smtp_tls_failure_details(failure_details):
         )
 
         if "sending-mta-ip" in failure_details:
-            new_failure_details["sending_mta_ip"] = failure_details["sending-mta-ip"]
+            new_failure_details["sending_mta_ip"] = failure_details[
+                "sending-mta-ip"]
         if "receiving-ip" in failure_details:
-            new_failure_details["receiving_ip"] = failure_details["receiving-ip"]
+            new_failure_details["receiving_ip"] = failure_details[
+                "receiving-ip"]
         if "receiving-mx-hostname" in failure_details:
             new_failure_details["receiving_mx_hostname"] = failure_details[
                 "receiving-mx-hostname"]
@@ -366,10 +368,10 @@ def parsed_smtp_tls_reports_to_csv(reports):
     """
 
     fields = ["organization_name", "begin_date", "end_date", "report_id",
-              "result_type", "successful_session_count", "failed_session_count",
-              "policy_domain", "policy_type", "policy_strings",
-              "mx_host_patterns", "sending_mta_ip", "receiving_ip",
-              "receiving_mx_hostname", "receiving_mx_helo",
+              "result_type", "successful_session_count",
+              "failed_session_count", "policy_domain", "policy_type",
+              "policy_strings", "mx_host_patterns", "sending_mta_ip",
+              "receiving_ip", "receiving_mx_hostname", "receiving_mx_helo",
               "additional_info_uri", "failure_reason_code"]
 
     csv_file_object = StringIO(newline="\n")
@@ -463,7 +465,7 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
         if int(date_range["end"]) - int(date_range["begin"]) > 2*86400:
-            _error = "Timespan > 24 hours - RFC 7489 section 7.2"
+            _error = "Time span > 24 hours - RFC 7489 section 7.2"
             errors.append(_error)
         date_range["begin"] = timestamp_to_human(date_range["begin"])
         date_range["end"] = timestamp_to_human(date_range["end"])
