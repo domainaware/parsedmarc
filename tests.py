@@ -59,6 +59,19 @@ class Test(unittest.TestCase):
             parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
             print("Passed!")
 
+    def testSmtpTlsSamples(self):
+        """Test sample SMTP TLS reports"""
+        print()
+        sample_paths = glob("samples/smtp_tls/*")
+        for sample_path in sample_paths:
+            if os.path.isdir(sample_path):
+                continue
+            print("Testing {0}: " .format(sample_path), end="")
+            parsed_report = parsedmarc.parse_report_file(
+                sample_path)["report"]
+            parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
+            print("Passed!")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

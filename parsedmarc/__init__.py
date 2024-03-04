@@ -214,10 +214,12 @@ def _parse_smtp_tls_failure_details(failure_details):
         new_failure_details = OrderedDict(
             result_type=failure_details["result-type"],
             failed_session_count=failure_details["failed-session-count"],
-            sending_mta_ip=failure_details["sending-mta-ip"],
-            receiving_ip=failure_details["receiving-ip"]
         )
 
+        if "sending-mta-ip" in failure_details:
+            new_failure_details["sending_mta_ip"] = failure_details["sending-mta-ip"]
+        if "receiving-ip" in failure_details:
+            new_failure_details["receiving_ip"] = failure_details["receiving-ip"]
         if "receiving-mx-hostname" in failure_details:
             new_failure_details["receiving_mx_hostname"] = failure_details[
                 "receiving-mx-hostname"]
@@ -303,6 +305,7 @@ def parse_smtp_tls_report_json(report):
             organization_name=report["organization-name"],
             begin_date=report["date-range"]["start-datetime"],
             end_date=report["date-range"]["end-datetime"],
+            contact_info=report["contact-info"],
             report_id=report["report-id"],
             policies=policies
         )
@@ -363,7 +366,7 @@ def parsed_smtp_tls_reports_to_csv(reports):
     """
 
     fields = ["organization_name", "begin_date", "end_date", "report_id",
-              "successful_session_count", "failed_session_count",
+              "result_type", "successful_session_count", "failed_session_count",
               "policy_domain", "policy_type", "policy_strings",
               "mx_host_patterns", "sending_mta_ip", "receiving_ip",
               "receiving_mx_hostname", "receiving_mx_helo",
@@ -1453,7 +1456,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                     message = "Moving message"
                     logger.debug("{0} {1} of {2}: UID {3}".format(
                         message,
-                        i + 1, smtp_tls_msg_uids, msg_uid))
+                        i + 1, number_of_smtp_tls_uids, msg_uid))
                     try:
                         connection.move_message(msg_uid,
                                                 smtp_tls_reports_folder)

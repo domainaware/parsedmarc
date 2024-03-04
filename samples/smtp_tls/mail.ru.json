@@ -1,0 +1,33 @@
+{
+   "contact-info": "tls_support@corp.mail.ru",
+   "date-range": {
+      "end-datetime": "2024-02-23T00:00:00Z",
+      "start-datetime": "2024-02-22T00:00:00Z"
+   },
+   "organization-name": "Mail.ru",
+   "policies": [
+      {
+         "failure-details": [
+            {
+               "failed-session-count": 1,
+               "failure-reason-code": "bad https response code: 404",
+               "result-type": "sts-policy-fetch-error"
+            },
+            {
+               "failed-session-count": 1,
+               "failure-reason-code": "bad https response code: 500",
+               "result-type": "sts-policy-fetch-error"
+            }
+         ],
+         "policy": {
+            "policy-domain": "example.com",
+            "policy-type": "sts"
+         },
+         "summary": {
+            "total-failure-session-count": 1,
+            "total-successful-session-count": 0
+         }
+      }
+   ],
+   "report-id": "b28254de-7b2e-be36-bb5c-4c3b92da8b25@mail.ru"
+}
