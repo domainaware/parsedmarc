@@ -48,8 +48,8 @@ for more information.
 sudo systemctl daemon-reload
 sudo systemctl enable elasticsearch.service
 sudo systemctl enable kibana.service
-sudo service elasticsearch start
-sudo service kibana start
+sudo systemctl start elasticsearch.service
+sudo systemctl start kibana.service
 ```
 
 As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)
