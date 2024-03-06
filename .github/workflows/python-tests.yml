@@ -31,7 +31,7 @@ jobs:
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
         # Note: We set a static password as ES8 requires that a password is set.
-        # We can't use the randomly generateds one in our CI script so we set one here
+        # We can't use a randomly generated one in our CI script so we set one here
         # For real world applications you should NOT commit passwords to git like this.
         # Note Syntax: https://github.com/orgs/community/discussions/25469#discussioncomment-3248006
         sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password --interactive -u elastic <<'EOF'
