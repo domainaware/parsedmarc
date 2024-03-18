@@ -1147,7 +1147,9 @@ def _main():
         processes = []
         connections = []
 
-        for proc_index in range(opts.n_procs * batch_index, opts.n_procs * (batch_index + 1)):
+        for proc_index in range(
+                opts.n_procs * batch_index,
+                opts.n_procs * (batch_index + 1)):
             if proc_index >= len(file_paths):
                 break
 
