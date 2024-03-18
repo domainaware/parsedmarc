@@ -473,7 +473,6 @@ def _main():
                      gmail_api_oauth2_port=8080,
                      log_file=args.log_file,
                      n_procs=1,
-                     chunk_size=1,
                      ip_db_path=None,
                      la_client_id=None,
                      la_client_secret=None,
@@ -543,8 +542,6 @@ def _main():
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
                 opts.n_procs = general_config.getint("n_procs")
-            if "chunk_size" in general_config:
-                opts.chunk_size = general_config.getint("chunk_size")
             if "ip_db_path" in general_config:
                 opts.ip_db_path = general_config["ip_db_path"]
             else:
