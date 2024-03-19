@@ -294,7 +294,7 @@ def get_ip_address_country(ip_address, db_path=None):
 
 
 def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
-                        nameservers=None, timeout=2.0, parallel=False):
+                        nameservers=None, timeout=2.0):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -306,7 +306,6 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
-        parallel (bool): parallel processing
 
     Returns:
         OrderedDict: ``ip_address``, ``reverse_dns``
