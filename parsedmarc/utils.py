@@ -313,10 +313,15 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
 
     """
     ip_address = ip_address.lower()
-    if cache:
+    if cache is not None:
         info = cache.get(ip_address, None)
         if info:
+            logger.debug("IP address " + ip_address + " was found in cache")
             return info
+        else:
+            logger.debug("IP address " + ip_address + " not found in cache")
+    else:
+        logger.debug("IP address cache not specified")
     info = OrderedDict()
     info["ip_address"] = ip_address
     if offline:
@@ -332,6 +337,9 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
         info["base_domain"] = base_domain
+
+    if cache is not None:
+        cache[ip_address] = info
 
     return info
 
