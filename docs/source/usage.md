@@ -126,8 +126,6 @@ The full set of configuration options are:
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of process to run in parallel when
       parsing in CLI mode (Default: `1`)
-  - `chunk_size` - int: Number of files to give to each process
-      when running in parallel.
 
     :::{note}
     Setting this to a number larger than one can improve
