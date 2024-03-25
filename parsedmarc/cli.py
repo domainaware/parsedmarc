@@ -41,7 +41,7 @@ def _str_to_list(s):
 
 
 def cli_parse(file_path, sa, nameservers, dns_timeout,
-              ip_db_path, offline, conn, parallel=False):
+              ip_db_path, offline, conn):
     """Separated this function for multiprocessing"""
     try:
         file_results = parse_report_file(file_path,
@@ -49,8 +49,7 @@ def cli_parse(file_path, sa, nameservers, dns_timeout,
                                          offline=offline,
                                          nameservers=nameservers,
                                          dns_timeout=dns_timeout,
-                                         strip_attachment_payloads=sa,
-                                         parallel=parallel)
+                                         strip_attachment_payloads=sa)
         conn.send([file_results, file_path])
     except ParserError as error:
         conn.send([error, file_path])
@@ -1196,8 +1195,7 @@ def _main():
                                               dns_timeout=opts.dns_timeout,
                                               strip_attachment_payloads=strip,
                                               ip_db_path=opts.ip_db_path,
-                                              offline=opts.offline,
-                                              parallel=False)
+                                              offline=opts.offline)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
