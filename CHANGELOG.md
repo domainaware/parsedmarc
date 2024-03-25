@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.9.1
+-----
+
+- Fix broken CLI by removing opbsolete paramater from `cli_parse` call (PR #496 closes issue #495)
+
 8.9.0
 -----
 
