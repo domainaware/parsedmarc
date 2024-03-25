@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.8.0 documentation</title>
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -38,7 +38,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.8.0
+                8.9.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -132,8 +132,8 @@ for more information.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>elasticsearch.service
 sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>kibana.service
-sudo<span class="w"> </span>service<span class="w"> </span>elasticsearch<span class="w"> </span>start
-sudo<span class="w"> </span>service<span class="w"> </span>kibana<span class="w"> </span>start
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>elasticsearch.service
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>kibana.service
 </pre></div>
 </div>
 <p>As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)</p>

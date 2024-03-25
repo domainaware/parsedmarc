@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.8.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 8.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.8.0
+                8.9.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -104,6 +104,7 @@
 <span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">csv</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">importlib.resources</span> <span class="k">as</span> <span class="nn">pkg_resources</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -120,6 +121,7 @@
 
 <span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">import</span> <span class="nn">parsedmarc.resources.dbip</span>
+<span class="kn">import</span> <span class="nn">parsedmarc.resources.maps</span>
 
 
 <span class="n">parenthesis_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s*\(.*\)\s*&#39;</span><span class="p">)</span>
@@ -381,8 +383,37 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
+<div class="viewcode-block" id="get_service_from_reverse_dns_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span><span class="n">base_domain</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the service name of a given base domain name from reverse DNS.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_domain (str): The base domain of the reverse DNS lookup</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A dictionary containing name and type.</span>
+<span class="sd">        If the service is unknown, the name will be</span>
+<span class="sd">        the supplied reverse_dns_base_domain and the type will be None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">base_domain</span> <span class="o">=</span> <span class="n">base_domain</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">service_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">,</span>
+                            <span class="s2">&quot;base_reverse_dns_map.csv&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                <span class="n">service_map</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;base_reverse_dns&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">service_map</span><span class="p">[</span><span class="n">base_domain</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">base_domain</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">service</span></div>
+
+
 <div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
 
@@ -394,17 +425,21 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
-<span class="sd">        parallel (bool): parallel processing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: ``ip_address``, ``reverse_dns``</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ip_address</span> <span class="o">=</span> <span class="n">ip_address</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">info</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> was found in cache&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> not found in cache&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IP address cache was not specified&quot;</span><span class="p">)</span>
     <span class="n">info</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ip_address</span>
     <span class="k">if</span> <span class="n">offline</span><span class="p">:</span>
@@ -417,9 +452,17 @@
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">country</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reverse_dns</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">reverse_dns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">base_domain</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">reverse_dns</span><span class="p">)</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span><span class="n">base_domain</span><span class="p">)</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
 
     <span class="k">return</span> <span class="n">info</span></div>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 8.8.0 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 8.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.8.0
+                8.9.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -173,6 +173,8 @@
                     <span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
                     <span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;message_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span>
                     <span class="s2">&quot;disposition&quot;</span>
