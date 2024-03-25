@@ -4,6 +4,7 @@ Changelog
 8.9.0
 -----
 
+- Fix broken cache (PR #494)
 - Add source name and type information based on static mapping of the reverse DNS base domain
   - See [this documentation](https://github.com/domainaware/parsedmarc/tree/master/parsedmarc/resources/maps) for more information, and to learn how to help!
 - Replace `multiprocessing.Pool` with `Pipe` + `Process` (PR #491 closes issue #489)

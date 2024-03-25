@@ -319,7 +319,7 @@ def get_service_from_reverse_dns_base_domain(base_domain):
     try:
         service = service_map[base_domain]
     except KeyError:
-        service = dict(sname=base_domain, type=None)
+        service = dict(name=base_domain, type=None)
 
     return service
 
@@ -364,14 +364,14 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
     info["country"] = country
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
-    info["service_name"] = None
-    info["service_type"] = None
+    info["name"] = None
+    info["type"] = None
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
         service = get_service_from_reverse_dns_base_domain(base_domain)
         info["base_domain"] = base_domain
-        info["service_type"] = service["service_type"]
-        info["service_name"] = service["service_name"]
+        info["type"] = service["type"]
+        info["name"] = service["name"]
 
     if cache is not None:
         cache[ip_address] = info

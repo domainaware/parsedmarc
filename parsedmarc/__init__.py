@@ -760,7 +760,7 @@ def parsed_aggregate_reports_to_csv(reports):
               "org_extra_contact_info", "report_id", "begin_date", "end_date",
               "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
               "source_ip_address", "source_country", "source_reverse_dns",
-              "source_base_domain", "source_name", "source_type" "count",
+              "source_base_domain", "source_name", "source_type", "count",
               "spf_aligned", "dkim_aligned", "dmarc_aligned", "disposition",
               "policy_override_reasons",  "policy_override_comments",
               "envelope_from", "header_from",
