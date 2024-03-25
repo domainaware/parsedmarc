@@ -1,6 +1,14 @@
 Changelog
 =========
 
+8.9.0
+-----
+
+- Add source name and type information based on static mapping of the reverse DNS base domain
+  - See [this documentation](https://github.com/domainaware/parsedmarc/tree/master/parsedmarc/resources/maps) for more information, and to learn how to help!
+- Replace `multiprocessing.Pool` with `Pipe` + `Process` (PR #491 closes issue #489)
+- Remove unused parallel arguments (PR #492 closes issue #490)
+
 8.8.0
 -----
 

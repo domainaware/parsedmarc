@@ -113,7 +113,6 @@ ENV/
 
 # I/O files
 output/
-*.csv
 *.xls*
 
 # LibreOffice lock files

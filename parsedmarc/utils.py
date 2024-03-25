@@ -295,30 +295,31 @@ def get_ip_address_country(ip_address, db_path=None):
     return country
 
 
-def get_service_from_reverse_dns_base_domain(reverse_dns_base_domain):
+def get_service_from_reverse_dns_base_domain(base_domain):
     """
     Returns the service name of a given base domain name from reverse DNS.
 
     Args:
-        reverse_dns_base_domain (str): The base domain of the reverse DNS lookup
+        base_domain (str): The base domain of the reverse DNS lookup
     Returns:
         dict: A dictionary containing name and type.
         If the service is unknown, the name will be
         the supplied reverse_dns_base_domain and the type will be None
     """
-    reverse_dns_base_domain = reverse_dns_base_domain.lower().strip()
+    base_domain = base_domain.lower().strip()
     service_map = dict()
     with pkg_resources.path(parsedmarc.resources.maps,
                             "base_reverse_dns_map.csv") as path:
         with open(path) as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
-                service_map[row["base_reverse_dns"].lower().strip()] = dict(name=row["name"],
-                                                                            type=row["type"])
+                service_map[row["base_reverse_dns"].lower().strip()] = dict(
+                    name=row["name"],
+                    type=row["type"])
     try:
-        service = service_map[reverse_dns_base_domain]
+        service = service_map[base_domain]
     except KeyError:
-        service = dict(sname=reverse_dns_base_domain, type=None)
+        service = dict(sname=base_domain, type=None)
 
     return service
 
