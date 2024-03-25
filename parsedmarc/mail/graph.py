@@ -59,6 +59,7 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
     elif auth_method == AuthMethod.UsernamePassword.name:
         credential = UsernamePasswordCredential(
             client_id=kwargs['client_id'],
+            client_credential=kwargs['client_secret'],
             disable_automatic_authentication=True,
             username=kwargs['username'],
             password=kwargs['password'],
