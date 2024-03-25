@@ -690,6 +690,8 @@ def parsed_aggregate_reports_to_csv_rows(reports):
             row["source_country"] = record["source"]["country"]
             row["source_reverse_dns"] = record["source"]["reverse_dns"]
             row["source_base_domain"] = record["source"]["base_domain"]
+            row["source_name"] = record["source"]["name"]
+            row["source_type"] = record["source"]["type"]
             row["count"] = record["count"]
             row["spf_aligned"] = record["alignment"]["spf"]
             row["dkim_aligned"] = record["alignment"]["dkim"]
@@ -758,8 +760,8 @@ def parsed_aggregate_reports_to_csv(reports):
               "org_extra_contact_info", "report_id", "begin_date", "end_date",
               "errors", "domain", "adkim", "aspf", "p", "sp", "pct", "fo",
               "source_ip_address", "source_country", "source_reverse_dns",
-              "source_base_domain", "count", "spf_aligned",
-              "dkim_aligned", "dmarc_aligned", "disposition",
+              "source_base_domain", "source_name", "source_type" "count",
+              "spf_aligned", "dkim_aligned", "dmarc_aligned", "disposition",
               "policy_override_reasons",  "policy_override_comments",
               "envelope_from", "header_from",
               "envelope_to", "dkim_domains", "dkim_selectors", "dkim_results",
@@ -918,6 +920,8 @@ def parsed_forensic_reports_to_csv_rows(reports):
         row["source_ip_address"] = report["source"]["ip_address"]
         row["source_reverse_dns"] = report["source"]["reverse_dns"]
         row["source_base_domain"] = report["source"]["base_domain"]
+        row["source_name"] = report["source"]["name"]
+        row["source_type"] = report["source"]["type"]
         row["source_country"] = report["source"]["country"]
         del row["source"]
         row["subject"] = report["parsed_sample"]["subject"]
@@ -947,7 +951,8 @@ def parsed_forensic_reports_to_csv(reports):
               "original_mail_from", "original_rcpt_to", "arrival_date",
               "arrival_date_utc", "subject", "message_id",
               "authentication_results", "dkim_domain", "source_ip_address",
-              "source_country", "source_reverse_dns", "source_base_domain",
+              "source_country", "source_reverse_dns",
+              "source_base_domain", "source_name", "source_type",
               "delivery_result", "auth_failure", "reported_domain",
               "authentication_mechanisms", "sample_headers_only"]
 

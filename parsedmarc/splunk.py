@@ -85,6 +85,8 @@ class HECClient(object):
                     "reverse_dns"]
                 new_report["source_base_domain"] = record["source"][
                     "base_domain"]
+                new_report["source_type"] = record["source"]["type"]
+                new_report["source_name"] = record["source"]["name"]
                 new_report["message_count"] = record["count"]
                 new_report["disposition"] = record["policy_evaluated"][
                     "disposition"

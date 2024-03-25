@@ -60,6 +60,8 @@ class _AggregateReportDoc(Document):
     source_country = Text()
     source_reverse_dns = Text()
     source_Base_domain = Text()
+    source_type = Text()
+    source_name = Text()
     message_count = Integer
     disposition = Text()
     dkim_aligned = Boolean()

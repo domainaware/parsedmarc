@@ -16,6 +16,7 @@ import base64
 import atexit
 import mailbox
 import re
+import csv
 try:
     import importlib.resources as pkg_resources
 except ImportError:
@@ -32,6 +33,7 @@ import publicsuffixlist
 
 from parsedmarc.log import logger
 import parsedmarc.resources.dbip
+import parsedmarc.resources.maps
 
 
 parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
@@ -293,6 +295,34 @@ def get_ip_address_country(ip_address, db_path=None):
     return country
 
 
+def get_service_from_reverse_dns_base_domain(reverse_dns_base_domain):
+    """
+    Returns the service name of a given base domain name from reverse DNS.
+
+    Args:
+        reverse_dns_base_domain (str): The base domain of the reverse DNS lookup
+    Returns:
+        dict: A dictionary containing name and type.
+        If the service is unknown, the name will be
+        the supplied reverse_dns_base_domain and the type will be None
+    """
+    reverse_dns_base_domain = reverse_dns_base_domain.lower().strip()
+    service_map = dict()
+    with pkg_resources.path(parsedmarc.resources.maps,
+                            "base_reverse_dns_map.csv") as path:
+        with open(path) as csv_file:
+            reader = csv.DictReader(csv_file)
+            for row in reader:
+                service_map[row["base_reverse_dns"].lower().strip()] = dict(name=row["name"],
+                                                                            type=row["type"])
+    try:
+        service = service_map[reverse_dns_base_domain]
+    except KeyError:
+        service = dict(sname=reverse_dns_base_domain, type=None)
+
+    return service
+
+
 def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
                         nameservers=None, timeout=2.0):
     """
@@ -315,12 +345,12 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
     if cache is not None:
         info = cache.get(ip_address, None)
         if info:
-            logger.debug("IP address " + ip_address + " was found in cache")
+            logger.debug(f"IP address {ip_address} was found in cache")
             return info
         else:
-            logger.debug("IP address " + ip_address + " not found in cache")
+            logger.debug(f"IP address {ip_address} not found in cache")
     else:
-        logger.debug("IP address cache not specified")
+        logger.debug("IP address cache was not specified")
     info = OrderedDict()
     info["ip_address"] = ip_address
     if offline:
@@ -333,9 +363,14 @@ def get_ip_address_info(ip_address, ip_db_path=None, cache=None, offline=False,
     info["country"] = country
     info["reverse_dns"] = reverse_dns
     info["base_domain"] = None
+    info["service_name"] = None
+    info["service_type"] = None
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
+        service = get_service_from_reverse_dns_base_domain(base_domain)
         info["base_domain"] = base_domain
+        info["service_type"] = service["service_type"]
+        info["service_name"] = service["service_name"]
 
     if cache is not None:
         cache[ip_address] = info
