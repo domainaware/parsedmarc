@@ -319,7 +319,7 @@ def get_service_from_reverse_dns_base_domain(base_domain):
     try:
         service = service_map[base_domain]
     except KeyError:
-        service = dict(name=base_domain, type=None)
+        service = dict(name=base_domain, type="Uncategorized")
 
     return service
 

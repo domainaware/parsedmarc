@@ -1,10 +1,15 @@
 Changelog
 =========
 
+8.9.2
+-----
+
+- Use `Uncategorized` instead of `None` as the service type when a service cannot be identified
+
 8.9.1
 -----
 
-- Fix broken CLI by removing opbsolete paramater from `cli_parse` call (PR #496 closes issue #495)
+- Fix broken CLI by removing obsolete parameter from `cli_parse` call (PR #496 closes issue #495)
 
 8.9.0
 -----
