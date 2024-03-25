@@ -1160,7 +1160,6 @@ def _main():
                 opts.ip_db_path,
                 opts.offline,
                 child_conn,
-                opts.n_procs >= 1,
             ))
             processes.append(process)
 
