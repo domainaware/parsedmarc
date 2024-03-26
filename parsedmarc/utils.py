@@ -399,9 +399,10 @@ def get_ip_address_info(ip_address, ip_db_path=None,
     info["type"] = None
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
-        service = get_service_from_reverse_dns_base_domain(base_domain,
-                                                           offline=offline,
-                                                           reverse_dns_map=reverse_dns_map)
+        service = get_service_from_reverse_dns_base_domain(
+            base_domain,
+            offline=offline,
+            reverse_dns_map=reverse_dns_map)
         info["base_domain"] = base_domain
         info["type"] = service["type"]
         info["name"] = service["name"]
