@@ -49,6 +49,7 @@ MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_JSON = b"\7b"
 
 IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=1800)
+REVERSE_DNS_MAP = dict()
 
 
 class ParserError(RuntimeError):
@@ -840,6 +841,7 @@ def parse_forensic_report(feedback_report, sample, msg_date,
 
         ip_address = re.split(r'\s', parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(ip_address,
+                                                   cache=IP_ADDRESS_CACHE,
                                                    ip_db_path=ip_db_path,
                                                    offline=offline,
                                                    nameservers=nameservers,
