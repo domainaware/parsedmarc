@@ -487,9 +487,10 @@
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">reverse_dns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">base_domain</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">reverse_dns</span><span class="p">)</span>
-        <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span><span class="n">base_domain</span><span class="p">,</span>
-                                                           <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                                                           <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">)</span>
+        <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
+            <span class="n">base_domain</span><span class="p">,</span>
+            <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">)</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
