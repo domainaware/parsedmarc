@@ -136,6 +136,7 @@
 <span class="n">MAGIC_JSON</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\7</span><span class="s2">b&quot;</span>
 
 <span class="n">IP_ADDRESS_CACHE</span> <span class="o">=</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">1800</span><span class="p">)</span>
+<span class="n">REVERSE_DNS_MAP</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="ParserError"><a class="viewcode-back" href="../api.html#parsedmarc.ParserError">[docs]</a><span class="k">class</span> <span class="nc">ParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
@@ -927,6 +928,7 @@
 
         <span class="n">ip_address</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s&#39;</span><span class="p">,</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;source_ip&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">parsed_report_source</span> <span class="o">=</span> <span class="n">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span>
+                                                   <span class="n">cache</span><span class="o">=</span><span class="n">IP_ADDRESS_CACHE</span><span class="p">,</span>
                                                    <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
                                                    <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
                                                    <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
