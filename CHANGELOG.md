@@ -1,6 +1,13 @@
 Changelog
 =========
 
+8.10.0
+------
+
+- Fix MSGraph UsernamePassword Authentication (PR #497)
+- Attempt to download an updated `base_reverse_dns_map.csv` at runtime
+- Update included `base_reverse_dns_map.csv`
+
 8.9.4
 -----
 
