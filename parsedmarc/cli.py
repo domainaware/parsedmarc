@@ -662,6 +662,11 @@ def _main():
                 else:
                     logger.critical("password setting missing from the "
                                     "msgraph config section")
+                if "client_secret" in graph_config:
+                    opts.graph_client_secret = graph_config["client_secret"]
+                else:
+                    logger.critical("client_secret setting missing from the "
+                                    "msgraph config section")
                     exit(-1)
 
             if opts.graph_auth_method == AuthMethod.DeviceCode.name:
