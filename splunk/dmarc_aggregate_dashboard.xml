@@ -7,7 +7,7 @@
       | table *
       | rename spf_results{}.domain as envelope_domain spf_results{}.result as spf_result spf_results{}.scope as spf_scope dkim_results{}.selector as dkim_selector dkim_results{}.domain as dkim_domain dkim_results{}.result as dkim_result
       | fillnull value=null source_reverse_dns source_base_domain dkim_selector dkim_domain dkim_result source_type source_name
-      | search dkim_selector=$dkim_selector$ dkim_domain=$dkim_domain$ source_type=$source_type$ source_name=$source_name$
+      | search dkim_selector=$dkim_selector$ dkim_domain=$dkim_domain$ source_type="$source_type$" source_name="$source_name$"
     </query>
     <earliest>$time_range.earliest$</earliest>
     <latest>$time_range.latest$</latest>
@@ -78,9 +78,17 @@
         | stats count by source_type</query>
       </search>
     </input>
-    <input type="text" token="source_name" searchWhenChanged="true">
+    <input type="dropdown" token="source_name" searchWhenChanged="true">
       <label>Source name</label>
       <default>*</default>
+      <choice value="*">any</choice>
+      <initialValue>*</initialValue>
+      <fieldForLabel>source_name</fieldForLabel>
+      <fieldForValue>source_name</fieldForValue>
+      <search>
+        <query>index="email_ess" sourcetype="dmarc:aggregate"
+        | stats count by source_name</query>
+      </search>
     </input>
     <input type="text" token="source_country" searchWhenChanged="true">
       <label>Source country ISO code</label>
