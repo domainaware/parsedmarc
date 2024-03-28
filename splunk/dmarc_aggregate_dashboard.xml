@@ -4,10 +4,10 @@
   <search id="base_search">
     <query>
       index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$
-      | table *
       | rename spf_results{}.domain as envelope_domain spf_results{}.result as spf_result spf_results{}.scope as spf_scope dkim_results{}.selector as dkim_selector dkim_results{}.domain as dkim_domain dkim_results{}.result as dkim_result
       | fillnull value=null source_reverse_dns source_base_domain dkim_selector dkim_domain dkim_result source_type source_name
       | search dkim_selector=$dkim_selector$ dkim_domain=$dkim_domain$ source_type="$source_type$" source_name="$source_name$"
+      | table *
     </query>
     <earliest>$time_range.earliest$</earliest>
     <latest>$time_range.latest$</latest>
