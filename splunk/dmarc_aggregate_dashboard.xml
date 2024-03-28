@@ -74,7 +74,7 @@
       <fieldForLabel>source_type</fieldForLabel>
       <fieldForValue>source_type</fieldForValue>
       <search>
-        <query>index="email_ess" sourcetype="dmarc:aggregate"
+        <query>index="email" sourcetype="dmarc:aggregate"
         | stats count by source_type</query>
       </search>
     </input>
@@ -86,7 +86,7 @@
       <fieldForLabel>source_name</fieldForLabel>
       <fieldForValue>source_name</fieldForValue>
       <search>
-        <query>index="email_ess" sourcetype="dmarc:aggregate" source_type=$source_type$
+        <query>index="email" sourcetype="dmarc:aggregate" source_type="$source_type$"
         | stats count by source_name</query>
       </search>
     </input>
