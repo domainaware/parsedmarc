@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.10.3
+------
+
+- Fix flaws in `base_reverse_dns_map.csv`
+
 8.10.2
 ------
 
