@@ -299,6 +299,9 @@ def get_ip_address_country(ip_address, db_path=None):
 
 
 def get_service_from_reverse_dns_base_domain(base_domain,
+                                             always_use_local_file=False,
+                                             local_file_path=None,
+                                             url=None,
                                              offline=False,
                                              reverse_dns_map=None):
     """
@@ -306,6 +309,9 @@ def get_service_from_reverse_dns_base_domain(base_domain,
 
     Args:
         base_domain (str): The base domain of the reverse DNS lookup
+        always_use_local_file (bool): Always use a local map file
+        local_file_path (str): Path to a local map file
+        url (str): URL ro a reverse DNS map
         offline (bool): Use the built-in copy of the reverse DNS map
         reverse_dns_map (dict): A reverse DNS map
     Returns:
@@ -322,13 +328,15 @@ def get_service_from_reverse_dns_base_domain(base_domain,
                 type=row["type"])
 
     base_domain = base_domain.lower().strip()
-    url = ("https://raw.githubusercontent.com/domainaware/parsedmarc/master/"
-           "parsedmarc/resources/maps/base_reverse_dns_map.csv")
+    if url is None:
+        url = ("https://raw.githubusercontent.com/domainaware/parsedmarc/master/"
+               "parsedmarc/resources/maps/base_reverse_dns_map.csv")
     if reverse_dns_map is None:
         reverse_dns_map = dict()
     csv_file = io.StringIO()
 
-    if not offline and len(reverse_dns_map) == 0:
+    if (not (offline or always_use_local_file)
+            and len(reverse_dns_map) == 0):
         try:
             logger.debug(f"Trying to fetch "
                          f"reverse DNS map from {url}...")
@@ -341,6 +349,8 @@ def get_service_from_reverse_dns_base_domain(base_domain,
         logger.info("Loading included reverse DNS map...")
         with pkg_resources.path(parsedmarc.resources.maps,
                                 "base_reverse_dns_map.csv") as path:
+            if local_file_path is not None:
+                path = local_file_path
             with open(path) as csv_file:
                 load_csv(csv_file)
     try:
@@ -351,7 +361,11 @@ def get_service_from_reverse_dns_base_domain(base_domain,
     return service
 
 
-def get_ip_address_info(ip_address, ip_db_path=None,
+def get_ip_address_info(ip_address,
+                        ip_db_path=None,
+                        reverse_dns_map_path=None,
+                        always_use_local_files=False,
+                        reverse_dns_map_url=None,
                         cache=None,
                         reverse_dns_map=None,
                         offline=False,
@@ -362,6 +376,9 @@ def get_ip_address_info(ip_address, ip_db_path=None,
     Args:
         ip_address (str): The IP address to check
         ip_db_path (str): path to a MMDB file from MaxMind or DBIP
+        reverse_dns_map_path (str): Path to a reverse DNS map file
+        reverse_dns_map_url (str): URL to the reverse DNS map file
+        always_use_local_files (bool): Do not download files
         cache (ExpiringDict): Cache storage
         reverse_dns_map (dict): A reverse DNS map
         offline (bool): Do not make online queries for geolocation or DNS
@@ -402,6 +419,9 @@ def get_ip_address_info(ip_address, ip_db_path=None,
         service = get_service_from_reverse_dns_base_domain(
             base_domain,
             offline=offline,
+            local_file_path=reverse_dns_map_path,
+            url=reverse_dns_map_url,
+            always_use_local_file=always_use_local_files,
             reverse_dns_map=reverse_dns_map)
         info["base_domain"] = base_domain
         info["type"] = service["type"]

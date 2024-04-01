@@ -72,7 +72,11 @@ class InvalidForensicReport(InvalidDMARCReport):
     """Raised when an invalid DMARC forensic report is encountered"""
 
 
-def _parse_report_record(record, ip_db_path=None, offline=False,
+def _parse_report_record(record, ip_db_path=None,
+                         always_use_local_files=False,
+                         reverse_dns_map_path=None,
+                         reverse_dns_map_url=None,
+                         offline=False,
                          nameservers=None, dns_timeout=2.0):
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -80,6 +84,9 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
 
     Args:
         record (OrderedDict): The record to convert
+        always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map file
+        reverse_dns_map_url (str): URL to a reverse DNS map file
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
@@ -91,12 +98,16 @@ def _parse_report_record(record, ip_db_path=None, offline=False,
     """
     record = record.copy()
     new_record = OrderedDict()
-    new_record_source = get_ip_address_info(record["row"]["source_ip"],
-                                            cache=IP_ADDRESS_CACHE,
-                                            ip_db_path=ip_db_path,
-                                            offline=offline,
-                                            nameservers=nameservers,
-                                            timeout=dns_timeout)
+    new_record_source = get_ip_address_info(
+        record["row"]["source_ip"],
+        cache=IP_ADDRESS_CACHE,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        offline=offline,
+        nameservers=nameservers,
+        timeout=dns_timeout)
     new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
     policy_evaluated = record["row"]["policy_evaluated"].copy()
@@ -387,14 +398,24 @@ def parsed_smtp_tls_reports_to_csv(reports):
     return csv_file_object.getvalue()
 
 
-def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
-                               nameservers=None, timeout=2.0,
-                               keep_alive=None):
+def parse_aggregate_report_xml(
+        xml,
+        ip_db_path=None,
+        always_use_local_files=False,
+        reverse_dns_map_path=None,
+        reverse_dns_map_url=None,
+        offline=False,
+        nameservers=None,
+        timeout=2.0,
+        keep_alive=None):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
     Args:
         xml (str): A string of DMARC aggregate report XML
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+         always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map file
+        reverse_dns_map_url (str): URL to a reverse DNS map file
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
@@ -516,19 +537,27 @@ def parse_aggregate_report_xml(xml, ip_db_path=None, offline=False,
                     keep_alive()
                     logger.debug("Processed {0}/{1}".format(
                         i, len(report["record"])))
-                report_record = _parse_report_record(report["record"][i],
-                                                     ip_db_path=ip_db_path,
-                                                     offline=offline,
-                                                     nameservers=nameservers,
-                                                     dns_timeout=timeout)
+                report_record = _parse_report_record(
+                    report["record"][i],
+                    ip_db_path=ip_db_path,
+                    offline=offline,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    nameservers=nameservers,
+                    dns_timeout=timeout)
                 records.append(report_record)
 
         else:
-            report_record = _parse_report_record(report["record"],
-                                                 ip_db_path=ip_db_path,
-                                                 offline=offline,
-                                                 nameservers=nameservers,
-                                                 dns_timeout=timeout)
+            report_record = _parse_report_record(
+                report["record"],
+                ip_db_path=ip_db_path,
+                always_use_local_files=always_use_local_files,
+                reverse_dns_map_path=reverse_dns_map_path,
+                reverse_dns_map_url=reverse_dns_map_url,
+                offline=offline,
+                nameservers=nameservers,
+                dns_timeout=timeout)
             records.append(report_record)
 
         new_report["records"] = records
@@ -607,16 +636,25 @@ def extract_report(input_):
     return report
 
 
-def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
-                                nameservers=None,
-                                dns_timeout=2.0,
-                                keep_alive=None):
+def parse_aggregate_report_file(
+        _input,
+        offline=False,
+        always_use_local_files=None,
+        reverse_dns_map_path=None,
+        reverse_dns_map_url=None,
+        ip_db_path=None,
+        nameservers=None,
+        dns_timeout=2.0,
+        keep_alive=None):
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
 
     Args:
         _input: A path to a file, a file like object, or bytes
         offline (bool): Do not query online for geolocation or DNS
+        always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map file
+        reverse_dns_map_url (str): URL to a reverse DNS map file
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
@@ -632,12 +670,16 @@ def parse_aggregate_report_file(_input, offline=False, ip_db_path=None,
     except Exception as e:
         raise InvalidAggregateReport(e)
 
-    return parse_aggregate_report_xml(xml,
-                                      ip_db_path=ip_db_path,
-                                      offline=offline,
-                                      nameservers=nameservers,
-                                      timeout=dns_timeout,
-                                      keep_alive=keep_alive)
+    return parse_aggregate_report_xml(
+        xml,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        ip_db_path=ip_db_path,
+        offline=offline,
+        nameservers=nameservers,
+        timeout=dns_timeout,
+        keep_alive=keep_alive)
 
 
 def parsed_aggregate_reports_to_csv_rows(reports):
@@ -781,18 +823,28 @@ def parsed_aggregate_reports_to_csv(reports):
     return csv_file_object.getvalue()
 
 
-def parse_forensic_report(feedback_report, sample, msg_date,
-                          offline=False, ip_db_path=None,
-                          nameservers=None, dns_timeout=2.0,
+def parse_forensic_report(feedback_report,
+                          sample,
+                          msg_date,
+                          always_use_local_files=False,
+                          reverse_dns_map_path=None,
+                          reverse_dns_map_url=None,
+                          offline=False,
+                          ip_db_path=None,
+                          nameservers=None,
+                          dns_timeout=2.0,
                           strip_attachment_payloads=False):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
 
     Args:
         feedback_report (str): A message's feedback report as a string
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
-        offline (bool): Do not query online for geolocation or DNS
         sample (str): The RFC 822 headers or RFC 822 message sample
+        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map file
+        reverse_dns_map_url (str): URL to a reverse DNS map file
+        offline (bool): Do not query online for geolocation or DNS
         msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
@@ -840,12 +892,16 @@ def parse_forensic_report(feedback_report, sample, msg_date,
         parsed_report["arrival_date_utc"] = arrival_utc
 
         ip_address = re.split(r'\s', parsed_report["source_ip"]).pop(0)
-        parsed_report_source = get_ip_address_info(ip_address,
-                                                   cache=IP_ADDRESS_CACHE,
-                                                   ip_db_path=ip_db_path,
-                                                   offline=offline,
-                                                   nameservers=nameservers,
-                                                   timeout=dns_timeout)
+        parsed_report_source = get_ip_address_info(
+            ip_address,
+            cache=IP_ADDRESS_CACHE,
+            ip_db_path=ip_db_path,
+            always_use_local_files=always_use_local_files,
+            reverse_dns_map_path=reverse_dns_map_path,
+            reverse_dns_map_url=reverse_dns_map_url,
+            offline=offline,
+            nameservers=nameservers,
+            timeout=dns_timeout)
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
@@ -1144,6 +1200,9 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
 
 def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
                       strip_attachment_payloads=False, ip_db_path=None,
+                      always_use_local_files=False,
+                      reverse_dns_map_path=None,
+                      reverse_dns_map_url=None,
                       offline=False, keep_alive=None):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
@@ -1156,6 +1215,9 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         strip_attachment_payloads (bool): Remove attachment payloads from
             forensic report results
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map
+        reverse_dns_map_url (str): URL to a reverse DNS map
         offline (bool): Do not make online queries for geolocation or DNS
         keep_alive (callable): Keep alive function
 
@@ -1173,8 +1235,10 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
     content = file_object.read()
     file_object.close()
     try:
-        report = parse_aggregate_report_file(content,
-                                             ip_db_path=ip_db_path,
+        report = parse_aggregate_report_file(
+            content,
+            ip_db_path=ip_db_path,
+            always_use_local_files=always_use_local_files,
                                              offline=offline,
                                              nameservers=nameservers,
                                              dns_timeout=dns_timeout,

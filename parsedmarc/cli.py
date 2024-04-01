@@ -41,15 +41,23 @@ def _str_to_list(s):
 
 
 def cli_parse(file_path, sa, nameservers, dns_timeout,
-              ip_db_path, offline, conn):
+              ip_db_path, offline,
+              always_use_local_files,
+              reverse_dns_map_path,
+              reverse_dns_map_url,
+              conn):
     """Separated this function for multiprocessing"""
     try:
-        file_results = parse_report_file(file_path,
-                                         ip_db_path=ip_db_path,
-                                         offline=offline,
-                                         nameservers=nameservers,
-                                         dns_timeout=dns_timeout,
-                                         strip_attachment_payloads=sa)
+        file_results = parse_report_file(
+            file_path,
+            ip_db_path=ip_db_path,
+            offline=offline,
+            always_use_local_files=always_use_local_files,
+            reverse_dns_map_path=reverse_dns_map_path,
+            reverse_dns_map_url=reverse_dns_map_url,
+            nameservers=nameservers,
+            dns_timeout=dns_timeout,
+            strip_attachment_payloads=sa)
         conn.send([file_results, file_path])
     except ParserError as error:
         conn.send([error, file_path])
@@ -473,6 +481,9 @@ def _main():
                      log_file=args.log_file,
                      n_procs=1,
                      ip_db_path=None,
+                     always_use_local_files=False,
+                     reverse_dns_map_path=None,
+                     reverse_dns_map_url=None,
                      la_client_id=None,
                      la_client_secret=None,
                      la_tenant_id=None,
@@ -545,6 +556,15 @@ def _main():
                 opts.ip_db_path = general_config["ip_db_path"]
             else:
                 opts.ip_db_path = None
+            if "always_use_local_files" in general_config:
+                opts.always_use_local_files = general_config.getboolean(
+                    "always_use_local_files")
+            if "reverse_dns_map_path" in general_config:
+                opts.reverse_dns_map_path = general_config[
+                    "reverse_dns_path"]
+            if "reverse_dns_map_url" in general_config:
+                opts.reverse_dns_map_url = general_config[
+                    "reverse_dns_url"]
 
         if "mailbox" in config.sections():
             mailbox_config = config["mailbox"]
@@ -1164,6 +1184,9 @@ def _main():
                 opts.dns_timeout,
                 opts.ip_db_path,
                 opts.offline,
+                opts.always_use_local_files,
+                opts.reverse_dns_map_path,
+                opts.reverse_dns_map_url,
                 child_conn,
             ))
             processes.append(process)
