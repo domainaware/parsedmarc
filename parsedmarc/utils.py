@@ -330,8 +330,9 @@ def get_service_from_reverse_dns_base_domain(base_domain,
 
     base_domain = base_domain.lower().strip()
     if url is None:
-        url = ("https://raw.githubusercontent.com/domainaware/parsedmarc/master/"
-               "parsedmarc/resources/maps/base_reverse_dns_map.csv")
+        url = ("https://raw.githubusercontent.com/domainaware"
+               "/parsedmarc/master/parsedmarc/"
+               "resources/maps/base_reverse_dns_map.csv")
     if reverse_dns_map is None:
         reverse_dns_map = dict()
     csv_file = io.StringIO()

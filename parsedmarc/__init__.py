@@ -1029,16 +1029,25 @@ def parsed_forensic_reports_to_csv(reports):
     return csv_file.getvalue()
 
 
-def parse_report_email(input_, offline=False, ip_db_path=None,
-                       nameservers=None, dns_timeout=2.0,
-                       strip_attachment_payloads=False,
-                       keep_alive=None):
+def parse_report_email(
+        input_,
+        offline=False,
+        ip_db_path=None,
+        always_use_local_files=False,
+        reverse_dns_map_path=None,
+        reverse_dns_map_url=None,
+        nameservers=None, dns_timeout=2.0,
+        strip_attachment_payloads=False,
+        keep_alive=None):
     """
     Parses a DMARC report from an email
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        always_use_local_files (bool): Do not download files
+        reverse_dns_map_path (str): Path to a reverse DNS map
+        reverse_dns_map_url (str): URL to a reverse DNS map
         offline (bool): Do not query online for geolocation on DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -1148,6 +1157,9 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                     aggregate_report = parse_aggregate_report_xml(
                         payload,
                         ip_db_path=ip_db_path,
+                        always_use_local_files=always_use_local_files,
+                        reverse_dns_map_path=reverse_dns_map_path,
+                        reverse_dns_map_url=reverse_dns_map_url,
                         offline=offline,
                         nameservers=ns,
                         timeout=dns_timeout,
@@ -1177,6 +1189,10 @@ def parse_report_email(input_, offline=False, ip_db_path=None,
                 sample,
                 date,
                 offline=offline,
+                ip_db_path=ip_db_path,
+                always_use_local_files=always_use_local_files,
+                reverse_dns_map_path=reverse_dns_map_path,
+                reverse_dns_map_url=reverse_dns_map_url,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
                 strip_attachment_payloads=strip_attachment_payloads)
@@ -1239,10 +1255,12 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
             content,
             ip_db_path=ip_db_path,
             always_use_local_files=always_use_local_files,
-                                             offline=offline,
-                                             nameservers=nameservers,
-                                             dns_timeout=dns_timeout,
-                                             keep_alive=keep_alive)
+            reverse_dns_map_path=reverse_dns_map_path,
+            reverse_dns_map_url=reverse_dns_map_url,
+            offline=offline,
+            nameservers=nameservers,
+            dns_timeout=dns_timeout,
+            keep_alive=keep_alive)
         results = OrderedDict([("report_type", "aggregate"),
                                ("report", report)])
     except InvalidAggregateReport:
@@ -1253,13 +1271,17 @@ def parse_report_file(input_, nameservers=None, dns_timeout=2.0,
         except InvalidSMTPTLSReport:
             try:
                 sa = strip_attachment_payloads
-                results = parse_report_email(content,
-                                             ip_db_path=ip_db_path,
-                                             offline=offline,
-                                             nameservers=nameservers,
-                                             dns_timeout=dns_timeout,
-                                             strip_attachment_payloads=sa,
-                                             keep_alive=keep_alive)
+                results = parse_report_email(
+                    content,
+                    ip_db_path=ip_db_path,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    offline=offline,
+                    nameservers=nameservers,
+                    dns_timeout=dns_timeout,
+                    strip_attachment_payloads=sa,
+                    keep_alive=keep_alive)
             except InvalidDMARCReport:
                 raise ParserError("Not a valid report")
     return results
