@@ -413,7 +413,7 @@ def parse_aggregate_report_xml(
     Args:
         xml (str): A string of DMARC aggregate report XML
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
-         always_use_local_files (bool): Do not download files
+        always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
         offline (bool): Do not query online for geolocation or DNS

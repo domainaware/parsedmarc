@@ -59,7 +59,7 @@ class _AggregateReportDoc(Document):
     source_ip_address = Ip()
     source_country = Text()
     source_reverse_dns = Text()
-    source_Base_domain = Text()
+    source_base_domain = Text()
     source_type = Text()
     source_name = Text()
     message_count = Integer
@@ -438,6 +438,8 @@ def save_aggregate_report_to_opensearch(aggregate_report,
             source_country=record["source"]["country"],
             source_reverse_dns=record["source"]["reverse_dns"],
             source_base_domain=record["source"]["base_domain"],
+            source_type=record["source"]["type"],
+            source_name=record["source"]["name"],
             message_count=record["count"],
             disposition=record["policy_evaluated"]["disposition"],
             dkim_aligned=record["policy_evaluated"]["dkim"] is not None and
