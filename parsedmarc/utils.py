@@ -172,7 +172,8 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
                              nameservers=nameservers,
                              timeout=timeout)[0]
 
-    except dns.exception.DNSException:
+    except dns.exception.DNSException as e:
+        logger.warning(f"get_reverse_dns({ip_address}) exception: {e}")
         pass
 
     return hostname
@@ -396,10 +397,6 @@ def get_ip_address_info(ip_address,
         if info:
             logger.debug(f"IP address {ip_address} was found in cache")
             return info
-        else:
-            logger.debug(f"IP address {ip_address} not found in cache")
-    else:
-        logger.debug("IP address cache was not specified")
     info = OrderedDict()
     info["ip_address"] = ip_address
     if offline:
@@ -427,8 +424,11 @@ def get_ip_address_info(ip_address,
         info["type"] = service["type"]
         info["name"] = service["name"]
 
-    if cache is not None:
-        cache[ip_address] = info
+        if cache is not None:
+            cache[ip_address] = info
+            logger.debug(f"IP address {ip_address} added to cache")
+    else:
+        logger.debug(f"IP address {ip_address} reverse_dns not found")
 
     return info
 

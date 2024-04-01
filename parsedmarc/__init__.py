@@ -48,7 +48,7 @@ MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_JSON = b"\7b"
 
-IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=1800)
+IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
 REVERSE_DNS_MAP = dict()
 
 
