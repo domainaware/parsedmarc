@@ -106,6 +106,7 @@ def _parse_report_record(record, ip_db_path=None,
         reverse_dns_map_path=reverse_dns_map_path,
         reverse_dns_map_url=reverse_dns_map_url,
         offline=offline,
+        reverse_dns_map=REVERSE_DNS_MAP,
         nameservers=nameservers,
         timeout=dns_timeout)
     new_record["source"] = new_record_source
@@ -905,6 +906,7 @@ def parse_forensic_report(feedback_report,
             reverse_dns_map_path=reverse_dns_map_path,
             reverse_dns_map_url=reverse_dns_map_url,
             offline=offline,
+            reverse_dns_map=REVERSE_DNS_MAP,
             nameservers=nameservers,
             timeout=dns_timeout)
         parsed_report["source"] = parsed_report_source
