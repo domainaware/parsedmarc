@@ -1,6 +1,18 @@
 Changelog
 =========
 
+8.11.0
+------
+
+- Actually save `source_type` and `source_name` to Elasticsearch and OpenSearch
+- Reverse-lookup cache improvements (PR #501 closes issue #498)
+- Update the included `dbip-country-lite.mmdb` to the 2024-03 version
+- Update `base_reverse_dns_map.csv`
+- Add new general config options (closes issue #500)
+  - `always_use_local_files` - Disables the download of the reverse DNS map
+  - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
+  - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
+
 8.10.3
 ------
 
