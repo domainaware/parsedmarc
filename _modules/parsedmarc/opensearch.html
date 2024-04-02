@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.opensearch &mdash; parsedmarc 8.10.3 documentation</title>
+  <title>parsedmarc.opensearch &mdash; parsedmarc 8.11.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.10.3
+                8.11.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -147,7 +147,7 @@
     <span class="n">source_ip_address</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
     <span class="n">source_country</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">source_reverse_dns</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
-    <span class="n">source_Base_domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">source_base_domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">source_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">source_name</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">message_count</span> <span class="o">=</span> <span class="n">Integer</span>
@@ -526,6 +526,8 @@
             <span class="n">source_country</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">],</span>
             <span class="n">source_reverse_dns</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">],</span>
             <span class="n">source_base_domain</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">],</span>
+            <span class="n">source_type</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+            <span class="n">source_name</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
             <span class="n">message_count</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">],</span>
             <span class="n">disposition</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">],</span>
             <span class="n">dkim_aligned</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>

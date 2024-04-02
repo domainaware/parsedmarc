@@ -107,6 +107,8 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_forensic` - bool: Save forensic report data to
       Elasticsearch, Splunk and/or S3
+  - `save_smtp_sts` - bool: Save SMTP-STS report data to
+      Elasticsearch, Splunk and/or S3
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
@@ -118,6 +120,9 @@ The full set of configuration options are:
       from MaxMind or DBIP
   - `offline` - bool: Do not use online queries for geolocation
       or DNS
+  - `always_use_local_files` - Disables the download of the reverse DNS map
+  - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
+  - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
   - `nameservers` - str: A comma separated list of
       DNS resolvers (Default: `[Cloudflare's public resolvers]`)
   - `dns_timeout` - float: DNS timeout period

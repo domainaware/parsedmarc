@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.10.3 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 8.11.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.10.3
+                8.11.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -260,7 +260,8 @@
                              <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                              <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="k">except</span> <span class="n">dns</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">DNSException</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">dns</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">DNSException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;get_reverse_dns(</span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2">) exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">pass</span>
 
     <span class="k">return</span> <span class="n">hostname</span></div>
@@ -387,6 +388,9 @@
 
 
 <div class="viewcode-block" id="get_service_from_reverse_dns_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span><span class="n">base_domain</span><span class="p">,</span>
+                                             <span class="n">always_use_local_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                             <span class="n">local_file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                              <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                              <span class="n">reverse_dns_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -394,6 +398,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        base_domain (str): The base domain of the reverse DNS lookup</span>
+<span class="sd">        always_use_local_file (bool): Always use a local map file</span>
+<span class="sd">        local_file_path (str): Path to a local map file</span>
+<span class="sd">        url (str): URL ro a reverse DNS map</span>
 <span class="sd">        offline (bool): Use the built-in copy of the reverse DNS map</span>
 <span class="sd">        reverse_dns_map (dict): A reverse DNS map</span>
 <span class="sd">    Returns:</span>
@@ -410,13 +417,16 @@
                 <span class="nb">type</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">])</span>
 
     <span class="n">base_domain</span> <span class="o">=</span> <span class="n">base_domain</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;https://raw.githubusercontent.com/domainaware/parsedmarc/master/&quot;</span>
-           <span class="s2">&quot;parsedmarc/resources/maps/base_reverse_dns_map.csv&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;https://raw.githubusercontent.com/domainaware&quot;</span>
+               <span class="s2">&quot;/parsedmarc/master/parsedmarc/&quot;</span>
+               <span class="s2">&quot;resources/maps/base_reverse_dns_map.csv&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">reverse_dns_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">reverse_dns_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
     <span class="n">csv_file</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">offline</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">reverse_dns_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="p">(</span><span class="n">offline</span> <span class="ow">or</span> <span class="n">always_use_local_file</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">reverse_dns_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trying to fetch &quot;</span>
                          <span class="sa">f</span><span class="s2">&quot;reverse DNS map from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
@@ -429,6 +439,8 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading included reverse DNS map...&quot;</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">,</span>
                                 <span class="s2">&quot;base_reverse_dns_map.csv&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">local_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">local_file_path</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
                 <span class="n">load_csv</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
@@ -439,7 +451,11 @@
     <span class="k">return</span> <span class="n">service</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span>
+                        <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">reverse_dns_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -450,6 +466,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to check</span>
 <span class="sd">        ip_db_path (str): path to a MMDB file from MaxMind or DBIP</span>
+<span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
+<span class="sd">        reverse_dns_map_url (str): URL to the reverse DNS map file</span>
+<span class="sd">        always_use_local_files (bool): Do not download files</span>
 <span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        reverse_dns_map (dict): A reverse DNS map</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
@@ -467,10 +486,6 @@
         <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> was found in cache&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">info</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> not found in cache&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;IP address cache was not specified&quot;</span><span class="p">)</span>
     <span class="n">info</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ip_address</span>
     <span class="k">if</span> <span class="n">offline</span><span class="p">:</span>
@@ -490,13 +505,19 @@
         <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
             <span class="n">base_domain</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="n">local_file_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+            <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
             <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">)</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
         <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> added to cache&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> reverse_dns not found&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">info</span></div>
 
