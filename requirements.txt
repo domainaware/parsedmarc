@@ -42,3 +42,4 @@ myst-parser[linkify]
 requests
 bs4
 pytest
+syslog2
