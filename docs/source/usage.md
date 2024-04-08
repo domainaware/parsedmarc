@@ -204,9 +204,6 @@ The full set of configuration options are:
     (delegated) permission to the app. If you are using
     `UsernamePassword` auth and the mailbox is different from the
     username, you must grant the app `Mail.ReadWrite.Shared`.
-
-    The app registration must have the `Treat application as public client`
-    option enabled.
     :::
 
     :::{warning}
