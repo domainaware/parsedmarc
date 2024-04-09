@@ -1196,7 +1196,7 @@ def _main():
 
         for conn in connections:
             results.append(conn.recv())
-            
+
         for proc in processes:
             proc.join()
             if sys.stdout.isatty():
