@@ -14,11 +14,14 @@ import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pipe, Process
 import sys
+from threading import Thread
+from queue import SimpleQueue
 from tqdm import tqdm
 
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
     kafkaclient, splunk, save_output, email_results, ParserError, \
+    get_dmarc_reports_from_message, \
     __version__, InvalidDMARCReport, s3, syslog, loganalytics
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 from parsedmarc.mail.graph import AuthMethod
@@ -27,7 +30,8 @@ from parsedmarc.log import logger
 from parsedmarc.utils import is_mbox
 
 formatter = logging.Formatter(
-    fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
+    fmt='[%(processName)s/%(threadName)s] ' +
+    '%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
     datefmt='%Y-%m-%d:%H:%M:%S')
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -552,6 +556,9 @@ def _main():
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
                 opts.n_procs = general_config.getint("n_procs")
+                if opts.n_procs <= 0:
+                    logger.error("Process requires n_procs > 0")
+                    exit(-1)
             if "ip_db_path" in general_config:
                 opts.ip_db_path = general_config["ip_db_path"]
             else:
@@ -1020,7 +1027,7 @@ def _main():
         logger.error("You must supply input files or a mailbox connection")
         exit(1)
 
-    logger.info("Starting parsedmarc")
+    logger.info(f"Starting parsedmarc {__version__}")
 
     if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
         try:
@@ -1298,7 +1305,45 @@ def _main():
 
     if mailbox_connection:
         try:
+            PROCESS_MESSAGE_INPUT_QUEUE = SimpleQueue()
+            PROCESS_MESSAGE_RESULT_QUEUE = SimpleQueue()
+
+            mailbox_processes = []
+
+            for proc_index in range(opts.n_procs):
+                if proc_index >= opts.mailbox_batch_size:
+                    logger.warning(f"mailbox n_procs ({opts.n_procs}) \
+                                   limited to mailbox batch_size \
+                                   ({opts.mailbox_batch_size})")
+                    break
+
+                mailbox_process = Thread(
+                    target=get_dmarc_reports_from_message,
+                    daemon=True,
+                    args=(
+                        PROCESS_MESSAGE_INPUT_QUEUE,
+                        PROCESS_MESSAGE_RESULT_QUEUE,
+                        mailbox_connection,
+                        opts.mailbox_reports_folder,
+                        opts.mailbox_archive_folder,
+                        opts.mailbox_delete,
+                        opts.mailbox_test,
+                        opts.ip_db_path,
+                        opts.always_use_local_files,
+                        opts.reverse_dns_map_path,
+                        opts.reverse_dns_map_url,
+                        opts.offline,
+                        opts.nameservers,
+                        opts.dns_timeout,
+                        opts.strip_attachment_payloads,
+                    ),
+                )
+                mailbox_process.start()
+                mailbox_processes.append(mailbox_process)
+
             reports = get_dmarc_reports_from_mailbox(
+                PROCESS_MESSAGE_INPUT_QUEUE,
+                PROCESS_MESSAGE_RESULT_QUEUE,
                 connection=mailbox_connection,
                 delete=opts.mailbox_delete,
                 batch_size=opts.mailbox_batch_size,
@@ -1312,6 +1357,8 @@ def _main():
                 nameservers=opts.nameservers,
                 test=opts.mailbox_test,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
+                dns_timeout=opts.dns_timeout,
+                check_timeout=opts.mailbox_check_timeout,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -1347,6 +1394,8 @@ def _main():
 
         try:
             watch_inbox(
+                PROCESS_MESSAGE_INPUT_QUEUE,
+                PROCESS_MESSAGE_RESULT_QUEUE,
                 mailbox_connection=mailbox_connection,
                 callback=process_reports,
                 reports_folder=opts.mailbox_reports_folder,

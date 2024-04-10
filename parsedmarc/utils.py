@@ -28,15 +28,22 @@ from dateutil.parser import parse as parse_date
 import dns.reversename
 import dns.resolver
 import dns.exception
+from expiringdict import ExpiringDict
 import geoip2.database
 import geoip2.errors
 import publicsuffixlist
 import requests
+import threading
 
 from parsedmarc.log import logger
 import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
 
+IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
+IP_ADDRESS_CACHE_LOCK = threading.Lock()
+
+REVERSE_DNS_MAP = dict()
+REVERSE_DNS_MAP_LOCK = threading.Lock()
 
 parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 
@@ -311,11 +318,12 @@ def get_service_from_reverse_dns_base_domain(base_domain,
     """
     def load_csv(_csv_file):
         reader = csv.DictReader(_csv_file)
-        for row in reader:
-            key = row["base_reverse_dns"].lower().strip()
-            reverse_dns_map[key] = dict(
-                name=row["name"],
-                type=row["type"])
+        with REVERSE_DNS_MAP_LOCK:
+            for row in reader:
+                key = row["base_reverse_dns"].lower().strip()
+                reverse_dns_map[key] = dict(
+                    name=row["name"],
+                    type=row["type"])
 
     base_domain = base_domain.lower().strip()
     if url is None:
@@ -345,7 +353,8 @@ def get_service_from_reverse_dns_base_domain(base_domain,
             with open(path) as csv_file:
                 load_csv(csv_file)
     try:
-        service = reverse_dns_map[base_domain]
+        with REVERSE_DNS_MAP_LOCK:
+            service = reverse_dns_map[base_domain]
     except KeyError:
         service = dict(name=base_domain, type=None)
 
@@ -357,8 +366,8 @@ def get_ip_address_info(ip_address,
                         reverse_dns_map_path=None,
                         always_use_local_files=False,
                         reverse_dns_map_url=None,
-                        cache=None,
-                        reverse_dns_map=None,
+                        cache=IP_ADDRESS_CACHE,
+                        reverse_dns_map=REVERSE_DNS_MAP,
                         offline=False,
                         nameservers=None, timeout=2.0):
     """
@@ -383,7 +392,8 @@ def get_ip_address_info(ip_address,
     """
     ip_address = ip_address.lower()
     if cache is not None:
-        info = cache.get(ip_address, None)
+        with IP_ADDRESS_CACHE_LOCK:
+            info = cache.get(ip_address, None)
         if info:
             logger.debug(f"IP address {ip_address} was found in cache")
             return info
@@ -416,7 +426,8 @@ def get_ip_address_info(ip_address,
             info["name"] = service["name"]
 
         if cache is not None:
-            cache[ip_address] = info
+            with IP_ADDRESS_CACHE_LOCK:
+                cache[ip_address] = info
             logger.debug(f"IP address {ip_address} added to cache")
     else:
         logger.debug(f"IP address {ip_address} reverse_dns not found")

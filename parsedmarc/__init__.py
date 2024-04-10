@@ -19,11 +19,11 @@ from collections import OrderedDict
 from csv import DictWriter
 from datetime import datetime
 from io import BytesIO, StringIO
+from time import sleep
 from typing import Callable
 
 import mailparser
 import xmltodict
-from expiringdict import ExpiringDict
 from lxml import etree
 from mailsuite.smtp import send_email
 
@@ -47,9 +47,6 @@ MAGIC_ZIP = b"\x50\x4B\x03\x04"
 MAGIC_GZIP = b"\x1F\x8B"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_JSON = b"\7b"
-
-IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
-REVERSE_DNS_MAP = dict()
 
 
 class ParserError(RuntimeError):
@@ -100,13 +97,11 @@ def _parse_report_record(record, ip_db_path=None,
     new_record = OrderedDict()
     new_record_source = get_ip_address_info(
         record["row"]["source_ip"],
-        cache=IP_ADDRESS_CACHE,
         ip_db_path=ip_db_path,
         always_use_local_files=always_use_local_files,
         reverse_dns_map_path=reverse_dns_map_path,
         reverse_dns_map_url=reverse_dns_map_url,
         offline=offline,
-        reverse_dns_map=REVERSE_DNS_MAP,
         nameservers=nameservers,
         timeout=dns_timeout)
     new_record["source"] = new_record_source
@@ -900,13 +895,11 @@ def parse_forensic_report(feedback_report,
         ip_address = re.split(r'\s', parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(
             ip_address,
-            cache=IP_ADDRESS_CACHE,
             ip_db_path=ip_db_path,
             always_use_local_files=always_use_local_files,
             reverse_dns_map_path=reverse_dns_map_path,
             reverse_dns_map_url=reverse_dns_map_url,
             offline=offline,
-            reverse_dns_map=REVERSE_DNS_MAP,
             nameservers=nameservers,
             timeout=dns_timeout)
         parsed_report["source"] = parsed_report_source
@@ -1363,7 +1356,189 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
                         ("smtp_tls_reports", smtp_tls_reports)])
 
 
-def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
+def get_dmarc_reports_from_message(
+                            process_message_input_queue,
+                            process_message_result_queue,
+                            connection: MailboxConnection,
+                            reports_folder="INBOX",
+                            archive_folder="Archive",
+                            delete=False,
+                            test=False,
+                            ip_db_path=None,
+                            always_use_local_files=False,
+                            reverse_dns_map_path=None,
+                            reverse_dns_map_url=None,
+                            offline=False,
+                            nameservers=None,
+                            dns_timeout=6.0,
+                            strip_attachment_payloads=False,
+                        ):
+    """Separated this function for multiprocessing"""
+    logger.debug("Started new process...")
+
+    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
+    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
+    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
+
+    while True:
+        try:
+            results = OrderedDict([
+                ("aggregate_reports", None),
+                ("forensic_reports", None),
+                ("smtp_tls_reports", None),
+            ])
+
+            aggregate_reports = []
+            forensic_reports = []
+            smtp_tls_reports = []
+            aggregate_report_msg_uids = []
+            forensic_report_msg_uids = []
+            smtp_tls_msg_uids = []
+
+            msg_uid = process_message_input_queue.get()['msg_uid']
+            logger.debug("Processing message: UID {0}".format(
+                msg_uid
+            ))
+
+            msg_content = connection.fetch_message(msg_uid)
+            try:
+                sa = strip_attachment_payloads
+                parsed_email = parse_report_email(
+                    msg_content,
+                    nameservers=nameservers,
+                    dns_timeout=dns_timeout,
+                    ip_db_path=ip_db_path,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    offline=offline,
+                    strip_attachment_payloads=sa,
+                    keep_alive=connection.keepalive)
+                if parsed_email["report_type"] == "aggregate":
+                    aggregate_reports.append(parsed_email["report"])
+                    aggregate_report_msg_uids.append(msg_uid)
+                elif parsed_email["report_type"] == "forensic":
+                    forensic_reports.append(parsed_email["report"])
+                    forensic_report_msg_uids.append(msg_uid)
+                elif parsed_email["report_type"] == "smtp_tls":
+                    smtp_tls_reports.append(parsed_email["report"])
+                    smtp_tls_msg_uids.append(msg_uid)
+            except ParserError as error:
+                logger.warning(error.__str__())
+                if not test:
+                    if delete:
+                        logger.debug(
+                            "Deleting message UID {0}".format(msg_uid))
+                        connection.delete_message(msg_uid)
+                    else:
+                        logger.debug(
+                            "Moving message UID {0} to {1}".format(
+                                msg_uid, invalid_reports_folder))
+                        connection.move_message(msg_uid,
+                                                invalid_reports_folder)
+
+            if not test:
+                if delete:
+                    processed_messages = aggregate_report_msg_uids + \
+                                        forensic_report_msg_uids + \
+                                        smtp_tls_msg_uids
+
+                    number_of_processed_msgs = len(processed_messages)
+                    for i in range(number_of_processed_msgs):
+                        msg_uid = processed_messages[i]
+                        logger.debug(
+                            "Deleting message {0} of {1}: UID {2}".format(
+                                i + 1, number_of_processed_msgs, msg_uid))
+                        try:
+                            connection.delete_message(msg_uid)
+
+                        except Exception as e:
+                            message = "Error deleting message UID"
+                            e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+                            logger.error("Mailbox error: {0}".format(e))
+                else:
+                    if len(aggregate_report_msg_uids) > 0:
+                        log_message = "Moving aggregate report messages from"
+                        logger.debug(
+                            "{0} {1} to {2}".format(
+                                log_message, reports_folder,
+                                aggregate_reports_folder))
+                        number_of_agg_report_msgs \
+                            = len(aggregate_report_msg_uids)
+                        for i in range(number_of_agg_report_msgs):
+                            msg_uid = aggregate_report_msg_uids[i]
+                            logger.debug(
+                                "Moving message UID {0}".format(
+                                        msg_uid
+                                    ))
+                            try:
+                                connection.move_message(
+                                    msg_uid,
+                                    aggregate_reports_folder)
+                            except Exception as e:
+                                message = "Error moving message UID"
+                                e = "{0} {1}: {2}".format(message, msg_uid, e)
+                                logger.error("Mailbox error: {0}".format(e))
+                    if len(forensic_report_msg_uids) > 0:
+                        message = "Moving forensic report messages from"
+                        logger.debug(
+                            "{0} {1} to {2}".format(message,
+                                                    reports_folder,
+                                                    forensic_reports_folder))
+                        number_of_forensic_msgs = len(forensic_report_msg_uids)
+                        for i in range(number_of_forensic_msgs):
+                            msg_uid = forensic_report_msg_uids[i]
+                            message = "Moving message"
+                            logger.debug("{0} {1} of {2}: UID {3}".format(
+                                message,
+                                i + 1, number_of_forensic_msgs, msg_uid))
+                            try:
+                                connection.move_message(
+                                    msg_uid,
+                                    forensic_reports_folder)
+                            except Exception as e:
+                                e = "Error moving message UID {0}: {1}".format(
+                                    msg_uid, e)
+                                logger.error("Mailbox error: {0}".format(e))
+                    if len(smtp_tls_msg_uids) > 0:
+                        message = "Moving SMTP TLS report messages from"
+                        logger.debug(
+                            "{0} {1} to {2}".format(message,
+                                                    reports_folder,
+                                                    smtp_tls_reports_folder))
+                        number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
+                        for i in range(number_of_smtp_tls_uids):
+                            msg_uid = smtp_tls_msg_uids[i]
+                            message = "Moving message"
+                            logger.debug("{0} {1} of {2}: UID {3}".format(
+                                message,
+                                i + 1, number_of_smtp_tls_uids, msg_uid))
+                            try:
+                                connection.move_message(
+                                    msg_uid,
+                                    smtp_tls_reports_folder)
+                            except Exception as e:
+                                e = "Error moving message UID {0}: {1}".format(
+                                    msg_uid, e)
+                                logger.error("Mailbox error: {0}".format(e))
+            results = OrderedDict([
+                ("aggregate_reports", aggregate_reports),
+                ("forensic_reports", forensic_reports),
+                ("smtp_tls_reports", smtp_tls_reports),
+            ])
+        except Exception as e:
+            message = "Error processing message UID"
+            e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+            logger.error("Mailbox error: {0}".format(e))
+        finally:
+            process_message_result_queue.put(results)
+
+
+def get_dmarc_reports_from_mailbox(
+                                   process_message_input_queue,
+                                   process_message_result_queue,
+                                   connection: MailboxConnection,
                                    reports_folder="INBOX",
                                    archive_folder="Archive",
                                    delete=False,
@@ -1378,7 +1553,9 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
                                    strip_attachment_payloads=False,
                                    results=None,
                                    batch_size=10,
-                                   create_folders=True):
+                                   create_folders=True,
+                                   check_timeout=30,
+                                ):
     """
     Fetches and parses DMARC reports from a mailbox
 
@@ -1402,6 +1579,8 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
             (use 0 for no limit)
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
+        check_timeout (int): Number of seconds to wait for a IMAP IDLE response
+            or the number of seconds until the next mail check
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1415,9 +1594,6 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
     aggregate_reports = []
     forensic_reports = []
     smtp_tls_reports = []
-    aggregate_report_msg_uids = []
-    forensic_report_msg_uids = []
-    smtp_tls_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
     forensic_reports_folder = "{0}/Forensic".format(archive_folder)
     smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
@@ -1437,175 +1613,68 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
 
     messages = connection.fetch_messages(reports_folder, batch_size=batch_size)
     total_messages = len(messages)
-    logger.debug("Found {0} messages in {1}".format(len(messages),
-                                                    reports_folder))
-
-    if batch_size:
-        message_limit = min(total_messages, batch_size)
+    logger.debug("Identified batch of {0} message(s) in {1}".format(
+        total_messages,
+        reports_folder,
+    ))
+    if total_messages == 0:
+        sleep(check_timeout)
     else:
-        message_limit = total_messages
-
-    logger.debug("Processing {0} messages".format(message_limit))
-
-    for i in range(message_limit):
-        msg_uid = messages[i]
-        logger.debug("Processing message {0} of {1}: UID {2}".format(
-            i+1, message_limit, msg_uid
-        ))
-        msg_content = connection.fetch_message(msg_uid)
-        try:
-            sa = strip_attachment_payloads
-            parsed_email = parse_report_email(
-                msg_content,
-                nameservers=nameservers,
-                dns_timeout=dns_timeout,
-                ip_db_path=ip_db_path,
-                always_use_local_files=always_use_local_files,
-                reverse_dns_map_path=reverse_dns_map_path,
-                reverse_dns_map_url=reverse_dns_map_url,
-                offline=offline,
-                strip_attachment_payloads=sa,
-                keep_alive=connection.keepalive)
-            if parsed_email["report_type"] == "aggregate":
-                aggregate_reports.append(parsed_email["report"])
-                aggregate_report_msg_uids.append(msg_uid)
-            elif parsed_email["report_type"] == "forensic":
-                forensic_reports.append(parsed_email["report"])
-                forensic_report_msg_uids.append(msg_uid)
-            elif parsed_email["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(parsed_email["report"])
-                smtp_tls_msg_uids.append(msg_uid)
-        except ParserError as error:
-            logger.warning(error.__str__())
-            if not test:
-                if delete:
-                    logger.debug(
-                        "Deleting message UID {0}".format(msg_uid))
-                    connection.delete_message(msg_uid)
-                else:
-                    logger.debug(
-                        "Moving message UID {0} to {1}".format(
-                            msg_uid, invalid_reports_folder))
-                    connection.move_message(msg_uid, invalid_reports_folder)
-
-    if not test:
-        if delete:
-            processed_messages = aggregate_report_msg_uids + \
-                                 forensic_report_msg_uids + \
-                                 smtp_tls_msg_uids
-
-            number_of_processed_msgs = len(processed_messages)
-            for i in range(number_of_processed_msgs):
-                msg_uid = processed_messages[i]
-                logger.debug(
-                    "Deleting message {0} of {1}: UID {2}".format(
-                        i + 1, number_of_processed_msgs, msg_uid))
-                try:
-                    connection.delete_message(msg_uid)
-
-                except Exception as e:
-                    message = "Error deleting message UID"
-                    e = "{0} {1}: " "{2}".format(message, msg_uid, e)
-                    logger.error("Mailbox error: {0}".format(e))
+        if batch_size:
+            message_limit = min(total_messages, batch_size)
         else:
-            if len(aggregate_report_msg_uids) > 0:
-                log_message = "Moving aggregate report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(
-                        log_message, reports_folder,
-                        aggregate_reports_folder))
-                number_of_agg_report_msgs = len(aggregate_report_msg_uids)
-                for i in range(number_of_agg_report_msgs):
-                    msg_uid = aggregate_report_msg_uids[i]
-                    logger.debug(
-                        "Moving message {0} of {1}: UID {2}".format(
-                            i+1, number_of_agg_report_msgs, msg_uid))
-                    try:
-                        connection.move_message(msg_uid,
-                                                aggregate_reports_folder)
-                    except Exception as e:
-                        message = "Error moving message UID"
-                        e = "{0} {1}: {2}".format(message, msg_uid, e)
-                        logger.error("Mailbox error: {0}".format(e))
-            if len(forensic_report_msg_uids) > 0:
-                message = "Moving forensic report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(message,
-                                            reports_folder,
-                                            forensic_reports_folder))
-                number_of_forensic_msgs = len(forensic_report_msg_uids)
-                for i in range(number_of_forensic_msgs):
-                    msg_uid = forensic_report_msg_uids[i]
-                    message = "Moving message"
-                    logger.debug("{0} {1} of {2}: UID {3}".format(
-                        message,
-                        i + 1, number_of_forensic_msgs, msg_uid))
-                    try:
-                        connection.move_message(msg_uid,
-                                                forensic_reports_folder)
-                    except Exception as e:
-                        e = "Error moving message UID {0}: {1}".format(
-                            msg_uid, e)
-                        logger.error("Mailbox error: {0}".format(e))
-            if len(smtp_tls_msg_uids) > 0:
-                message = "Moving SMTP TLS report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(message,
-                                            reports_folder,
-                                            smtp_tls_reports_folder))
-                number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
-                for i in range(number_of_smtp_tls_uids):
-                    msg_uid = smtp_tls_msg_uids[i]
-                    message = "Moving message"
-                    logger.debug("{0} {1} of {2}: UID {3}".format(
-                        message,
-                        i + 1, number_of_smtp_tls_uids, msg_uid))
-                    try:
-                        connection.move_message(msg_uid,
-                                                smtp_tls_reports_folder)
-                    except Exception as e:
-                        e = "Error moving message UID {0}: {1}".format(
-                            msg_uid, e)
-                        logger.error("Mailbox error: {0}".format(e))
-    results = OrderedDict([("aggregate_reports", aggregate_reports),
-                           ("forensic_reports", forensic_reports),
-                           ("smtp_tls_reports", smtp_tls_reports)])
+            message_limit = total_messages
 
-    total_messages = len(connection.fetch_messages(reports_folder))
+        logger.debug("Processing {0} message(s)".format(message_limit))
 
-    if not test and not batch_size and total_messages > 0:
-        # Process emails that came in during the last run
-        results = get_dmarc_reports_from_mailbox(
-            connection=connection,
-            reports_folder=reports_folder,
-            archive_folder=archive_folder,
-            delete=delete,
-            test=test,
-            nameservers=nameservers,
-            dns_timeout=dns_timeout,
-            strip_attachment_payloads=strip_attachment_payloads,
-            results=results,
-            ip_db_path=ip_db_path,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            offline=offline
-        )
+        # ----- queue messages for get_dmarc_reports_from_message -----
 
+        for i in range(message_limit):
+            msg_uid = messages[i]
+
+            process_message_input_queue.put(
+                OrderedDict([("msg_uid", msg_uid)])
+            )
+
+        # ----- gather up results from get_dmarc_reports_from_message -----
+
+        for i in range(message_limit):
+            new_results = process_message_result_queue.get()
+
+            aggregate_reports += new_results["aggregate_reports"].copy()
+            forensic_reports += new_results["forensic_reports"].copy()
+            smtp_tls_reports += new_results["smtp_tls_reports"].copy()
+
+    # ----- return results for this batch of messages -----
+
+    results = OrderedDict([
+        ("aggregate_reports", aggregate_reports),
+        ("forensic_reports", forensic_reports),
+        ("smtp_tls_reports", smtp_tls_reports),
+    ])
     return results
 
 
-def watch_inbox(mailbox_connection: MailboxConnection,
-                callback: Callable,
-                reports_folder="INBOX",
-                archive_folder="Archive", delete=False, test=False,
-                check_timeout=30, ip_db_path=None,
-                always_use_local_files=False,
-                reverse_dns_map_path=None,
-                reverse_dns_map_url=None,
-                offline=False, nameservers=None,
-                dns_timeout=6.0, strip_attachment_payloads=False,
-                batch_size=None):
+def watch_inbox(
+                    PROCESS_MESSAGE_INPUT_QUEUE,
+                    PROCESS_MESSAGE_RESULT_QUEUE,
+                    mailbox_connection: MailboxConnection,
+                    callback: Callable,
+                    reports_folder="INBOX",
+                    archive_folder="Archive",
+                    delete=False,
+                    test=False,
+                    check_timeout=30,
+                    ip_db_path=None,
+                    always_use_local_files=False,
+                    reverse_dns_map_path=None,
+                    reverse_dns_map_url=None,
+                    offline=False,
+                    nameservers=None,
+                    dns_timeout=6.0,
+                    strip_attachment_payloads=False,
+                    batch_size=None,
+                ):
     """
     Watches the mailbox for new messages and
       sends the results to a callback function
@@ -1635,6 +1704,8 @@ def watch_inbox(mailbox_connection: MailboxConnection,
     def check_callback(connection):
         sa = strip_attachment_payloads
         res = get_dmarc_reports_from_mailbox(
+            PROCESS_MESSAGE_INPUT_QUEUE,
+            PROCESS_MESSAGE_RESULT_QUEUE,
             connection=connection,
             reports_folder=reports_folder,
             archive_folder=archive_folder,
@@ -1649,7 +1720,9 @@ def watch_inbox(mailbox_connection: MailboxConnection,
             dns_timeout=dns_timeout,
             strip_attachment_payloads=sa,
             batch_size=batch_size,
-            create_folders=False)
+            create_folders=False,
+            check_timeout=check_timeout,
+        )
         callback(res)
 
     mailbox_connection.watch(check_callback=check_callback,
