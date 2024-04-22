@@ -13,7 +13,6 @@ import mailparser
 import json
 import hashlib
 import base64
-import atexit
 import mailbox
 import re
 import csv
@@ -44,16 +43,6 @@ parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 null_file = open(os.devnull, "w")
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
-
-tempdir = tempfile.mkdtemp()
-
-
-def _cleanup():
-    """Remove temporary files"""
-    shutil.rmtree(tempdir)
-
-
-atexit.register(_cleanup)
 
 
 class EmailParserError(RuntimeError):
