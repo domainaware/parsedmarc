@@ -49,7 +49,7 @@ jobs:
     - name: Test sample DMARC reports
       continue-on-error: true
       run: |
-        pip install parsedmarc
+        pip install -e parsedmarc
         parsedmarc --debug -c ci.ini samples/aggregate/*
         parsedmarc --debug -c ci.ini samples/forensic/*"
     - name: Test building packages
