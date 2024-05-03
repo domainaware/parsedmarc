@@ -845,16 +845,8 @@ def _main():
                 exit(-1)
             if "user" in kafka_config:
                 opts.kafka_username = kafka_config["user"]
-            else:
-                logger.critical("user setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "password" in kafka_config:
                 opts.kafka_password = kafka_config["password"]
-            else:
-                logger.critical("password setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "ssl" in kafka_config:
                 opts.kafka_ssl = kafka_config.getboolean("ssl")
             if "skip_certificate_verification" in kafka_config:
