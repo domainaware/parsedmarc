@@ -1222,6 +1222,9 @@ def _main():
                                               dns_timeout=opts.dns_timeout,
                                               strip_attachment_payloads=strip,
                                               ip_db_path=opts.ip_db_path,
+                                              always_use_local_files=opts.always_use_local_files,
+                                              reverse_dns_map_path=opts.reverse_dns_map_path,
+                                              reverse_dns_map_url=opts.reverse_dns_map_url,
                                               offline=opts.offline)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
@@ -1309,6 +1312,9 @@ def _main():
                 reports_folder=opts.mailbox_reports_folder,
                 archive_folder=opts.mailbox_archive_folder,
                 ip_db_path=opts.ip_db_path,
+                always_use_local_files=opts.always_use_local_files,
+                reverse_dns_map_path=opts.reverse_dns_map_path,
+                reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline,
                 nameservers=opts.nameservers,
                 test=opts.mailbox_test,
@@ -1360,6 +1366,9 @@ def _main():
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 batch_size=opts.mailbox_batch_size,
                 ip_db_path=opts.ip_db_path,
+                always_use_local_files=opts.always_use_local_files,
+                reverse_dns_map_path=opts.reverse_dns_map_path,
+                reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
