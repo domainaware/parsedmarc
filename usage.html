@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.11.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 8.12.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -38,7 +38,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.11.0
+                8.12.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -438,11 +438,16 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p>
-<ul class="simple">
+<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
 credentials, None to disable (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
-(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>credentials_file and token_file can be got with <a class="reference external" href="https://developers.google.com/gmail/api/quickstart/python">quickstart</a>.Please change the scope to <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>.</p>
+</div>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
 Trash when searching reports (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">scopes</span></code> - str: Comma separated list of scopes to use when

@@ -317,6 +317,10 @@ The full set of configuration options are:
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
+      
+    :::{note}
+    credentials_file and token_file can be got with [quickstart](https://developers.google.com/gmail/api/quickstart/python).Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
+    :::
   - `include_spam_trash` - bool: Include messages in Spam and
       Trash when searching reports (Default: `False`)
   - `scopes` - str: Comma separated list of scopes to use when

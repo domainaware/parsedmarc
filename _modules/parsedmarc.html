@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.11.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.12.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.11.0
+                8.12.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -121,7 +121,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.11.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.12.0&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -1377,6 +1377,9 @@
 <div class="viewcode-block" id="get_dmarc_reports_from_mbox"><a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mbox">[docs]</a><span class="k">def</span> <span class="nf">get_dmarc_reports_from_mbox</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
                                 <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                 <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a mailbox in mbox format containing e-mails with attached</span>
 <span class="sd">    DMARC reports</span>
@@ -1388,6 +1391,9 @@
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
 <span class="sd">            forensic report results</span>
+<span class="sd">        always_use_local_files (bool): Do not download files</span>
+<span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
+<span class="sd">        reverse_dns_map_url (str): URL to a reverse DNS map file</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
 
@@ -1412,12 +1418,16 @@
             <span class="n">msg_content</span> <span class="o">=</span> <span class="n">mbox</span><span class="o">.</span><span class="n">get_string</span><span class="p">(</span><span class="n">message_key</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
-                <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">msg_content</span><span class="p">,</span>
-                                                  <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
-                                                  <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                                                  <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                                  <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
-                                                  <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">)</span>
+                <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span>
+                    <span class="n">msg_content</span><span class="p">,</span>
+                    <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+                    <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+                    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+                    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+                    <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                    <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                    <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">:</span>
                     <span class="n">aggregate_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;forensic&quot;</span><span class="p">:</span>
@@ -1439,6 +1449,9 @@
                                    <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                    <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                   <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
@@ -1456,6 +1469,9 @@
 <span class="sd">        delete (bool): Delete  messages after processing them</span>
 <span class="sd">        test (bool): Do not move or delete messages after processing them</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
+<span class="sd">        always_use_local_files (bool): Do not download files</span>
+<span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
+<span class="sd">        reverse_dns_map_url (str): URL to a reverse DNS map file</span>
 <span class="sd">        offline (bool): Do not query online for geolocation or DNS</span>
 <span class="sd">        nameservers (list): A list of DNS nameservers to query</span>
 <span class="sd">        dns_timeout (float): Set the DNS query timeout</span>
@@ -1519,13 +1535,17 @@
         <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
-            <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span><span class="n">msg_content</span><span class="p">,</span>
-                                              <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                              <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
-                                              <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
-                                              <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                                              <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
-                                              <span class="n">keep_alive</span><span class="o">=</span><span class="n">connection</span><span class="o">.</span><span class="n">keepalive</span><span class="p">)</span>
+            <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span>
+                <span class="n">msg_content</span><span class="p">,</span>
+                <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+                <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+                <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+                <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+                <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+                <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
+                <span class="n">keep_alive</span><span class="o">=</span><span class="n">connection</span><span class="o">.</span><span class="n">keepalive</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">:</span>
                 <span class="n">aggregate_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="n">aggregate_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
@@ -1646,6 +1666,9 @@
             <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">,</span>
             <span class="n">results</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
             <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+            <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+            <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+            <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span>
         <span class="p">)</span>
 
@@ -1657,6 +1680,9 @@
                 <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
                 <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">check_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1674,6 +1700,9 @@
 <span class="sd">        check_timeout (int): Number of seconds to wait for a IMAP IDLE response</span>
 <span class="sd">            or the number of seconds until the next mail check</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
+<span class="sd">        always_use_local_files (bool): Do not download files</span>
+<span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
+<span class="sd">        reverse_dns_map_url (str): URL to a reverse DNS map file</span>
 <span class="sd">        offline (bool): Do not query online for geolocation or DNS</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
@@ -1685,18 +1714,22 @@
 
     <span class="k">def</span> <span class="nf">check_callback</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
         <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_mailbox</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
-                                             <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
-                                             <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
-                                             <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
-                                             <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
-                                             <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
-                                             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                                             <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                                             <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
-                                             <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
-                                             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                                             <span class="n">create_folders</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_mailbox</span><span class="p">(</span>
+            <span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
+            <span class="n">reports_folder</span><span class="o">=</span><span class="n">reports_folder</span><span class="p">,</span>
+            <span class="n">archive_folder</span><span class="o">=</span><span class="n">archive_folder</span><span class="p">,</span>
+            <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">,</span>
+            <span class="n">test</span><span class="o">=</span><span class="n">test</span><span class="p">,</span>
+            <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+            <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+            <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+            <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+            <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+            <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
+            <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">create_folders</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
     <span class="n">mailbox_connection</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">check_callback</span><span class="o">=</span><span class="n">check_callback</span><span class="p">,</span>

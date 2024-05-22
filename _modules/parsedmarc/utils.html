@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.11.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 8.12.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.11.0
+                8.12.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -101,7 +101,6 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">atexit</span>
 <span class="kn">import</span> <span class="nn">mailbox</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">csv</span>
@@ -132,16 +131,6 @@
 <span class="n">null_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">mailparser_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;mailparser&quot;</span><span class="p">)</span>
 <span class="n">mailparser_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
-
-<span class="n">tempdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
-
-
-<span class="k">def</span> <span class="nf">_cleanup</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove temporary files&quot;&quot;&quot;</span>
-    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tempdir</span><span class="p">)</span>
-
-
-<span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">_cleanup</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="EmailParserError"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.EmailParserError">[docs]</a><span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
@@ -502,16 +491,17 @@
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">reverse_dns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">base_domain</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">reverse_dns</span><span class="p">)</span>
-        <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
-            <span class="n">base_domain</span><span class="p">,</span>
-            <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-            <span class="n">local_file_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
-            <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
-            <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">)</span>
-        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
-        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">base_domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">service</span> <span class="o">=</span> <span class="n">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
+                <span class="n">base_domain</span><span class="p">,</span>
+                <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                <span class="n">local_file_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+                <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+                <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+                <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">)</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
