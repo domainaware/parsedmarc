@@ -1209,15 +1209,16 @@ def _main():
 
     for mbox_path in mbox_paths:
         strip = opts.strip_attachment_payloads
-        reports = get_dmarc_reports_from_mbox(mbox_path,
-                                              nameservers=opts.nameservers,
-                                              dns_timeout=opts.dns_timeout,
-                                              strip_attachment_payloads=strip,
-                                              ip_db_path=opts.ip_db_path,
-                                              always_use_local_files=opts.always_use_local_files,
-                                              reverse_dns_map_path=opts.reverse_dns_map_path,
-                                              reverse_dns_map_url=opts.reverse_dns_map_url,
-                                              offline=opts.offline)
+        reports = get_dmarc_reports_from_mbox(
+            mbox_path,
+            nameservers=opts.nameservers,
+            dns_timeout=opts.dns_timeout,
+            strip_attachment_payloads=strip,
+            ip_db_path=opts.ip_db_path,
+            always_use_local_files=opts.always_use_local_files,
+            reverse_dns_map_path=opts.reverse_dns_map_path,
+            reverse_dns_map_url=opts.reverse_dns_map_url,
+            offline=opts.offline)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]

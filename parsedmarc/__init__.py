@@ -1331,15 +1331,16 @@ def get_dmarc_reports_from_mbox(input_, nameservers=None, dns_timeout=2.0,
             msg_content = mbox.get_string(message_key)
             try:
                 sa = strip_attachment_payloads
-                parsed_email = parse_report_email(msg_content,
-                                                  ip_db_path=ip_db_path,
-                                                  always_use_local_files=always_use_local_files,
-                                                  reverse_dns_map_path=reverse_dns_map_path,
-                                                  reverse_dns_map_url=reverse_dns_map_url,
-                                                  offline=offline,
-                                                  nameservers=nameservers,
-                                                  dns_timeout=dns_timeout,
-                                                  strip_attachment_payloads=sa)
+                parsed_email = parse_report_email(
+                    msg_content,
+                    ip_db_path=ip_db_path,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    offline=offline,
+                    nameservers=nameservers,
+                    dns_timeout=dns_timeout,
+                    strip_attachment_payloads=sa)
                 if parsed_email["report_type"] == "aggregate":
                     aggregate_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "forensic":
@@ -1447,16 +1448,17 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         msg_content = connection.fetch_message(msg_uid)
         try:
             sa = strip_attachment_payloads
-            parsed_email = parse_report_email(msg_content,
-                                              nameservers=nameservers,
-                                              dns_timeout=dns_timeout,
-                                              ip_db_path=ip_db_path,
-                                              always_use_local_files=always_use_local_files,
-                                              reverse_dns_map_path=reverse_dns_map_path,
-                                              reverse_dns_map_url=reverse_dns_map_url,
-                                              offline=offline,
-                                              strip_attachment_payloads=sa,
-                                              keep_alive=connection.keepalive)
+            parsed_email = parse_report_email(
+                msg_content,
+                nameservers=nameservers,
+                dns_timeout=dns_timeout,
+                ip_db_path=ip_db_path,
+                always_use_local_files=always_use_local_files,
+                reverse_dns_map_path=reverse_dns_map_path,
+                reverse_dns_map_url=reverse_dns_map_url,
+                offline=offline,
+                strip_attachment_payloads=sa,
+                keep_alive=connection.keepalive)
             if parsed_email["report_type"] == "aggregate":
                 aggregate_reports.append(parsed_email["report"])
                 aggregate_report_msg_uids.append(msg_uid)
@@ -1625,21 +1627,22 @@ def watch_inbox(mailbox_connection: MailboxConnection,
 
     def check_callback(connection):
         sa = strip_attachment_payloads
-        res = get_dmarc_reports_from_mailbox(connection=connection,
-                                             reports_folder=reports_folder,
-                                             archive_folder=archive_folder,
-                                             delete=delete,
-                                             test=test,
-                                             ip_db_path=ip_db_path,
-                                             always_use_local_files=always_use_local_files,
-                                             reverse_dns_map_path=reverse_dns_map_path,
-                                             reverse_dns_map_url=reverse_dns_map_url,
-                                             offline=offline,
-                                             nameservers=nameservers,
-                                             dns_timeout=dns_timeout,
-                                             strip_attachment_payloads=sa,
-                                             batch_size=batch_size,
-                                             create_folders=False)
+        res = get_dmarc_reports_from_mailbox(
+            connection=connection,
+            reports_folder=reports_folder,
+            archive_folder=archive_folder,
+            delete=delete,
+            test=test,
+            ip_db_path=ip_db_path,
+            always_use_local_files=always_use_local_files,
+            reverse_dns_map_path=reverse_dns_map_path,
+            reverse_dns_map_url=reverse_dns_map_url,
+            offline=offline,
+            nameservers=nameservers,
+            dns_timeout=dns_timeout,
+            strip_attachment_payloads=sa,
+            batch_size=batch_size,
+            create_folders=False)
         callback(res)
 
     mailbox_connection.watch(check_callback=check_callback,
