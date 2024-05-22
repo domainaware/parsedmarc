@@ -845,16 +845,8 @@ def _main():
                 exit(-1)
             if "user" in kafka_config:
                 opts.kafka_username = kafka_config["user"]
-            else:
-                logger.critical("user setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "password" in kafka_config:
                 opts.kafka_password = kafka_config["password"]
-            else:
-                logger.critical("password setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "ssl" in kafka_config:
                 opts.kafka_ssl = kafka_config.getboolean("ssl")
             if "skip_certificate_verification" in kafka_config:
@@ -862,18 +854,18 @@ def _main():
                     "skip_certificate_verification")
                 opts.kafka_skip_certificate_verification = kafka_verify
             if "aggregate_topic" in kafka_config:
-                opts.kafka_aggregate = kafka_config["aggregate_topic"]
+                opts.kafka_aggregate_topic = kafka_config["aggregate_topic"]
             else:
                 logger.critical("aggregate_topic setting missing from the "
                                 "kafka config section")
                 exit(-1)
             if "forensic_topic" in kafka_config:
-                opts.kafka_username = kafka_config["forensic_topic"]
+                opts.kafka_forensic_topic = kafka_config["forensic_topic"]
             else:
                 logger.critical("forensic_topic setting missing from the "
                                 "kafka config section")
             if "smtp_tls_topic" in kafka_config:
-                opts.kafka_username = kafka_config["smtp_tls_topic"]
+                opts.kafka_smtp_tls_topic = kafka_config["smtp_tls_topic"]
             else:
                 logger.critical("forensic_topic setting missing from the "
                                 "splunk_hec config section")
