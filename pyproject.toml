@@ -44,7 +44,7 @@ dependencies = [
     "google-auth-oauthlib>=0.4.6",
     "google-auth>=2.3.3",
     "imapclient>=2.1.0",
-    "kafka-python>=1.4.4",
+    "kafka-python-ng>=2.2.2",
     "lxml>=4.4.0",
     "mailsuite>=1.6.1",
     "msgraph-core==0.2.2",
