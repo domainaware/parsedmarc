@@ -1194,14 +1194,14 @@ def _main():
         for proc in processes:
             proc.start()
 
+        for conn in connections:
+            results.append(conn.recv())
+
         for proc in processes:
             proc.join()
             if sys.stdout.isatty():
                 counter += 1
                 pbar.update(counter - pbar.n)
-
-        for conn in connections:
-            results.append(conn.recv())
 
     for result in results:
         if type(result[0]) is ParserError:
