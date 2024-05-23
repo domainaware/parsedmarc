@@ -845,16 +845,8 @@ def _main():
                 exit(-1)
             if "user" in kafka_config:
                 opts.kafka_username = kafka_config["user"]
-            else:
-                logger.critical("user setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "password" in kafka_config:
                 opts.kafka_password = kafka_config["password"]
-            else:
-                logger.critical("password setting missing from the "
-                                "kafka config section")
-                exit(-1)
             if "ssl" in kafka_config:
                 opts.kafka_ssl = kafka_config.getboolean("ssl")
             if "skip_certificate_verification" in kafka_config:
@@ -862,18 +854,18 @@ def _main():
                     "skip_certificate_verification")
                 opts.kafka_skip_certificate_verification = kafka_verify
             if "aggregate_topic" in kafka_config:
-                opts.kafka_aggregate = kafka_config["aggregate_topic"]
+                opts.kafka_aggregate_topic = kafka_config["aggregate_topic"]
             else:
                 logger.critical("aggregate_topic setting missing from the "
                                 "kafka config section")
                 exit(-1)
             if "forensic_topic" in kafka_config:
-                opts.kafka_username = kafka_config["forensic_topic"]
+                opts.kafka_forensic_topic = kafka_config["forensic_topic"]
             else:
                 logger.critical("forensic_topic setting missing from the "
                                 "kafka config section")
             if "smtp_tls_topic" in kafka_config:
-                opts.kafka_username = kafka_config["smtp_tls_topic"]
+                opts.kafka_smtp_tls_topic = kafka_config["smtp_tls_topic"]
             else:
                 logger.critical("forensic_topic setting missing from the "
                                 "splunk_hec config section")
@@ -1194,14 +1186,14 @@ def _main():
         for proc in processes:
             proc.start()
 
+        for conn in connections:
+            results.append(conn.recv())
+
         for proc in processes:
             proc.join()
             if sys.stdout.isatty():
                 counter += 1
                 pbar.update(counter - pbar.n)
-
-        for conn in connections:
-            results.append(conn.recv())
 
     for result in results:
         if type(result[0]) is ParserError:
@@ -1217,12 +1209,16 @@ def _main():
 
     for mbox_path in mbox_paths:
         strip = opts.strip_attachment_payloads
-        reports = get_dmarc_reports_from_mbox(mbox_path,
-                                              nameservers=opts.nameservers,
-                                              dns_timeout=opts.dns_timeout,
-                                              strip_attachment_payloads=strip,
-                                              ip_db_path=opts.ip_db_path,
-                                              offline=opts.offline)
+        reports = get_dmarc_reports_from_mbox(
+            mbox_path,
+            nameservers=opts.nameservers,
+            dns_timeout=opts.dns_timeout,
+            strip_attachment_payloads=strip,
+            ip_db_path=opts.ip_db_path,
+            always_use_local_files=opts.always_use_local_files,
+            reverse_dns_map_path=opts.reverse_dns_map_path,
+            reverse_dns_map_url=opts.reverse_dns_map_url,
+            offline=opts.offline)
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
@@ -1309,6 +1305,9 @@ def _main():
                 reports_folder=opts.mailbox_reports_folder,
                 archive_folder=opts.mailbox_archive_folder,
                 ip_db_path=opts.ip_db_path,
+                always_use_local_files=opts.always_use_local_files,
+                reverse_dns_map_path=opts.reverse_dns_map_path,
+                reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline,
                 nameservers=opts.nameservers,
                 test=opts.mailbox_test,
@@ -1360,6 +1359,9 @@ def _main():
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 batch_size=opts.mailbox_batch_size,
                 ip_db_path=opts.ip_db_path,
+                always_use_local_files=opts.always_use_local_files,
+                reverse_dns_map_path=opts.reverse_dns_map_path,
+                reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline)
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))

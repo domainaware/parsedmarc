@@ -374,6 +374,7 @@ mx.net,Silversky,Email Security
 mxrecord.io,Area 1 Email Security,Email Security
 mxrecord.mx,Area 1 Email Security,Email Security
 mxroute.com,MXroute,Email Provider
+mydsomanager.com,My DSO Manager,SaaS
 mymts.net,Bell MTS,ISP
 mysecurecloudhost.com,World Host Group,Web Host
 my-tss.com,Performive,MSP
@@ -405,7 +406,7 @@ nordstrom.com,Nordstrom,Retail
 northwestern.edu,Northwestern University,University
 novotelecom.ru,Novo Telcom,ISP
 npcma.ru,Nizhnekamsk Enterprise,Industrial
-ntirety.com,Ntirety.MSP,
+ntirety.com,Ntirety,MSP,
 nw027.com,Poppulo (Formerly Newsweaver),SaaS
 obit.kz,OBIT,ISP
 ocn.ad.jp,NTT,ISP
@@ -418,10 +419,12 @@ okta.com,Okta,SaaS
 one.com,One.com,Web Host
 one.th,One Platform,Email Provider
 online.kz,Kazakhtelecom,ISP
+online.net,Scaleway,Email Provider
 online.tj.cn,China Unicom,ISP
 openair.com,Oracle NetSuite OpenAir,SaaS
 opentext.com,OpenText,SaaS
 optimus.si,Optimus IT d.o.o.,MSP
+orange.fr,Orange,Email Provider
 orbital.net,Orbital Net,ISP
 oregonstate.edu,Oregon State University,University
 orthodoxws.com,Orthodox Web Solutions,Web Host
@@ -667,3 +670,6 @@ zoho.in,Zoho,SaaS
 zohocorporation.com,Zoho,SaaS
 zoneedit.com,Zoneedit,Web Host
 zsttk.ru,TTK,ISP
+zyner.org,Zyner,Email Provider
+zyner.net,Zyner,Email Provider
+zyner.one,Zyner,Email Provider
