@@ -315,7 +315,7 @@ Use the <code class="docutils literal notranslate"><span class="pre">New-Applica
 Exchange PowerShell module. If you need to scope the policy to
 shared mailboxes, you can add them to a mail enabled security
 group and use that as the group id.</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span> 
 <span class="n">-AppId</span> <span class="s2">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="n">-PolicyScopeGroupId</span> <span class="s2">&quot;&lt;MAILBOX&gt;&quot;</span>
 <span class="n">-Description</span> <span class="s2">&quot;Restrict access to dmarc reports mailbox.&quot;</span>
 </pre></div>

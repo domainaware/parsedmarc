@@ -217,7 +217,7 @@ The full set of configuration options are:
     group and use that as the group id.
 
     ```powershell
-    New-ApplicationAccessPolicy -AccessRight RestrictAccess
+    New-ApplicationAccessPolicy -AccessRight RestrictAccess 
     -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>"
     -Description "Restrict access to dmarc reports mailbox."
     ```
