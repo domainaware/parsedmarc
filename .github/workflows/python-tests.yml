@@ -52,13 +52,12 @@ jobs:
         coverage run tests.py
         coverage json
     - name: Test sample DMARC reports
-      continue-on-error: true
       run: |
         pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
-        parsedmarc --debug -c ci.ini samples/forensic/*"
+        parsedmarc --debug -c ci.ini samples/forensic/*
     - name: Test building packages
       run: |
         hatch build
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v4
