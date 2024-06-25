@@ -350,6 +350,7 @@ def migrate_indexes(aggregate_indexes=None, forensic_indexes=None):
 
 def save_aggregate_report_to_elasticsearch(aggregate_report,
                                            index_suffix=None,
+                                           index_prefix=None,
                                            monthly_indexes=False,
                                            number_of_shards=1,
                                            number_of_replicas=0):
@@ -359,6 +360,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     Args:
         aggregate_report (OrderedDict): A parsed forensic report
         index_suffix (str): The suffix of the name of the index to save to
+        index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
         number_of_shards (int): The number of shards to use in the index
         number_of_replicas (int): The number of replicas to use in the index
@@ -394,9 +396,12 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
     end_date_query = Q(dict(match=dict(date_end=end_date)))
 
     if index_suffix is not None:
-        search = Search(index="dmarc_aggregate_{0}*".format(index_suffix))
+        search_index = "dmarc_aggregate_{0}*".format(index_suffix)
     else:
-        search = Search(index="dmarc_aggregate*")
+        search_index = "dmarc_aggregate*"
+    if index_prefix is not None:
+        search_index = "{0}{1}".format(index_prefix, search_index)
+    search = Search(index=search_index)
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
@@ -472,6 +477,9 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
         index = "dmarc_aggregate"
         if index_suffix:
             index = "{0}_{1}".format(index, index_suffix)
+        if index_prefix:
+            index = "{0}{1}".format(index_prefix, index)
+
         index = "{0}-{1}".format(index, index_date)
         index_settings = dict(number_of_shards=number_of_shards,
                               number_of_replicas=number_of_replicas)
@@ -487,6 +495,7 @@ def save_aggregate_report_to_elasticsearch(aggregate_report,
 
 def save_forensic_report_to_elasticsearch(forensic_report,
                                           index_suffix=None,
+                                          index_prefix=None,
                                           monthly_indexes=False,
                                           number_of_shards=1,
                                           number_of_replicas=0):
@@ -496,6 +505,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         Args:
             forensic_report (OrderedDict): A parsed forensic report
             index_suffix (str): The suffix of the name of the index to save to
+            index_prefix (str): The prefix of the name of the index to save to
             monthly_indexes (bool): Use monthly indexes instead of daily
                                     indexes
             number_of_shards (int): The number of shards to use in the index
@@ -521,9 +531,12 @@ def save_forensic_report_to_elasticsearch(forensic_report,
     arrival_date = human_timestamp_to_datetime(arrival_date_human)
 
     if index_suffix is not None:
-        search = Search(index="dmarc_forensic_{0}*".format(index_suffix))
+        search_index = "dmarc_forensic_{0}*".format(index_suffix)
     else:
-        search = Search(index="dmarc_forensic*")
+        search_index = "dmarc_forensic*"
+    if index_prefix is not None:
+        search_index = "{0}{1}".format(index_prefix, search_index)
+    search = Search(index=search_index)
     arrival_query = {"match": {"arrival_date": arrival_date}}
     q = Q(arrival_query)
 
@@ -609,6 +622,8 @@ def save_forensic_report_to_elasticsearch(forensic_report,
         index = "dmarc_forensic"
         if index_suffix:
             index = "{0}_{1}".format(index, index_suffix)
+        if index_prefix:
+            index = "{0}{1}".format(index_prefix, index)
         if monthly_indexes:
             index_date = arrival_date.strftime("%Y-%m")
         else:
@@ -630,6 +645,7 @@ def save_forensic_report_to_elasticsearch(forensic_report,
 
 def save_smtp_tls_report_to_elasticsearch(report,
                                           index_suffix=None,
+                                          index_prefix=None,
                                           monthly_indexes=False,
                                           number_of_shards=1,
                                           number_of_replicas=0):
@@ -639,6 +655,7 @@ def save_smtp_tls_report_to_elasticsearch(report,
     Args:
         report (OrderedDict): A parsed SMTP TLS report
         index_suffix (str): The suffix of the name of the index to save to
+        index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
         number_of_shards (int): The number of shards to use in the index
         number_of_replicas (int): The number of replicas to use in the index
@@ -668,9 +685,12 @@ def save_smtp_tls_report_to_elasticsearch(report,
     end_date_query = Q(dict(match=dict(date_end=end_date)))
 
     if index_suffix is not None:
-        search = Search(index="smtp_tls_{0}*".format(index_suffix))
+        search_index = "smtp_tls_{0}*".format(index_suffix)
     else:
-        search = Search(index="smtp_tls*")
+        search_index = "smtp_tls*"
+    if index_prefix is not None:
+        search_index = "{0}{1}".format(index_prefix, search_index)
+    search = Search(index=search_index)
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
     search.query = query
@@ -691,6 +711,8 @@ def save_smtp_tls_report_to_elasticsearch(report,
     index = "smtp_tls"
     if index_suffix:
         index = "{0}_{1}".format(index, index_suffix)
+    if index_prefix:
+        index = "{0}{1}".format(index_prefix, index)
     index = "{0}-{1}".format(index, index_date)
     index_settings = dict(number_of_shards=number_of_shards,
                           number_of_replicas=number_of_replicas)
