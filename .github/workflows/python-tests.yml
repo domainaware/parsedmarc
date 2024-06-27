@@ -14,12 +14,17 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.8"
+        python-version: ${{ matrix.python-version }}
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -28,6 +33,7 @@ jobs:
         sudo apt-get install apt-transport-https
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
         sudo apt-get update && sudo apt-get install elasticsearch
+        sudo sed -i 's/xpack.security.enabled: true/xpack.security.enabled: false/' /etc/elasticsearch/elasticsearch.yml
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
     - name: Install Python dependencies
@@ -46,12 +52,12 @@ jobs:
         coverage run tests.py
         coverage json
     - name: Test sample DMARC reports
-      continue-on-error: true
       run: |
+        pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
-        parsedmarc --debug -c ci.ini samples/forensic/*"
+        parsedmarc --debug -c ci.ini samples/forensic/*
     - name: Test building packages
       run: |
         hatch build
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v4

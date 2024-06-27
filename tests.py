@@ -35,7 +35,7 @@ class Test(unittest.TestCase):
                 continue
             print("Testing {0}: " .format(sample_path), end="")
             parsed_report = parsedmarc.parse_report_file(
-                sample_path)["report"]
+                sample_path, always_use_local_files=True)["report"]
             parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
             print("Passed!")
 

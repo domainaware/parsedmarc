@@ -13,7 +13,6 @@ import mailparser
 import json
 import hashlib
 import base64
-import atexit
 import mailbox
 import re
 import csv
@@ -44,16 +43,6 @@ parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
 null_file = open(os.devnull, "w")
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
-
-tempdir = tempfile.mkdtemp()
-
-
-def _cleanup():
-    """Remove temporary files"""
-    shutil.rmtree(tempdir)
-
-
-atexit.register(_cleanup)
 
 
 class EmailParserError(RuntimeError):
@@ -414,16 +403,17 @@ def get_ip_address_info(ip_address,
     info["type"] = None
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
-        service = get_service_from_reverse_dns_base_domain(
-            base_domain,
-            offline=offline,
-            local_file_path=reverse_dns_map_path,
-            url=reverse_dns_map_url,
-            always_use_local_file=always_use_local_files,
-            reverse_dns_map=reverse_dns_map)
-        info["base_domain"] = base_domain
-        info["type"] = service["type"]
-        info["name"] = service["name"]
+        if base_domain is not None:
+            service = get_service_from_reverse_dns_base_domain(
+                base_domain,
+                offline=offline,
+                local_file_path=reverse_dns_map_path,
+                url=reverse_dns_map_url,
+                always_use_local_file=always_use_local_files,
+                reverse_dns_map=reverse_dns_map)
+            info["base_domain"] = base_domain
+            info["type"] = service["type"]
+            info["name"] = service["name"]
 
         if cache is not None:
             cache[ip_address] = info

@@ -1,6 +1,16 @@
 Changelog
 =========
 
+8.12.0
+------
+
+- Fix for deadlock with large report (#508)
+- Build: move to kafka-python-ng (#510)
+- Fix new config variables previously not propagated in the code (#524)
+- Fixes for kafka integration (#522)
+- Fix if base_domain is None before get_service_from_reverse_dns_base_domain (#514)
+- Update base_reverse_dns_map.csv
+
 8.11.0
 ------
 
