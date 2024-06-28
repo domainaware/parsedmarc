@@ -12,6 +12,7 @@ from pygelf import GelfTcpHandler, GelfUdpHandler, GelfTlsHandler
 
 log_context_data = threading.local()
 
+
 class ContextFilter(logging.Filter):
 
     def filter(self, record):
@@ -40,7 +41,8 @@ class GelfClient(object):
             'tcp': GelfTcpHandler,
             'tls': GelfTlsHandler,
         }
-        self.handler = self.gelf_mode[mode](host=self.host, port=self.port, include_extra_fields=True)
+        self.handler = self.gelf_mode[mode](host=self.host, port=self.port,
+                                            include_extra_fields=True)
         self.logger.addHandler(self.handler)
 
     def save_aggregate_report_to_gelf(self, aggregate_reports):
