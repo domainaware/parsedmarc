@@ -98,6 +98,11 @@ path = parsedmarc
 [syslog]
 server = localhost
 port = 514
+
+[gelf]
+host = logger
+port = 12201
+mode = tcp
 ```
 
 The full set of configuration options are:
@@ -343,6 +348,10 @@ The full set of configuration options are:
   :::{note}
     Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
     :::
+- `gelf`
+  - `host` - str: The GELF server name or IP address
+  - `port` - int: The port to use
+  - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
