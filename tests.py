@@ -15,11 +15,13 @@ def minify_xml(xml_string):
     tree = etree.fromstring(xml_string.encode('utf-8'), parser)
     return etree.tostring(tree, pretty_print=False).decode('utf-8')
 
+
 def compare_xml(xml1, xml2):
     parser = etree.XMLParser(remove_blank_text=True)
     tree1 = etree.fromstring(xml1.encode('utf-8'), parser)
     tree2 = etree.fromstring(xml2.encode('utf-8'), parser)
     return etree.tostring(tree1) == etree.tostring(tree2)
+
 
 class Test(unittest.TestCase):
     def testBase64Decoding(self):
@@ -44,7 +46,8 @@ class Test(unittest.TestCase):
         print()
         xmlnice = open("samples/extract_report/nice-input.xml").read()
         print(xmlnice)
-        xmlchanged = minify_xml(open("samples/extract_report/changed-input.xml").read())
+        xmlchanged = minify_xml(open(
+            "samples/extract_report/changed-input.xml").read())
         print(xmlchanged)
         self.assertTrue(compare_xml(xmlnice, xmlnice))
         self.assertTrue(compare_xml(xmlchanged, xmlchanged))
@@ -91,10 +94,12 @@ class Test(unittest.TestCase):
         print("Testing {0}: " .format(file), end="")
         xmlout = parsedmarc.extract_report(file)
         print(xmlout)
-        xmlin = minify_xml(open("samples/extract_report/nice-input.xml").read())
+        xmlin = minify_xml(open(
+            "samples/extract_report/nice-input.xml").read())
         print(xmlin)
         self.assertTrue(compare_xml(xmlout, xmlin))
-        xmlin = minify_xml(open("samples/extract_report/changed-input.xml").read())
+        xmlin = minify_xml(open(
+            "samples/extract_report/changed-input.xml").read())
         print(xmlin)
         self.assertFalse(compare_xml(xmlout, xmlin))
         print("Passed!")
