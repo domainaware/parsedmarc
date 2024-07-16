@@ -591,14 +591,19 @@ def extract_report(input_):
         str: The extracted text
 
     """
+    def is_base64(s):
+        base64_regex = re.compile(r'^[A-Za-z0-9+/=]+\Z')
+        return bool(base64_regex.match(s))
+
     try:
-        file_object = BytesIO()
-        if type(input_) is str:
-            try:
-                file_object = BytesIO(b64decode(input_))
-            except binascii.Error:
-                pass
-            if file_object is None:
+        file_object = None
+        if isinstance(input_, str):
+            if is_base64(input_):
+                try:
+                    file_object = BytesIO(b64decode(input_))
+                except binascii.Error:
+                    pass
+            else:
                 file_object = open(input_, "rb")
         elif type(input_) is bytes:
             file_object = BytesIO(input_)
@@ -613,7 +618,7 @@ def extract_report(input_):
                 errors='ignore')
         elif header.startswith(MAGIC_GZIP):
             report = zlib.decompress(
-                file_object.getvalue(),
+                file_object.read(),
                 zlib.MAX_WBITS | 16).decode(errors='ignore')
         elif header.startswith(MAGIC_XML) or header.startswith(MAGIC_JSON):
             report = file_object.read().decode(errors='ignore')
