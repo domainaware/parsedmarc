@@ -20,7 +20,7 @@ The `service_type` is based on the following rule precedence:
 4. All web hosting providers are identified as `Web Hosting`, even if the service also offers email hosting.
 5. All email account providers are identified as `Email Provider`, no matter how or where they are hosted
 6. All legitimate platforms offering their Software as a Service SaaS) are identified as `SaaS`, regardless of industry. This helps simplify metrics.
-7. All other senders that use their own domain as a Reverse DMS base domain should be identified based on their industry
+7. All other senders that use their own domain as a Reverse DNS base domain should be identified based on their industry
 
 - Email Provider
 - Email Security
@@ -46,6 +46,6 @@ The `service_type` is based on the following rule precedence:
 - University
 - Web Host
 
-The file currently contains over 400 mappings from a wide variety of email sending services, including large email
+The file currently contains over 600 mappings from a wide variety of email sending services, including large email
 providers, SaaS platforms, small web hosts, and healthcare companies. Ideally this mapping will continuously grow to
 include many other services and industries.
