@@ -92,6 +92,7 @@ def _main():
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
+                            index_prefix=opts.elasticsearch_index_prefix,
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas
@@ -112,6 +113,7 @@ def _main():
                         opensearch.save_aggregate_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
+                            index_prefix=opts.opensearch_index_prefix,
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas
@@ -163,6 +165,7 @@ def _main():
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
+                            index_prefix=opts.elasticsearch_index_prefix,
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas)
@@ -181,6 +184,7 @@ def _main():
                         opensearch.save_forensic_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
+                            index_prefix=opts.opensearch_index_prefix,
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas)
@@ -230,6 +234,7 @@ def _main():
                         elastic.save_smtp_tls_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
+                            index_prefix=opts.elasticsearch_index_prefix,
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas)
@@ -248,6 +253,7 @@ def _main():
                         opensearch.save_smtp_tls_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
+                            index_prefix=opts.opensearch_index_prefix,
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas)
@@ -429,6 +435,7 @@ def _main():
                      elasticsearch_number_of_shards=1,
                      elasticsearch_number_of_replicas=0,
                      elasticsearch_index_suffix=None,
+                     elasticsearch_index_prefix=None,
                      elasticsearch_ssl=True,
                      elasticsearch_ssl_cert_path=None,
                      elasticsearch_monthly_indexes=False,
@@ -440,6 +447,7 @@ def _main():
                      opensearch_number_of_shards=1,
                      opensearch_number_of_replicas=0,
                      opensearch_index_suffix=None,
+                     opensearch_index_prefix=None,
                      opensearch_ssl=True,
                      opensearch_ssl_cert_path=None,
                      opensearch_monthly_indexes=False,
@@ -750,6 +758,9 @@ def _main():
             if "index_suffix" in elasticsearch_config:
                 opts.elasticsearch_index_suffix = elasticsearch_config[
                     "index_suffix"]
+            if "index_prefix" in elasticsearch_config:
+                opts.elasticsearch_index_prefix = elasticsearch_config[
+                    "index_prefix"]
             if "monthly_indexes" in elasticsearch_config:
                 monthly = elasticsearch_config.getboolean("monthly_indexes")
                 opts.elasticsearch_monthly_indexes = monthly
@@ -792,6 +803,9 @@ def _main():
             if "index_suffix" in opensearch_config:
                 opts.opensearch_index_suffix = opensearch_config[
                     "index_suffix"]
+            if "index_prefix" in opensearch_config:
+                opts.opensearch_index_prefix = opensearch_config[
+                    "index_prefix"]                
             if "monthly_indexes" in opensearch_config:
                 monthly = opensearch_config.getboolean("monthly_indexes")
                 opts.opensearch_monthly_indexes = monthly
@@ -1037,6 +1051,15 @@ def _main():
                     es_smtp_tls_index = "{0}_{1}".format(
                         es_smtp_tls_index, suffix
                     )
+                if opts.elasticsearch_index_prefix:
+                    prefix = opts.elasticsearch_index_prefix
+                    es_aggregate_index = "{0}{1}".format(
+                        prefix, es_aggregate_index)
+                    es_forensic_index = "{0}{1}".format(
+                        prefix, es_forensic_index)
+                    es_smtp_tls_index = "{0}{1}".format(
+                        prefix, es_smtp_tls_index
+                    )
                 elastic.set_hosts(opts.elasticsearch_hosts,
                                   opts.elasticsearch_ssl,
                                   opts.elasticsearch_ssl_cert_path,
@@ -1063,6 +1086,15 @@ def _main():
                         os_forensic_index, suffix)
                     os_smtp_tls_index = "{0}_{1}".format(
                         os_smtp_tls_index, suffix
+                    )
+                if opts.opensearch_index_prefix:
+                    prefix = opts.opensearch_index_prefix
+                    os_aggregate_index = "{0}{1}".format(
+                        prefix, os_aggregate_index)
+                    os_forensic_index = "{0}{1}".format(
+                        prefix, os_forensic_index)
+                    os_smtp_tls_index = "{0}{1}".format(
+                        prefix, os_smtp_tls_index
                     )
                 opensearch.set_hosts(opts.opensearch_hosts,
                                      opts.opensearch_ssl,

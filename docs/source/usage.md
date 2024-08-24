@@ -240,6 +240,7 @@ The full set of configuration options are:
   - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
   - `index_suffix` - str: A suffix to apply to the index names
+  - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
   - `number_of_shards` - int: The number of shards to use when
     creating the index (Default: `1`)
@@ -262,6 +263,7 @@ The full set of configuration options are:
   - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
   - `index_suffix` - str: A suffix to apply to the index names
+  - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
   - `number_of_shards` - int: The number of shards to use when
     creating the index (Default: `1`)
