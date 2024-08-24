@@ -826,7 +826,7 @@ def _main():
                     "index_suffix"]
             if "index_prefix" in opensearch_config:
                 opts.opensearch_index_prefix = opensearch_config[
-                    "index_prefix"]                
+                    "index_prefix"]
             if "monthly_indexes" in opensearch_config:
                 monthly = opensearch_config.getboolean("monthly_indexes")
                 opts.opensearch_monthly_indexes = monthly
