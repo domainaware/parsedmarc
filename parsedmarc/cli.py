@@ -19,7 +19,7 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
     kafkaclient, splunk, save_output, email_results, ParserError, \
-    __version__, InvalidDMARCReport, s3, syslog, loganalytics
+    __version__, InvalidDMARCReport, s3, syslog, loganalytics, gelf
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
 from parsedmarc.mail.graph import AuthMethod
 
@@ -147,6 +147,12 @@ def _main():
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
 
+                try:
+                    if opts.gelf_host:
+                        gelf_client.save_aggregate_report_to_gelf(report)
+                except Exception as error_:
+                    logger.error("GELF Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -216,6 +222,12 @@ def _main():
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
 
+                try:
+                    if opts.gelf_host:
+                        gelf_client.save_forensic_report_to_gelf(report)
+                except Exception as error_:
+                    logger.error("GELF Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -284,6 +296,12 @@ def _main():
                         syslog_client.save_smtp_tls_report_to_syslog(report)
                 except Exception as error_:
                     logger.error("Syslog Error: {0}".format(error_.__str__()))
+
+                try:
+                    if opts.gelf_host:
+                        gelf_client.save_smtp_tls_report_to_gelf(report)
+                except Exception as error_:
+                    logger.error("GELF Error: {0}".format(error_.__str__()))
 
             if opts.hec:
                 try:
@@ -499,7 +517,10 @@ def _main():
                      la_dcr_immutable_id=None,
                      la_dcr_aggregate_stream=None,
                      la_dcr_forensic_stream=None,
-                     la_dcr_smtp_tls_stream=None
+                     la_dcr_smtp_tls_stream=None,
+                     gelf_host=None,
+                     gelf_port=None,
+                     gelf_mode=None,
                      )
     args = arg_parser.parse_args()
 
@@ -1006,6 +1027,27 @@ def _main():
             opts.la_dcr_smtp_tls_stream = \
                 log_analytics_config.get("dcr_smtp_tls_stream")
 
+        if "gelf" in config.sections():
+            gelf_config = config["gelf"]
+            if "host" in gelf_config:
+                opts.gelf_host = gelf_config["host"]
+            else:
+                logger.critical("host setting missing from the "
+                                "gelf config section")
+                exit(-1)
+            if "port" in gelf_config:
+                opts.gelf_port = gelf_config["port"]
+            else:
+                logger.critical("port setting missing from the "
+                                "gelf config section")
+                exit(-1)
+            if "mode" in gelf_config:
+                opts.gelf_mode = gelf_config["mode"]
+            else:
+                logger.critical("mode setting missing from the "
+                                "gelf config section")
+                exit(-1)
+
     logger.setLevel(logging.ERROR)
 
     if opts.warnings:
@@ -1161,6 +1203,16 @@ def _main():
             )
         except Exception as error_:
             logger.error("Kafka Error: {0}".format(error_.__str__()))
+
+    if opts.gelf_host:
+        try:
+            gelf_client = gelf.GelfClient(
+                host=opts.gelf_host,
+                port=int(opts.gelf_port),
+                mode=opts.gelf_mode,
+            )
+        except Exception as error_:
+            logger.error("GELF Error: {0}".format(error_.__str__()))
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic
