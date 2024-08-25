@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.13.0
+------
+
+- Add Elastic/OpenSearch index prefix option (PR #531 closes #159)
+- Add GELF output support (PR #532)
+
 8.12.0
 ------
 
