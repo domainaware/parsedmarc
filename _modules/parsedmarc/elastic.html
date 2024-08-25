@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 8.12.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 8.13.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.12.0
+                8.13.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -438,6 +438,7 @@
 
 <div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span><span class="n">aggregate_report</span><span class="p">,</span>
                                            <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                           <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                            <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                            <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                            <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -447,6 +448,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_report (OrderedDict): A parsed forensic report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">        index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
 <span class="sd">        number_of_shards (int): The number of shards to use in the index</span>
 <span class="sd">        number_of_replicas (int): The number of replicas to use in the index</span>
@@ -482,9 +484,12 @@
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_aggregate_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">))</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_aggregate*&quot;</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate*&quot;</span>
+    <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
@@ -560,6 +565,9 @@
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
         <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
         <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span>
                               <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span><span class="p">)</span>
@@ -575,6 +583,7 @@
 
 <div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span><span class="n">forensic_report</span><span class="p">,</span>
                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                          <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                           <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -584,6 +593,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            forensic_report (OrderedDict): A parsed forensic report</span>
 <span class="sd">            index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">            index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">            monthly_indexes (bool): Use monthly indexes instead of daily</span>
 <span class="sd">                                    indexes</span>
 <span class="sd">            number_of_shards (int): The number of shards to use in the index</span>
@@ -609,9 +619,12 @@
     <span class="n">arrival_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">arrival_date_human</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_forensic_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">))</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;dmarc_forensic*&quot;</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic*&quot;</span>
+    <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">arrival_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">:</span> <span class="n">arrival_date</span><span class="p">}}</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">arrival_query</span><span class="p">)</span>
 
@@ -697,6 +710,8 @@
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_forensic&quot;</span>
         <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">monthly_indexes</span><span class="p">:</span>
             <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -718,6 +733,7 @@
 
 <div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span><span class="n">report</span><span class="p">,</span>
                                           <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                          <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                           <span class="n">monthly_indexes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                           <span class="n">number_of_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -727,6 +743,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">        report (OrderedDict): A parsed SMTP TLS report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
+<span class="sd">        index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
 <span class="sd">        number_of_shards (int): The number of shards to use in the index</span>
 <span class="sd">        number_of_replicas (int): The number of replicas to use in the index</span>
@@ -756,9 +773,12 @@
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">))</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;smtp_tls*&quot;</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls*&quot;</span>
+    <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
+    <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
@@ -779,6 +799,8 @@
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
     <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
     <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span>
                           <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span><span class="p">)</span>

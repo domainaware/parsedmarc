@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.12.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 8.13.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -38,7 +38,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.12.0
+                8.13.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -188,6 +188,11 @@ configuration file, described below.</p>
 <span class="k">[syslog]</span>
 <span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span>
 <span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span>
+
+<span class="k">[gelf]</span>
+<span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">logger</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">12201</span>
+<span class="na">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tcp</span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
@@ -198,7 +203,7 @@ configuration file, described below.</p>
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to
 Elasticsearch, Splunk and/or S3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">save_smtp_sts</span></code> - bool: Save SMTP-STS report data to
+<li><p><code class="docutils literal notranslate"><span class="pre">save_smtp_tls</span></code> - bool: Save SMTP-STS report data to
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
 payloads from results</p></li>
@@ -343,6 +348,7 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index_prefix</span></code> - str: A prefix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when
 creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
@@ -369,6 +375,7 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cert_path</span></code> - str: Path to a trusted certificates</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">index_suffix</span></code> - str: A suffix to apply to the index names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index_prefix</span></code> - str: A prefix to apply to the index names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">monthly_indexes</span></code> - bool: Use monthly indexes instead of daily indexes</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> - int: The number of shards to use when
 creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
@@ -474,6 +481,13 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 <p class="admonition-title">Note</p>
 <p>Information regarding the setup of the Data Collection Rule can be found <a class="reference external" href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">here</a>.</p>
 </div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gelf</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The GELF server name or IP address</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The port to use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode</span></code> - str: The GELF transport type to use. Valid modes: <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, <code class="docutils literal notranslate"><span class="pre">udp</span></code>, <code class="docutils literal notranslate"><span class="pre">tls</span></code></p></li>
+</ul>
 </li>
 </ul>
 <div class="admonition warning">
