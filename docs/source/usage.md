@@ -112,7 +112,7 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_forensic` - bool: Save forensic report data to
       Elasticsearch, Splunk and/or S3
-  - `save_smtp_sts` - bool: Save SMTP-STS report data to
+  - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
