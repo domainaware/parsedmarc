@@ -217,6 +217,7 @@ gmu.edu,George Mason University,University
 gmx.com,GMX,Email Provider
 google.com,Google (Including Gmail and Google Workspace),Email Provider
 gosecure.net,GoSecure,Email Security
+goskope.com,Netskope,Email Security
 gov.in,Indian government,Government
 gpphosted.com,Proofpoint (Government),Email Security
 grainger.ca,Grainger Industrial Supply,Industrial
@@ -270,6 +271,7 @@ instantprint.com,Instant Print Corp,Print
 inxserver.de,Inxmail,Marketing
 ionblade.com,IonBLADE,Web Host
 iphmx.com,Cisco Cloud Email Security (CES),Email Security
+iphotel.net.br,IPHOTEL Hospedagem de Sites LTDA,Web Host
 iphouse.net,ipHouse,Web Host
 iqhive.com,IQ Hive,MSP
 ispgateway.de,domainfactory GmbH,Web Host
@@ -303,6 +305,7 @@ kundenserver.de,domainfactory GmbH,Web Host
 l3harris.com,L3Harris,Defense
 larrycomputerguy.com,Larry The Computer Guy,MSP
 lauruslabs.com,Lasarus Labs,Healthcare
+lb.go.gov.br,Government of Goias State Brasil,Government 
 lcmh.com,Lake Charles Memorial Health System,Healthcare
 lestetelecom.com.br,Leste,ISP
 lghealth.org,Penn Medicine Lancaster General Health,Healthcare
@@ -314,8 +317,10 @@ logix.in,Logix InfoSecurity,MSP
 lpn.co.th,L.P.N. Development PCL,Real Estate
 lstn.net,Limestone Networks,Web Host
 luxsci.com,LuxSci,Email Security
+m9network.com,Volico Data Centers,Web Host
 mail.ru,Mail.ru,Email Provider
 mail2world.com,Mail2World,Email Provider
+mailbaby.net,Mail Baby,Email Security
 mailchannels.net,MailChannels,Web Host
 mailcontrol.com,Forcepoint,Email Security
 mailgun.info,Mailgun,SaaS
@@ -451,6 +456,7 @@ perception-point.io,Perception Point,Email Security
 perenso.com,Perenso,Marketing
 perfora.net,IONOS,Web Host
 pfmsys.com,"Professional Flight Management, Inc. (PFM)",Logistics
+pipefy.com,Pipefy Inc,SaaS
 plala.or.jp,Plala,ISP
 playbackmail.com,PlayBackMail,Email Provider
 pobox.com,Pobox,Email Provider
@@ -474,6 +480,7 @@ protonmail.ch,Proton,Email Provider
 pserver.space,Profitserver,Web Host
 psychz.net,Psychz Networks,Web Host
 ptd.net,PTD,ISP
+pucminas.br,PUC Minas,University 
 pulsetv.com,Pulse TV,Retail
 purdue.edu,Purdue University,University
 qemailserver.com,Qualtrics,SaaS
@@ -563,6 +570,7 @@ telecom.kz,Kazakhtelecom,ISP
 telecomitalia.it,TIM,ISP
 telekom.rs,MTS,ISP
 telus.net,TELUS,ISP
+terra.com,Terra Networks,Web Hosting
 tenders.net,Tenders.net,SaaS
 thechristhospital.com,The Christ Hospital,Healthcare
 thomsonreuters.com,Thomson Reuters,SaaS
@@ -608,6 +616,7 @@ unity-health.org,Unity Health,Healthcare
 univac.com.sg,Univac,Industrial
 untd.com,"United Online, Inc.",ISP
 uoeh-u.ac.jp,"University of Occupational and Environmental Health, Japan",University
+uol.com.br,UOL - UNIVERSO ONLINE S/A,Web Host
 usp.br,University of São Paulo,University
 ussignalcom.net,US Signal,MSP
 utah.edu,University of Utah,University
