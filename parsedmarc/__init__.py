@@ -98,6 +98,8 @@ def _parse_report_record(record, ip_db_path=None,
     """
     record = record.copy()
     new_record = OrderedDict()
+    if record["row"]["source_ip"] is None:
+        raise ValueError("Source IP address is empty")
     new_record_source = get_ip_address_info(
         record["row"]["source_ip"],
         cache=IP_ADDRESS_CACHE,
@@ -537,16 +539,19 @@ def parse_aggregate_report_xml(
                     keep_alive()
                     logger.debug("Processed {0}/{1}".format(
                         i, len(report["record"])))
-                report_record = _parse_report_record(
-                    report["record"][i],
-                    ip_db_path=ip_db_path,
-                    offline=offline,
-                    always_use_local_files=always_use_local_files,
-                    reverse_dns_map_path=reverse_dns_map_path,
-                    reverse_dns_map_url=reverse_dns_map_url,
-                    nameservers=nameservers,
-                    dns_timeout=timeout)
-                records.append(report_record)
+                try:
+                    report_record = _parse_report_record(
+                        report["record"][i],
+                        ip_db_path=ip_db_path,
+                        offline=offline,
+                        always_use_local_files=always_use_local_files,
+                        reverse_dns_map_path=reverse_dns_map_path,
+                        reverse_dns_map_url=reverse_dns_map_url,
+                        nameservers=nameservers,
+                        dns_timeout=timeout)
+                    records.append(report_record)
+                except Exception as e:
+                    logger.warning("Could not parse record: {0}".format(e))
 
         else:
             report_record = _parse_report_record(
