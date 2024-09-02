@@ -6,6 +6,9 @@ class MailboxConnection(ABC):
     """
     Interface for a mailbox connection
     """
+    def get_folder_separator(self):
+        return "/"
+
     def create_folder(self, folder_name: str):
         raise NotImplementedError
 

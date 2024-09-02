@@ -26,6 +26,14 @@ class IMAPConnection(MailboxConnection):
                                   timeout=timeout,
                                   max_retries=max_retries)
 
+    def get_folder_separator(self):
+        try:
+            namespaces = self._client.namespace()
+            personal = namespaces.personal[0]
+            return personal[1]
+        except (IndexError, NameError):
+            return '/'
+
     def create_folder(self, folder_name: str):
         self._client.create_folder(folder_name)
 
