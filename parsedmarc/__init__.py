@@ -1416,10 +1416,15 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
     aggregate_report_msg_uids = []
     forensic_report_msg_uids = []
     smtp_tls_msg_uids = []
-    aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
-    smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
-    invalid_reports_folder = "{0}/Invalid".format(archive_folder)
+    folder_separator = connection.get_folder_separator()
+    aggregate_reports_folder = "{0}{1}Aggregate".format(archive_folder,
+                                                        folder_separator)
+    forensic_reports_folder = "{0}{1}Forensic".format(archive_folder,
+                                                      folder_separator)
+    smtp_tls_reports_folder = "{0}{1}SMTP-TLS".format(archive_folder,
+                                                      folder_separator)
+    invalid_reports_folder = "{0}{1}Invalid".format(archive_folder,
+                                                    folder_separator)
 
     if results:
         aggregate_reports = results["aggregate_reports"].copy()
