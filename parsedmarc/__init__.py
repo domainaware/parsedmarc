@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.13.0"
+__version__ = "8.14.0"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -107,6 +107,7 @@ def _parse_report_record(record, ip_db_path=None,
         always_use_local_files=always_use_local_files,
         reverse_dns_map_path=reverse_dns_map_path,
         reverse_dns_map_url=reverse_dns_map_url,
+        reverse_dns_map=REVERSE_DNS_MAP,
         offline=offline,
         nameservers=nameservers,
         timeout=dns_timeout)
@@ -909,6 +910,7 @@ def parse_forensic_report(feedback_report,
             always_use_local_files=always_use_local_files,
             reverse_dns_map_path=reverse_dns_map_path,
             reverse_dns_map_url=reverse_dns_map_url,
+            reverse_dns_map=REVERSE_DNS_MAP,
             offline=offline,
             nameservers=nameservers,
             timeout=dns_timeout)
