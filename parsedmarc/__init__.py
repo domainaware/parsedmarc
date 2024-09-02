@@ -1725,6 +1725,7 @@ def save_output(results, output_directory="output",
     aggregate_reports = results["aggregate_reports"]
     forensic_reports = results["forensic_reports"]
     smtp_tls_reports = results["smtp_tls_reports"]
+    output_directory = os.path.expanduser(output_directory)
 
     if os.path.exists(output_directory):
         if not os.path.isdir(output_directory):
