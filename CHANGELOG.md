@@ -1,6 +1,17 @@
 Changelog
 =========
 
+8.14.0
+------
+
+- Skip invalid aggregate report rows without calling the whole report invalid
+  - Some providers such as GoDaddy will send reports with some rows missing a source IP address, while other rows are fine
+- Fix Dovecot support by using the seperator provided by the IPMAP namespace when possible (PR #552 closes #551)
+- Only download `base_reverse_dns_map.csv` once (fixes #542)
+- Update included `base_reverse_dns_map.csv`
+  - Replace University category with Education to be more inclusive
+- Update included `dbip-country-lite.mmdb`
+
 8.13.0
 ------
 
