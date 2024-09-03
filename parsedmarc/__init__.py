@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.14.0"
+__version__ = "8.14.1"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -604,7 +604,7 @@ def extract_report(input_):
                 file_object = BytesIO(b64decode(input_))
             except binascii.Error:
                 pass
-            else:
+            if file_object is None:
                 file_object = open(input_, "rb")
         elif type(input_) is bytes:
             file_object = BytesIO(input_)
