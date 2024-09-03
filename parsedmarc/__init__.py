@@ -601,7 +601,8 @@ def extract_report(input_):
         file_object = None
         if isinstance(input_, str):
             try:
-                file_object = BytesIO(b64decode(input_))
+                input_ = b64decode(input_, validate=True)
+                file_object = BytesIO(input_)
             except binascii.Error:
                 pass
             if file_object is None:
