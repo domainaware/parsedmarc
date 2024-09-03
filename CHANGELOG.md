@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.14.2
+------
+
+- Update `base_reverse_dns_map.csv` to fix over-replacement on [`f3a5f10`](https://github.com/domainaware/parsedmarc/commit/f3a5f10d67b02c5db31ae1f7ced68028f46ca2a3) (PR #553)
+
 8.14.1
 ------
 
