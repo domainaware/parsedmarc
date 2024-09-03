@@ -597,18 +597,13 @@ def extract_report(input_):
         str: The extracted text
 
     """
-    def is_base64(s):
-        base64_regex = re.compile(r'^[A-Za-z0-9+/=]+\Z')
-        return bool(base64_regex.match(s))
-
     try:
         file_object = None
         if isinstance(input_, str):
-            if is_base64(input_):
-                try:
-                    file_object = BytesIO(b64decode(input_))
-                except binascii.Error:
-                    pass
+            try:
+                file_object = BytesIO(b64decode(input_))
+            except binascii.Error:
+                pass
             else:
                 file_object = open(input_, "rb")
         elif type(input_) is bytes:

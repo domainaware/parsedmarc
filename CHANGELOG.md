@@ -4,6 +4,7 @@ Changelog
 8.14.0
 ------
 
+- Fix processing of SMTP-TLS reports (#549) 
 - Skip invalid aggregate report rows without calling the whole report invalid
   - Some providers such as GoDaddy will send reports with some rows missing a source IP address, while other rows are fine
 - Fix Dovecot support by using the seperator provided by the IPMAP namespace when possible (PR #552 closes #551)
