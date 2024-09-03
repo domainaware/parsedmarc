@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.13.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.14.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.13.0
+                8.14.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -121,7 +121,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.13.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.14.0&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -185,6 +185,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">record</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">new_record</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;row&quot;</span><span class="p">][</span><span class="s2">&quot;source_ip&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source IP address is empty&quot;</span><span class="p">)</span>
     <span class="n">new_record_source</span> <span class="o">=</span> <span class="n">get_ip_address_info</span><span class="p">(</span>
         <span class="n">record</span><span class="p">[</span><span class="s2">&quot;row&quot;</span><span class="p">][</span><span class="s2">&quot;source_ip&quot;</span><span class="p">],</span>
         <span class="n">cache</span><span class="o">=</span><span class="n">IP_ADDRESS_CACHE</span><span class="p">,</span>
@@ -192,6 +194,7 @@
         <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
         <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
         <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+        <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">REVERSE_DNS_MAP</span><span class="p">,</span>
         <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">)</span>
@@ -624,16 +627,19 @@
                     <span class="n">keep_alive</span><span class="p">()</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Processed </span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">])))</span>
-                <span class="n">report_record</span> <span class="o">=</span> <span class="n">_parse_report_record</span><span class="p">(</span>
-                    <span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
-                    <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
-                    <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
-                    <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
-                    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
-                    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
-                    <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
-                    <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-                <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">report_record</span> <span class="o">=</span> <span class="n">_parse_report_record</span><span class="p">(</span>
+                        <span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">ip_db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">,</span>
+                        <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                        <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+                        <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+                        <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+                        <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+                        <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+                    <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Could not parse record: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="n">report_record</span> <span class="o">=</span> <span class="n">_parse_report_record</span><span class="p">(</span>
@@ -678,18 +684,13 @@
 <span class="sd">        str: The extracted text</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">is_base64</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-        <span class="n">base64_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^[A-Za-z0-9+/=]+\Z&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">base64_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-
     <span class="k">try</span><span class="p">:</span>
         <span class="n">file_object</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">is_base64</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
-                <span class="k">except</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
-                    <span class="k">pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
+                <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
@@ -991,6 +992,7 @@
             <span class="n">always_use_local_files</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
             <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
             <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+            <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">REVERSE_DNS_MAP</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
             <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
             <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">)</span>
@@ -1503,10 +1505,15 @@
     <span class="n">aggregate_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">smtp_tls_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">aggregate_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Aggregate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
-    <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
-    <span class="n">smtp_tls_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/SMTP-TLS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
-    <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="n">folder_separator</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">get_folder_separator</span><span class="p">()</span>
+    <span class="n">aggregate_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">Aggregate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">,</span>
+                                                        <span class="n">folder_separator</span><span class="p">)</span>
+    <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">,</span>
+                                                      <span class="n">folder_separator</span><span class="p">)</span>
+    <span class="n">smtp_tls_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">SMTP-TLS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">,</span>
+                                                      <span class="n">folder_separator</span><span class="p">)</span>
+    <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">,</span>
+                                                    <span class="n">folder_separator</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -1800,6 +1807,7 @@
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">]</span>
     <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">]</span>
+    <span class="n">output_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">output_directory</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_directory</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output_directory</span><span class="p">):</span>
