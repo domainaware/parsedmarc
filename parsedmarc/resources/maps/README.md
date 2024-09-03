@@ -24,6 +24,7 @@ The `service_type` is based on the following rule precedence:
 
 - Email Provider
 - Email Security
+- Education
 - Entertainment
 - Finance
 - Food
@@ -43,7 +44,6 @@ The `service_type` is based on the following rule precedence:
 - Social Media
 - Technology
 - Travel
-- University
 - Web Host
 
 The file currently contains over 600 mappings from a wide variety of email sending services, including large email
