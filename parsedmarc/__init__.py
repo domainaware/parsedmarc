@@ -587,11 +587,12 @@ def parse_aggregate_report_xml(
 
 def extract_report(content):
     """
-    Extracts text from a zip or gzip file, as a base64-encoded string, file-like object,
-    or bytes.
+    Extracts text from a zip or gzip file, as a base64-encoded string,
+    file-like object, or bytes.
 
     Args:
-        content: report file as a base64-encoded string, file-like object or bytes.
+        content: report file as a base64-encoded string, file-like object or
+        bytes.
 
     Returns:
         str: The extracted text
@@ -638,6 +639,7 @@ def extract_report(content):
             "Invalid archive file: {0}".format(error.__str__()))
 
     return report
+
 
 def extract_report_from_file_path(file_path):
     """Extracts report from a file at the given file_path"""
