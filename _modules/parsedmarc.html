@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.14.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.15.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
 
@@ -35,7 +35,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.14.0
+                8.15.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -121,7 +121,7 @@
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.14.0&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.15.0&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -672,31 +672,32 @@
             <span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-<div class="viewcode-block" id="extract_report"><a class="viewcode-back" href="../api.html#parsedmarc.extract_report">[docs]</a><span class="k">def</span> <span class="nf">extract_report</span><span class="p">(</span><span class="n">input_</span><span class="p">):</span>
+<div class="viewcode-block" id="extract_report"><a class="viewcode-back" href="../api.html#parsedmarc.extract_report">[docs]</a><span class="k">def</span> <span class="nf">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Extracts text from a zip or gzip file at the given path, file-like object,</span>
-<span class="sd">    or bytes.</span>
+<span class="sd">    Extracts text from a zip or gzip file, as a base64-encoded string,</span>
+<span class="sd">    file-like object, or bytes.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_: A path to a file, a file like object, or bytes</span>
+<span class="sd">        content: report file as a base64-encoded string, file-like object or</span>
+<span class="sd">        bytes.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: The extracted text</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_object</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">file_object</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
+                <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">content</span><span class="p">))</span>
             <span class="k">except</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
                 <span class="k">pass</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
-            <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">file_object</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
+            <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">file_object</span> <span class="o">=</span> <span class="n">input_</span>
+            <span class="n">file_object</span> <span class="o">=</span> <span class="n">content</span>
 
         <span class="n">header</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -716,8 +717,6 @@
 
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary (rb) mode&quot;</span><span class="p">)</span>
@@ -727,6 +726,15 @@
             <span class="s2">&quot;Invalid archive file: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">return</span> <span class="n">report</span></div>
+
+
+<div class="viewcode-block" id="extract_report_from_file_path"><a class="viewcode-back" href="../api.html#parsedmarc.extract_report_from_file_path">[docs]</a><span class="k">def</span> <span class="nf">extract_report_from_file_path</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts report from a file at the given file_path&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">report_file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">report_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="parse_aggregate_report_file"><a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_file">[docs]</a><span class="k">def</span> <span class="nf">parse_aggregate_report_file</span><span class="p">(</span>

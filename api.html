@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 8.14.0 documentation</title>
+  <title>API reference &mdash; parsedmarc 8.15.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
@@ -37,7 +37,7 @@
             parsedmarc
           </a>
               <div class="version">
-                8.14.0
+                8.15.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -68,6 +68,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.ParserError"><code class="docutils literal notranslate"><span class="pre">ParserError</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.email_results"><code class="docutils literal notranslate"><span class="pre">email_results()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_report"><code class="docutils literal notranslate"><span class="pre">extract_report()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_report_from_file_path"><code class="docutils literal notranslate"><span class="pre">extract_report_from_file_path()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mailbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mailbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_report_zip"><code class="docutils literal notranslate"><span class="pre">get_report_zip()</span></code></a></li>
@@ -232,12 +233,15 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.extract_report">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_report" title="Permalink to this definition"></a></dt>
-<dd><p>Extracts text from a zip or gzip file at the given path, file-like object,
-or bytes.</p>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_report" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts text from a zip or gzip file, as a base64-encoded string,
+file-like object, or bytes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>input</strong> – A path to a file, a file like object, or bytes</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> – report file as a base64-encoded string, file-like object or</p></li>
+<li><p><strong>bytes.</strong> – </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The extracted text</p>
@@ -246,6 +250,12 @@ or bytes.</p>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.extract_report_from_file_path">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">extract_report_from_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc.html#extract_report_from_file_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.extract_report_from_file_path" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts report from a file at the given file_path</p>
 </dd></dl>
 
 <dl class="py function">
