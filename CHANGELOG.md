@@ -1,6 +1,15 @@
 Changelog
 =========
 
+8.15.0
+------
+
+- Fix processing of SMTP-TLS reports ([#549](https://github.com/domainaware/parsedmarc/issues/549)), which broke in commit [410663d ](https://github.com/domainaware/parsedmarc/commit/410663dbcaba019ca3d3744946348b56a635480b)(PR [#530](https://github.com/domainaware/parsedmarc/pull/530))
+  - This PR enforced a stricter check for base64-encoded strings, which SMTP TLS reports from Google did not pass
+  - Removing the check introduced its own issue, because some file paths were treated as base64-encoded strings
+- Create a separate `extract_report_from_file_path()` function for processioning reports based on a file path
+- Remove report extraction based on a file path from `extract_report()`
+
 8.14.2
 ------
 
@@ -9,7 +18,7 @@ Changelog
 8.14.1
 ------
 
-- Fix processing of SMTP-TLS reports (#549)
+- Failed attempt to fix processing of SMTP-TLS reports (#549)
 
 8.14.0
 ------

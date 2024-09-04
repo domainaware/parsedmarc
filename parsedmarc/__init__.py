@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.14.2"
+__version__ = "8.15.0"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -585,32 +585,31 @@ def parse_aggregate_report_xml(
             "Unexpected error: {0}".format(error.__str__()))
 
 
-def extract_report(input_):
+def extract_report(content):
     """
-    Extracts text from a zip or gzip file at the given path, file-like object,
+    Extracts text from a zip or gzip file, as a base64-encoded string, file-like object,
     or bytes.
 
     Args:
-        input_: A path to a file, a file like object, or bytes
+        content: report file as a base64-encoded string, file-like object or bytes.
 
     Returns:
         str: The extracted text
 
     """
+    file_object = None
     try:
-        file_object = None
-        if isinstance(input_, str):
+        if isinstance(content, str):
             try:
-                input_ = b64decode(input_, validate=True)
-                file_object = BytesIO(input_)
+                file_object = BytesIO(b64decode(content))
             except binascii.Error:
                 pass
             if file_object is None:
-                file_object = open(input_, "rb")
-        elif type(input_) is bytes:
-            file_object = BytesIO(input_)
+                file_object = open(content, "rb")
+        elif type(content) is bytes:
+            file_object = BytesIO(content)
         else:
-            file_object = input_
+            file_object = content
 
         header = file_object.read(6)
         file_object.seek(0)
@@ -630,8 +629,6 @@ def extract_report(input_):
 
         file_object.close()
 
-    except FileNotFoundError:
-        raise ParserError("File was not found")
     except UnicodeDecodeError:
         file_object.close()
         raise ParserError("File objects must be opened in binary (rb) mode")
@@ -641,6 +638,14 @@ def extract_report(input_):
             "Invalid archive file: {0}".format(error.__str__()))
 
     return report
+
+def extract_report_from_file_path(file_path):
+    """Extracts report from a file at the given file_path"""
+    try:
+        with open(file_path, "rb") as report_file:
+            return extract_report(report_file.read())
+    except FileNotFoundError:
+        raise ParserError("File was not found")
 
 
 def parse_aggregate_report_file(

@@ -82,7 +82,7 @@ class Test(unittest.TestCase):
         print()
         file = "samples/extract_report/nice-input.xml.gz"
         print("Testing {0}: " .format(file), end="")
-        xmlout = parsedmarc.extract_report(file)
+        xmlout = parsedmarc.extract_report_from_file_path(file)
         xmlin = open("samples/extract_report/nice-input.xml").read()
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
@@ -92,7 +92,7 @@ class Test(unittest.TestCase):
         print()
         file = "samples/extract_report/nice-input.xml.zip"
         print("Testing {0}: " .format(file), end="")
-        xmlout = parsedmarc.extract_report(file)
+        xmlout = parsedmarc.extract_report_from_file_path(file)
         print(xmlout)
         xmlin = minify_xml(open(
             "samples/extract_report/nice-input.xml").read())
