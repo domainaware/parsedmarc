@@ -355,6 +355,10 @@ The full set of configuration options are:
   - `port` - int: The port to use
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
 
+- `maildir`
+  - `reports_folder` - str: Full path for mailbox maidir location (Default: `INBOX`)
+  - `maildir_create` - bool: Create maildir if not present (Default: False)
+
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
 setting. By default, `parsedmarc` uses
