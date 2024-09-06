@@ -20,7 +20,8 @@ from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
     kafkaclient, splunk, save_output, email_results, ParserError, \
     __version__, InvalidDMARCReport, s3, syslog, loganalytics, gelf
-from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection
+from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection, \
+    MaildirConnection
 from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.log import logger
@@ -504,6 +505,8 @@ def _main():
                      gmail_api_paginate_messages=True,
                      gmail_api_scopes=[],
                      gmail_api_oauth2_port=8080,
+                     maildir_path = None,
+                     maildir_create = False,
                      log_file=args.log_file,
                      n_procs=1,
                      ip_db_path=None,
@@ -1008,6 +1011,13 @@ def _main():
                 opts.gmail_api_oauth2_port = \
                     gmail_api_config.get("oauth2_port", 8080)
 
+        if "maildir" in config.sections():
+            maildir_api_config = config["maildir"]
+            opts.maildir_path = \
+                maildir_api_config.get("maildir_path")
+            opts.maildir_create = \
+                maildir_api_config.get("maildir_create")           
+
         if "log_analytics" in config.sections():
             log_analytics_config = config["log_analytics"]
             opts.la_client_id = \
@@ -1072,6 +1082,7 @@ def _main():
     if opts.imap_host is None \
             and opts.graph_client_id is None \
             and opts.gmail_api_credentials_file is None \
+            and opts.maildir_path is None \
             and len(opts.file_path) == 0:
         logger.error("You must supply input files or a mailbox connection")
         exit(1)
@@ -1378,6 +1389,16 @@ def _main():
 
         except Exception:
             logger.exception("Gmail API Error")
+            exit(1)
+
+    if opts.maildir_path:
+        try:
+            mailbox_connection = MaildirConnection(
+                maildir_path=opts.maildir_path,
+                maildir_create=opts.maildir_create,
+            )
+        except Exception:
+            logger.exception("Maildir Error")
             exit(1)
 
     if mailbox_connection:
