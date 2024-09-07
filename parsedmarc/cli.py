@@ -19,7 +19,8 @@ from tqdm import tqdm
 from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
     kafkaclient, splunk, save_output, email_results, ParserError, \
-    __version__, InvalidDMARCReport, s3, syslog, loganalytics, gelf
+    __version__, InvalidDMARCReport, s3, syslog, loganalytics, gelf, \
+    webhook
 from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection, \
     MaildirConnection
 from parsedmarc.mail.graph import AuthMethod
@@ -154,6 +155,18 @@ def _main():
                 except Exception as error_:
                     logger.error("GELF Error: {0}".format(error_.__str__()))
 
+                try:
+                    if opts.webhook_aggregate_url:
+                        webhook_client.save_aggregate_report_to_webhook(
+                            json.dumps(
+                                report,
+                                ensure_ascii=False,
+                                indent=2
+                                )
+                            )
+                except Exception as error_:
+                    logger.error("Webhook Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     aggregate_reports_ = reports_["aggregate_reports"]
@@ -229,6 +242,16 @@ def _main():
                 except Exception as error_:
                     logger.error("GELF Error: {0}".format(error_.__str__()))
 
+                try:
+                    if opts.webhook_forensic_url:
+                        webhook_client.save_forensic_report_to_webhook(
+                            json.dumps(
+                                report,
+                                ensure_ascii=False,
+                                indent=2))
+                except Exception as error_:
+                    logger.error("Webhook Error: {0}".format(error_.__str__()))
+
             if opts.hec:
                 try:
                     forensic_reports_ = reports_["forensic_reports"]
@@ -303,6 +326,16 @@ def _main():
                         gelf_client.save_smtp_tls_report_to_gelf(report)
                 except Exception as error_:
                     logger.error("GELF Error: {0}".format(error_.__str__()))
+
+                try:
+                    if opts.webhook_smtp_tls_url:
+                        webhook_client.save_smtp_tls_report_to_webhook(
+                            json.dumps(
+                                report,
+                                ensure_ascii=False,
+                                indent=2))
+                except Exception as error_:
+                    logger.error("Webhook Error: {0}".format(error_.__str__()))
 
             if opts.hec:
                 try:
@@ -524,6 +557,10 @@ def _main():
                      gelf_host=None,
                      gelf_port=None,
                      gelf_mode=None,
+                     webhook_aggregate_url=None,
+                     webhook_forensic_url=None,
+                     webhook_smtp_tls_url=None,
+                     webhook_timeout=60
                      )
     args = arg_parser.parse_args()
 
@@ -1058,6 +1095,17 @@ def _main():
                                 "gelf config section")
                 exit(-1)
 
+        if "webhook" in config.sections():
+            webhook_config = config["webhook"]
+            if "aggregate_url" in webhook_config:
+                opts.webhook_aggregate_url = webhook_config["aggregate_url"]
+            if "forensic_url" in webhook_config:
+                opts.webhook_forensic_url = webhook_config["forensic_url"]
+            if "smtp_tls_url" in webhook_config:
+                opts.webhook_smtp_tls_url = webhook_config["smtp_tls_url"]
+            if "timeout" in webhook_config:
+                opts.webhook_timeout = webhook_config["timeout"]
+
     logger.setLevel(logging.ERROR)
 
     if opts.warnings:
@@ -1224,6 +1272,19 @@ def _main():
             )
         except Exception as error_:
             logger.error("GELF Error: {0}".format(error_.__str__()))
+
+    if opts.webhook_aggregate_url or \
+        opts.webhook_forensic_url or \
+            opts.webhook_smtp_tls_url:
+        try:
+            webhook_client = webhook.WebhookClient(
+                aggregate_url=opts.webhook_aggregate_url,
+                forensic_url=opts.webhook_forensic_url,
+                smtp_tls_url=opts.webhook_smtp_tls_url,
+                timeout=opts.webhook_timeout
+            )
+        except Exception as error_:
+            logger.error("Webhook Error: {0}".format(error_.__str__()))
 
     kafka_aggregate_topic = opts.kafka_aggregate_topic
     kafka_forensic_topic = opts.kafka_forensic_topic
