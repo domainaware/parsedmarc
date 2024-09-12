@@ -20,8 +20,8 @@ from parsedmarc import get_dmarc_reports_from_mailbox, watch_inbox, \
     parse_report_file, get_dmarc_reports_from_mbox, elastic, opensearch, \
     kafkaclient, splunk, save_output, email_results, ParserError, \
     __version__, InvalidDMARCReport, s3, syslog, loganalytics, gelf
-from parsedmarc.mail import IMAPConnection, MSGraphConnection, GmailConnection, \
-    MaildirConnection
+from parsedmarc.mail import IMAPConnection, MSGraphConnection, \
+    GmailConnection, MaildirConnection
 from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.log import logger
@@ -505,8 +505,8 @@ def _main():
                      gmail_api_paginate_messages=True,
                      gmail_api_scopes=[],
                      gmail_api_oauth2_port=8080,
-                     maildir_path = None,
-                     maildir_create = False,
+                     maildir_path=None,
+                     maildir_create=False,
                      log_file=args.log_file,
                      n_procs=1,
                      ip_db_path=None,
@@ -1016,7 +1016,7 @@ def _main():
             opts.maildir_path = \
                 maildir_api_config.get("maildir_path")
             opts.maildir_create = \
-                maildir_api_config.get("maildir_create")           
+                maildir_api_config.get("maildir_create")
 
         if "log_analytics" in config.sections():
             log_analytics_config = config["log_analytics"]
