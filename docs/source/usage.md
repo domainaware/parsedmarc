@@ -103,6 +103,12 @@ port = 514
 host = logger
 port = 12201
 mode = tcp
+
+[webhook]
+aggregate_url = https://aggregate_url.example.com
+forensic_url = https://forensic_url.example.com
+smtp_tls_url = https://smtp_tls_url.example.com
+timeout = 60
 ```
 
 The full set of configuration options are:
@@ -358,6 +364,12 @@ The full set of configuration options are:
 - `maildir`
   - `reports_folder` - str: Full path for mailbox maidir location (Default: `INBOX`)
   - `maildir_create` - bool: Create maildir if not present (Default: False)
+
+- `webhook` - Post the individual reports to a webhook url with the report as the JSON body
+  - `aggregate_url` - str: URL of the webhook which should receive the aggregate reports
+  - `forensic_url` - str: URL of the webhook which should receive the forensic reports
+  - `smtp_tls_url` - str: URL of the webhook which should receive the smtp_tls reports
+  - `timeout` - int: Interval in which the webhook call should timeout
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
