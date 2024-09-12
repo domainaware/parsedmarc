@@ -503,6 +503,8 @@ def parse_aggregate_report_xml(
         new_report["report_metadata"] = new_report_metadata
         records = []
         policy_published = report["policy_published"]
+        if type(policy_published) is list:
+            policy_published = policy_published[0]
         new_policy_published = OrderedDict()
         new_policy_published["domain"] = policy_published["domain"]
         adkim = "r"
@@ -519,17 +521,17 @@ def parse_aggregate_report_xml(
         sp = new_policy_published["p"]
         if "sp" in policy_published:
             if policy_published["sp"] is not None:
-                sp = report["policy_published"]["sp"]
+                sp = policy_published["sp"]
         new_policy_published["sp"] = sp
         pct = "100"
         if "pct" in policy_published:
             if policy_published["pct"] is not None:
-                pct = report["policy_published"]["pct"]
+                pct = policy_published["pct"]
         new_policy_published["pct"] = pct
         fo = "0"
         if "fo" in policy_published:
             if policy_published["fo"] is not None:
-                fo = report["policy_published"]["fo"]
+                fo = policy_published["fo"]
         new_policy_published["fo"] = fo
         new_report["policy_published"] = new_policy_published
 
