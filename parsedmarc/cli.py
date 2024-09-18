@@ -26,7 +26,7 @@ from parsedmarc.mail import IMAPConnection, MSGraphConnection, \
 from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.log import logger
-from parsedmarc.utils import is_mbox
+from parsedmarc.utils import is_mbox, get_reverse_dns
 
 formatter = logging.Formatter(
     fmt='%(levelname)8s:%(filename)s:%(lineno)d:%(message)s',
@@ -447,6 +447,7 @@ def _main():
                      smtp_tls_json_filename=args.smtp_tls_json_filename,
                      smtp_tls_csv_filename=args.smtp_tls_csv_filename,
                      nameservers=args.nameservers,
+                     dns_test_address='1.1.1.1',
                      silent=args.silent,
                      warnings=args.warnings,
                      dns_timeout=args.dns_timeout,
@@ -599,10 +600,25 @@ def _main():
             if "smtp_tls_csv_filename" in general_config:
                 opts.smtp_tls_csv_filename = general_config[
                     "smtp_tls_csv_filename"]
-            if "nameservers" in general_config:
-                opts.nameservers = _str_to_list(general_config["nameservers"])
             if "dns_timeout" in general_config:
                 opts.dns_timeout = general_config.getfloat("dns_timeout")
+            if "dns_test_address" in general_config:
+                opts.dns_test_address=general_config["dns_test_address"]
+            if "nameservers" in general_config:
+                opts.nameservers = _str_to_list(general_config["nameservers"])
+                # nameservers pre-flight check
+                dummy_hostname=None
+                try:
+                    dummy_hostname=get_reverse_dns(opts.dns_test_address,
+                                            nameservers=opts.nameservers,
+                                            timeout=opts.dns_timeout)
+                except Exception as ns_error: 
+                    logger.critical("DNS pre-flight check failed: {}".format(ns_error))
+                    exit(-1)
+                if not dummy_hostname:
+                    logger.critical("DNS pre-flight check failed: no PTR record for "
+                                    "{} from {}".format(opts.dns_test_address,opts.nameservers))
+                    exit(-1)
             if "save_aggregate" in general_config:
                 opts.save_aggregate = general_config["save_aggregate"]
             if "save_forensic" in general_config:
