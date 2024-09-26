@@ -254,6 +254,7 @@ globalit.com,Global IT,MSP
 gmoserver.jp,GMO,Web Hosting
 gmu.edu,George Mason University,Education
 gmx.com,GMX,Email Provider
+godaddy.com,GoDaddy,Web Host
 google.com,Google (Including Gmail and Google Workspace),Email Provider
 googleusercontent.com,Google Cloud Platform (GCP),PaaS
 gosecure.net,GoSecure,Email Security
@@ -572,7 +573,8 @@ protonmail.ch,Proton,Email Provider
 pserver.space,Profitserver,Web Host
 psychz.net,Psychz Networks,Web Host
 ptd.net,PTD,ISP
-pucminas.br,PUC Minas,Education 
+pucminas.br,PUC Minas,Education
+puc-rio.br,PUC Rio,Education
 pulkco.com,Pulk & Co,ISP
 pulsetv.com,Pulse TV,Retail
 purdue.edu,Purdue University,Education
@@ -646,6 +648,7 @@ smartspb.net,Smart Telecom,ISP
 smtp.com,SMTP.com,SaaS
 smtp25.com,Zix,Email Security
 smtp2go.com,SMTP2GO,SaaS
+socgen.com,Societe Generale,Finance
 socialfive.com,Social5,Marketing
 socket.net,Socket,ISP
 sophos.com,Sophos,Email Security
