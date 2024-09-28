@@ -39,7 +39,11 @@ class IMAPConnection(MailboxConnection):
 
     def fetch_messages(self, reports_folder: str, **kwargs):
         self._client.select_folder(reports_folder)
-        return self._client.search()
+        since = kwargs.get('since')
+        if since:
+            return self._client.search([u'SINCE', since])
+        else:
+            return self._client.search()
 
     def fetch_message(self, message_id):
         return self._client.fetch_message(message_id, parse=False)
