@@ -136,6 +136,8 @@ The full set of configuration options are:
   - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
   - `nameservers` - str: A comma separated list of
       DNS resolvers (Default: `[Cloudflare's public resolvers]`)
+  - `dns_test_address` - str: a dummy address used for DNS pre-flight checks
+      (Default: 1.1.1.1)
   - `dns_timeout` - float: DNS timeout period
   - `debug` - bool: Print debugging messages
   - `silent` - bool: Only print errors (Default: `True`)
