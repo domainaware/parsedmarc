@@ -9,7 +9,7 @@ class LogAnalyticsException(Exception):
     """Raised when an Elasticsearch error occurs"""
 
 
-class LogAnalyticsConfig():
+class LogAnalyticsConfig:
     """
     The LogAnalyticsConfig class is used to define the configuration
     for the Log Analytics Client.
@@ -41,16 +41,18 @@ class LogAnalyticsConfig():
             the SMTP TLS Reports
             need to be pushed.
     """
+
     def __init__(
-            self,
-            client_id: str,
-            client_secret: str,
-            tenant_id: str,
-            dce: str,
-            dcr_immutable_id: str,
-            dcr_aggregate_stream: str,
-            dcr_forensic_stream: str,
-            dcr_smtp_tls_stream: str):
+        self,
+        client_id: str,
+        client_secret: str,
+        tenant_id: str,
+        dce: str,
+        dcr_immutable_id: str,
+        dcr_aggregate_stream: str,
+        dcr_forensic_stream: str,
+        dcr_smtp_tls_stream: str,
+    ):
         self.client_id = client_id
         self.client_secret = client_secret
         self.tenant_id = tenant_id
@@ -67,16 +69,18 @@ class LogAnalyticsClient(object):
     the generated DMARC reports to Log Analytics
     via Data Collection Rules.
     """
+
     def __init__(
-            self,
-            client_id: str,
-            client_secret: str,
-            tenant_id: str,
-            dce: str,
-            dcr_immutable_id: str,
-            dcr_aggregate_stream: str,
-            dcr_forensic_stream: str,
-            dcr_smtp_tls_stream: str):
+        self,
+        client_id: str,
+        client_secret: str,
+        tenant_id: str,
+        dce: str,
+        dcr_immutable_id: str,
+        dcr_aggregate_stream: str,
+        dcr_forensic_stream: str,
+        dcr_smtp_tls_stream: str,
+    ):
         self.conf = LogAnalyticsConfig(
             client_id=client_id,
             client_secret=client_secret,
@@ -85,23 +89,20 @@ class LogAnalyticsClient(object):
             dcr_immutable_id=dcr_immutable_id,
             dcr_aggregate_stream=dcr_aggregate_stream,
             dcr_forensic_stream=dcr_forensic_stream,
-            dcr_smtp_tls_stream=dcr_smtp_tls_stream
+            dcr_smtp_tls_stream=dcr_smtp_tls_stream,
         )
         if (
-                not self.conf.client_id or
-                not self.conf.client_secret or
-                not self.conf.tenant_id or
-                not self.conf.dce or
-                not self.conf.dcr_immutable_id):
+            not self.conf.client_id
+            or not self.conf.client_secret
+            or not self.conf.tenant_id
+            or not self.conf.dce
+            or not self.conf.dcr_immutable_id
+        ):
             raise LogAnalyticsException(
-                "Invalid configuration. " +
-                "One or more required settings are missing.")
+                "Invalid configuration. " + "One or more required settings are missing."
+            )
 
-    def publish_json(
-            self,
-            results,
-            logs_client: LogsIngestionClient,
-            dcr_stream: str):
+    def publish_json(self, results, logs_client: LogsIngestionClient, dcr_stream: str):
         """
         Background function to publish given
         DMARC report to specific Data Collection Rule.
@@ -117,16 +118,10 @@ class LogAnalyticsClient(object):
         try:
             logs_client.upload(self.conf.dcr_immutable_id, dcr_stream, results)
         except HttpResponseError as e:
-            raise LogAnalyticsException(
-                "Upload failed: {error}"
-                .format(error=e))
+            raise LogAnalyticsException("Upload failed: {error}".format(error=e))
 
     def publish_results(
-            self,
-            results,
-            save_aggregate: bool,
-            save_forensic: bool,
-            save_smtp_tls: bool
+        self, results, save_aggregate: bool, save_forensic: bool, save_smtp_tls: bool
     ):
         """
         Function to publish DMARC and/or SMTP TLS reports to Log Analytics
@@ -148,39 +143,39 @@ class LogAnalyticsClient(object):
         credential = ClientSecretCredential(
             tenant_id=conf.tenant_id,
             client_id=conf.client_id,
-            client_secret=conf.client_secret
+            client_secret=conf.client_secret,
         )
         logs_client = LogsIngestionClient(conf.dce, credential=credential)
         if (
-                results['aggregate_reports'] and
-                conf.dcr_aggregate_stream and
-                len(results['aggregate_reports']) > 0 and
-                save_aggregate):
+            results["aggregate_reports"]
+            and conf.dcr_aggregate_stream
+            and len(results["aggregate_reports"]) > 0
+            and save_aggregate
+        ):
             logger.info("Publishing aggregate reports.")
             self.publish_json(
-                results['aggregate_reports'],
-                logs_client,
-                conf.dcr_aggregate_stream)
+                results["aggregate_reports"], logs_client, conf.dcr_aggregate_stream
+            )
             logger.info("Successfully pushed aggregate reports.")
         if (
-                results['forensic_reports'] and
-                conf.dcr_forensic_stream and
-                len(results['forensic_reports']) > 0 and
-                save_forensic):
+            results["forensic_reports"]
+            and conf.dcr_forensic_stream
+            and len(results["forensic_reports"]) > 0
+            and save_forensic
+        ):
             logger.info("Publishing forensic reports.")
             self.publish_json(
-                results['forensic_reports'],
-                logs_client,
-                conf.dcr_forensic_stream)
+                results["forensic_reports"], logs_client, conf.dcr_forensic_stream
+            )
             logger.info("Successfully pushed forensic reports.")
         if (
-                results['smtp_tls_reports'] and
-                conf.dcr_smtp_tls_stream and
-                len(results['smtp_tls_reports']) > 0 and
-                save_smtp_tls):
+            results["smtp_tls_reports"]
+            and conf.dcr_smtp_tls_stream
+            and len(results["smtp_tls_reports"]) > 0
+            and save_smtp_tls
+        ):
             logger.info("Publishing SMTP TLS reports.")
             self.publish_json(
-                results['smtp_tls_reports'],
-                logs_client,
-                conf.dcr_smtp_tls_stream)
+                results["smtp_tls_reports"], logs_client, conf.dcr_smtp_tls_stream
+            )
             logger.info("Successfully pushed SMTP TLS reports.")

@@ -12,14 +12,14 @@ import parsedmarc.utils
 
 def minify_xml(xml_string):
     parser = etree.XMLParser(remove_blank_text=True)
-    tree = etree.fromstring(xml_string.encode('utf-8'), parser)
-    return etree.tostring(tree, pretty_print=False).decode('utf-8')
+    tree = etree.fromstring(xml_string.encode("utf-8"), parser)
+    return etree.tostring(tree, pretty_print=False).decode("utf-8")
 
 
 def compare_xml(xml1, xml2):
     parser = etree.XMLParser(remove_blank_text=True)
-    tree1 = etree.fromstring(xml1.encode('utf-8'), parser)
-    tree2 = etree.fromstring(xml2.encode('utf-8'), parser)
+    tree1 = etree.fromstring(xml1.encode("utf-8"), parser)
+    tree2 = etree.fromstring(xml2.encode("utf-8"), parser)
     return etree.tostring(tree1) == etree.tostring(tree2)
 
 
@@ -46,8 +46,7 @@ class Test(unittest.TestCase):
         print()
         xmlnice = open("samples/extract_report/nice-input.xml").read()
         print(xmlnice)
-        xmlchanged = minify_xml(open(
-            "samples/extract_report/changed-input.xml").read())
+        xmlchanged = minify_xml(open("samples/extract_report/changed-input.xml").read())
         print(xmlchanged)
         self.assertTrue(compare_xml(xmlnice, xmlnice))
         self.assertTrue(compare_xml(xmlchanged, xmlchanged))
@@ -59,9 +58,9 @@ class Test(unittest.TestCase):
         """Test extract report function for bytes string input"""
         print()
         file = "samples/extract_report/nice-input.xml"
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             data = f.read()
-        print("Testing {0}: " .format(file), end="")
+        print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report(data)
         xmlin = open("samples/extract_report/nice-input.xml").read()
         self.assertTrue(compare_xml(xmlout, xmlin))
@@ -71,7 +70,7 @@ class Test(unittest.TestCase):
         """Test extract report function for XML input"""
         print()
         file = "samples/extract_report/nice-input.xml"
-        print("Testing {0}: " .format(file), end="")
+        print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report(file)
         xmlin = open("samples/extract_report/nice-input.xml").read()
         self.assertTrue(compare_xml(xmlout, xmlin))
@@ -81,7 +80,7 @@ class Test(unittest.TestCase):
         """Test extract report function for gzip input"""
         print()
         file = "samples/extract_report/nice-input.xml.gz"
-        print("Testing {0}: " .format(file), end="")
+        print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         xmlin = open("samples/extract_report/nice-input.xml").read()
         self.assertTrue(compare_xml(xmlout, xmlin))
@@ -91,15 +90,13 @@ class Test(unittest.TestCase):
         """Test extract report function for zip input"""
         print()
         file = "samples/extract_report/nice-input.xml.zip"
-        print("Testing {0}: " .format(file), end="")
+        print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         print(xmlout)
-        xmlin = minify_xml(open(
-            "samples/extract_report/nice-input.xml").read())
+        xmlin = minify_xml(open("samples/extract_report/nice-input.xml").read())
         print(xmlin)
         self.assertTrue(compare_xml(xmlout, xmlin))
-        xmlin = minify_xml(open(
-            "samples/extract_report/changed-input.xml").read())
+        xmlin = minify_xml(open("samples/extract_report/changed-input.xml").read())
         print(xmlin)
         self.assertFalse(compare_xml(xmlout, xmlin))
         print("Passed!")
@@ -111,16 +108,17 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: " .format(sample_path), end="")
+            print("Testing {0}: ".format(sample_path), end="")
             parsed_report = parsedmarc.parse_report_file(
-                sample_path, always_use_local_files=True)["report"]
+                sample_path, always_use_local_files=True
+            )["report"]
             parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
             print("Passed!")
 
     def testEmptySample(self):
         """Test empty/unparasable report"""
         with self.assertRaises(parsedmarc.ParserError):
-            parsedmarc.parse_report_file('samples/empty.xml')
+            parsedmarc.parse_report_file("samples/empty.xml")
 
     def testForensicSamples(self):
         """Test sample forensic/ruf/failure DMARC reports"""
@@ -130,10 +128,8 @@ class Test(unittest.TestCase):
             print("Testing {0}: ".format(sample_path), end="")
             with open(sample_path) as sample_file:
                 sample_content = sample_file.read()
-                parsed_report = parsedmarc.parse_report_email(
-                    sample_content)["report"]
-            parsed_report = parsedmarc.parse_report_file(
-                sample_path)["report"]
+                parsed_report = parsedmarc.parse_report_email(sample_content)["report"]
+            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
             parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
             print("Passed!")
 
@@ -144,9 +140,8 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: " .format(sample_path), end="")
-            parsed_report = parsedmarc.parse_report_file(
-                sample_path)["report"]
+            print("Testing {0}: ".format(sample_path), end="")
+            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
             parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
             print("Passed!")
 

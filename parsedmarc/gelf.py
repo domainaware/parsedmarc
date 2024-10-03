@@ -5,8 +5,11 @@ import logging.handlers
 import json
 import threading
 
-from parsedmarc import parsed_aggregate_reports_to_csv_rows, \
-    parsed_forensic_reports_to_csv_rows, parsed_smtp_tls_reports_to_csv_rows
+from parsedmarc import (
+    parsed_aggregate_reports_to_csv_rows,
+    parsed_forensic_reports_to_csv_rows,
+    parsed_smtp_tls_reports_to_csv_rows,
+)
 from pygelf import GelfTcpHandler, GelfUdpHandler, GelfTlsHandler
 
 
@@ -14,7 +17,6 @@ log_context_data = threading.local()
 
 
 class ContextFilter(logging.Filter):
-
     def filter(self, record):
         record.parsedmarc = log_context_data.parsedmarc
         return True
@@ -33,23 +35,24 @@ class GelfClient(object):
         """
         self.host = host
         self.port = port
-        self.logger = logging.getLogger('parsedmarc_syslog')
+        self.logger = logging.getLogger("parsedmarc_syslog")
         self.logger.setLevel(logging.INFO)
         self.logger.addFilter(ContextFilter())
         self.gelf_mode = {
-            'udp': GelfUdpHandler,
-            'tcp': GelfTcpHandler,
-            'tls': GelfTlsHandler,
+            "udp": GelfUdpHandler,
+            "tcp": GelfTcpHandler,
+            "tls": GelfTlsHandler,
         }
-        self.handler = self.gelf_mode[mode](host=self.host, port=self.port,
-                                            include_extra_fields=True)
+        self.handler = self.gelf_mode[mode](
+            host=self.host, port=self.port, include_extra_fields=True
+        )
         self.logger.addHandler(self.handler)
 
     def save_aggregate_report_to_gelf(self, aggregate_reports):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             log_context_data.parsedmarc = row
-            self.logger.info('parsedmarc aggregate report')
+            self.logger.info("parsedmarc aggregate report")
 
         log_context_data.parsedmarc = None
 

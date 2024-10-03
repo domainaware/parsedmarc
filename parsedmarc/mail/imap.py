@@ -9,30 +9,30 @@ from parsedmarc.mail.mailbox_connection import MailboxConnection
 
 
 class IMAPConnection(MailboxConnection):
-    def __init__(self,
-                 host=None,
-                 user=None,
-                 password=None,
-                 port=None,
-                 ssl=True,
-                 verify=True,
-                 timeout=30,
-                 max_retries=4):
+    def __init__(
+        self,
+        host=None,
+        user=None,
+        password=None,
+        port=None,
+        ssl=True,
+        verify=True,
+        timeout=30,
+        max_retries=4,
+    ):
         self._username = user
         self._password = password
         self._verify = verify
-        self._client = IMAPClient(host, user, password, port=port,
-                                  ssl=ssl, verify=verify,
-                                  timeout=timeout,
-                                  max_retries=max_retries)
-
-    def get_folder_separator(self):
-        try:
-            namespaces = self._client.namespace()
-            personal = namespaces.personal[0]
-            return personal[1]
-        except (IndexError, NameError):
-            return '/'
+        self._client = IMAPClient(
+            host,
+            user,
+            password,
+            port=port,
+            ssl=ssl,
+            verify=verify,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
 
     def create_folder(self, folder_name: str):
         self._client.create_folder(folder_name)
@@ -55,8 +55,8 @@ class IMAPConnection(MailboxConnection):
 
     def watch(self, check_callback, check_timeout):
         """
-         Use an IDLE IMAP connection to parse incoming emails,
-         and pass the results to a callback function
+        Use an IDLE IMAP connection to parse incoming emails,
+        and pass the results to a callback function
         """
 
         # IDLE callback sends IMAPClient object,
@@ -67,18 +67,21 @@ class IMAPConnection(MailboxConnection):
 
         while True:
             try:
-                IMAPClient(host=self._client.host,
-                           username=self._username,
-                           password=self._password,
-                           port=self._client.port,
-                           ssl=self._client.ssl,
-                           verify=self._verify,
-                           idle_callback=idle_callback_wrapper,
-                           idle_timeout=check_timeout)
+                IMAPClient(
+                    host=self._client.host,
+                    username=self._username,
+                    password=self._password,
+                    port=self._client.port,
+                    ssl=self._client.ssl,
+                    verify=self._verify,
+                    idle_callback=idle_callback_wrapper,
+                    idle_timeout=check_timeout,
+                )
             except (timeout, IMAPClientError):
                 logger.warning("IMAP connection timeout. Reconnecting...")
                 sleep(check_timeout)
             except Exception as e:
-                logger.warning("IMAP connection error. {0}. "
-                               "Reconnecting...".format(e))
+                logger.warning(
+                    "IMAP connection error. {0}. " "Reconnecting...".format(e)
+                )
                 sleep(check_timeout)

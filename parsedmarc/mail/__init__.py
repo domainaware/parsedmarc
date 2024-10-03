@@ -4,8 +4,10 @@ from parsedmarc.mail.gmail import GmailConnection
 from parsedmarc.mail.imap import IMAPConnection
 from parsedmarc.mail.maildir import MaildirConnection
 
-__all__ = ["MailboxConnection",
-           "MSGraphConnection",
-           "GmailConnection",
-           "IMAPConnection",
-           "MaildirConnection"]
+__all__ = [
+    "MailboxConnection",
+    "MSGraphConnection",
+    "GmailConnection",
+    "IMAPConnection",
+    "MaildirConnection",
+]

@@ -8,7 +8,7 @@ fi
 
 . venv/bin/activate
 pip install -U -r requirements.txt
-flake8 parsedmarc
+ruff format .
 cd docs
 make clean 
 make html

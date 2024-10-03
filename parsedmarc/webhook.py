@@ -4,10 +4,9 @@ from parsedmarc import logger
 
 
 class WebhookClient(object):
-    """ A client for webhooks"""
+    """A client for webhooks"""
 
-    def __init__(self, aggregate_url, forensic_url, smtp_tls_url,
-                 timeout=60):
+    def __init__(self, aggregate_url, forensic_url, smtp_tls_url, timeout=60):
         """
         Initializes the WebhookClient
         Args:
@@ -22,8 +21,8 @@ class WebhookClient(object):
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers = {
-            'User-Agent': 'parsedmarc',
-            'Content-Type': 'application/json',
+            "User-Agent": "parsedmarc",
+            "Content-Type": "application/json",
         }
 
     def save_forensic_report_to_webhook(self, report):

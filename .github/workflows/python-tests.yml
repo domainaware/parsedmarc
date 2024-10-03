@@ -46,7 +46,7 @@ jobs:
         make html
     - name: Check code style
       run: |
-        ruff check *.py parsedmarc/*.py
+        ruff check .
     - name: Run unit tests
       run: |
         coverage run tests.py

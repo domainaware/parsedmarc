@@ -6,15 +6,11 @@ class MailboxConnection(ABC):
     """
     Interface for a mailbox connection
     """
-    def get_folder_separator(self):
-        return "/"
 
     def create_folder(self, folder_name: str):
         raise NotImplementedError
 
-    def fetch_messages(self,
-                       reports_folder: str,
-                       **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         raise NotImplementedError
 
     def fetch_message(self, message_id) -> str:

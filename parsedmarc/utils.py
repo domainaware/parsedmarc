@@ -38,7 +38,7 @@ import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
 
 
-parenthesis_regex = re.compile(r'\s*\(.*\)\s*')
+parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
 null_file = open(os.devnull, "w")
 mailparser_logger = logging.getLogger("mailparser")
@@ -67,7 +67,7 @@ def decode_base64(data):
     data = bytes(data, encoding="ascii")
     missing_padding = len(data) % 4
     if missing_padding != 0:
-        data += b'=' * (4 - missing_padding)
+        data += b"=" * (4 - missing_padding)
     return base64.b64decode(data)
 
 
@@ -116,24 +116,35 @@ def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):
     resolver = dns.resolver.Resolver()
     timeout = float(timeout)
     if nameservers is None:
-        nameservers = ["1.1.1.1", "1.0.0.1",
-                       "2606:4700:4700::1111", "2606:4700:4700::1001",
-                       ]
+        nameservers = [
+            "1.1.1.1",
+            "1.0.0.1",
+            "2606:4700:4700::1111",
+            "2606:4700:4700::1001",
+        ]
     resolver.nameservers = nameservers
     resolver.timeout = timeout
     resolver.lifetime = timeout
     if record_type == "TXT":
-        resource_records = list(map(
-            lambda r: r.strings,
-            resolver.resolve(domain, record_type, lifetime=timeout)))
+        resource_records = list(
+            map(
+                lambda r: r.strings,
+                resolver.resolve(domain, record_type, lifetime=timeout),
+            )
+        )
         _resource_record = [
             resource_record[0][:0].join(resource_record)
-            for resource_record in resource_records if resource_record]
+            for resource_record in resource_records
+            if resource_record
+        ]
         records = [r.decode() for r in _resource_record]
     else:
-        records = list(map(
-            lambda r: r.to_text().replace('"', '').rstrip("."),
-            resolver.resolve(domain, record_type, lifetime=timeout)))
+        records = list(
+            map(
+                lambda r: r.to_text().replace('"', "").rstrip("."),
+                resolver.resolve(domain, record_type, lifetime=timeout),
+            )
+        )
     if cache:
         cache[cache_key] = records
 
@@ -157,9 +168,9 @@ def get_reverse_dns(ip_address, cache=None, nameservers=None, timeout=2.0):
     hostname = None
     try:
         address = dns.reversename.from_address(ip_address)
-        hostname = query_dns(address, "PTR", cache=cache,
-                             nameservers=nameservers,
-                             timeout=timeout)[0]
+        hostname = query_dns(
+            address, "PTR", cache=cache, nameservers=nameservers, timeout=timeout
+        )[0]
 
     except dns.exception.DNSException as e:
         logger.warning(f"get_reverse_dns({ip_address}) exception: {e}")
@@ -256,9 +267,11 @@ def get_ip_address_country(ip_address, db_path=None):
     if db_path is not None:
         if os.path.isfile(db_path) is False:
             db_path = None
-            logger.warning(f"No file exists at {db_path}. Falling back to an "
-                           "included copy of the IPDB IP to Country "
-                           "Lite database.")
+            logger.warning(
+                f"No file exists at {db_path}. Falling back to an "
+                "included copy of the IPDB IP to Country "
+                "Lite database."
+            )
 
     if db_path is None:
         for system_path in db_paths:
@@ -267,12 +280,12 @@ def get_ip_address_country(ip_address, db_path=None):
                 break
 
     if db_path is None:
-        with pkg_resources.path(parsedmarc.resources.dbip,
-                                "dbip-country-lite.mmdb") as path:
+        with pkg_resources.path(
+            parsedmarc.resources.dbip, "dbip-country-lite.mmdb"
+        ) as path:
             db_path = path
 
-        db_age = datetime.now() - datetime.fromtimestamp(
-            os.stat(db_path).st_mtime)
+        db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
         if db_age > timedelta(days=30):
             logger.warning("IP database is more than a month old")
 
@@ -288,12 +301,14 @@ def get_ip_address_country(ip_address, db_path=None):
     return country
 
 
-def get_service_from_reverse_dns_base_domain(base_domain,
-                                             always_use_local_file=False,
-                                             local_file_path=None,
-                                             url=None,
-                                             offline=False,
-                                             reverse_dns_map=None):
+def get_service_from_reverse_dns_base_domain(
+    base_domain,
+    always_use_local_file=False,
+    local_file_path=None,
+    url=None,
+    offline=False,
+    reverse_dns_map=None,
+):
     """
     Returns the service name of a given base domain name from reverse DNS.
 
@@ -309,28 +324,27 @@ def get_service_from_reverse_dns_base_domain(base_domain,
         If the service is unknown, the name will be
         the supplied reverse_dns_base_domain and the type will be None
     """
+
     def load_csv(_csv_file):
         reader = csv.DictReader(_csv_file)
         for row in reader:
             key = row["base_reverse_dns"].lower().strip()
-            reverse_dns_map[key] = dict(
-                name=row["name"],
-                type=row["type"])
+            reverse_dns_map[key] = dict(name=row["name"], type=row["type"])
 
     base_domain = base_domain.lower().strip()
     if url is None:
-        url = ("https://raw.githubusercontent.com/domainaware"
-               "/parsedmarc/master/parsedmarc/"
-               "resources/maps/base_reverse_dns_map.csv")
+        url = (
+            "https://raw.githubusercontent.com/domainaware"
+            "/parsedmarc/master/parsedmarc/"
+            "resources/maps/base_reverse_dns_map.csv"
+        )
     if reverse_dns_map is None:
         reverse_dns_map = dict()
     csv_file = io.StringIO()
 
-    if (not (offline or always_use_local_file)
-            and len(reverse_dns_map) == 0):
+    if not (offline or always_use_local_file) and len(reverse_dns_map) == 0:
         try:
-            logger.debug(f"Trying to fetch "
-                         f"reverse DNS map from {url}...")
+            logger.debug(f"Trying to fetch " f"reverse DNS map from {url}...")
             csv_file.write(requests.get(url).text)
             csv_file.seek(0)
             load_csv(csv_file)
@@ -338,8 +352,9 @@ def get_service_from_reverse_dns_base_domain(base_domain,
             logger.warning(f"Failed to fetch reverse DNS map: {e}")
     if len(reverse_dns_map) == 0:
         logger.info("Loading included reverse DNS map...")
-        with pkg_resources.path(parsedmarc.resources.maps,
-                                "base_reverse_dns_map.csv") as path:
+        with pkg_resources.path(
+            parsedmarc.resources.maps, "base_reverse_dns_map.csv"
+        ) as path:
             if local_file_path is not None:
                 path = local_file_path
             with open(path) as csv_file:
@@ -352,15 +367,18 @@ def get_service_from_reverse_dns_base_domain(base_domain,
     return service
 
 
-def get_ip_address_info(ip_address,
-                        ip_db_path=None,
-                        reverse_dns_map_path=None,
-                        always_use_local_files=False,
-                        reverse_dns_map_url=None,
-                        cache=None,
-                        reverse_dns_map=None,
-                        offline=False,
-                        nameservers=None, timeout=2.0):
+def get_ip_address_info(
+    ip_address,
+    ip_db_path=None,
+    reverse_dns_map_path=None,
+    always_use_local_files=False,
+    reverse_dns_map_url=None,
+    cache=None,
+    reverse_dns_map=None,
+    offline=False,
+    nameservers=None,
+    timeout=2.0,
+):
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -392,9 +410,9 @@ def get_ip_address_info(ip_address,
     if offline:
         reverse_dns = None
     else:
-        reverse_dns = get_reverse_dns(ip_address,
-                                      nameservers=nameservers,
-                                      timeout=timeout)
+        reverse_dns = get_reverse_dns(
+            ip_address, nameservers=nameservers, timeout=timeout
+        )
     country = get_ip_address_country(ip_address, db_path=ip_db_path)
     info["country"] = country
     info["reverse_dns"] = reverse_dns
@@ -410,7 +428,8 @@ def get_ip_address_info(ip_address,
                 local_file_path=reverse_dns_map_path,
                 url=reverse_dns_map_url,
                 always_use_local_file=always_use_local_files,
-                reverse_dns_map=reverse_dns_map)
+                reverse_dns_map=reverse_dns_map,
+            )
             info["base_domain"] = base_domain
             info["type"] = service["type"]
             info["name"] = service["name"]
@@ -437,10 +456,14 @@ def parse_email_address(original_address):
         local = address_parts[0].lower()
         domain = address_parts[-1].lower()
 
-    return OrderedDict([("display_name", display_name),
-                        ("address", address),
-                        ("local", local),
-                        ("domain", domain)])
+    return OrderedDict(
+        [
+            ("display_name", display_name),
+            ("address", address),
+            ("local", local),
+            ("domain", domain),
+        ]
+    )
 
 
 def get_filename_safe_string(string):
@@ -453,8 +476,7 @@ def get_filename_safe_string(string):
     Returns:
         str: A string safe for a filename
     """
-    invalid_filename_chars = ['\\', '/', ':', '"', '*', '?', '|', '\n',
-                              '\r']
+    invalid_filename_chars = ["\\", "/", ":", '"', "*", "?", "|", "\n", "\r"]
     if string is None:
         string = "None"
     for char in invalid_filename_chars:
@@ -498,7 +520,8 @@ def is_outlook_msg(content):
         bool: A flag that indicates if the file is an Outlook MSG file
     """
     return isinstance(content, bytes) and content.startswith(
-        b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    )
 
 
 def convert_outlook_msg(msg_bytes):
@@ -520,14 +543,16 @@ def convert_outlook_msg(msg_bytes):
     with open("sample.msg", "wb") as msg_file:
         msg_file.write(msg_bytes)
     try:
-        subprocess.check_call(["msgconvert", "sample.msg"],
-                              stdout=null_file, stderr=null_file)
+        subprocess.check_call(
+            ["msgconvert", "sample.msg"], stdout=null_file, stderr=null_file
+        )
         eml_path = "sample.eml"
         with open(eml_path, "rb") as eml_file:
             rfc822 = eml_file.read()
     except FileNotFoundError:
         raise EmailParserError(
-            "Failed to convert Outlook MSG: msgconvert utility not found")
+            "Failed to convert Outlook MSG: msgconvert utility not found"
+        )
     finally:
         os.chdir(orig_dir)
         shutil.rmtree(tmp_dir)
@@ -562,8 +587,7 @@ def parse_email(data, strip_attachment_payloads=False):
                 if received["date_utc"] is None:
                     del received["date_utc"]
                 else:
-                    received["date_utc"] = received["date_utc"].replace("T",
-                                                                        " ")
+                    received["date_utc"] = received["date_utc"].replace("T", " ")
 
     if "from" not in parsed_email:
         if "From" in parsed_email["headers"]:
@@ -579,33 +603,36 @@ def parse_email(data, strip_attachment_payloads=False):
     else:
         parsed_email["date"] = None
     if "reply_to" in parsed_email:
-        parsed_email["reply_to"] = list(map(lambda x: parse_email_address(x),
-                                            parsed_email["reply_to"]))
+        parsed_email["reply_to"] = list(
+            map(lambda x: parse_email_address(x), parsed_email["reply_to"])
+        )
     else:
         parsed_email["reply_to"] = []
 
     if "to" in parsed_email:
-        parsed_email["to"] = list(map(lambda x: parse_email_address(x),
-                                      parsed_email["to"]))
+        parsed_email["to"] = list(
+            map(lambda x: parse_email_address(x), parsed_email["to"])
+        )
     else:
         parsed_email["to"] = []
 
     if "cc" in parsed_email:
-        parsed_email["cc"] = list(map(lambda x: parse_email_address(x),
-                                      parsed_email["cc"]))
+        parsed_email["cc"] = list(
+            map(lambda x: parse_email_address(x), parsed_email["cc"])
+        )
     else:
         parsed_email["cc"] = []
 
     if "bcc" in parsed_email:
-        parsed_email["bcc"] = list(map(lambda x: parse_email_address(x),
-                                       parsed_email["bcc"]))
+        parsed_email["bcc"] = list(
+            map(lambda x: parse_email_address(x), parsed_email["bcc"])
+        )
     else:
         parsed_email["bcc"] = []
 
     if "delivered_to" in parsed_email:
         parsed_email["delivered_to"] = list(
-            map(lambda x: parse_email_address(x),
-                parsed_email["delivered_to"])
+            map(lambda x: parse_email_address(x), parsed_email["delivered_to"])
         )
 
     if "attachments" not in parsed_email:
@@ -622,9 +649,7 @@ def parse_email(data, strip_attachment_payloads=False):
                             payload = str.encode(payload)
                     attachment["sha256"] = hashlib.sha256(payload).hexdigest()
                 except Exception as e:
-                    logger.debug("Unable to decode attachment: {0}".format(
-                        e.__str__()
-                    ))
+                    logger.debug("Unable to decode attachment: {0}".format(e.__str__()))
         if strip_attachment_payloads:
             for attachment in parsed_email["attachments"]:
                 if "payload" in attachment:
@@ -634,7 +659,8 @@ def parse_email(data, strip_attachment_payloads=False):
         parsed_email["subject"] = None
 
     parsed_email["filename_safe_subject"] = get_filename_safe_string(
-        parsed_email["subject"])
+        parsed_email["subject"]
+    )
 
     if "body" not in parsed_email:
         parsed_email["body"] = None

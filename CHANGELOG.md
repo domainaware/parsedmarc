@@ -1,6 +1,15 @@
 Changelog
 =========
 
+8.15.1
+------
+
+- Proper IMAP namespace fix (Closes issue #557 and issue #563)
+  - Require `mailsuite>=1.9.17`
+  - Revert PR #552
+- Add pre-flight check for nameservers (PR #562 closes issue #543)
+- Reformat code with `ruff`
+
 8.15.0
 ------
 
