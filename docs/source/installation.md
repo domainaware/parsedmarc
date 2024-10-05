@@ -177,7 +177,7 @@ source /opt/parsedmarc/venv/bin/activate
 To install or upgrade `parsedmarc` inside the virtualenv, run:
 
 ```bash
-sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
+sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc[cli]
 ```
 
 ## Optional dependencies
