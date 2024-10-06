@@ -30,8 +30,12 @@ classifiers = [
 ]
 dependencies = [
     "azure-identity>=1.8.0",
+    "azure-monitor-ingestion>=1.0.0",
+    "boto3>=1.16.63",
     "dateparser>=1.1.1",
     "dnspython>=2.0.0",
+    "elasticsearch-dsl==7.4.0",
+    "elasticsearch<7.14.0",
     "expiringdict>=1.1.4",
     "geoip2>=3.0.0",
     "google-api-core>=2.4.0",
@@ -40,10 +44,13 @@ dependencies = [
     "google-auth-oauthlib>=0.4.6",
     "google-auth>=2.3.3",
     "imapclient>=2.1.0",
+    "kafka-python-ng>=2.2.2",
     "lxml>=4.4.0",
     "mailsuite>=1.9.17",
     "msgraph-core==0.2.2",
+    "opensearch-py>=2.4.2,<=3.0.0",
     "publicsuffixlist>=0.10.0",
+    "pygelf>=0.4.2",
     "requests>=2.22.0",
     "tqdm>=4.31.1",
     "urllib3>=1.25.7",
@@ -60,16 +67,6 @@ build = [
     "ruff",
     "sphinx",
     "sphinx_rtd_theme",
-]
-cli = [
-    "azure-identity>=1.8.0",
-    "azure-monitor-ingestion>=1.0.0",
-    "boto3>=1.16.63",
-    "elasticsearch-dsl==7.4.0",
-    "elasticsearch<7.14.0",
-    "kafka-python-ng>=2.2.2",
-    "opensearch-py>=2.4.2,<=3.0.0",
-    "pygelf>=0.4.2",
 ]
 
 [project.scripts]
