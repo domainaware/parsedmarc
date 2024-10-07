@@ -50,11 +50,23 @@ dependencies = [
     "msgraph-core==0.2.2",
     "opensearch-py>=2.4.2,<=3.0.0",
     "publicsuffixlist>=0.10.0",
+    "pygelf>=0.4.2",
     "requests>=2.22.0",
     "tqdm>=4.31.1",
     "urllib3>=1.25.7",
     "xmltodict>=0.12.0",
-    "pygelf>=0.4.2",
+]
+
+[project.optional-dependencies]
+build = [
+    "hatch",
+    "myst-parser[linkify]",
+    "nose",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "sphinx",
+    "sphinx_rtd_theme",
 ]
 
 [project.scripts]

@@ -7,7 +7,7 @@ if [ ! -d "venv" ]; then
 fi
 
 . venv/bin/activate
-pip install -U -r requirements.txt
+pip install .[build]
 ruff format .
 cd docs
 make clean 
