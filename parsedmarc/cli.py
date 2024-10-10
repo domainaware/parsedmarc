@@ -1179,9 +1179,7 @@ def _main():
         logger.setLevel(logging.DEBUG)
     if opts.log_file:
         try:
-            log_file = open(opts.log_file, "w")
-            log_file.close()
-            fh = logging.FileHandler(opts.log_file)
+            fh = logging.FileHandler(opts.log_file, "a")
             formatter = logging.Formatter(
                 "%(asctime)s - "
                 "%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
