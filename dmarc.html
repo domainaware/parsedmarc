@@ -1,24 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Understanding DMARC &mdash; parsedmarc 8.15.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+  <title>Understanding DMARC &mdash; parsedmarc 8.15.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=6add7570"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -37,9 +34,6 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
-              <div class="version">
-                8.15.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -110,39 +104,34 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="understanding-dmarc">
-<h1>Understanding DMARC<a class="headerlink" href="#understanding-dmarc" title="Permalink to this heading"></a></h1>
+<h1>Understanding DMARC<a class="headerlink" href="#understanding-dmarc" title="Link to this heading"></a></h1>
 <section id="resources">
-<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this heading"></a></h2>
+<h2>Resources<a class="headerlink" href="#resources" title="Link to this heading"></a></h2>
 <section id="dmarc-guides">
-<h3>DMARC guides<a class="headerlink" href="#dmarc-guides" title="Permalink to this heading"></a></h3>
+<h3>DMARC guides<a class="headerlink" href="#dmarc-guides" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><a class="reference external" href="https://seanthegeek.net/459/demystifying-dmarc/">Demystifying DMARC</a> - A complete guide to SPF, DKIM, and DMARC</p></li>
 </ul>
 </section>
 <section id="spf-and-dmarc-record-validation">
-<h3>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Permalink to this heading"></a></h3>
+<h3>SPF and DMARC record validation<a class="headerlink" href="#spf-and-dmarc-record-validation" title="Link to this heading"></a></h3>
 <p>If you are looking for SPF and DMARC record validation and parsing,
 check out the sister project,
 <a class="reference external" href="https://domainaware.github.io/checkdmarc/">checkdmarc</a>.</p>
 </section>
 <section id="lookalike-domains">
-<h3>Lookalike domains<a class="headerlink" href="#lookalike-domains" title="Permalink to this heading"></a></h3>
+<h3>Lookalike domains<a class="headerlink" href="#lookalike-domains" title="Link to this heading"></a></h3>
 <p>DMARC protects against domain spoofing, not lookalike domains. for open source
 lookalike domain monitoring, check out <a class="reference external" href="https://github.com/seanthegeek/domainaware">DomainAware</a>.</p>
 </section>
 </section>
 <section id="dmarc-alignment-guide">
-<h2>DMARC Alignment Guide<a class="headerlink" href="#dmarc-alignment-guide" title="Permalink to this heading"></a></h2>
+<h2>DMARC Alignment Guide<a class="headerlink" href="#dmarc-alignment-guide" title="Link to this heading"></a></h2>
 <p>DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
 against the same domain that the end user sees.</p>
 <p>A message passes a DMARC check by passing DKIM or SPF, <strong>as long as the related
 indicators are also in alignment</strong>.</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td></td>
 <td><p><strong>DKIM</strong></p></td>
@@ -180,7 +169,7 @@ header</p></td>
 </table>
 </section>
 <section id="what-if-a-sender-wont-support-dkim-dmarc">
-<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-wont-support-dkim-dmarc" title="Permalink to this heading"></a></h2>
+<h2>What if a sender won’t support DKIM/DMARC?<a class="headerlink" href="#what-if-a-sender-wont-support-dkim-dmarc" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p>Some vendors don’t know about DMARC yet; ask about SPF and DKIM/email
 authentication.</p></li>
@@ -200,21 +189,21 @@ spoofing of your TLD and/or any subdomain.</p>
 </div>
 </section>
 <section id="what-about-mailing-lists">
-<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Permalink to this heading"></a></h2>
+<h2>What about mailing lists?<a class="headerlink" href="#what-about-mailing-lists" title="Link to this heading"></a></h2>
 <p>When you deploy DMARC on your domain, you might find that messages
 relayed by mailing lists are failing DMARC, most likely because the mailing
 list is spoofing your from address, and modifying the subject,
 footer, or other part of the message, thereby breaking the
 DKIM signature.</p>
 <section id="mailing-list-best-practices">
-<h3>Mailing list best practices<a class="headerlink" href="#mailing-list-best-practices" title="Permalink to this heading"></a></h3>
+<h3>Mailing list best practices<a class="headerlink" href="#mailing-list-best-practices" title="Link to this heading"></a></h3>
 <p>Ideally, a mailing list should forward messages without altering the
 headers or body content at all. <a class="reference external" href="https://begriffs.com/posts/2018-09-18-dmarc-mailing-list.html">Joe Nelson</a> does a fantastic job of
 explaining exactly what mailing lists should and shouldn’t do to be
 fully DMARC compliant. Rather than repeat his fine work, here’s a
 summary:</p>
 <section id="do">
-<h4>Do<a class="headerlink" href="#do" title="Permalink to this heading"></a></h4>
+<h4>Do<a class="headerlink" href="#do" title="Link to this heading"></a></h4>
 <ul class="simple">
 <li><p>Retain headers from the original message</p></li>
 <li><p>Add <a class="reference external" href="https://tools.ietf.org/html/rfc2369">RFC 2369</a> List-Unsubscribe headers to outgoing messages, instead of
@@ -234,7 +223,7 @@ adding unsubscribe links to the body</p></li>
 these headers.</p>
 </section>
 <section id="do-not">
-<h4>Do not<a class="headerlink" href="#do-not" title="Permalink to this heading"></a></h4>
+<h4>Do not<a class="headerlink" href="#do-not" title="Link to this heading"></a></h4>
 <ul class="simple">
 <li><p>Remove or modify any existing headers from the original message, including
 From, Date, Subject, etc.</p></li>
@@ -251,13 +240,9 @@ to the mailing list post address, and not their email address.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 </section>
 <section id="mailman-2">
-<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Permalink to this heading"></a></h4>
+<h4>Mailman 2<a class="headerlink" href="#mailman-2" title="Link to this heading"></a></h4>
 <p>Navigate to General Settings, and configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 74%" />
-<col style="width: 26%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -287,10 +272,6 @@ to the mailing list post address, and not their email address.</p>
 </table>
 <p>Navigate to Non-digest options, and configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 66%" />
-<col style="width: 34%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -308,10 +289,6 @@ to the mailing list post address, and not their email address.</p>
 </table>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 79%" />
-<col style="width: 21%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -329,16 +306,12 @@ to the mailing list post address, and not their email address.</p>
 </table>
 </section>
 <section id="mailman-3">
-<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Permalink to this heading"></a></h4>
+<h4>Mailman 3<a class="headerlink" href="#mailman-3" title="Link to this heading"></a></h4>
 <p>Navigate to Settings&gt; List Identity</p>
 <p>Make Subject prefix blank.</p>
 <p>Navigate to Settings&gt; Alter Messages</p>
 <p>Configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 79%" />
-<col style="width: 21%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -366,10 +339,6 @@ to the mailing list post address, and not their email address.</p>
 <p>Navigate to Settings&gt; DMARC Mitigation</p>
 <p>Configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 52%" />
-<col style="width: 48%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -393,13 +362,13 @@ command line instead, for example:</p>
 <p>Then restart mailman core.</p>
 </section>
 <section id="listserv">
-<h4>LISTSERV<a class="headerlink" href="#listserv" title="Permalink to this heading"></a></h4>
+<h4>LISTSERV<a class="headerlink" href="#listserv" title="Link to this heading"></a></h4>
 <p><a class="reference external" href="https://www.lsoft.com/news/dmarc-issue1-2018.asp">LISTSERV 16.0-2017a</a> and higher will rewrite the From header for domains
 that enforce with a DMARC quarantine or reject policy.</p>
 <p>Some additional steps are needed for Linux hosts.</p>
 </section>
 <section id="workarounds">
-<h4>Workarounds<a class="headerlink" href="#workarounds" title="Permalink to this heading"></a></h4>
+<h4>Workarounds<a class="headerlink" href="#workarounds" title="Link to this heading"></a></h4>
 <p>If a mailing list must go <strong>against</strong> best practices and
 modify the message (e.g. to add a required legal footer), the mailing
 list administrator must configure the list to replace the From address of the
@@ -407,13 +376,9 @@ message (also known as munging) with the address of the mailing list, so they
 no longer spoof email addresses with domains protected by DMARC.</p>
 <p>Configuration steps for common mailing list platforms are listed below.</p>
 <section id="id1">
-<h5>Mailman 2<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h5>
+<h5>Mailman 2<a class="headerlink" href="#id1" title="Link to this heading"></a></h5>
 <p>Navigate to Privacy Options&gt; Sending Filters, and configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 79%" />
-<col style="width: 21%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>
@@ -442,13 +407,9 @@ the original sender.</p>
 </div>
 </section>
 <section id="id2">
-<h5>Mailman 3<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h5>
+<h5>Mailman 3<a class="headerlink" href="#id2" title="Link to this heading"></a></h5>
 <p>In the DMARC Mitigations tab of the Settings page, configure the settings below</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 49%" />
-<col style="width: 51%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p><strong>Setting</strong></p></td>
 <td><p><strong>Value</strong></p></td>

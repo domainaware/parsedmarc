@@ -103,6 +103,12 @@ port = 514
 host = logger
 port = 12201
 mode = tcp
+
+[webhook]
+aggregate_url = https://aggregate_url.example.com
+forensic_url = https://forensic_url.example.com
+smtp_tls_url = https://smtp_tls_url.example.com
+timeout = 60
 ```
 
 The full set of configuration options are:
@@ -130,6 +136,8 @@ The full set of configuration options are:
   - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
   - `nameservers` - str: A comma separated list of
       DNS resolvers (Default: `[Cloudflare's public resolvers]`)
+  - `dns_test_address` - str: a dummy address used for DNS pre-flight checks
+      (Default: 1.1.1.1)
   - `dns_timeout` - float: DNS timeout period
   - `debug` - bool: Print debugging messages
   - `silent` - bool: Only print errors (Default: `True`)
@@ -354,6 +362,16 @@ The full set of configuration options are:
   - `host` - str: The GELF server name or IP address
   - `port` - int: The port to use
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
+
+- `maildir`
+  - `reports_folder` - str: Full path for mailbox maidir location (Default: `INBOX`)
+  - `maildir_create` - bool: Create maildir if not present (Default: False)
+
+- `webhook` - Post the individual reports to a webhook url with the report as the JSON body
+  - `aggregate_url` - str: URL of the webhook which should receive the aggregate reports
+  - `forensic_url` - str: URL of the webhook which should receive the forensic reports
+  - `smtp_tls_url` - str: URL of the webhook which should receive the smtp_tls reports
+  - `timeout` - int: Interval in which the webhook call should timeout
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`

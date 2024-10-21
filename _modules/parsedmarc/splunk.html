@@ -1,23 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 8.15.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
+  <title>parsedmarc.splunk &mdash; parsedmarc 8.15.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6add7570"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -34,9 +31,6 @@
           <a href="../../index.html" class="icon icon-home">
             parsedmarc
           </a>
-              <div class="version">
-                8.15.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -100,18 +94,24 @@
 <span class="n">urllib3</span><span class="o">.</span><span class="n">disable_warnings</span><span class="p">(</span><span class="n">urllib3</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InsecureRequestWarning</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="SplunkError"><a class="viewcode-back" href="../../api.html#parsedmarc.splunk.SplunkError">[docs]</a><span class="k">class</span> <span class="nc">SplunkError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<div class="viewcode-block" id="SplunkError">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.SplunkError">[docs]</a>
+<span class="k">class</span> <span class="nc">SplunkError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a Splunk API error occurs&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="HECClient"><a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient">[docs]</a><span class="k">class</span> <span class="nc">HECClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="HECClient">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient">[docs]</a>
+<span class="k">class</span> <span class="nc">HECClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A client for a Splunk HTTP Events Collector (HEC)&quot;&quot;&quot;</span>
 
     <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC</span>
     <span class="c1"># http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">access_token</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span>
-                 <span class="n">source</span><span class="o">=</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">access_token</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initializes the HECClient</span>
 
@@ -125,8 +125,9 @@
 <span class="sd">                data before giving up</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">://</span><span class="si">{1}</span><span class="s2">/services/collector/event/1.0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span>
-                                                                   <span class="n">url</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">://</span><span class="si">{1}</span><span class="s2">/services/collector/event/1.0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">url</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span> <span class="o">=</span> <span class="n">access_token</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;Splunk &quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">getfqdn</span><span class="p">()</span>
@@ -134,15 +135,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span> <span class="o">=</span> <span class="n">verify</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
-                                 <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="s2">&quot;parsedmarc/</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">),</span>
-            <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="s2">&quot;Splunk </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">access_token</span><span class="p">)</span>
+            <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="s2">&quot;Splunk </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">access_token</span><span class="p">),</span>
         <span class="p">}</span>
 
-<div class="viewcode-block" id="HECClient.save_aggregate_reports_to_splunk"><a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_aggregate_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">):</span>
+<div class="viewcode-block" id="HECClient.save_aggregate_reports_to_splunk">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_aggregate_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves aggregate DMARC reports to Splunk</span>
 
@@ -166,36 +168,26 @@
                 <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
                     <span class="n">new_report</span><span class="p">[</span><span class="n">metadata</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="n">metadata</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;published_policy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;message_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;disposition&quot;</span>
-                <span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">][</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;dkim_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;passed_dmarc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dmarc&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;header_from&quot;</span><span class="p">]</span>
-                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span>
-                    <span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;header_from&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">][</span><span class="s2">&quot;envelope_from&quot;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]:</span>
-                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;dkim_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span>
-                        <span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;dkim_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">]:</span>
-                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span>
-                        <span class="s2">&quot;spf&quot;</span><span class="p">]</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
 
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:aggregate&quot;</span>
-                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
-                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
@@ -203,15 +195,17 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping certificate verification for Splunk HEC&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span>
-                                         <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk"><a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">):</span>
+
+<div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves forensic DMARC reports to Splunk</span>
 
@@ -230,8 +224,7 @@
         <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">forensic_reports</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:forensic&quot;</span>
-            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
-                <span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">])</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">])</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
@@ -239,15 +232,17 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping certificate verification for Splunk HEC&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span>
-                                         <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="HECClient.save_smtp_tls_reports_to_splunk"><a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">[docs]</a>    <span class="k">def</span> <span class="nf">save_smtp_tls_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reports</span><span class="p">):</span>
+
+<div class="viewcode-block" id="HECClient.save_smtp_tls_reports_to_splunk">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_smtp_tls_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reports</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves aggregate DMARC reports to Splunk</span>
 
@@ -267,8 +262,7 @@
         <span class="n">json_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">reports</span><span class="p">:</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;smtp:tls&quot;</span>
-            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
-                <span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
@@ -276,13 +270,14 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping certificate verification for Splunk HEC&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span>
-                                         <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json_str</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div></div>
+            <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
+</div>
+
 </pre></div>
 
            </div>

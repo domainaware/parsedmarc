@@ -1,24 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.15.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+  <title>Using parsedmarc &mdash; parsedmarc 8.15.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=6add7570"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -37,9 +34,6 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
-              <div class="version">
-                8.15.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -93,9 +87,9 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="using-parsedmarc">
-<h1>Using parsedmarc<a class="headerlink" href="#using-parsedmarc" title="Permalink to this heading"></a></h1>
+<h1>Using parsedmarc<a class="headerlink" href="#using-parsedmarc" title="Link to this heading"></a></h1>
 <section id="cli-help">
-<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this heading"></a></h2>
+<h2>CLI help<a class="headerlink" href="#cli-help" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
                    [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
                    [--forensic-json-filename FORENSIC_JSON_FILENAME]
@@ -147,7 +141,7 @@ configuration file, described below.</p>
 </div>
 </section>
 <section id="configuration-file">
-<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> can be configured by supplying the path to an INI file</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc<span class="w"> </span>-c<span class="w"> </span>/etc/parsedmarc.ini
 </pre></div>
@@ -193,6 +187,12 @@ configuration file, described below.</p>
 <span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">logger</span>
 <span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">12201</span>
 <span class="na">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tcp</span>
+
+<span class="k">[webhook]</span>
+<span class="na">aggregate_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://aggregate_url.example.com</span>
+<span class="na">forensic_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://forensic_url.example.com</span>
+<span class="na">smtp_tls_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://smtp_tls_url.example.com</span>
+<span class="na">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">60</span>
 </pre></div>
 </div>
 <p>The full set of configuration options are:</p>
@@ -221,6 +221,8 @@ or DNS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reverse_dns_map_url</span></code> - Overrides the default download URL for the reverse DNS map</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">nameservers</span></code> - str: A comma separated list of
 DNS resolvers (Default: <code class="docutils literal notranslate"><span class="pre">[Cloudflare's</span> <span class="pre">public</span> <span class="pre">resolvers]</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dns_test_address</span></code> - str: a dummy address used for DNS pre-flight checks
+(Default: 1.1.1.1)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
@@ -489,6 +491,20 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 <li><p><code class="docutils literal notranslate"><span class="pre">mode</span></code> - str: The GELF transport type to use. Valid modes: <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, <code class="docutils literal notranslate"><span class="pre">udp</span></code>, <code class="docutils literal notranslate"><span class="pre">tls</span></code></p></li>
 </ul>
 </li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maildir</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: Full path for mailbox maidir location (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maildir_create</span></code> - bool: Create maildir if not present (Default: False)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">webhook</span></code> - Post the individual reports to a webhook url with the report as the JSON body</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">aggregate_url</span></code> - str: URL of the webhook which should receive the aggregate reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forensic_url</span></code> - str: URL of the webhook which should receive the forensic reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smtp_tls_url</span></code> - str: URL of the webhook which should receive the smtp_tls reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - int: Interval in which the webhook call should timeout</p></li>
+</ul>
+</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -551,7 +567,7 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 </div>
 </section>
 <section id="running-parsedmarc-as-a-systemd-service">
-<h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this heading"></a></h2>
+<h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Link to this heading"></a></h2>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
 they arrive.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
