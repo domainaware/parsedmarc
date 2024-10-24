@@ -1,6 +1,14 @@
 Changelog
 =========
 
+8.15.2
+------
+
+- Require `mailsuite>=1.9.18`
+  - Pins `mail-parser` version at `3.15.0` due to a parsing regression in mail-parser `4.0.0`
+  - Parse aggregate reports with empty `<auth_results>`
+  - Do not overwrite the log on each run (PR #569 fixes issue #565)
+
 8.15.1
 ------
 
