@@ -169,7 +169,7 @@ def _parse_report_record(
     else:
         lowered_from = ""
     new_record["identifiers"]["header_from"] = lowered_from
-    if record["auth_results"] is not None:
+    if isinstance(record["auth_results"], dict):
         auth_results = record["auth_results"].copy()
         if "spf" not in auth_results:
             auth_results["spf"] = []
