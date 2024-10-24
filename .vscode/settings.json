@@ -101,6 +101,7 @@
         "sourcetype",
         "STARTTLS",
         "tasklist",
+        "timespan",
         "tlsa",
         "tlsrpt",
         "toctree",

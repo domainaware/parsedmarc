@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.15.3
+------
+
+- Ignore aggregate reports with a timespan of > 24 hours (Fixes #282)
+
 8.15.2
 ------
 
