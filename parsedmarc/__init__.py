@@ -34,7 +34,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.15.3"
+__version__ = "8.15.4"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -519,7 +519,7 @@ def parse_aggregate_report_xml(
         date_range = report["report_metadata"]["date_range"]
         if int(date_range["end"]) - int(date_range["begin"]) > 2 * 86400:
             _error = "Time span > 24 hours - RFC 7489 section 7.2"
-            raise InvalidAggregateReport(error)
+            raise InvalidAggregateReport(_error)
         date_range["begin"] = timestamp_to_human(date_range["begin"])
         date_range["end"] = timestamp_to_human(date_range["end"])
         new_report_metadata["begin_date"] = date_range["begin"]

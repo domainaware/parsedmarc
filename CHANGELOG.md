@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.15.4
+------
+
+- Fix crash if aggregate report timespan is > 24 hours
+
 8.15.3
 ------
 

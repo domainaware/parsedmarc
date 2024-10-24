@@ -9,6 +9,7 @@ fi
 . venv/bin/activate
 pip install .[build]
 ruff format .
+ruff check .
 cd docs
 make clean 
 make html
