@@ -69,8 +69,7 @@ class GmailConnection(MailboxConnection):
             else:
                 raise e
 
-    def _fetch_all_message_ids(self, reports_label_id, page_token=None,
-                               since=None):
+    def _fetch_all_message_ids(self, reports_label_id, page_token=None, since=None):
         if since:
             results = (
                 self.service.users()
@@ -80,7 +79,7 @@ class GmailConnection(MailboxConnection):
                     includeSpamTrash=self.include_spam_trash,
                     labelIds=[reports_label_id],
                     pageToken=page_token,
-                    q=f'after:{since}',
+                    q=f"after:{since}",
                 )
                 .execute()
             )
@@ -107,10 +106,11 @@ class GmailConnection(MailboxConnection):
 
     def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         reports_label_id = self._find_label_id_for_label(reports_folder)
-        since = kwargs.get('since')
+        since = kwargs.get("since")
         if since:
-            return [id for id in self._fetch_all_message_ids(reports_label_id,
-                                                             since=since)]
+            return [
+                id for id in self._fetch_all_message_ids(reports_label_id, since=since)
+            ]
         else:
             return [id for id in self._fetch_all_message_ids(reports_label_id)]
 

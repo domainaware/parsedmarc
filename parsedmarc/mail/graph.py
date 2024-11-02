@@ -146,24 +146,21 @@ class MSGraphConnection(MailboxConnection):
     def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """Returns a list of message UIDs in the specified folder"""
         folder_id = self._find_folder_id_from_folder_path(folder_name)
-        url = f'/users/{self.mailbox_name}/mailFolders/' \
-              f'{folder_id}/messages'
-        since = kwargs.get('since')
+        url = f"/users/{self.mailbox_name}/mailFolders/" f"{folder_id}/messages"
+        since = kwargs.get("since")
         if not since:
             since = None
-        batch_size = kwargs.get('batch_size')
+        batch_size = kwargs.get("batch_size")
         if not batch_size:
             batch_size = 0
         emails = self._get_all_messages(url, batch_size, since)
-        return [email['id'] for email in emails]
+        return [email["id"] for email in emails]
 
     def _get_all_messages(self, url, batch_size, since):
         messages: list
-        params = {
-            '$select': 'id'
-        }
+        params = {"$select": "id"}
         if since:
-            params['$filter'] = f'receivedDateTime ge {since}'
+            params["$filter"] = f"receivedDateTime ge {since}"
         if batch_size and batch_size > 0:
             params["$top"] = batch_size
         else:
@@ -173,11 +170,10 @@ class MSGraphConnection(MailboxConnection):
             raise RuntimeError(f"Failed to fetch messages {result.text}")
         messages = result.json()["value"]
         # Loop if next page is present and not obtained message limit.
-        while '@odata.nextLink' in result.json() and (
-                since is not None or (
-                batch_size == 0 or
-                batch_size - len(messages) > 0)):
-            result = self._client.get(result.json()['@odata.nextLink'])
+        while "@odata.nextLink" in result.json() and (
+            since is not None or (batch_size == 0 or batch_size - len(messages) > 0)
+        ):
+            result = self._client.get(result.json()["@odata.nextLink"])
             if result.status_code != 200:
                 raise RuntimeError(f"Failed to fetch messages {result.text}")
             messages.extend(result.json()["value"])
@@ -193,12 +189,13 @@ class MSGraphConnection(MailboxConnection):
             )
 
     def fetch_message(self, message_id: str, **kwargs):
-        url = f'/users/{self.mailbox_name}/messages/{message_id}/$value'
+        url = f"/users/{self.mailbox_name}/messages/{message_id}/$value"
         result = self._client.get(url)
         if result.status_code != 200:
-            raise RuntimeWarning(f"Failed to fetch message"
-                                 f"{result.status_code}: {result.json()}")
-        mark_read = kwargs.get('mark_read')
+            raise RuntimeWarning(
+                f"Failed to fetch message" f"{result.status_code}: {result.json()}"
+            )
+        mark_read = kwargs.get("mark_read")
         if mark_read:
             self.mark_message_read(message_id)
         return result.text
