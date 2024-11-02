@@ -1437,7 +1437,7 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
 
     if since:
         _since = 1440  # default one day
-        if re.match(r'\d{1,2}[mhd]$', since):
+        if re.match(r'\d+[mhd]$', since):
             s = re.split(r'(\d+)', since)
             match s[2]:
                 case 'm': _since = int(s[1])
