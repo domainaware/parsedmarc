@@ -17,7 +17,7 @@ import zlib
 from base64 import b64decode
 from collections import OrderedDict
 from csv import DictWriter
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from typing import Callable
 
@@ -28,7 +28,8 @@ from lxml import etree
 from mailsuite.smtp import send_email
 
 from parsedmarc.log import logger
-from parsedmarc.mail import MailboxConnection
+from parsedmarc.mail import MailboxConnection, IMAPConnection, \
+    MSGraphConnection, GmailConnection
 from parsedmarc.utils import get_base_domain, get_ip_address_info
 from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
@@ -1483,24 +1484,23 @@ def get_dmarc_reports_from_mbox(
     )
 
 
-def get_dmarc_reports_from_mailbox(
-    connection: MailboxConnection,
-    reports_folder="INBOX",
-    archive_folder="Archive",
-    delete=False,
-    test=False,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    nameservers=None,
-    dns_timeout=6.0,
-    strip_attachment_payloads=False,
-    results=None,
-    batch_size=10,
-    create_folders=True,
-):
+def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
+                                   reports_folder="INBOX",
+                                   archive_folder="Archive",
+                                   delete=False,
+                                   test=False,
+                                   ip_db_path=None,
+                                   always_use_local_files=False,
+                                   reverse_dns_map_path=None,
+                                   reverse_dns_map_url=None,
+                                   offline=False,
+                                   nameservers=None,
+                                   dns_timeout=6.0,
+                                   strip_attachment_payloads=False,
+                                   results=None,
+                                   batch_size=10,
+                                   since=None,
+                                   create_folders=True):
     """
     Fetches and parses DMARC reports from a mailbox
 
@@ -1522,6 +1522,8 @@ def get_dmarc_reports_from_mailbox(
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
             (use 0 for no limit)
+        since: Search for messages since certain time
+            (units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"})
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
 
@@ -1533,6 +1535,9 @@ def get_dmarc_reports_from_mailbox(
 
     if connection is None:
         raise ValueError("Must supply a connection")
+
+    # current_time useful to fetch_messages later in the program
+    current_time = None
 
     aggregate_reports = []
     forensic_reports = []
@@ -1557,11 +1562,48 @@ def get_dmarc_reports_from_mailbox(
         connection.create_folder(smtp_tls_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
-    messages = connection.fetch_messages(reports_folder, batch_size=batch_size)
+    if since:
+        _since = 1440  # default one day
+        if re.match(r'\d+[mhd]$', since):
+            s = re.split(r'(\d+)', since)
+            if s[2] == 'm':
+                _since = int(s[1])
+            elif s[2] == 'h':
+                _since = int(s[1])*60
+            elif s[2] == 'd':
+                _since = int(s[1])*60*24
+            elif s[2] == 'w':
+                _since = int(s[1])*60*24*7
+        else:
+            logger.warning("Incorrect format for \'since\' option. \
+                           Provided value:{0}, Expected values:(5m|3h|2d|1w). \
+                           Ignoring option, fetching messages for last 24hrs" \
+                           "SMTP does not support a time or timezone in since." \
+                           "See https://www.rfc-editor.org/rfc/rfc3501#page-52"
+                           .format(since))
+
+        if isinstance(connection, IMAPConnection):
+            logger.debug("Only days and weeks values in \'since\' option are \
+                         considered for IMAP conections. Examples: 2d or 1w")
+            since = (datetime.utcnow() - timedelta(minutes=_since)).date()
+            current_time = datetime.utcnow().date()
+        elif isinstance(connection, MSGraphConnection):
+            since = (datetime.utcnow() - timedelta(minutes=_since)) \
+                .isoformat() + 'Z'
+            current_time = datetime.utcnow().isoformat() + 'Z'
+        elif isinstance(connection, GmailConnection):
+            since = (datetime.utcnow() - timedelta(minutes=_since)) \
+                .strftime('%s')
+            current_time = datetime.utcnow().strftime('%s')
+        else:
+            pass
+
+    messages = connection.fetch_messages(reports_folder, batch_size=batch_size,
+                                         since=since)
     total_messages = len(messages)
     logger.debug("Found {0} messages in {1}".format(len(messages), reports_folder))
 
-    if batch_size:
+    if batch_size and not since:
         message_limit = min(total_messages, batch_size)
     else:
         message_limit = total_messages
@@ -1570,12 +1612,18 @@ def get_dmarc_reports_from_mailbox(
 
     for i in range(message_limit):
         msg_uid = messages[i]
-        logger.debug(
-            "Processing message {0} of {1}: UID {2}".format(
-                i + 1, message_limit, msg_uid
-            )
-        )
-        msg_content = connection.fetch_message(msg_uid)
+        logger.debug("Processing message {0} of {1}: UID {2}".format(
+            i+1, message_limit, msg_uid
+        ))
+        if isinstance(mailbox, MSGraphConnection):
+            if test:
+                msg_content = connection.fetch_message(msg_uid,
+                                                       mark_read=False)
+            else:
+                msg_content = connection.fetch_message(msg_uid,
+                                                       mark_read=True)
+        else:
+            msg_content = connection.fetch_message(msg_uid)
         try:
             sa = strip_attachment_payloads
             parsed_email = parse_report_email(
@@ -1706,7 +1754,11 @@ def get_dmarc_reports_from_mailbox(
         ]
     )
 
-    total_messages = len(connection.fetch_messages(reports_folder))
+    if current_time:
+        total_messages = len(connection.fetch_messages(reports_folder,
+                                                       since=current_time))
+    else:
+        total_messages = len(connection.fetch_messages(reports_folder))
 
     if not test and not batch_size and total_messages > 0:
         # Process emails that came in during the last run
@@ -1725,6 +1777,7 @@ def get_dmarc_reports_from_mailbox(
             reverse_dns_map_path=reverse_dns_map_path,
             reverse_dns_map_url=reverse_dns_map_url,
             offline=offline,
+            since=current_time,
         )
 
     return results

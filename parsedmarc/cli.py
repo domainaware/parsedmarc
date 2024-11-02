@@ -510,6 +510,7 @@ def _main():
         mailbox_test=False,
         mailbox_batch_size=10,
         mailbox_check_timeout=30,
+        mailbox_since=None,
         imap_host=None,
         imap_skip_certificate_verification=False,
         imap_ssl=True,
@@ -713,7 +714,10 @@ def _main():
             if "batch_size" in mailbox_config:
                 opts.mailbox_batch_size = mailbox_config.getint("batch_size")
             if "check_timeout" in mailbox_config:
-                opts.mailbox_check_timeout = mailbox_config.getint("check_timeout")
+                opts.mailbox_check_timeout = mailbox_config.getint(
+                    "check_timeout")
+            if "since" in mailbox_config:
+                opts.mailbox_since = mailbox_config["since"]
 
         if "imap" in config.sections():
             imap_config = config["imap"]
@@ -1540,6 +1544,7 @@ def _main():
                 nameservers=opts.nameservers,
                 test=opts.mailbox_test,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
+                since=opts.mailbox_since,
             )
 
             aggregate_reports += reports["aggregate_reports"]
