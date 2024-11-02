@@ -1439,13 +1439,13 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         _since = 1440  # default one day
         if re.match(r'\d+[mhd]$', since):
             s = re.split(r'(\d+)', since)
-            if s[2] == 'm': 
+            if s[2] == 'm':
                 _since = int(s[1])
-            elif s[2] == 'h': 
+            elif s[2] == 'h':
                 _since = int(s[1])*60
-            elif s[2] == 'd': 
+            elif s[2] == 'd':
                 _since = int(s[1])*60*24
-            elif s[2] == 'w': 
+            elif s[2] == 'w':
                 _since = int(s[1])*60*24*7
         else:
             logger.warning("Incorrect format for \'since\' option. \
