@@ -1450,7 +1450,9 @@ def get_dmarc_reports_from_mailbox(connection: MailboxConnection,
         else:
             logger.warning("Incorrect format for \'since\' option. \
                            Provided value:{0}, Expected values:(5m|3h|2d|1w). \
-                           Ignoring option, fetching messages for last 24hrs"
+                           Ignoring option, fetching messages for last 24hrs" \
+                           "SMTP does not support a time or timezone in since." \
+                           "See https://www.rfc-editor.org/rfc/rfc3501#page-52"
                            .format(since))
 
         if isinstance(connection, IMAPConnection):
