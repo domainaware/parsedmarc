@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.16.0
+------
+
+- Add a `since` option to only search for emails since a certain time (PR #527)
+
 8.15.4
 ------
 
