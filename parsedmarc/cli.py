@@ -56,7 +56,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_age_seconds=3600)
+SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_len=None, max_age_seconds=3600)
 
 
 def _str_to_list(s):
