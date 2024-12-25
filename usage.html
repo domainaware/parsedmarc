@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.15.4 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 8.16.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=32d4ebce"></script>
+      <script src="_static/documentation_options.js?v=f8a2ab9b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -254,6 +254,9 @@ before saving. Default <code class="docutils literal notranslate"><span class="p
 <li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
 IDLE response or the number of seconds until the next
 mail check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">since</span></code> - str: Search for messages since certain time. (Examples: <code class="docutils literal notranslate"><span class="pre">5m|3h|2d|1w</span></code>)
+Acceptable units - {“m”:“minutes”, “h”:“hours”, “d”:“days”, “w”:“weeks”}).
+Defaults to <code class="docutils literal notranslate"><span class="pre">1d</span></code> if incorrect value is provided.</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p>

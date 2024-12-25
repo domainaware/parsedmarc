@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.15.4 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 8.16.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=32d4ebce"></script>
+      <script src="../_static/documentation_options.js?v=f8a2ab9b"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -98,7 +98,7 @@
 <span class="kn">from</span> <span class="nn">base64</span> <span class="kn">import</span> <span class="n">b64decode</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">csv</span> <span class="kn">import</span> <span class="n">DictWriter</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
 
@@ -109,13 +109,18 @@
 <span class="kn">from</span> <span class="nn">mailsuite.smtp</span> <span class="kn">import</span> <span class="n">send_email</span>
 
 <span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
-<span class="kn">from</span> <span class="nn">parsedmarc.mail</span> <span class="kn">import</span> <span class="n">MailboxConnection</span>
+<span class="kn">from</span> <span class="nn">parsedmarc.mail</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MailboxConnection</span><span class="p">,</span>
+    <span class="n">IMAPConnection</span><span class="p">,</span>
+    <span class="n">MSGraphConnection</span><span class="p">,</span>
+    <span class="n">GmailConnection</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">get_base_domain</span><span class="p">,</span> <span class="n">get_ip_address_info</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">is_outlook_msg</span><span class="p">,</span> <span class="n">convert_outlook_msg</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">parse_email</span>
 <span class="kn">from</span> <span class="nn">parsedmarc.utils</span> <span class="kn">import</span> <span class="n">timestamp_to_human</span><span class="p">,</span> <span class="n">human_timestamp_to_datetime</span>
 
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.15.4&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;8.16.1&quot;</span>
 
 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;parsedmarc v</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">))</span>
 
@@ -1642,6 +1647,7 @@
     <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">results</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">since</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">create_folders</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1665,6 +1671,8 @@
 <span class="sd">        results (dict): Results from the previous run</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">            (use 0 for no limit)</span>
+<span class="sd">        since: Search for messages since certain time</span>
+<span class="sd">            (units - {&quot;m&quot;:&quot;minutes&quot;, &quot;h&quot;:&quot;hours&quot;, &quot;d&quot;:&quot;days&quot;, &quot;w&quot;:&quot;weeks&quot;})</span>
 <span class="sd">        create_folders (bool): Whether to create the destination folders</span>
 <span class="sd">            (not used in watch)</span>
 
@@ -1676,6 +1684,9 @@
 
     <span class="k">if</span> <span class="n">connection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must supply a connection&quot;</span><span class="p">)</span>
+
+    <span class="c1"># current_time useful to fetch_messages later in the program</span>
+    <span class="n">current_time</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1700,11 +1711,50 @@
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">smtp_tls_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
 
-    <span class="n">messages</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">since</span><span class="p">:</span>
+        <span class="n">_since</span> <span class="o">=</span> <span class="mi">1440</span>  <span class="c1"># default one day</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d+[mhd]$&quot;</span><span class="p">,</span> <span class="n">since</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(\d+)&quot;</span><span class="p">,</span> <span class="n">since</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span>
+                <span class="n">_since</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span>
+                <span class="n">_since</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="mi">60</span>
+            <span class="k">elif</span> <span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span>
+                <span class="n">_since</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span>
+            <span class="k">elif</span> <span class="n">s</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+                <span class="n">_since</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">7</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Incorrect format for &#39;since&#39; option. </span><span class="se">\</span>
+<span class="s2">                           Provided value:</span><span class="si">{0}</span><span class="s2">, Expected values:(5m|3h|2d|1w). </span><span class="se">\</span>
+<span class="s2">                           Ignoring option, fetching messages for last 24hrs&quot;</span>
+                <span class="s2">&quot;SMTP does not support a time or timezone in since.&quot;</span>
+                <span class="s2">&quot;See https://www.rfc-editor.org/rfc/rfc3501#page-52&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">since</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">IMAPConnection</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;Only days and weeks values in &#39;since&#39; option are </span><span class="se">\</span>
+<span class="s2">                         considered for IMAP conections. Examples: 2d or 1w&quot;</span>
+            <span class="p">)</span>
+            <span class="n">since</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">MSGraphConnection</span><span class="p">):</span>
+            <span class="n">since</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">))</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">GmailConnection</span><span class="p">):</span>
+            <span class="n">since</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="n">messages</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span>
+        <span class="n">reports_folder</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="n">since</span>
+    <span class="p">)</span>
     <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> messages in </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">),</span> <span class="n">reports_folder</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">batch_size</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">since</span><span class="p">:</span>
         <span class="n">message_limit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_messages</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">message_limit</span> <span class="o">=</span> <span class="n">total_messages</span>
@@ -1718,7 +1768,13 @@
                 <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message_limit</span><span class="p">,</span> <span class="n">msg_uid</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mailbox</span><span class="p">,</span> <span class="n">MSGraphConnection</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">test</span><span class="p">:</span>
+                <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">mark_read</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">mark_read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">sa</span> <span class="o">=</span> <span class="n">strip_attachment_payloads</span>
             <span class="n">parsed_email</span> <span class="o">=</span> <span class="n">parse_report_email</span><span class="p">(</span>
@@ -1849,7 +1905,12 @@
         <span class="p">]</span>
     <span class="p">)</span>
 
-    <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">current_time</span><span class="p">:</span>
+        <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="n">current_time</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">batch_size</span> <span class="ow">and</span> <span class="n">total_messages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># Process emails that came in during the last run</span>
@@ -1868,6 +1929,7 @@
             <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
             <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="n">since</span><span class="o">=</span><span class="n">current_time</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">results</span></div>
