@@ -136,3 +136,4 @@ samples/private
 
 *.html
 *.sqlite-journal
+scratch.py
