@@ -15,6 +15,7 @@ from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pipe, Process
 import sys
 from tqdm import tqdm
+from expiringdict import ExpiringDict
 
 from parsedmarc import (
     get_dmarc_reports_from_mailbox,
@@ -54,6 +55,8 @@ formatter = logging.Formatter(
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_age_seconds=3600)
 
 
 def _str_to_list(s):
@@ -1418,7 +1421,12 @@ def _main():
             logger.error("Failed to parse {0} - {1}".format(result[1], result[0]))
         else:
             if result[0]["report_type"] == "aggregate":
-                aggregate_reports.append(result[0]["report"])
+                report_id = result[0]["report"]["report_id"]
+                if report_id not in SEEN_AGGREGATE_REPORT_IDS:
+                    SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
+                    aggregate_reports.append(result[0]["report"])
+                else:
+                    logger.debug(f"Skipping duplicate report ID: {report_id}")
             elif result[0]["report_type"] == "forensic":
                 forensic_reports.append(result[0]["report"])
             elif result[0]["report_type"] == "smtp_tls":

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.16.1
+------
+
+- Ignore aggregate DMARC reports seen within a period of one hour (#535)
+
 8.16.0
 ------
 
