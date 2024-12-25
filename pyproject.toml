@@ -59,7 +59,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = [
-    "hatch>1.14.0",
+    "hatch>=1.14.0",
     "myst-parser[linkify]",
     "nose",
     "pytest",
