@@ -1419,13 +1419,16 @@ def _main():
             logger.error("Failed to parse {0} - {1}".format(result[1], result[0]))
         else:
             if result[0]["report_type"] == "aggregate":
-                report_id = result[0]["report"]["report_metadata"]["report_id"]
-                if report_id not in SEEN_AGGREGATE_REPORT_IDS:
-                    SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
-                    aggregate_reports.append(result[0]["report"])
+                report_org = parsed_email["report"]["report_metadata"]["report_org"]
+                report_id = parsed_email["report"]["report_metadata"]["report_id"]
+                report_key = f"{report_org}_{report_id}"
+                if report_key not in SEEN_AGGREGATE_REPORT_IDS:
+                    SEEN_AGGREGATE_REPORT_IDS[report_key] = report_key
+                    aggregate_reports.append(parsed_email["report"])
                 else:
                     logger.debug(
-                        "Skipping duplicate aggregate report " f"with ID: {report_id}"
+                        "Skipping duplicate aggregate report "
+                        f"from {report_org} with ID: {report_id}"
                     )
             elif result[0]["report_type"] == "forensic":
                 forensic_reports.append(result[0]["report"])
