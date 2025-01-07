@@ -54,6 +54,7 @@ MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_JSON = b"\7b"
 
 IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
+SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_len=100000000, max_age_seconds=3600)
 REVERSE_DNS_MAP = dict()
 
 
@@ -1470,6 +1471,13 @@ def get_dmarc_reports_from_mbox(
                     strip_attachment_payloads=sa,
                 )
                 if parsed_email["report_type"] == "aggregate":
+                    report_id = parsed_email["report"]["report_metadata"]["report_id"]
+                    if report_id not in SEEN_AGGREGATE_REPORT_IDS:
+                        SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
+                        aggregate_reports.append(parsed_email["report"])
+                    else:
+                        logger.debug("Skipping duplicate aggregate report "
+                                     f"with ID: {report_id}")
                     aggregate_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])

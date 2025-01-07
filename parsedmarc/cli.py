@@ -1426,7 +1426,8 @@ def _main():
                     SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
                     aggregate_reports.append(result[0]["report"])
                 else:
-                    logger.debug(f"Skipping duplicate report ID: {report_id}")
+                    logger.debug("Skipping duplicate aggregate report "
+                                 f"with ID: {report_id}")
             elif result[0]["report_type"] == "forensic":
                 forensic_reports.append(result[0]["report"])
             elif result[0]["report_type"] == "smtp_tls":
