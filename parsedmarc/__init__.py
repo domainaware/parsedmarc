@@ -1480,7 +1480,6 @@ def get_dmarc_reports_from_mbox(
                             "Skipping duplicate aggregate report "
                             f"with ID: {report_id}"
                         )
-                    aggregate_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "smtp_tls":
@@ -1657,7 +1656,16 @@ def get_dmarc_reports_from_mailbox(
                 keep_alive=connection.keepalive,
             )
             if parsed_email["report_type"] == "aggregate":
-                aggregate_reports.append(parsed_email["report"])
+                if parsed_email["report_type"] == "aggregate":
+                    report_id = parsed_email["report"]["report_metadata"]["report_id"]
+                    if report_id not in SEEN_AGGREGATE_REPORT_IDS:
+                        SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
+                        aggregate_reports.append(parsed_email["report"])
+                    else:
+                        logger.debug(
+                            "Skipping duplicate aggregate report "
+                            f"with ID: {report_id}"
+                        )
                 aggregate_report_msg_uids.append(msg_uid)
             elif parsed_email["report_type"] == "forensic":
                 forensic_reports.append(parsed_email["report"])
