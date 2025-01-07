@@ -47,6 +47,7 @@ from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.log import logger
 from parsedmarc.utils import is_mbox, get_reverse_dns
+from parsedmarc import SEEN_AGGREGATE_REPORT_IDS
 
 formatter = logging.Formatter(
     fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
@@ -55,8 +56,6 @@ formatter = logging.Formatter(
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_len=100000000, max_age_seconds=3600)
 
 
 def _str_to_list(s):
