@@ -1476,8 +1476,10 @@ def get_dmarc_reports_from_mbox(
                         SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
                         aggregate_reports.append(parsed_email["report"])
                     else:
-                        logger.debug("Skipping duplicate aggregate report "
-                                     f"with ID: {report_id}")
+                        logger.debug(
+                            "Skipping duplicate aggregate report "
+                            f"with ID: {report_id}"
+                        )
                     aggregate_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "forensic":
                     forensic_reports.append(parsed_email["report"])
