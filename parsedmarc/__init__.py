@@ -1471,7 +1471,7 @@ def get_dmarc_reports_from_mbox(
                     strip_attachment_payloads=sa,
                 )
                 if parsed_email["report_type"] == "aggregate":
-                    report_org = parsed_email["report"]["report_metadata"]["report_org"]
+                    report_org = parsed_email["report"]["report_metadata"]["org_name"]
                     report_id = parsed_email["report"]["report_metadata"]["report_id"]
                     report_key = f"{report_org}_{report_id}"
                     if report_key not in SEEN_AGGREGATE_REPORT_IDS:
