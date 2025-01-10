@@ -5,7 +5,7 @@ import glob
 import csv
 
 
-maps_dir = os.path.join("parsedmarc","resources", "maps")
+maps_dir = os.path.join("parsedmarc", "resources", "maps")
 csv_files = glob.glob(os.path.join(maps_dir, "*.csv"))
 
 
