@@ -1423,7 +1423,7 @@ def _main():
                 report_id = result[0]["report"]["report_metadata"]["report_id"]
                 report_key = f"{report_org}_{report_id}"
                 if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                    SEEN_AGGREGATE_REPORT_IDS[report_key] = report_key
+                    SEEN_AGGREGATE_REPORT_IDS[report_key] = True
                     aggregate_reports.append(result[0]["report"])
                 else:
                     logger.debug(

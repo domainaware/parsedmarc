@@ -1475,7 +1475,7 @@ def get_dmarc_reports_from_mbox(
                     report_id = parsed_email["report"]["report_metadata"]["report_id"]
                     report_key = f"{report_org}_{report_id}"
                     if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                        SEEN_AGGREGATE_REPORT_IDS[report_key] = report_key
+                        SEEN_AGGREGATE_REPORT_IDS[report_key] = True
                         aggregate_reports.append(parsed_email["report"])
                     else:
                         logger.debug(
@@ -1658,16 +1658,17 @@ def get_dmarc_reports_from_mailbox(
                 keep_alive=connection.keepalive,
             )
             if parsed_email["report_type"] == "aggregate":
-                if parsed_email["report_type"] == "aggregate":
-                    report_id = parsed_email["report"]["report_metadata"]["report_id"]
-                    if report_id not in SEEN_AGGREGATE_REPORT_IDS:
-                        SEEN_AGGREGATE_REPORT_IDS[report_id] = report_id
-                        aggregate_reports.append(parsed_email["report"])
-                    else:
-                        logger.debug(
-                            "Skipping duplicate aggregate report "
-                            f"with ID: {report_id}"
-                        )
+                report_org = parsed_email["report"]["report_metadata"]["org_name"]
+                report_id = parsed_email["report"]["report_metadata"]["report_id"]
+                report_key = f"{report_org}_{report_id}"
+                if report_key not in SEEN_AGGREGATE_REPORT_IDS:
+                    SEEN_AGGREGATE_REPORT_IDS[report_key] = True
+                    aggregate_reports.append(parsed_email["report"])
+                else:
+                    logger.debug(
+                        "Skipping duplicate aggregate report "
+                        f"with ID: {report_id}"
+                    )
                 aggregate_report_msg_uids.append(msg_uid)
             elif parsed_email["report_type"] == "forensic":
                 forensic_reports.append(parsed_email["report"])
