@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.opensearch &mdash; parsedmarc 8.16.1 documentation</title>
+  <title>parsedmarc.opensearch &mdash; parsedmarc 8.17.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=f8a2ab9b"></script>
+      <script src="../../_static/documentation_options.js?v=2d0f65db"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -287,13 +287,15 @@
         <span class="n">receiving_ip</span><span class="p">,</span>
         <span class="n">receiving_mx_helo</span><span class="p">,</span>
         <span class="n">failed_session_count</span><span class="p">,</span>
+        <span class="n">sending_mta_ip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">additional_information_uri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">failure_reason_code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">_details</span> <span class="o">=</span> <span class="n">_SMTPTLSFailureDetailsDoc</span><span class="p">(</span>
             <span class="n">result_type</span><span class="o">=</span><span class="n">result_type</span><span class="p">,</span>
             <span class="n">ip_address</span><span class="o">=</span><span class="n">ip_address</span><span class="p">,</span>
+            <span class="n">sending_mta_ip</span><span class="o">=</span><span class="n">sending_mta_ip</span><span class="p">,</span>
             <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
             <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
             <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
@@ -301,9 +303,10 @@
             <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
             <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_SMTPTLSFailureReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_SMTPTLSReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
     <span class="k">class</span> <span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
 
@@ -598,6 +601,7 @@
             <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
         <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
@@ -790,7 +794,7 @@
 <span class="sd">            AlreadySaved</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving aggregate report to OpenSearch&quot;</span><span class="p">)</span>
-    <span class="n">org_name</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
+    <span class="n">org_name</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">]</span>
     <span class="n">report_id</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
     <span class="n">begin_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">end_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -846,11 +850,11 @@
         <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
     <span class="p">)</span>
 
-    <span class="n">smtp_tls_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSFailureReportDoc</span><span class="p">(</span>
-        <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
-        <span class="n">date_range</span><span class="o">=</span><span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">]],</span>
-        <span class="n">date_begin</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_begin&quot;</span><span class="p">],</span>
-        <span class="n">date_end</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date_end&quot;</span><span class="p">],</span>
+    <span class="n">smtp_tls_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSReportDoc</span><span class="p">(</span>
+        <span class="n">org_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization_name&quot;</span><span class="p">],</span>
+        <span class="n">date_range</span><span class="o">=</span><span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]],</span>
+        <span class="n">date_begin</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span>
+        <span class="n">date_end</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span>
         <span class="n">contact_info</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;contact_info&quot;</span><span class="p">],</span>
         <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">],</span>
     <span class="p">)</span>
@@ -865,32 +869,48 @@
         <span class="n">policy_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSPolicyDoc</span><span class="p">(</span>
             <span class="n">policy_domain</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">],</span>
             <span class="n">policy_type</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">],</span>
+            <span class="n">succesful_session_count</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;successful_session_count&quot;</span><span class="p">],</span>
+            <span class="n">failed_session_count</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
             <span class="n">policy_string</span><span class="o">=</span><span class="n">policy_strings</span><span class="p">,</span>
             <span class="n">mx_host_patterns</span><span class="o">=</span><span class="n">mx_host_patterns</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;failure_details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
-            <span class="n">failure_details</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]</span>
-            <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
-                <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
-                <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span>
-                    <span class="s2">&quot;additional_information_uri&quot;</span>
-                <span class="p">]</span>
-            <span class="k">if</span> <span class="s2">&quot;failure_reason_code&quot;</span> <span class="ow">in</span> <span class="n">failure_details</span><span class="p">:</span>
-                <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
-            <span class="n">policy_doc</span><span class="o">.</span><span class="n">add_failure_details</span><span class="p">(</span>
-                <span class="n">result_type</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;result_type&quot;</span><span class="p">],</span>
-                <span class="n">ip_address</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">],</span>
-                <span class="n">receiving_ip</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_ip&quot;</span><span class="p">],</span>
-                <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">],</span>
-                <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
-                <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
-                <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
-                <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">failure_detail</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]:</span>
+                <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">ip_address</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">receiving_ip</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span>
+                        <span class="s2">&quot;additional_information_uri&quot;</span>
+                    <span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;failure_reason_code&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">failure_reason_code</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;failure_reason_code&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;ip_address&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">ip_address</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;receiving_ip&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">receiving_ip</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_ip&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;receiving_mx_helo&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_mx_helo&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;sending_mta_ip&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;sending_mta_ip&quot;</span><span class="p">]</span>
+                <span class="n">policy_doc</span><span class="o">.</span><span class="n">add_failure_details</span><span class="p">(</span>
+                    <span class="n">result_type</span><span class="o">=</span><span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;result_type&quot;</span><span class="p">],</span>
+                    <span class="n">ip_address</span><span class="o">=</span><span class="n">ip_address</span><span class="p">,</span>
+                    <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
+                    <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
+                    <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">],</span>
+                    <span class="n">sending_mta_ip</span><span class="o">=</span><span class="n">sending_mta_ip</span><span class="p">,</span>
+                    <span class="n">receiving_mx_hostname</span><span class="o">=</span><span class="n">receiving_mx_hostname</span><span class="p">,</span>
+                    <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
+                    <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
+                <span class="p">)</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
 
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
