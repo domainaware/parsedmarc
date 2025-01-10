@@ -1,10 +1,17 @@
 Changelog
 =========
 
+8.17.0
+------
+
+- Ignore duplicate aggregate DMARC reports with the same `org_name` and `report_id` seen within the same hour ([#539](https://github.com/domainaware/parsedmarc/issues/539))
+- Fix saving SMTP TLS reports to OpenSearch (PR #585 closed issue #576)
+- Add 303 entries to `base_reverse_dns_map.csv`
+
 8.16.1
 ------
 
-- Ignore aggregate DMARC reports seen within a period of one hour (#535)
+- Failed attempt to ignore aggregate DMARC reports seen within a period of one hour (#535)
 
 8.16.0
 ------

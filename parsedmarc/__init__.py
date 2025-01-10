@@ -39,7 +39,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.16.1"
+__version__ = "8.17.0"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
@@ -1666,8 +1666,7 @@ def get_dmarc_reports_from_mailbox(
                     aggregate_reports.append(parsed_email["report"])
                 else:
                     logger.debug(
-                        "Skipping duplicate aggregate report "
-                        f"with ID: {report_id}"
+                        "Skipping duplicate aggregate report " f"with ID: {report_id}"
                     )
                 aggregate_report_msg_uids.append(msg_uid)
             elif parsed_email["report_type"] == "forensic":
