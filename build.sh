@@ -16,6 +16,7 @@ make html
 touch build/html/.nojekyll
 cp -rf build/html/* ../../parsedmarc-docs/
 cd ..
+./parsedmarc/resources/maps/sortmaps.py
 python3 tests.py
 rm -rf dist/ build/
 hatch build
