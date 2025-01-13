@@ -1294,7 +1294,7 @@ def parse_report_email(
                     "is not a valid "
                     "aggregate DMARC report: {1}".format(subject, e)
                 )
-                raise ParserError(error)
+                raise InvalidDMARCReport(error)
 
             except Exception as e:
                 error = "Unable to parse message with " 'subject "{0}": {1}'.format(
