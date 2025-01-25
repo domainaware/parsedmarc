@@ -14,6 +14,7 @@ import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pipe, Process
 import sys
+import http.client
 from tqdm import tqdm
 
 from parsedmarc import (
@@ -47,6 +48,8 @@ from parsedmarc.mail.graph import AuthMethod
 from parsedmarc.log import logger
 from parsedmarc.utils import is_mbox, get_reverse_dns
 from parsedmarc import SEEN_AGGREGATE_REPORT_IDS
+
+http.client._MAXHEADERS = 200 # pylint:disable=protected-access
 
 formatter = logging.Formatter(
     fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
