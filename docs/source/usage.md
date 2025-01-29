@@ -208,7 +208,7 @@ The full set of configuration options are:
   - `mailbox` - str: The mailbox name. This defaults to the
       current user if using the UsernamePassword auth method, but
       could be a shared mailbox if the user has access to the mailbox
-  - `graph_url` - str: Microsoft Graph URL.  Allows for use of National Clouds (ex. GCC-H)
+  - `graph_url` - str: Microsoft Graph URL.  Allows for use of National Clouds (ex Azure Gov)
       (Default: https://graph.microsoft.com)
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
