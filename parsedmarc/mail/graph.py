@@ -89,6 +89,7 @@ class MSGraphConnection(MailboxConnection):
         self,
         auth_method: str,
         mailbox: str,
+        graph_url: str,
         client_id: str,
         client_secret: str,
         username: str,
@@ -108,7 +109,10 @@ class MSGraphConnection(MailboxConnection):
             token_path=token_path,
             allow_unencrypted_storage=allow_unencrypted_storage,
         )
-        client_params = {"credential": credential}
+        client_params = {
+            "credential": credential,
+            "cloud": graph_url,
+        }
         if not isinstance(credential, ClientSecretCredential):
             scopes = ["Mail.ReadWrite"]
             # Detect if mailbox is shared
