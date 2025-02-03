@@ -1,21 +1,24 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; parsedmarc 8.17.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>Installation &mdash; parsedmarc 8.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2d0f65db"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,6 +37,9 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
+              <div class="version">
+                8.18.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -93,18 +99,18 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> works with Python 3 only.</p>
 <section id="testing-multiple-report-analyzers">
-<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Link to this heading"></a></h3>
+<h3>Testing multiple report analyzers<a class="headerlink" href="#testing-multiple-report-analyzers" title="Permalink to this heading"></a></h3>
 <p>If you would like to test parsedmarc and another report processing
 solution at the same time, you can have up to two <code class="docutils literal notranslate"><span class="pre">mailto</span></code> URIs in each of the rua and ruf
 tags in your DMARC record, separated by commas.</p>
 </section>
 <section id="using-a-web-proxy">
-<h3>Using a web proxy<a class="headerlink" href="#using-a-web-proxy" title="Link to this heading"></a></h3>
+<h3>Using a web proxy<a class="headerlink" href="#using-a-web-proxy" title="Permalink to this heading"></a></h3>
 <p>If your system is behind a web proxy, you need to configure your system
 to use that proxy. To do this, edit <code class="docutils literal notranslate"><span class="pre">/etc/environment</span></code> and add your
 proxy details there, for example:</p>
@@ -122,7 +128,7 @@ proxy details there, for example:</p>
 <p>This will set the proxy up for use system-wide, including for <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>.</p>
 </section>
 <section id="using-microsoft-exchange">
-<h3>Using Microsoft Exchange<a class="headerlink" href="#using-microsoft-exchange" title="Link to this heading"></a></h3>
+<h3>Using Microsoft Exchange<a class="headerlink" href="#using-microsoft-exchange" title="Permalink to this heading"></a></h3>
 <p>If your mail server is Microsoft Exchange, ensure that it is patched to at
 least:</p>
 <ul class="simple">
@@ -132,7 +138,7 @@ least:</p>
 </ul>
 </section>
 <section id="geoipupdate-setup">
-<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Link to this heading"></a></h3>
+<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Permalink to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the
@@ -204,7 +210,7 @@ job or scheduled task.</p>
 </section>
 </section>
 <section id="installing-parsedmarc">
-<h2>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Link to this heading"></a></h2>
+<h2>Installing parsedmarc<a class="headerlink" href="#installing-parsedmarc" title="Permalink to this heading"></a></h2>
 <p>On Debian or Ubuntu systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python3-pip<span class="w"> </span>python3-virtualenv<span class="w"> </span>python3-dev<span class="w"> </span>libxml2-dev<span class="w"> </span>libxslt-dev
 </pre></div>
@@ -239,7 +245,7 @@ explicitly tell <code class="docutils literal notranslate"><span class="pre">vir
 </div>
 </section>
 <section id="optional-dependencies">
-<h2>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Link to this heading"></a></h2>
+<h2>Optional dependencies<a class="headerlink" href="#optional-dependencies" title="Permalink to this heading"></a></h2>
 <p>If you would like to be able to parse emails saved from Microsoft
 Outlook (i.e. OLE .msg files), install <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code>:</p>
 <p>On Debian or Ubuntu systems, run:</p>

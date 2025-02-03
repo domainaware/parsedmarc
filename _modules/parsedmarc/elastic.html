@@ -1,20 +1,23 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 8.17.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+  <title>parsedmarc.elastic &mdash; parsedmarc 8.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=2d0f65db"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -31,6 +34,9 @@
           <a href="../../index.html" class="icon icon-home">
             parsedmarc
           </a>
+              <div class="version">
+                8.18.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -106,11 +112,8 @@
 <span class="kn">from</span> <span class="nn">parsedmarc</span> <span class="kn">import</span> <span class="n">InvalidForensicReport</span>
 
 
-<div class="viewcode-block" id="ElasticsearchError">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.ElasticsearchError">[docs]</a>
-<span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ElasticsearchError"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.ElasticsearchError">[docs]</a><span class="k">class</span> <span class="nc">ElasticsearchError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an Elasticsearch error occurs&quot;&quot;&quot;</span></div>
-
 
 
 <span class="k">class</span> <span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
@@ -339,16 +342,11 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="AlreadySaved">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.AlreadySaved">[docs]</a>
-<span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<div class="viewcode-block" id="AlreadySaved"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.AlreadySaved">[docs]</a><span class="k">class</span> <span class="nc">AlreadySaved</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a report to be saved matches an existing report&quot;&quot;&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="set_hosts">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.set_hosts">[docs]</a>
-<span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span>
+<div class="viewcode-block" id="set_hosts"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.set_hosts">[docs]</a><span class="k">def</span> <span class="nf">set_hosts</span><span class="p">(</span>
     <span class="n">hosts</span><span class="p">,</span>
     <span class="n">use_ssl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">ssl_cert_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -386,10 +384,7 @@
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="create_indexes">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.create_indexes">[docs]</a>
-<span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="create_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.create_indexes">[docs]</a><span class="k">def</span> <span class="nf">create_indexes</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create Elasticsearch indexes</span>
 
@@ -412,10 +407,7 @@
             <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-
-<div class="viewcode-block" id="migrate_indexes">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.migrate_indexes">[docs]</a>
-<span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="migrate_indexes"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.migrate_indexes">[docs]</a><span class="k">def</span> <span class="nf">migrate_indexes</span><span class="p">(</span><span class="n">aggregate_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forensic_indexes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates index mappings</span>
 
@@ -461,10 +453,7 @@
         <span class="k">pass</span></div>
 
 
-
-<div class="viewcode-block" id="save_aggregate_report_to_elasticsearch">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a>
-<span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span>
+<div class="viewcode-block" id="save_aggregate_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span>
     <span class="n">aggregate_report</span><span class="p">,</span>
     <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -615,10 +604,7 @@
             <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
-
-<div class="viewcode-block" id="save_forensic_report_to_elasticsearch">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a>
-<span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span>
+<div class="viewcode-block" id="save_forensic_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span>
     <span class="n">forensic_report</span><span class="p">,</span>
     <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -768,10 +754,7 @@
         <span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch">
-<a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a>
-<span class="k">def</span> <span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span>
+<div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch"><a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a><span class="k">def</span> <span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span>
     <span class="n">report</span><span class="p">,</span>
     <span class="n">index_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -920,7 +903,6 @@
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
-
 </pre></div>
 
            </div>

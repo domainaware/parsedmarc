@@ -1,20 +1,23 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.17.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+  <title>parsedmarc.utils &mdash; parsedmarc 8.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=2d0f65db"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -31,6 +34,9 @@
           <a href="../../index.html" class="icon icon-home">
             parsedmarc
           </a>
+              <div class="version">
+                8.18.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -127,23 +133,15 @@
 <span class="n">mailparser_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="EmailParserError">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.EmailParserError">[docs]</a>
-<span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<div class="viewcode-block" id="EmailParserError"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.EmailParserError">[docs]</a><span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an error parsing the email occurs&quot;&quot;&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="DownloadError">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.DownloadError">[docs]</a>
-<span class="k">class</span> <span class="nc">DownloadError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<div class="viewcode-block" id="DownloadError"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.DownloadError">[docs]</a><span class="k">class</span> <span class="nc">DownloadError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an error occurs when downloading a file&quot;&quot;&quot;</span></div>
 
 
-
-<div class="viewcode-block" id="decode_base64">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.decode_base64">[docs]</a>
-<span class="k">def</span> <span class="nf">decode_base64</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="decode_base64"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.decode_base64">[docs]</a><span class="k">def</span> <span class="nf">decode_base64</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Decodes a base64 string, with padding being optional</span>
 
@@ -161,10 +159,7 @@
     <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="get_base_domain">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a>
-<span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
+<div class="viewcode-block" id="get_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the base domain name for the given domain</span>
 
@@ -183,10 +178,7 @@
     <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">privatesuffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="query_dns">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.query_dns">[docs]</a>
-<span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="query_dns"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.query_dns">[docs]</a><span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Queries DNS</span>
 
@@ -247,10 +239,7 @@
     <span class="k">return</span> <span class="n">records</span></div>
 
 
-
-<div class="viewcode-block" id="get_reverse_dns">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_reverse_dns">[docs]</a>
-<span class="k">def</span> <span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_reverse_dns"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_reverse_dns">[docs]</a><span class="k">def</span> <span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resolves an IP address to a hostname using a reverse DNS query</span>
 
@@ -278,10 +267,7 @@
     <span class="k">return</span> <span class="n">hostname</span></div>
 
 
-
-<div class="viewcode-block" id="timestamp_to_datetime">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_datetime">[docs]</a>
-<span class="k">def</span> <span class="nf">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
+<div class="viewcode-block" id="timestamp_to_datetime"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_datetime">[docs]</a><span class="k">def</span> <span class="nf">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a UNIX/DMARC timestamp to a Python ``datetime`` object</span>
 
@@ -294,10 +280,7 @@
     <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">timestamp</span><span class="p">))</span></div>
 
 
-
-<div class="viewcode-block" id="timestamp_to_human">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_human">[docs]</a>
-<span class="k">def</span> <span class="nf">timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
+<div class="viewcode-block" id="timestamp_to_human"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_human">[docs]</a><span class="k">def</span> <span class="nf">timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a UNIX/DMARC timestamp to a human-readable string</span>
 
@@ -310,10 +293,7 @@
     <span class="k">return</span> <span class="n">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="human_timestamp_to_datetime">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_datetime">[docs]</a>
-<span class="k">def</span> <span class="nf">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="human_timestamp_to_datetime"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_datetime">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a Python ``datetime`` object</span>
 
@@ -332,10 +312,7 @@
     <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="k">if</span> <span class="n">to_utc</span> <span class="k">else</span> <span class="n">dt</span></div>
 
 
-
-<div class="viewcode-block" id="human_timestamp_to_unix_timestamp">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">[docs]</a>
-<span class="k">def</span> <span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
+<div class="viewcode-block" id="human_timestamp_to_unix_timestamp"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a UNIX timestamp</span>
 
@@ -349,10 +326,7 @@
     <span class="k">return</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span></div>
 
 
-
-<div class="viewcode-block" id="get_ip_address_country">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a>
-<span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the ISO code for the country associated</span>
 <span class="sd">    with the given IPv4 or IPv6 address</span>
@@ -415,10 +389,7 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
-
-<div class="viewcode-block" id="get_service_from_reverse_dns_base_domain">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a>
-<span class="k">def</span> <span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
+<div class="viewcode-block" id="get_service_from_reverse_dns_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
     <span class="n">base_domain</span><span class="p">,</span>
     <span class="n">always_use_local_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">local_file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -461,7 +432,7 @@
 
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offline</span> <span class="ow">or</span> <span class="n">always_use_local_file</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">reverse_dns_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trying to fetch &quot;</span> <span class="sa">f</span><span class="s2">&quot;reverse DNS map from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trying to fetch reverse DNS map from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
             <span class="n">csv_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
             <span class="n">csv_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">load_csv</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
@@ -484,10 +455,7 @@
     <span class="k">return</span> <span class="n">service</span></div>
 
 
-
-<div class="viewcode-block" id="get_ip_address_info">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a>
-<span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span>
+<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span>
     <span class="n">ip_address</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -563,7 +531,6 @@
     <span class="k">return</span> <span class="n">info</span></div>
 
 
-
 <span class="k">def</span> <span class="nf">parse_email_address</span><span class="p">(</span><span class="n">original_address</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">original_address</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">display_name</span> <span class="o">=</span> <span class="kc">None</span>
@@ -587,9 +554,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_filename_safe_string">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_filename_safe_string">[docs]</a>
-<span class="k">def</span> <span class="nf">get_filename_safe_string</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+<div class="viewcode-block" id="get_filename_safe_string"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_filename_safe_string">[docs]</a><span class="k">def</span> <span class="nf">get_filename_safe_string</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a string to a string that is safe for a filename</span>
 
@@ -611,10 +576,7 @@
     <span class="k">return</span> <span class="n">string</span></div>
 
 
-
-<div class="viewcode-block" id="is_mbox">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_mbox">[docs]</a>
-<span class="k">def</span> <span class="nf">is_mbox</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<div class="viewcode-block" id="is_mbox"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_mbox">[docs]</a><span class="k">def</span> <span class="nf">is_mbox</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if the given content is an MBOX mailbox file</span>
 
@@ -635,10 +597,7 @@
     <span class="k">return</span> <span class="n">_is_mbox</span></div>
 
 
-
-<div class="viewcode-block" id="is_outlook_msg">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_outlook_msg">[docs]</a>
-<span class="k">def</span> <span class="nf">is_outlook_msg</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+<div class="viewcode-block" id="is_outlook_msg"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_outlook_msg">[docs]</a><span class="k">def</span> <span class="nf">is_outlook_msg</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if the given content is an Outlook msg OLE/MSG file</span>
 
@@ -653,10 +612,7 @@
     <span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="convert_outlook_msg">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.convert_outlook_msg">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_outlook_msg</span><span class="p">(</span><span class="n">msg_bytes</span><span class="p">):</span>
+<div class="viewcode-block" id="convert_outlook_msg"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.convert_outlook_msg">[docs]</a><span class="k">def</span> <span class="nf">convert_outlook_msg</span><span class="p">(</span><span class="n">msg_bytes</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to</span>
 <span class="sd">    standard RFC 822 format</span>
@@ -692,10 +648,7 @@
     <span class="k">return</span> <span class="n">rfc822</span></div>
 
 
-
-<div class="viewcode-block" id="parse_email">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.parse_email">[docs]</a>
-<span class="k">def</span> <span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="parse_email"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.parse_email">[docs]</a><span class="k">def</span> <span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simplified email parser</span>
 
@@ -801,7 +754,6 @@
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;body&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">return</span> <span class="n">parsed_email</span></div>
-
 </pre></div>
 
            </div>

@@ -1,21 +1,24 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Accessing an inbox using OWA/EWS &mdash; parsedmarc 8.17.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>Accessing an inbox using OWA/EWS &mdash; parsedmarc 8.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2d0f65db"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,6 +37,9 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
+              <div class="version">
+                8.18.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -86,7 +92,7 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="accessing-an-inbox-using-owa-ews">
-<h1>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Link to this heading"></a></h1>
+<h1>Accessing an inbox using OWA/EWS<a class="headerlink" href="#accessing-an-inbox-using-owa-ews" title="Permalink to this heading"></a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
@@ -171,7 +177,7 @@ as a local EWS/OWA IMAP gateway. It can even work where
 </pre></div>
 </div>
 <section id="running-davmail-as-a-systemd-service">
-<h2>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Link to this heading"></a></h2>
+<h2>Running DavMail as a systemd service<a class="headerlink" href="#running-davmail-as-a-systemd-service" title="Permalink to this heading"></a></h2>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">davmail</span></code> as a service.</p>
 <p>Create a system user</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>useradd<span class="w"> </span>davmail<span class="w"> </span>-r<span class="w"> </span>-s<span class="w"> </span>/bin/false
@@ -238,7 +244,7 @@ well as the current process (newest to oldest), run:</p>
 </div>
 </section>
 <section id="configuring-parsedmarc-for-davmail">
-<h2>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Link to this heading"></a></h2>
+<h2>Configuring parsedmarc for DavMail<a class="headerlink" href="#configuring-parsedmarc-for-davmail" title="Permalink to this heading"></a></h2>
 <p>Because you are interacting with DavMail server over the loopback
 (i.e. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>), add the following options to <code class="docutils literal notranslate"><span class="pre">parsedmarc.ini</span></code>
 config file:</p>

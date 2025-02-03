@@ -1,21 +1,24 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.17.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 8.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
 
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2d0f65db"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,6 +37,9 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
+              <div class="version">
+                8.18.0
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -87,14 +93,14 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="elasticsearch-and-kibana">
-<h1>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Link to this heading"></a></h1>
+<h1>Elasticsearch and Kibana<a class="headerlink" href="#elasticsearch-and-kibana" title="Permalink to this heading"></a></h1>
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Elasticsearch and Kibana 6 or later are required</p>
 </div>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
 <p>On Debian/Ubuntu based systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>apt-transport-https
 wget<span class="w"> </span>-qO<span class="w"> </span>-<span class="w"> </span>https://artifacts.elastic.co/GPG-KEY-elasticsearch<span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>gpg<span class="w"> </span>--dearmor<span class="w"> </span>-o<span class="w"> </span>/usr/share/keyrings/elasticsearch-keyring.gpg
@@ -237,13 +243,11 @@ page of Kibana. (Hamburger menu -&gt; “Management” -&gt; “Stack Management
 visualizations, which could be used to restore them if you or someone else
 breaks them, as there are no permissions/access controls in Kibana without
 the commercial <a class="reference external" href="https://www.elastic.co/products/x-pack">X-Pack</a>.</p>
-<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects Stack management UI in Kibana" class="align-center" src="_images/saved-objects.png" />
-</a>
-<a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" />
-</a>
+<a class="reference external image-reference" href="_static/screenshots/saved-objects.png"><img alt="A screenshot of setting the Saved Objects Stack management UI in Kibana" class="align-center" src="_images/saved-objects.png" /></a>
+<a class="reference external image-reference" href="_static/screenshots/confirm-overwrite.png"><img alt="A screenshot of the overwrite conformation prompt" class="align-center" src="_images/confirm-overwrite.png" /></a>
 </section>
 <section id="upgrading-kibana-index-patterns">
-<h2>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Link to this heading"></a></h2>
+<h2>Upgrading Kibana index patterns<a class="headerlink" href="#upgrading-kibana-index-patterns" title="Permalink to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 5.0.0 makes some changes to the way data is indexed in
 Elasticsearch. if you are upgrading from a previous release of
 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, you need to complete the following steps to replace the
@@ -262,7 +266,7 @@ Saved Objects page</p></li>
 </ol>
 </section>
 <section id="records-retention">
-<h2>Records retention<a class="headerlink" href="#records-retention" title="Link to this heading"></a></h2>
+<h2>Records retention<a class="headerlink" href="#records-retention" title="Permalink to this heading"></a></h2>
 <p>Starting in version 5.0.0, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> stores data in a separate
 index for each day to make it easy to comply with records
 retention regulations such as GDPR. For more information,
