@@ -528,6 +528,7 @@ def _main():
         graph_tenant_id=None,
         graph_mailbox=None,
         graph_allow_unencrypted_storage=False,
+        graph_url="graph.microsoft.com",
         hec=None,
         hec_token=None,
         hec_index=None,
@@ -878,6 +879,9 @@ def _main():
                     "mailbox setting missing from the " "msgraph config section"
                 )
                 exit(-1)
+
+            if "graph_url" in graph_config:
+                opts.graph_url = graph_config["graph_url"]
 
             if "allow_unencrypted_storage" in graph_config:
                 opts.graph_allow_unencrypted_storage = graph_config.getboolean(
@@ -1496,6 +1500,7 @@ def _main():
                 password=opts.graph_password,
                 token_file=opts.graph_token_file,
                 allow_unencrypted_storage=opts.graph_allow_unencrypted_storage,
+                graph_url=opts.graph_url,
             )
 
         except Exception:
