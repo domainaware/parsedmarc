@@ -49,7 +49,7 @@ from parsedmarc.log import logger
 from parsedmarc.utils import is_mbox, get_reverse_dns
 from parsedmarc import SEEN_AGGREGATE_REPORT_IDS
 
-http.client._MAXHEADERS = 200 # pylint:disable=protected-access
+http.client._MAXHEADERS = 200  # pylint:disable=protected-access
 
 formatter = logging.Formatter(
     fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
@@ -399,7 +399,7 @@ def _main():
     arg_parser.add_argument(
         "-c",
         "--config-file",
-        help="a path to a configuration file " "(--silent implied)",
+        help="a path to a configuration file (--silent implied)",
     )
     arg_parser.add_argument(
         "file_path",
@@ -407,7 +407,7 @@ def _main():
         help="one or more paths to aggregate or forensic "
         "report files, emails, or mbox files'",
     )
-    strip_attachment_help = "remove attachment payloads from forensic " "report output"
+    strip_attachment_help = "remove attachment payloads from forensic report output"
     arg_parser.add_argument(
         "--strip-attachment-payloads", help=strip_attachment_help, action="store_true"
     )
@@ -450,14 +450,14 @@ def _main():
     arg_parser.add_argument(
         "-t",
         "--dns_timeout",
-        help="number of seconds to wait for an answer " "from DNS (default: 2.0)",
+        help="number of seconds to wait for an answer from DNS (default: 2.0)",
         type=float,
         default=2.0,
     )
     arg_parser.add_argument(
         "--offline",
         action="store_true",
-        help="do not make online queries for geolocation " " or  DNS",
+        help="do not make online queries for geolocation  or  DNS",
     )
     arg_parser.add_argument(
         "-s", "--silent", action="store_true", help="only print errors"
@@ -734,7 +734,7 @@ def _main():
             if "host" in imap_config:
                 opts.imap_host = imap_config["host"]
             else:
-                logger.error("host setting missing from the " "imap config section")
+                logger.error("host setting missing from the imap config section")
                 exit(-1)
             if "port" in imap_config:
                 opts.imap_port = imap_config.getint("port")
@@ -750,14 +750,12 @@ def _main():
             if "user" in imap_config:
                 opts.imap_user = imap_config["user"]
             else:
-                logger.critical("user setting missing from the " "imap config section")
+                logger.critical("user setting missing from the imap config section")
                 exit(-1)
             if "password" in imap_config:
                 opts.imap_password = imap_config["password"]
             else:
-                logger.critical(
-                    "password setting missing from the " "imap config section"
-                )
+                logger.critical("password setting missing from the imap config section")
                 exit(-1)
             if "reports_folder" in imap_config:
                 opts.mailbox_reports_folder = imap_config["reports_folder"]
@@ -826,21 +824,20 @@ def _main():
                     opts.graph_user = graph_config["user"]
                 else:
                     logger.critical(
-                        "user setting missing from the " "msgraph config section"
+                        "user setting missing from the msgraph config section"
                     )
                     exit(-1)
                 if "password" in graph_config:
                     opts.graph_password = graph_config["password"]
                 else:
                     logger.critical(
-                        "password setting missing from the " "msgraph config section"
+                        "password setting missing from the msgraph config section"
                     )
                 if "client_secret" in graph_config:
                     opts.graph_client_secret = graph_config["client_secret"]
                 else:
                     logger.critical(
-                        "client_secret setting missing from the "
-                        "msgraph config section"
+                        "client_secret setting missing from the msgraph config section"
                     )
                     exit(-1)
 
@@ -853,7 +850,7 @@ def _main():
                     opts.graph_tenant_id = graph_config["tenant_id"]
                 else:
                     logger.critical(
-                        "tenant_id setting missing from the " "msgraph config section"
+                        "tenant_id setting missing from the msgraph config section"
                     )
                     exit(-1)
 
@@ -862,8 +859,7 @@ def _main():
                     opts.graph_client_secret = graph_config["client_secret"]
                 else:
                     logger.critical(
-                        "client_secret setting missing from the "
-                        "msgraph config section"
+                        "client_secret setting missing from the msgraph config section"
                     )
                     exit(-1)
 
@@ -871,7 +867,7 @@ def _main():
                 opts.graph_client_id = graph_config["client_id"]
             else:
                 logger.critical(
-                    "client_id setting missing from the " "msgraph config section"
+                    "client_id setting missing from the msgraph config section"
                 )
                 exit(-1)
 
@@ -879,7 +875,7 @@ def _main():
                 opts.graph_mailbox = graph_config["mailbox"]
             elif opts.graph_auth_method != AuthMethod.UsernamePassword.name:
                 logger.critical(
-                    "mailbox setting missing from the " "msgraph config section"
+                    "mailbox setting missing from the msgraph config section"
                 )
                 exit(-1)
 
@@ -897,7 +893,7 @@ def _main():
                 opts.elasticsearch_hosts = _str_to_list(elasticsearch_config["hosts"])
             else:
                 logger.critical(
-                    "hosts setting missing from the " "elasticsearch config section"
+                    "hosts setting missing from the elasticsearch config section"
                 )
                 exit(-1)
             if "timeout" in elasticsearch_config:
@@ -935,7 +931,7 @@ def _main():
                 opts.opensearch_hosts = _str_to_list(opensearch_config["hosts"])
             else:
                 logger.critical(
-                    "hosts setting missing from the " "opensearch config section"
+                    "hosts setting missing from the opensearch config section"
                 )
                 exit(-1)
             if "timeout" in opensearch_config:
@@ -971,21 +967,21 @@ def _main():
                 opts.hec = hec_config["url"]
             else:
                 logger.critical(
-                    "url setting missing from the " "splunk_hec config section"
+                    "url setting missing from the splunk_hec config section"
                 )
                 exit(-1)
             if "token" in hec_config:
                 opts.hec_token = hec_config["token"]
             else:
                 logger.critical(
-                    "token setting missing from the " "splunk_hec config section"
+                    "token setting missing from the splunk_hec config section"
                 )
                 exit(-1)
             if "index" in hec_config:
                 opts.hec_index = hec_config["index"]
             else:
                 logger.critical(
-                    "index setting missing from the " "splunk_hec config section"
+                    "index setting missing from the splunk_hec config section"
                 )
                 exit(-1)
             if "skip_certificate_verification" in hec_config:
@@ -998,9 +994,7 @@ def _main():
             if "hosts" in kafka_config:
                 opts.kafka_hosts = _str_to_list(kafka_config["hosts"])
             else:
-                logger.critical(
-                    "hosts setting missing from the " "kafka config section"
-                )
+                logger.critical("hosts setting missing from the kafka config section")
                 exit(-1)
             if "user" in kafka_config:
                 opts.kafka_username = kafka_config["user"]
@@ -1015,21 +1009,20 @@ def _main():
                 opts.kafka_aggregate_topic = kafka_config["aggregate_topic"]
             else:
                 logger.critical(
-                    "aggregate_topic setting missing from the " "kafka config section"
+                    "aggregate_topic setting missing from the kafka config section"
                 )
                 exit(-1)
             if "forensic_topic" in kafka_config:
                 opts.kafka_forensic_topic = kafka_config["forensic_topic"]
             else:
                 logger.critical(
-                    "forensic_topic setting missing from the " "kafka config section"
+                    "forensic_topic setting missing from the kafka config section"
                 )
             if "smtp_tls_topic" in kafka_config:
                 opts.kafka_smtp_tls_topic = kafka_config["smtp_tls_topic"]
             else:
                 logger.critical(
-                    "forensic_topic setting missing from the "
-                    "splunk_hec config section"
+                    "forensic_topic setting missing from the splunk_hec config section"
                 )
 
         if "smtp" in config.sections():
@@ -1037,7 +1030,7 @@ def _main():
             if "host" in smtp_config:
                 opts.smtp_host = smtp_config["host"]
             else:
-                logger.critical("host setting missing from the " "smtp config section")
+                logger.critical("host setting missing from the smtp config section")
                 exit(-1)
             if "port" in smtp_config:
                 opts.smtp_port = smtp_config.getint("port")
@@ -1049,23 +1042,21 @@ def _main():
             if "user" in smtp_config:
                 opts.smtp_user = smtp_config["user"]
             else:
-                logger.critical("user setting missing from the " "smtp config section")
+                logger.critical("user setting missing from the smtp config section")
                 exit(-1)
             if "password" in smtp_config:
                 opts.smtp_password = smtp_config["password"]
             else:
-                logger.critical(
-                    "password setting missing from the " "smtp config section"
-                )
+                logger.critical("password setting missing from the smtp config section")
                 exit(-1)
             if "from" in smtp_config:
                 opts.smtp_from = smtp_config["from"]
             else:
-                logger.critical("from setting missing from the " "smtp config section")
+                logger.critical("from setting missing from the smtp config section")
             if "to" in smtp_config:
                 opts.smtp_to = _str_to_list(smtp_config["to"])
             else:
-                logger.critical("to setting missing from the " "smtp config section")
+                logger.critical("to setting missing from the smtp config section")
             if "subject" in smtp_config:
                 opts.smtp_subject = smtp_config["subject"]
             if "attachment" in smtp_config:
@@ -1078,7 +1069,7 @@ def _main():
             if "bucket" in s3_config:
                 opts.s3_bucket = s3_config["bucket"]
             else:
-                logger.critical("bucket setting missing from the " "s3 config section")
+                logger.critical("bucket setting missing from the s3 config section")
                 exit(-1)
             if "path" in s3_config:
                 opts.s3_path = s3_config["path"]
@@ -1103,9 +1094,7 @@ def _main():
             if "server" in syslog_config:
                 opts.syslog_server = syslog_config["server"]
             else:
-                logger.critical(
-                    "server setting missing from the " "syslog config section"
-                )
+                logger.critical("server setting missing from the syslog config section")
                 exit(-1)
             if "port" in syslog_config:
                 opts.syslog_port = syslog_config["port"]
@@ -1156,17 +1145,17 @@ def _main():
             if "host" in gelf_config:
                 opts.gelf_host = gelf_config["host"]
             else:
-                logger.critical("host setting missing from the " "gelf config section")
+                logger.critical("host setting missing from the gelf config section")
                 exit(-1)
             if "port" in gelf_config:
                 opts.gelf_port = gelf_config["port"]
             else:
-                logger.critical("port setting missing from the " "gelf config section")
+                logger.critical("port setting missing from the gelf config section")
                 exit(-1)
             if "mode" in gelf_config:
                 opts.gelf_mode = gelf_config["mode"]
             else:
-                logger.critical("mode setting missing from the " "gelf config section")
+                logger.critical("mode setting missing from the gelf config section")
                 exit(-1)
 
         if "webhook" in config.sections():
@@ -1192,8 +1181,7 @@ def _main():
         try:
             fh = logging.FileHandler(opts.log_file, "a")
             formatter = logging.Formatter(
-                "%(asctime)s - "
-                "%(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+                "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
             )
             fh.setFormatter(formatter)
             logger.addHandler(fh)
@@ -1301,7 +1289,7 @@ def _main():
 
     if opts.hec:
         if opts.hec_token is None or opts.hec_index is None:
-            logger.error("HEC token and HEC index are required when " "using HEC URL")
+            logger.error("HEC token and HEC index are required when using HEC URL")
             exit(1)
 
         verify = True
@@ -1464,7 +1452,7 @@ def _main():
         try:
             if opts.imap_user is None or opts.imap_password is None:
                 logger.error(
-                    "IMAP user and password must be specified if" "host is specified"
+                    "IMAP user and password must be specified ifhost is specified"
                 )
 
             ssl = True
