@@ -531,7 +531,7 @@ def _main():
         graph_tenant_id=None,
         graph_mailbox=None,
         graph_allow_unencrypted_storage=False,
-        graph_url="graph.microsoft.com",
+        graph_url="https://graph.microsoft.com",
         hec=None,
         hec_token=None,
         hec_index=None,
