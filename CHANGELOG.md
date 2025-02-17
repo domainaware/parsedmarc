@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.18.1
+------
+
+- Add missing `https://` to the default Microsoft Graph URL
+
 8.18.0
 ------
 

@@ -39,7 +39,7 @@ from parsedmarc.utils import is_outlook_msg, convert_outlook_msg
 from parsedmarc.utils import parse_email
 from parsedmarc.utils import timestamp_to_human, human_timestamp_to_datetime
 
-__version__ = "8.18.0"
+__version__ = "8.18.1"
 
 logger.debug("parsedmarc v{0}".format(__version__))
 
