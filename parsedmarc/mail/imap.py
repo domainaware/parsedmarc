@@ -85,7 +85,5 @@ class IMAPConnection(MailboxConnection):
                 logger.warning("IMAP connection timeout. Reconnecting...")
                 sleep(check_timeout)
             except Exception as e:
-                logger.warning(
-                    "IMAP connection error. {0}. " "Reconnecting...".format(e)
-                )
+                logger.warning("IMAP connection error. {0}. Reconnecting...".format(e))
                 sleep(check_timeout)

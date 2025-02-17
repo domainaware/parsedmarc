@@ -272,7 +272,7 @@ def _parse_smtp_tls_failure_details(failure_details):
         return new_failure_details
 
     except KeyError as e:
-        raise InvalidSMTPTLSReport(f"Missing required failure details field:" f" {e}")
+        raise InvalidSMTPTLSReport(f"Missing required failure details field: {e}")
     except Exception as e:
         raise InvalidSMTPTLSReport(str(e))
 
@@ -284,7 +284,7 @@ def _parse_smtp_tls_report_policy(policy):
         policy_type = policy["policy"]["policy-type"]
         failure_details = []
         if policy_type not in policy_types:
-            raise InvalidSMTPTLSReport(f"Invalid policy type " f"{policy_type}")
+            raise InvalidSMTPTLSReport(f"Invalid policy type {policy_type}")
         new_policy = OrderedDict(policy_domain=policy_domain, policy_type=policy_type)
         if "policy-string" in policy["policy"]:
             if isinstance(policy["policy"]["policy-string"], list):
@@ -332,9 +332,7 @@ def parse_smtp_tls_report_json(report):
                 raise Exception(f"Missing required field: {required_field}]")
         if not isinstance(report["policies"], list):
             policies_type = type(report["policies"])
-            raise InvalidSMTPTLSReport(
-                f"policies must be a list, " f"not {policies_type}"
-            )
+            raise InvalidSMTPTLSReport(f"policies must be a list, not {policies_type}")
         for policy in report["policies"]:
             policies.append(_parse_smtp_tls_report_policy(policy))
 
@@ -1246,11 +1244,11 @@ def parse_report_email(
                         field_name = match[0].lower().replace(" ", "-")
                         fields[field_name] = match[1].strip()
 
-                    feedback_report = "Arrival-Date: {}\n" "Source-IP: {}" "".format(
+                    feedback_report = "Arrival-Date: {}\nSource-IP: {}".format(
                         fields["received-date"], fields["sender-ip-address"]
                     )
                 except Exception as e:
-                    error = "Unable to parse message with " 'subject "{0}": {1}'.format(
+                    error = 'Unable to parse message with subject "{0}": {1}'.format(
                         subject, e
                     )
                     raise InvalidDMARCReport(error)
@@ -1297,7 +1295,7 @@ def parse_report_email(
                 raise InvalidDMARCReport(error)
 
             except Exception as e:
-                error = "Unable to parse message with " 'subject "{0}": {1}'.format(
+                error = 'Unable to parse message with subject "{0}": {1}'.format(
                     subject, e
                 )
                 raise ParserError(error)
@@ -1331,7 +1329,7 @@ def parse_report_email(
         return result
 
     if result is None:
-        error = 'Message with subject "{0}" is ' "not a valid report".format(subject)
+        error = 'Message with subject "{0}" is not a valid report'.format(subject)
         raise InvalidDMARCReport(error)
 
 
@@ -1666,7 +1664,7 @@ def get_dmarc_reports_from_mailbox(
                     aggregate_reports.append(parsed_email["report"])
                 else:
                     logger.debug(
-                        "Skipping duplicate aggregate report " f"with ID: {report_id}"
+                        f"Skipping duplicate aggregate report with ID: {report_id}"
                     )
                 aggregate_report_msg_uids.append(msg_uid)
             elif parsed_email["report_type"] == "forensic":
@@ -1708,7 +1706,7 @@ def get_dmarc_reports_from_mailbox(
 
                 except Exception as e:
                     message = "Error deleting message UID"
-                    e = "{0} {1}: " "{2}".format(message, msg_uid, e)
+                    e = "{0} {1}: {2}".format(message, msg_uid, e)
                     logger.error("Mailbox error: {0}".format(e))
         else:
             if len(aggregate_report_msg_uids) > 0:

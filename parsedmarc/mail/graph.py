@@ -141,16 +141,16 @@ class MSGraphConnection(MailboxConnection):
         request_url = f"/users/{self.mailbox_name}/mailFolders{sub_url}"
         resp = self._client.post(request_url, json=request_body)
         if resp.status_code == 409:
-            logger.debug(f"Folder {folder_name} already exists, " f"skipping creation")
+            logger.debug(f"Folder {folder_name} already exists, skipping creation")
         elif resp.status_code == 201:
             logger.debug(f"Created folder {folder_name}")
         else:
-            logger.warning(f"Unknown response " f"{resp.status_code} {resp.json()}")
+            logger.warning(f"Unknown response {resp.status_code} {resp.json()}")
 
     def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
         """Returns a list of message UIDs in the specified folder"""
         folder_id = self._find_folder_id_from_folder_path(folder_name)
-        url = f"/users/{self.mailbox_name}/mailFolders/" f"{folder_id}/messages"
+        url = f"/users/{self.mailbox_name}/mailFolders/{folder_id}/messages"
         since = kwargs.get("since")
         if not since:
             since = None
@@ -189,7 +189,7 @@ class MSGraphConnection(MailboxConnection):
         resp = self._client.patch(url, json={"isRead": "true"})
         if resp.status_code != 200:
             raise RuntimeWarning(
-                f"Failed to mark message read" f"{resp.status_code}: {resp.json()}"
+                f"Failed to mark message read{resp.status_code}: {resp.json()}"
             )
 
     def fetch_message(self, message_id: str, **kwargs):
@@ -197,7 +197,7 @@ class MSGraphConnection(MailboxConnection):
         result = self._client.get(url)
         if result.status_code != 200:
             raise RuntimeWarning(
-                f"Failed to fetch message" f"{result.status_code}: {result.json()}"
+                f"Failed to fetch message{result.status_code}: {result.json()}"
             )
         mark_read = kwargs.get("mark_read")
         if mark_read:
@@ -209,7 +209,7 @@ class MSGraphConnection(MailboxConnection):
         resp = self._client.delete(url)
         if resp.status_code != 204:
             raise RuntimeWarning(
-                f"Failed to delete message " f"{resp.status_code}: {resp.json()}"
+                f"Failed to delete message {resp.status_code}: {resp.json()}"
             )
 
     def move_message(self, message_id: str, folder_name: str):
@@ -219,7 +219,7 @@ class MSGraphConnection(MailboxConnection):
         resp = self._client.post(url, json=request_body)
         if resp.status_code != 201:
             raise RuntimeWarning(
-                f"Failed to move message " f"{resp.status_code}: {resp.json()}"
+                f"Failed to move message {resp.status_code}: {resp.json()}"
             )
 
     def keepalive(self):
@@ -254,7 +254,7 @@ class MSGraphConnection(MailboxConnection):
         filter = f"?$filter=displayName eq '{folder_name}'"
         folders_resp = self._client.get(url + filter)
         if folders_resp.status_code != 200:
-            raise RuntimeWarning(f"Failed to list folders." f"{folders_resp.json()}")
+            raise RuntimeWarning(f"Failed to list folders.{folders_resp.json()}")
         folders: list = folders_resp.json()["value"]
         matched_folders = [
             folder for folder in folders if folder["displayName"] == folder_name

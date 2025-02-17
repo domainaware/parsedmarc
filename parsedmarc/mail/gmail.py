@@ -63,9 +63,7 @@ class GmailConnection(MailboxConnection):
             ).execute()
         except HttpError as e:
             if e.status_code == 409:
-                logger.debug(
-                    f"Folder {folder_name} already exists, " f"skipping creation"
-                )
+                logger.debug(f"Folder {folder_name} already exists, skipping creation")
             else:
                 raise e
 

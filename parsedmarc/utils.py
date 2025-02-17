@@ -344,7 +344,7 @@ def get_service_from_reverse_dns_base_domain(
 
     if not (offline or always_use_local_file) and len(reverse_dns_map) == 0:
         try:
-            logger.debug(f"Trying to fetch " f"reverse DNS map from {url}...")
+            logger.debug(f"Trying to fetch reverse DNS map from {url}...")
             csv_file.write(requests.get(url).text)
             csv_file.seek(0)
             load_csv(csv_file)
