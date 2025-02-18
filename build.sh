@@ -14,7 +14,9 @@ cd docs
 make clean 
 make html
 touch build/html/.nojekyll
-cp -rf build/html/* ../../parsedmarc-docs/
+if [  -d "./../parsedmarc-docs" ]; then
+  cp -rf build/html/* ../../parsedmarc-docs/
+fi
 cd ..
 ./sortmaps.py
 python3 tests.py
