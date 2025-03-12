@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+ <report_metadata>
+  <org_name>example.com </org_name>
+  <email>postmaster@example.com</email>
+  <report_id>aggr_report_example.com_20191202_1638</report_id>
+  <date_range>
+   <begin>1574955300</begin>
+   <end>1575304683</end>
+  </date_range>
+ </report_metadata>
+ <policy_published>
+  <domain>example.com</domain>
+  <adkim>r</adkim>
+  <aspf>r</aspf>
+  <p>reject</p>
+  <pct>100</pct>
+ </policy_published>
+ <record>
+  <row>
+   <source_ip>23.104.41.189</source_ip>
+   <count>1</count>
+   <policy_evaluated>
+    <disposition>none</disposition>
+    <dkim>Pass</dkim>
+    <spf>Pass</spf>
+   </policy_evaluated>
+  </row>
+  <identifiers>
+   <header_from>example.com</header_from>
+  </identifiers>
+  <auth_results>
+   <dkim>
+    <domain>example.com</domain>
+    <result>Pass</result>
+    <human_result>verify result: all signatures verified</human_result>
+   </dkim>
+   <spf>
+    <domain>example.com</domain>
+    <result>Pass</result>
+   </spf>
+  </auth_results>
+ </record>
+</feedback>

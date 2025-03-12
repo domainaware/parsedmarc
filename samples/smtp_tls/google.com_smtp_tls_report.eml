@@ -1,0 +1,70 @@
+Authentication-Results-Original: esa.hc2781-64.iphmx.com; spf=Pass
+ smtp.mailfrom=3IDzYZhoKADcghkXier-lfmi-mel-kXihkmbgZZhhZeX.Vhf@smtp-tls-reporting.bounces.google.com;
+ dkim=pass (signature verified) header.i=@google.com; dmarc=pass (p=reject
+ dis=none) d=google.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1725447200; x=1726052000; darn=cardinalhealth.com;
+        h=to:from:subject:message-id:tls-report-submitter:tls-report-domain
+         :date:mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=2kbhf54mtX06OiZR0UJXeBrUva5J8cL9m64HSgIK/ZE=;
+        b=Cs/zp0dPa8Zb3WMk43VziKHVlqbSVZF4Gq8tBYkuxL33uEc3AqljrKSVZ5E0C446LB
+         rUhzyyuS2eLhBCvQuO77yLh4TcG5jwQMoriYmo9wZ7JLIqwE2QBkkiSPCk1ct58Qb2VQ
+         ydO2tg9bjWGHQoZy/O6BsC/VthxvX9N1MdpIFxyIWJgEmOUqIyzCk6O0HccW5uEE+h6G
+         aeb4R6+32a/fF5vdGEvTRWGhr1PrMOll328lskS/D5tWbpriKRedCXG/jFGWKqdshGwY
+         KRe3qmmLJuEU3LDMFee7LvzmidEjSiB2cpiAewOyDNwQVQGL/XXgWXB4Pu9ekRsN0Q0C
+         xdtw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1725447200; x=1726052000;
+        h=to:from:subject:message-id:tls-report-submitter:tls-report-domain
+         :date:mime-version:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=2kbhf54mtX06OiZR0UJXeBrUva5J8cL9m64HSgIK/ZE=;
+        b=Km8Ja8rTgTf+ATDmnkkHziqaZ2KACK7Sv/ZJlZMHFzjzYGYrn1DBBMEUoe4x8yAYCp
+         VuwHLTcRbHTQoA7sFqBnQPYTVtFHMjIg38D7c8RwqXfH9IfKPpo13irKOt1iGnZlfVDF
+         gnPR0JD88GmFpY26AKPSZe+UsBDNI5XFvERqsBbexA/XzykGTfjCUSENrQGF0UxPysf2
+         pbwkxlFIGnVr//di6GZjsFXzFiaxP+NdZZyEJiQW6aMQPcTKuqkpFwr5dNrPRaqL9JE9
+         6sGU4gBXHNy5Y8Lmt9az0aRXLbPF4sc2HYyI/488/L+dxESQfT1t0L0NxoppIc4Zx5Pe
+         qJKA==
+X-Gm-Message-State: AOJu0YxO7vIRH2imieMtGRMc8+8poJgd9LToFB5cAjWKskgsPumEIP1Y
+	Y1/ZdsVQSeuK0PVyjKxn6Z8l/L0Trn8H3ut5c3Q5rPGgZaRIVZPiWzXr7rV/ZTZ6lo3+cDiY6iO
+	cyY63JhPEgd4v9S0PVd4vPHIX879ro2aS8TvCcDxMIQ+/lCMwmQWBQ3+EzlSHguI7Qg==
+X-Google-Smtp-Source: AGHT+IEbnLVSTsMB2gcPzZI6K2z/lWtZe/1vFvhgTsnLCeph0sXBjcU7pZsUF0kOz4HOI3cZ0MUMhw5wtCrwdmO16eZCq2ZIGf0EhgrsuRE=
+X-Received: by 2002:a05:6830:25c1:b0:70f:6ff4:7bc5 with SMTP id
+ 46e09a7af769-70f70fff163mr15201790a34.8.1725447200600; Wed, 04 Sep 2024
+ 03:53:20 -0700 (PDT)
+Date: Wed, 04 Sep 2024 03:53:20 -0700
+TLS-Report-Domain: cardinalhealth.ca
+TLS-Report-Submitter: google.com
+Message-ID: <66d83c20.050a0220.a0566.1e8dtls@google.com>
+Subject: Report Domain: cardinalhealth.ca Submitter: google.com Report-ID: <2024.09.03T00.00.00Z+cardinalhealth.ca@google.com>
+From: noreply-smtp-tls-reporting@google.com
+To: dmarcreports@cardinalhealth.com
+Content-Type: multipart/report; boundary="0000000000007877ce062148fba9"; report-type=tlsrpt
+Return-Path:
+ 3IDzYZhoKADcghkXier-lfmi-mel-kXihkmbgZZhhZeX.Vhf@smtp-tls-reporting.bounces.google.com
+MIME-Version: 1.0
+
+--0000000000007877ce062148fba9
+Content-Type: text/plain; charset="UTF-8"; format=flowed; delsp=yes
+Content-Transfer-Encoding: quoted-printable
+
+        External Email =E2=80=93 Please use caution before opening attachme=
+nts or clicking links
+
+
+This is an aggregate TLS report from google.com
+
+--0000000000007877ce062148fba9
+Content-Type: application/tlsrpt+gzip; 
+	name="google.com!cardinalhealth.ca!1725321600!1725407999!001.json.gz"
+Content-Disposition: attachment; 
+	filename="google.com!cardinalhealth.ca!1725321600!1725407999!001.json.gz"
+Content-Transfer-Encoding: base64
+
+H4sIAAAAAAAAAHWQQWvDMAyF/8rwOQom7WDNabfR+04dZQjbSQ22FGzlkIb89zlJd9koCCzL33t+
+9qw49Uj+juKZgDA61aoP5j64lzOZWlXKojhISH05mlUWTALrTPwGN7o5gj6BPnxq3W51KSpH9gnV
+HNrXU6mLWiplmASNgKeOC5ajDCAhQ3IDJ/HUv/dbmNpwLK77GLx9cvG3wWQ9Ybg5DHKrDRbRwMEb
+77Jqv+Z9M60v2TuQaVgDEsNj0PFI9lc2geWIngrx37rkz2OMmDY/YcEAeTTG5dyNpS3r+qumGIpq
+j2/Vg+nQhzG5v4BeluvyA++Q8riSAQAA
+
+--0000000000007877ce062148fba9--

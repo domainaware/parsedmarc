@@ -1,6 +1,312 @@
 Changelog
 =========
 
+8.18.1
+------
+
+- Add missing `https://` to the default Microsoft Graph URL
+
+8.18.0
+------
+
+- Add support for Microsoft national clouds via Graph API base URL (PR #590)
+- Avoid stopping processing when an invalid DMARC report is encountered (PR #587)
+- Increase `http.client._MAXHEADERS` from `100` to `200` to avoid errors connecting to Elasticsearch/OpenSearch (PR #589)
+
+8.17.0
+------
+
+- Ignore duplicate aggregate DMARC reports with the same `org_name` and `report_id` seen within the same hour (Fixes #535)
+- Fix saving SMTP TLS reports to OpenSearch (PR #585 closed issue #576)
+- Add 303 entries to `base_reverse_dns_map.csv`
+
+8.16.1
+------
+
+- Failed attempt to ignore aggregate DMARC reports seen within a period of one hour (#535)
+
+8.16.0
+------
+
+- Add a `since` option to only search for emails since a certain time (PR #527)
+
+8.15.4
+------
+
+- Fix crash if aggregate report timespan is > 24 hours
+
+8.15.3
+------
+
+- Ignore aggregate reports with a timespan of > 24 hours (Fixes #282)
+
+8.15.2
+------
+
+- Require `mailsuite>=1.9.18`
+  - Pins `mail-parser` version at `3.15.0` due to a parsing regression in mail-parser `4.0.0`
+  - Parse aggregate reports with empty `<auth_results>`
+  - Do not overwrite the log on each run (PR #569 fixes issue #565)
+
+8.15.1
+------
+
+- Proper IMAP namespace fix (Closes issue #557 and issue #563)
+  - Require `mailsuite>=1.9.17`
+  - Revert PR #552
+- Add pre-flight check for nameservers (PR #562 closes issue #543)
+- Reformat code with `ruff`
+
+8.15.0
+------
+
+- Fix processing of SMTP-TLS reports ([#549](https://github.com/domainaware/parsedmarc/issues/549)), which broke in commit [410663d ](https://github.com/domainaware/parsedmarc/commit/410663dbcaba019ca3d3744946348b56a635480b)(PR [#530](https://github.com/domainaware/parsedmarc/pull/530))
+  - This PR enforced a stricter check for base64-encoded strings, which SMTP TLS reports from Google did not pass
+  - Removing the check introduced its own issue, because some file paths were treated as base64-encoded strings
+- Create a separate `extract_report_from_file_path()` function for processioning reports based on a file path
+- Remove report extraction based on a file path from `extract_report()`
+
+8.14.2
+------
+
+- Update `base_reverse_dns_map.csv` to fix over-replacement on [`f3a5f10`](https://github.com/domainaware/parsedmarc/commit/f3a5f10d67b02c5db31ae1f7ced68028f46ca2a3) (PR #553)
+
+8.14.1
+------
+
+- Failed attempt to fix processing of SMTP-TLS reports (#549)
+
+8.14.0
+------
+
+- Skip invalid aggregate report rows without calling the whole report invalid
+  - Some providers such as GoDaddy will send reports with some rows missing a source IP address, while other rows are fine
+- Fix Dovecot support by using the seperator provided by the IPMAP namespace when possible (PR #552 closes #551)
+- Only download `base_reverse_dns_map.csv` once (fixes #542)
+- Update included `base_reverse_dns_map.csv`
+  - Replace University category with Education to be more inclusive
+- Update included `dbip-country-lite.mmdb`
+
+8.13.0
+------
+
+- Add Elastic/OpenSearch index prefix option (PR #531 closes #159)
+- Add GELF output support (PR #532)
+
+8.12.0
+------
+
+- Fix for deadlock with large report (#508)
+- Build: move to kafka-python-ng (#510)
+- Fix new config variables previously not propagated in the code (#524)
+- Fixes for kafka integration (#522)
+- Fix if base_domain is None before get_service_from_reverse_dns_base_domain (#514)
+- Update base_reverse_dns_map.csv
+
+8.11.0
+------
+
+- Actually save `source_type` and `source_name` to Elasticsearch and OpenSearch
+- Reverse-lookup cache improvements (PR #501 closes issue #498)
+- Update the included `dbip-country-lite.mmdb` to the 2024-03 version
+- Update `base_reverse_dns_map.csv`
+- Add new general config options (closes issue #500)
+  - `always_use_local_files` - Disables the download of the reverse DNS map
+  - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
+  - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
+
+8.10.3
+------
+
+- Fix flaws in `base_reverse_dns_map.csv`
+
+8.10.2
+------
+
+- Fix flaws in `base_reverse_dns_map.csv`
+
+8.10.1
+------
+
+- Fix flaws in `base_reverse_dns_map.csv`
+
+8.10.0
+------
+
+- Fix MSGraph UsernamePassword Authentication (PR #497)
+- Attempt to download an updated `base_reverse_dns_map.csv` at runtime
+- Update included `base_reverse_dns_map.csv`
+
+8.9.4
+-----
+
+- Update `base_reverse_dns_map.csv`
+
+8.9.3
+-----
+
+- Revert change in 8.9.2
+
+8.9.2
+-----
+
+- Use `Uncategorized` instead of `None` as the service type when a service cannot be identified
+
+8.9.1
+-----
+
+- Fix broken CLI by removing obsolete parameter from `cli_parse` call (PR #496 closes issue #495)
+
+8.9.0
+-----
+
+- Fix broken cache (PR #494)
+- Add source name and type information based on static mapping of the reverse DNS base domain
+  - See [this documentation](https://github.com/domainaware/parsedmarc/tree/master/parsedmarc/resources/maps) for more information, and to learn how to help!
+- Replace `multiprocessing.Pool` with `Pipe` + `Process` (PR #491 closes issue #489)
+- Remove unused parallel arguments (PR #492 closes issue #490)
+
+8.8.0
+-----
+
+- Add support for OpenSearch (PR #481 closes #480)
+- Fix SMTP TLS reporting to Elasticsearch (PR #470)
+
+8.7.0
+-----
+
+- Add support for SMTP TLS reports (PR #453 closes issue #71)
+- Do not replace content in forensic samples (fix #403)
+- Pin `msgraph-core` dependency at version `0.2.2` until Microsoft provides better documentation (PR #466 Close [#464](https://github.com/domainaware/parsedmarc/issues/464))
+- Properly handle base64-encoded email attachments (PR #453)
+- Do not crash when attempting to parse invalid email content (PR #453)
+- Ignore errors when parsing text-based forensic reports (PR #460)
+- Add email date to email processing debug logs (PR #462)
+- Set default batch size to 10 to match the documentation (PR #465)
+- Properly handle none values (PR #468)
+- Add Gmail pagination (PR #469)
+- Use the correct `msgraph` scope (PR #471)
+
+8.6.4
+-----
+
+- Properly process aggregate reports that incorrectly call `identifiers` `identities`
+- Ignore SPF results in aggregate report records if the domain is not provided
+
+8.6.3
+-----
+
+- Add an error message instead of raising an exception when an aggregate report time span is greater than 24 hours
+
+8.6.2
+-----
+
+- Use `zlib` instead of `Gzip` to decompress more `.gz` files, including the ones supplied by Mimecast (Based on #430 closes #429)
+
+8.6.1
+-----
+
+- Fix handling of non-domain organization names (PR #411 fixes issue #410)
+- Skip processing of aggregate reports with a date range that is too long to be valid (PR #408 fixes issue #282)
+- Better error handeling for Elasticsearch queries and file parsing (PR #417)
+
+8.6.0
+-----
+
+- Replace publicsuffix2 with publicsuffixlist
+
+8.5.0
+-----
+
+- Add support for Azure Log Analytics (PR #394)
+- Fix a bug in the Microsoft Graph integration that caused a crash when an inbox has 10+ folders (PR #398)
+- Documentation fixes
+
+8.4.2
+-----
+
+- Only initialize the syslog, S3 and Kafka clients once (PR #386 closes issues #289 and #380)
+
+8.4.1
+-----
+
+- Fix bug introduced in 8.3.1 that caused `No such file or directory` errors if output files didn't exist (PR #385 closes issues #358 and #382)
+- Make the `--silent` CLI option only print errors. Add the `--warnings` options to also print warnings (PR #383)
+
+8.4.0
+-----
+
+- Provide a warning when no file is located at the path specified by the `ip_db_path` option (based on PR #369 with improvements in grammar)
+- Add `allow_unencrypted_storage` to possible `msgraph` settings. See documentation for details. (PR #375)
+- Use the `check_timeout` value in the event of an IMAP connection error, instead of a static 5 second value (PR #377)
+- Update the included DBIP IP to Country Lite database to the December 2022 release
+
+8.3.2
+-----
+
+- Improvements to the Microsoft Graph integration (PR #352)
+
+8.3.1
+-----
+
+- Handle unexpected XML parsing errors more gracefully (PR #349)
+- Migrate build from `setuptools` to `hatch`
+
+8.3.0
+-----
+
+- Support MFA for Microsoft Graph (PR #320 closes issue #319)
+- Add more options for S3 export (PR #328)
+- Provide a helpful error message when the log file cannot be created (closes issue #317)
+
+8.2.0
+-----
+
+- Support non-standard, text-based forensic reports sent by some mail hosts
+- Set forensic report version to `None` (`null` in JSON) if the report was in a non-standard format and/or is missing a version number
+- The default value of the `mailbox` `batch_size` option is now `10` (use `0` for no limit)
+
+8.1.1
+-----
+
+- Fix marking messages as read via Microsoft Graph
+
+8.1.0
+-----
+
+- Restore compatibility with <8.0.0 configuration files (with deprecation warnings)
+- Set default `reports_folder` to `Inbox` (rather than `INBOX`) when `msgraph` is configured
+- Mark a message as read when fetching a message from Microsoft Graph
+
+8.0.3
+-----
+
+- Fix IMAP callback for `IDLE` connections (PR #313 closes issue #311)
+- Add warnings in documentation and log output for IMAP configuration changes introduced in 8.0.0 (Closes issue #309)
+- Actually pin the `elasticsearch` Python library version at `<7.14.0` (Closes issue #315)
+- Separate version numbers in `__init__.py` and `setup.py` to allow `pip` to install directly from `git`
+- Update `dateparser` to 1.1.1 (closes issue #273)
+
+8.0.2 (yanked)
+--------------
+
+- Strip leading and trailing whitespaces from Gmail scopes (Closes issue #310)
+
+8.0.1 (yanked)
+--------------
+
+- Fix `ModuleNotFoundError` by adding `parsedmarc.mail` to the list of packages in `setup.py` (PR #308)
+
+8.0.0 (yanked)
+--------------
+
+- Update included copy of `dbip-country-lite.mmdb` to the 2022-04 release
+- Add support for Microsoft/Office 365 via Microsoft Graph API (PR #301 closes issue #111)
+- Pin `elasticsearch-dsl` version at `>=7.2.0<7.14.0` (PR #297  closes issue #296)
+- Properly initialize `ip_dp_path` (PR #294 closes issue #286)
+- Remove usage of `logging.basicConfig` (PR #285)
+- Add support for the Gmail API (PR #284 and PR #307 close issue #96)
+
 7.1.1
 -----
 
@@ -28,12 +334,12 @@ Changelog
 -----
 
 - Fix issue #221: Crash when handling invalid reports without root node (PR #248)
-- Use UTC datetime objects for Elasticsearch output (PR #245) 
+- Use UTC datetime objects for Elasticsearch output (PR #245)
 - Fix issues #219, #155, and #103: IMAP connections break on large emails (PR #241)
 - Add support for saving reports to S3 buckets (PR #223)
 - Pass `offline` parameter to `wait_inbox()` (PR #216)
 - Add more details to logging (PR #220)
-- Add options customizing the names of output files (Modifications based on PR #225) 
+- Add options customizing the names of output files (Modifications based on PR #225)
 - Wait for 5 seconds before attempting to reconnect to an IMAP server (PR #217)
 - Add option to process messages in batches (PR #222)
 
@@ -58,7 +364,6 @@ Changelog
 - Fix IMAP debugging output
 - Fix `User-Agent` string
 
-
 6.10.0
 ------
 
@@ -82,7 +387,7 @@ Changelog
 6.8.1
 -----
 
-- Use `match_phrase` instead of `match` when looking for existing strings in Elasticsearch 
+- Use `match_phrase` instead of `match` when looking for existing strings in Elasticsearch
 
 6.8.0
 -----
@@ -94,10 +399,11 @@ Changelog
 6.7.4
 -----
 
-- Update dependencies 
+- Update dependencies
 
 6.7.3
 -----
+
 - Make `dkim_aligned` and `spf_aligned` case insensitive (PR #132)
 
 6.7.2
@@ -109,7 +415,7 @@ Changelog
 -----
 
 - Parse forensic email samples with non-standard date headers
-- Graceful handling of a failure to download the GeoIP database (issue #123) 
+- Graceful handling of a failure to download the GeoIP database (issue #123)
 
 6.7.0
 -----
@@ -167,7 +473,7 @@ Changelog
 - Merge PR #98 from michaeldavie
   - Add functions
     - `parsed_aggregate_reports_to_csv_row(reports)`
-    - `parsed_forensic_reports_to_csv_row(reports)` 
+    - `parsed_forensic_reports_to_csv_row(reports)`
 - Require `dnspython>=1.16.0`
 
 6.5.0
@@ -176,31 +482,30 @@ Changelog
 - Move mail processing functions to the
   [`mailsuite`](https://seanthegeek.github.io/mailsuite/) package
 - Add offline option (closes issue #90)
-- Use UDP instead of TCP, and properly set the timeout when querying DNS 
+- Use UDP instead of TCP, and properly set the timeout when querying DNS
   (closes issue #79 and #92)
-- Log the current file path being processed when `--debug` is used 
+- Log the current file path being processed when `--debug` is used
   (closes issue #95)
-
 
 6.4.2
 -----
 
-- Do not attempt to convert `org_name` to a base domain if `org_name` contains 
+- Do not attempt to convert `org_name` to a base domain if `org_name` contains
   a space (closes issue #94)
 - Always lowercase the `header_from`
-- Provide a more helpful warning message when `GeoLite2-Country.mmdb` is 
+- Provide a more helpful warning message when `GeoLite2-Country.mmdb` is
   missing
 
 6.4.1
 -----
 
-- Raise `utils.DownloadError` exception when a GeoIP database or Public 
+- Raise `utils.DownloadError` exception when a GeoIP database or Public
   Suffix List (PSL) download fails (closes issue #73)
 
 6.4.0
 -----
 
-- Add ``number_of_shards`` and ``number_of_replicas`` as possible options 
+- Add ``number_of_shards`` and ``number_of_replicas`` as possible options
 in the ``elasticsearch`` configuration file section (closes issue #78)
 
 6.3.7
@@ -341,7 +646,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 -----
 
 - Move options from CLI to a config file (see updated installation documentation)
-- Refactoring to make argument names consistent 
+- Refactoring to make argument names consistent
 
 5.3.0
 -----
@@ -356,10 +661,12 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 
 5.2.0
 -----
+
 - Add filename and line number to logging output
 - Improved IMAP error handling  
 - Add CLI options
-  ```
+
+  ```text
   --elasticsearch-use-ssl
                         Use SSL when connecting to Elasticsearch
   --elasticsearch-ssl-cert-path ELASTICSEARCH_SSL_CERT_PATH
@@ -392,7 +699,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 
 - Bugfix: Submit aggregate dates to Elasticsearch as lists, not tuples
 - Support `elasticsearch-dsl<=6.3.0`
-- Add support for TLS/SSL and username/password auth to Kafka 
+- Add support for TLS/SSL and username/password auth to Kafka
 
 5.0.2
 -----
@@ -406,20 +713,19 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 - Add Elasticsearch to automated testing
 - Lock `elasticsearch-dsl` required version to `6.2.1` (closes issue #25)
 
-
 5.0.0
 -----
 
 **Note**: Re-importing `kibana_saved_objects.json` in Kibana [is required](https://domainaware.github.io/parsedmarc/#upgrading-kibana-index-patterns) when upgrading to this version!
 
-- Bugfix: Reindex the aggregate report index field `published_policy.fo` 
+- Bugfix: Reindex the aggregate report index field `published_policy.fo`
 as `text` instead of `long` (Closes issue #31)
 - Bugfix: IDLE email processing in Gmail/G-Suite accounts (closes issue #33)
 - Bugfix: Fix inaccurate DNS timeout in CLI documentation (closes issue #34)
 - Bugfix: Forensic report processing via CLI
-- Bugfix: Duplicate aggregate report Elasticsearch query broken 
-- Bugfix: Crash when `Arrival-Date` header is missing in a 
-forensic/fialure/ruf report 
+- Bugfix: Duplicate aggregate report Elasticsearch query broken
+- Bugfix: Crash when `Arrival-Date` header is missing in a
+forensic/failure/ruf report
 - IMAP reliability improvements
 - Save data in separate indexes each day to make managing data retention easier
 - Cache DNS queries in memory
@@ -442,7 +748,6 @@ forensic/fialure/ruf report
   - Recreated the `date_range` values from the ES client for easier parsing.
   - Started sending individual record slices. Kafka default message size is 1 MB, some aggregate reports were exceeding this. Now it appends meta-data and sends record by record.
 
-
 4.3.8
 -----
 
@@ -455,9 +760,8 @@ and `watch_inbox()`
 4.3.7
 -----
 
-- When checking an inbox, always recheck for messages when processing is 
+- When checking an inbox, always recheck for messages when processing is
 complete
-
 
 4.3.6
 -----
@@ -474,7 +778,7 @@ complete
 
 - Fix crash on empty aggregate report comments (brakhane - #25)
 - Add SHA256 hashes of attachments to output
-- Add `strip_attachment_payloads` option to functions and 
+- Add `strip_attachment_payloads` option to functions and
 `--strip-attachment-payloads` option to the CLI (#23)
 - Set `urllib3` version requirements to match `requests`
 
@@ -497,22 +801,22 @@ complete
 4.3.0
 -----
 
-- Fix bug where `parsedmarc` would always try to save to Elastic search, 
+- Fix bug where `parsedmarc` would always try to save to Elastic search,
   even if only `--hec` was used
 - Add options to save reports as a Kafka topic (mikesiegel  - #21)
 - Major refactoring of functions
 - Support parsing forensic reports generated by Brightmail
-- Make `sample_headers_only` flag more reliable 
-- Functions that might be useful to other projects are now stored in 
+- Make `sample_headers_only` flag more reliable
+- Functions that might be useful to other projects are now stored in
  `parsedmarc.utils`:
-    - `get_base_domain(domain)`
-    - `get_filename_safe_string(string)`
-    - `get_ip_address_country(ip_address)`
-    - `get_ip_address_info(ip_address, nameservers=None, timeout=2.0)`
-    - `get_reverse_dns(ip_address, nameservers=None, timeout=2.0)`
-    - `human_timestamp_to_datetime(human_timestamp)`
-    - `human_timestamp_to_timestamp(human_timestamp)`
-    - `parse_email(data)`
+  - `get_base_domain(domain)`
+  - `get_filename_safe_string(string)`
+  - `get_ip_address_country(ip_address)`
+  - `get_ip_address_info(ip_address, nameservers=None, timeout=2.0)`
+  - `get_reverse_dns(ip_address, nameservers=None, timeout=2.0)`
+  - `human_timestamp_to_datetime(human_timestamp)`
+  - `human_timestamp_to_timestamp(human_timestamp)`
+  - `parse_email(data)`
 
 4.2.0
 ------
@@ -522,11 +826,10 @@ complete
 - Suppress Splunk SSL validation warnings
 - Change default logging level to `WARNING`
 
-
 4.1.9
 -----
 
-- Workaround for forensic/ruf reports that are missing `Arrival-Date` and/or 
+- Workaround for forensic/ruf reports that are missing `Arrival-Date` and/or
 `Reported-Domain`
 
 4.1.8
@@ -549,8 +852,8 @@ complete
 
 - Only move or delete IMAP emails after they all have been parsed
 - Move/delete messages one at a time - do not exit on error
-- Reconnect to IMAP if connection is broken during 
-`get_dmarc_reports_from_inbox()` 
+- Reconnect to IMAP if connection is broken during
+`get_dmarc_reports_from_inbox()`
 - Add`--imap-port` and `--imap-no-ssl` CLI options
 
 4.1.4
@@ -561,7 +864,7 @@ complete
 4.1.3
 -----
 
-- Fix crash introduced in 4.1.0 when creating Elasticsearch indexes (Issue #15) 
+- Fix crash introduced in 4.1.0 when creating Elasticsearch indexes (Issue #15)
 
 4.1.2
 -----
@@ -581,7 +884,6 @@ complete
 - If an aggregate report has the invalid `disposition` value `pass`, change
 it to `none`
 
-
 4.0.2
 -----
 
@@ -590,24 +892,24 @@ it to `none`
 4.0.1
 -----
 
-- When saving aggregate reports in Elasticsearch store `domain` in 
+- When saving aggregate reports in Elasticsearch store `domain` in
 `published_policy`
-- Rename `policy_published` to `published_policy`when saving aggregate 
+- Rename `policy_published` to `published_policy`when saving aggregate
 reports to Splunk
 
 4.0.0
 -----
 
-- Add support for sending DMARC reports to a Splunk HTTP Events 
+- Add support for sending DMARC reports to a Splunk HTTP Events
 Collector (HEC)
-- Use a browser-like `User-Agent` when downloading the Public Suffix List and 
+- Use a browser-like `User-Agent` when downloading the Public Suffix List and
 GeoIP DB to avoid being blocked by security proxies
 - Reduce default DNS timeout to 2.0 seconds
 - Add alignment booleans to JSON output
-- Fix `.msg` parsing CLI exception when `msgconvert` is not found in the 
+- Fix `.msg` parsing CLI exception when `msgconvert` is not found in the
 system path
 - Add `--outgoing-port` and  `--outgoing-ssl` options
-- Fall back to plain text SMTP if `--outgoing-ssl` is not used and `STARTTLS` 
+- Fall back to plain text SMTP if `--outgoing-ssl` is not used and `STARTTLS`
 is not supported by the server
 - Always use `\n` as the newline when generating CSVs
 - Workaround for random Exchange/Office365 `Server Unavailable` IMAP errors
@@ -625,7 +927,7 @@ is not supported by the server
 3.9.5
 -----
 
-- Refactor to use a shared IMAP connection for inbox watching and message 
+- Refactor to use a shared IMAP connection for inbox watching and message
 downloads
 
 - Gracefully recover from broken pipes in IMAP
@@ -649,17 +951,17 @@ downloads
 3.9.1
 -----
 
-- Use `COPY` and delete if an IMAP server does not support `MOVE` 
+- Use `COPY` and delete if an IMAP server does not support `MOVE`
 (closes issue #9)
 
 3.9.0
 -----
 
-- Reduce IMAP `IDLE` refresh rate to 5 minutes to avoid session timeouts in 
+- Reduce IMAP `IDLE` refresh rate to 5 minutes to avoid session timeouts in
 Gmail
 - Fix parsing of some forensic/failure/ruf reports
 - Include email subject in all warning messages
-- Fix example NGINX configuration in the installation documentation 
+- Fix example NGINX configuration in the installation documentation
 (closes issue #6)
 
 3.8.2
@@ -676,7 +978,7 @@ Gmail
 3.8.0
 -----
 
-- Use `.` instead of `/` as the IMAP folder hierarchy separator when `/` 
+- Use `.` instead of `/` as the IMAP folder hierarchy separator when `/`
 does not work - fixes dovecot support (#5)
 - Fix parsing of base64-encoded forensic report data
 
@@ -700,7 +1002,7 @@ does not work - fixes dovecot support (#5)
 3.7.0
 -----
 
-- Fix bug where PSL would be called before it was downloaded if the PSL was 
+- Fix bug where PSL would be called before it was downloaded if the PSL was
 older than 24 Hours
 
 3.6.1
@@ -722,47 +1024,51 @@ older than 24 Hours
 - Add country rankings to the dashboards
 - Fix crash when parsing report with empty <auth_results></auth_results>
 
-
 3.5.0
 -----
+
 - Use Cloudflare's public DNS resolvers by default instead of Google's
 - Fix installation from virtualenv
 - Fix documentation typos
 
-
 3.4.1
 -----
+
 - Documentation fixes
 - Fix console output
 
 3.4.0
 -----
+
 - Maintain IMAP IDLE state when watching the inbox
 - The `-i`/`--idle` CLI option is now `-w`/`--watch`
 - Improved Exception handling and documentation
 
-
 3.3.0
 -----
-- Fix errors when saving to Elasticsearch
 
+- Fix errors when saving to Elasticsearch
 
 3.2.0
 -----
+
 - Fix existing aggregate report error message
 
 3.1.0
 -----
-- Fix existing aggregate report query
 
+- Fix existing aggregate report query
 
 3.0.0
 -----
-### New features
+
+New features
+
 - Add option to select the IMAP folder where reports are stored
 - Add options to send data to Elasticsearch
 
-### Changes
+Changes
+
 - Use Google's public nameservers (`8.8.8.8` and `4.4.4.4`)
 by default
 - Detect aggregate report email attachments by file content rather than
@@ -772,6 +1078,7 @@ file extension
 
 2.1.2
 -----
+
 - Rename `parsed_dmarc_forensic_reports_to_csv()` to
  `parsed_forensic_reports_to_csv()` to match other functions
 - Rename `parsed_aggregate_report_to_csv()` to
@@ -780,25 +1087,31 @@ file extension
 
 2.1.1
 -----
+
 - Documentation fixes
 
 2.1.0
 -----
+
 - Add `get_report_zip()` and `email_results()`
 - Add support for sending report emails via the command line
 
 2.0.1
 -----
+
 - Fix documentation
 - Remove Python 2 code
 
 2.0.0
 -----
-### New features
+
+New features
+
 - Parse forensic reports
 - Parse reports from IMAP inbox
 
-### Changes
+Changes
+
 - Drop support for Python 2
 - Command line output is always a JSON object containing the lists
   `aggregate_reports` and `forensic_reports`
@@ -807,26 +1120,31 @@ file extension
 
 1.1.0
 -----
-- Add `extract_xml()` and `human_timespamp_to_datetime` methods
 
+- Add `extract_xml()` and `human_timestamp_to_datetime` methods
 
 1.0.5
 -----
+
 - Prefix public suffix and GeoIP2 database filenames with `.`
 - Properly format errors list in CSV output
 
 1.0.3
 -----
+
 - Fix documentation formatting
 
 1.0.2
 -----
+
 - Fix more packaging flaws
 
 1.0.1
 -----
+
 - Fix packaging flaw
 
 1.0.0
 -----
+
 - Initial release

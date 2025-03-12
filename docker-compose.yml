@@ -1,0 +1,57 @@
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.1
+    environment:
+      - network.host=127.0.0.1
+      - http.host=0.0.0.0
+      - node.name=elasticsearch
+      - discovery.type=single-node
+      - cluster.name=parsedmarc-cluster
+      - discovery.seed_hosts=elasticsearch
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.license.self_generated.type=basic
+    ports:
+      - 127.0.0.1:9200:9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -XGET http://localhost:9200/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 24
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    environment:
+      - network.host=127.0.0.1
+      - http.host=0.0.0.0
+      - node.name=opensearch
+      - discovery.type=single-node
+      - cluster.name=parsedmarc-cluster
+      - discovery.seed_hosts=opensearch
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+    ports:
+      - 127.0.0.1:9201:9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -XGET http://localhost:9201/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 24

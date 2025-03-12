@@ -1,0 +1,84 @@
+[build-system]
+requires = [
+    "hatchling>=1.27.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "parsedmarc"
+dynamic = [
+    "version",
+]
+description = "A Python package and CLI for parsing aggregate and forensic DMARC reports"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "Sean Whalen", email = "whalenster@gmail.com" },
+]
+keywords = [
+    "DMARC",
+    "parser",
+    "reporting",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "azure-identity>=1.8.0",
+    "azure-monitor-ingestion>=1.0.0",
+    "boto3>=1.16.63",
+    "dateparser>=1.1.1",
+    "dnspython>=2.0.0",
+    "elasticsearch-dsl==7.4.0",
+    "elasticsearch<7.14.0",
+    "expiringdict>=1.1.4",
+    "geoip2>=3.0.0",
+    "google-api-core>=2.4.0",
+    "google-api-python-client>=2.35.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-auth-oauthlib>=0.4.6",
+    "google-auth>=2.3.3",
+    "imapclient>=2.1.0",
+    "kafka-python-ng>=2.2.2",
+    "lxml>=4.4.0",
+    "mailsuite>=1.9.18",
+    "msgraph-core==0.2.2",
+    "opensearch-py>=2.4.2,<=3.0.0",
+    "publicsuffixlist>=0.10.0",
+    "pygelf>=0.4.2",
+    "requests>=2.22.0",
+    "tqdm>=4.31.1",
+    "urllib3>=1.25.7",
+    "xmltodict>=0.12.0",
+]
+
+[project.optional-dependencies]
+build = [
+    "hatch>=1.14.0",
+    "myst-parser[linkify]",
+    "nose",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "sphinx",
+    "sphinx_rtd_theme",
+]
+
+[project.scripts]
+parsedmarc = "parsedmarc.cli:_main"
+
+[project.urls]
+Homepage = "https://domainaware.github.io/parsedmarc"
+
+[tool.hatch.version]
+path = "parsedmarc/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/parsedmarc",
+]

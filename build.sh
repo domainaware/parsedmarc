@@ -2,18 +2,23 @@
 
 set -e
 
-. venv/bin/activate
+if [ ! -d "venv" ]; then
+  virtualenv venv || exit
+fi
 
-pip install -U -r requirements.txt
-rstcheck --report warning README.rst
+. venv/bin/activate
+pip install .[build]
+ruff format .
+ruff check .
 cd docs
+make clean 
 make html
-touch _build/html/.nojekyll
-mkdir -p ../../parsedmarc-docs/
-cp -rf _build/html/* ../../parsedmarc-docs/
+touch build/html/.nojekyll
+if [  -d "./../parsedmarc-docs" ]; then
+  cp -rf build/html/* ../../parsedmarc-docs/
+fi
 cd ..
-flake8 parsedmarc
-flake8 tests.py
+./sortmaps.py
+python3 tests.py
 rm -rf dist/ build/
-python3 setup.py sdist
-python3 setup.py bdist_wheel
+hatch build

@@ -1,5 +1,8 @@
 name: Python tests
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ master ]
@@ -11,47 +14,51 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.6"
+        python-version: ${{ matrix.python-version }}
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libemail-outlook-message-perl
-        curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.16.2-amd64.deb
-        sudo dpkg -i --force-confnew elasticsearch-*.deb
+        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+        sudo apt-get install apt-transport-https
+        echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+        sudo apt-get update && sudo apt-get install elasticsearch
+        sudo sed -i 's/xpack.security.enabled: true/xpack.security.enabled: false/' /etc/elasticsearch/elasticsearch.yml
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Check README.rst syntax
-      run: |
-        rstcheck --report warning README.rst
+        pip install .[build]
     - name: Test building documentation
       run: |
         cd docs
         make html
     - name: Check code style
       run: |
-        flake8 *.py parsedmarc/*.py
+        ruff check .
     - name: Run unit tests
       run: |
-        coverage run tests.py
-        coverage json
+        pytest --cov --cov-report=xml tests.py
     - name: Test sample DMARC reports
-      continue-on-error: true
       run: |
-        python setup.py install
+        pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
-        parsedmarc --debug -c ci.ini samples/forensic/*"
+        parsedmarc --debug -c ci.ini samples/forensic/*
     - name: Test building packages
       run: |
-        python3 setup.py sdist
-        python3 setup.py bdist_wheel
+        hatch build
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v4
+      with:
+          token: ${{ secrets.CODECOV_TOKEN }}

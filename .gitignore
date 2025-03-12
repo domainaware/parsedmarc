@@ -64,7 +64,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
 
 # PyBuilder
 target/
@@ -105,12 +105,14 @@ ENV/
 # PyCharm Project settings
 .idea/
 
+# VS Code launch config
+.vscode/launch.json
+
 # Visual Studio Code settings
-.vscode/
+#.vscode/
 
 # I/O files
 output/
-*.csv
 *.xls*
 
 # LibreOffice lock files
@@ -128,3 +130,12 @@ tmp/
 prod*.ini
 stage*.ini
 dev*.ini
+
+# Private samples
+samples/private
+
+*.html
+*.sqlite-journal
+
+parsedmarc.ini
+scratch.py
