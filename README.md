@@ -42,6 +42,6 @@ Thanks to all
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch and/or Splunk, for use
+- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
     with premade dashboards
 - Optionally send reports to Apache Kafka
