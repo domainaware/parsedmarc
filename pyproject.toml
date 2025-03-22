@@ -35,7 +35,7 @@ dependencies = [
     "dateparser>=1.1.1",
     "dnspython>=2.0.0",
     "elasticsearch-dsl==8.17.1",
-    "elasticsearch<7.14.0",
+    "elasticsearch<=8.0.0",
     "expiringdict>=1.1.4",
     "geoip2>=3.0.0",
     "google-api-core>=2.4.0",
