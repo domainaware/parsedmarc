@@ -664,7 +664,7 @@ def save_forensic_report_to_elasticsearch(
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__())
     except KeyError as e:
         raise InvalidForensicReport(
-            "Forensic report missing required field: {0}".format(e.__str__())
+            "Forensic report missing required field: {0}".format(e.__str__()))
         )
 
 
