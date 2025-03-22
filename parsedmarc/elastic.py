@@ -582,6 +582,8 @@ def save_forensic_report_to_elasticsearch(
         q = q & Q(subject_query)
 
     search.query = q
+
+    print(search.__str__())
     existing = search.execute()
 
     if len(existing) > 0:
@@ -659,7 +661,7 @@ def save_forensic_report_to_elasticsearch(
         try:
             forensic_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}.\n\nDoc: {1}".format(e.__str__(), forensic_doc.__str__()))
+            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__())
     except KeyError as e:
         raise InvalidForensicReport(
             "Forensic report missing required field: {0}".format(e.__str__())
