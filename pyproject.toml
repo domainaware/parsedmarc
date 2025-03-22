@@ -34,7 +34,7 @@ dependencies = [
     "boto3>=1.16.63",
     "dateparser>=1.1.1",
     "dnspython>=2.0.0",
-    "elasticsearch-dsl==7.4.0",
+    "elasticsearch-dsl==8.17.1",
     "elasticsearch<7.14.0",
     "expiringdict>=1.1.4",
     "geoip2>=3.0.0",
