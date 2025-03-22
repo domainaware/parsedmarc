@@ -32,7 +32,7 @@ jobs:
         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
         sudo apt-get install apt-transport-https
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-        sudo apt-get update && sudo apt-get install elasticsearch
+        sudo apt-get update && sudo apt-get install -y elasticsearch==8.17.2
         sudo sed -i 's/xpack.security.enabled: true/xpack.security.enabled: false/' /etc/elasticsearch/elasticsearch.yml
         sudo systemctl restart elasticsearch
         sudo systemctl --no-pager status elasticsearch
