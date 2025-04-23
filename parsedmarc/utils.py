@@ -19,10 +19,11 @@ import csv
 import io
 
 try:
-    import importlib.resources as pkg_resources
+    from importlib.resources import files
 except ImportError:
-    # Try backported to PY<37 `importlib_resources`
-    import importlib_resources as pkg_resources
+    # Try backported to PY<3 `importlib_resources`
+    from importlib.resources import files
+
 
 from dateutil.parser import parse as parse_date
 import dns.reversename
@@ -280,14 +281,13 @@ def get_ip_address_country(ip_address, db_path=None):
                 break
 
     if db_path is None:
-        with pkg_resources.path(
-            parsedmarc.resources.dbip, "dbip-country-lite.mmdb"
-        ) as path:
-            db_path = path
+        db_path = str(
+            files(parsedmarc.resources.dbip).joinpath("dbip-country-lite.mmdb")
+        )
 
-        db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
-        if db_age > timedelta(days=30):
-            logger.warning("IP database is more than a month old")
+    db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
+    if db_age > timedelta(days=30):
+        logger.warning("IP database is more than a month old")
 
     db_reader = geoip2.database.Reader(db_path)
 
@@ -354,13 +354,13 @@ def get_service_from_reverse_dns_base_domain(
             logger.warning(f"Failed to fetch reverse DNS map: {e}")
     if len(reverse_dns_map) == 0:
         logger.info("Loading included reverse DNS map...")
-        with pkg_resources.path(
-            parsedmarc.resources.maps, "base_reverse_dns_map.csv"
-        ) as path:
-            if local_file_path is not None:
-                path = local_file_path
-            with open(path) as csv_file:
-                load_csv(csv_file)
+        path = str(
+            files(parsedmarc.resources.maps).joinpath("base_reverse_dns_map.csv")
+        )
+        if local_file_path is not None:
+            path = local_file_path
+        with open(path) as csv_file:
+            load_csv(csv_file)
     try:
         service = reverse_dns_map[base_domain]
     except KeyError:
