@@ -18,6 +18,7 @@ if [  -d "./../parsedmarc-docs" ]; then
   cp -rf build/html/* ../../parsedmarc-docs/
 fi
 cd ..
+sort -o "parsedmarc/resources/maps/known_unknown_base_reverse_dns.txt" "parsedmarc/resources/maps/known_unknown_base_reverse_dns.txt"
 ./sortmaps.py
 python3 tests.py
 rm -rf dist/ build/
