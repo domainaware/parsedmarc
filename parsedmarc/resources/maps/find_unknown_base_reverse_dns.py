@@ -11,7 +11,7 @@ def _main():
     known_unknown_list_file_path = "known_unknown_base_reverse_dns.txt"
     output_csv_file_path = "unknown_base_reverse_dns.csv"
 
-    csv_headers = ["base_reverse_dns", "count"]
+    csv_headers = ["source_name", "message_count"]
 
     output_rows = []
 
@@ -54,7 +54,7 @@ def _main():
     logger.info(f"Checking domains against {base_reverse_dns_map_file_path}")
     with open(input_csv_file_path) as f:
         for row in csv.DictReader(f):
-            domain = row["base_reverse_dns"].lower().strip()
+            domain = row["source_name"].lower().strip()
             if domain not in known_domains or known_unknown_domains:
                 logger.info(f"New unknown domain found: {domain}")
                 output_rows.append(row)
