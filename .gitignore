@@ -139,3 +139,6 @@ samples/private
 
 parsedmarc.ini
 scratch.py
+
+parsedmarc/resources/maps/base_reverse_dns.csv
+parsedmarc/resources/maps/unknown_base_reverse_dns.csv
