@@ -55,7 +55,7 @@ def _main():
     with open(input_csv_file_path) as f:
         for row in csv.DictReader(f):
             domain = row["source_name"].lower().strip()
-            if domain not in known_domains or known_unknown_domains:
+            if domain not in known_domains and domain not in known_unknown_domains:
                 logger.info(f"New unknown domain found: {domain}")
                 output_rows.append(row)
     logger.info(f"Writing {output_csv_file_path}")
