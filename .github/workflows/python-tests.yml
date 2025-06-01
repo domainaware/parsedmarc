@@ -11,6 +11,8 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
+
     services:
       elasticsearch:
         image: elasticsearch:8.18.2
@@ -24,8 +26,6 @@ jobs:
         ports:
           - 9200:9200
           - 9300:9300
-
-    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
