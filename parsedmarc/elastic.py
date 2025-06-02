@@ -604,7 +604,9 @@ def save_forensic_report_to_elasticsearch(
             "A forensic sample to {0} from {1} "
             "with a subject of {2} and arrival date of {3} "
             "already exists in "
-            "Elasticsearch".format(to_, from_, subject, forensic_report["arrival_date_utc"])
+            "Elasticsearch".format(
+                to_, from_, subject, forensic_report["arrival_date_utc"]
+            )
         )
 
     parsed_sample = forensic_report["parsed_sample"]

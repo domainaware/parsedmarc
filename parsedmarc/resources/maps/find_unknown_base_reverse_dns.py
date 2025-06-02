@@ -31,9 +31,11 @@ def _main():
     known_unknown_domains = []
     with open(known_unknown_list_file_path) as f:
         for line in f.readlines():
-            domain = line.lower().strip() 
+            domain = line.lower().strip()
             if domain in known_unknown_domains:
-                logger.warning(f"{domain} is in {known_unknown_list_file_path} multiple times")
+                logger.warning(
+                    f"{domain} is in {known_unknown_list_file_path} multiple times"
+                )
             else:
                 known_unknown_domains.append(domain)
     logger.info(f"Loading {base_reverse_dns_map_file_path}")
@@ -49,8 +51,10 @@ def _main():
                 known_domains.append(domain)
             if domain in known_unknown_domains and known_domains:
                 pass
-                logger.warning(f"{domain} is in {known_unknown_list_file_path} and {base_reverse_dns_map_file_path}")
-            
+                logger.warning(
+                    f"{domain} is in {known_unknown_list_file_path} and {base_reverse_dns_map_file_path}"
+                )
+
     logger.info(f"Checking domains against {base_reverse_dns_map_file_path}")
     with open(input_csv_file_path) as f:
         for row in csv.DictReader(f):
