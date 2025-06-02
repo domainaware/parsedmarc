@@ -352,6 +352,11 @@ def get_service_from_reverse_dns_base_domain(
             load_csv(csv_file)
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to fetch reverse DNS map: {e}")
+        except Exception:
+            logger.warning("Not a valid CSV file")
+            csv_file.seek(0)
+            logger.debug(csv_file.read())
+
     if len(reverse_dns_map) == 0:
         logger.info("Loading included reverse DNS map...")
         path = str(

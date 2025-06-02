@@ -1,6 +1,19 @@
 Changelog
 =========
 
+8.18.2
+------
+
+- Merged PR #603
+  - Fixes issue #595 - CI test fails for Elasticsearch
+    - Moved Elasticsearch to a separate Docker service container for CI testing
+    - Dropped Python 3.8 from CI testing
+  - Fixes lookup and saving of DMARC forensic reports in Elasticsearch and OpenSearch
+- Updated fallback `base_reverse_dns_map.csv`, which now includes over 1,400 lines
+- Updated included `dbip-country-lite.mmdb` to the June 2025 release
+- Automatically fall back to the internal `base_reverse_dns_map.csv` if the received file is not valid (Fixes #602)
+  - Print the received data to the debug log
+
 8.18.1
 ------
 
