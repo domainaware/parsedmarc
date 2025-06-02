@@ -1,6 +1,6 @@
 import requests
 
-from parsedmarc import logger
+from parsedmarc import logger, USER_AGENT
 
 
 class WebhookClient(object):
@@ -21,7 +21,7 @@ class WebhookClient(object):
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers = {
-            "User-Agent": "parsedmarc",
+            "User-Agent": USER_AGENT,
             "Content-Type": "application/json",
         }
 

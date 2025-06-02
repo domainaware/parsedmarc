@@ -37,7 +37,7 @@ import requests
 from parsedmarc.log import logger
 import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
-
+from parsedmarc.constants import USER_AGENT
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
@@ -345,7 +345,8 @@ def get_service_from_reverse_dns_base_domain(
     if not (offline or always_use_local_file) and len(reverse_dns_map) == 0:
         try:
             logger.debug(f"Trying to fetch reverse DNS map from {url}...")
-            response = requests.get(url)
+            headers = {"User-Agent", USER_AGENT}
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             csv_file.write(response.text)
             csv_file.seek(0)

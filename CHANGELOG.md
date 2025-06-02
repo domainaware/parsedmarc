@@ -1,6 +1,13 @@
 Changelog
 =========
 
+8.18.3
+------
+
+- Move `__version__` to `parsedmarc.constants`
+- Create a constant `USER_AGENT`
+- Use the HTTP `User-Agent` header value `parsedmarc/version` for all HTTP requests
+
 8.18.2
 ------
 

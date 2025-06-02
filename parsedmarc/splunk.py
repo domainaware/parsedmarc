@@ -5,7 +5,7 @@ import json
 import urllib3
 import requests
 
-from parsedmarc import __version__
+from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
@@ -51,7 +51,7 @@ class HECClient(object):
         self._common_data = dict(host=self.host, source=self.source, index=self.index)
 
         self.session.headers = {
-            "User-Agent": "parsedmarc/{0}".format(__version__),
+            "User-Agent": USER_AGENT,
             "Authorization": "Splunk {0}".format(self.access_token),
         }
 

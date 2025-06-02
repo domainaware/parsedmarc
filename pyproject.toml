@@ -76,7 +76,7 @@ parsedmarc = "parsedmarc.cli:_main"
 Homepage = "https://domainaware.github.io/parsedmarc"
 
 [tool.hatch.version]
-path = "parsedmarc/__init__.py"
+path = "parsedmarc/constants.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
