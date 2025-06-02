@@ -1,6 +1,7 @@
 import requests
 
-from parsedmarc import logger, USER_AGENT
+from parsedmarc import logger
+from parsedmarc.constants import USER_AGENT
 
 
 class WebhookClient(object):
