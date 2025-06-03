@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.18.5
+------
+
+- Fix CSV download
+
 8.18.4
 ------
 

@@ -345,8 +345,12 @@ def get_service_from_reverse_dns_base_domain(
     if not (offline or always_use_local_file) and len(reverse_dns_map) == 0:
         try:
             logger.debug(f"Trying to fetch reverse DNS map from {url}...")
-            headers = {"User-Agent", USER_AGENT}
+            headers = {"User-Agent": USER_AGENT}
             response = requests.get(url, headers=headers)
+            logging.debug("Response headers:")
+            response_headers = response.headers
+            for header in response_headers:
+                logger.debug(f"{header}: {response_headers[header]}")
             response.raise_for_status()
             csv_file.write(response.text)
             csv_file.seek(0)
@@ -356,6 +360,7 @@ def get_service_from_reverse_dns_base_domain(
         except Exception:
             logger.warning("Not a valid CSV file")
             csv_file.seek(0)
+            logging.debug("Response body:")
             logger.debug(csv_file.read())
 
     if len(reverse_dns_map) == 0:
