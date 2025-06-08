@@ -9,6 +9,7 @@ def _main():
     input_csv_file_path = "base_reverse_dns.csv"
     base_reverse_dns_map_file_path = "base_reverse_dns_map.csv"
     known_unknown_list_file_path = "known_unknown_base_reverse_dns.txt"
+    psl_overrides_file_path = "psl_overrides.txt"
     output_csv_file_path = "unknown_base_reverse_dns.csv"
 
     csv_headers = ["source_name", "message_count"]
@@ -23,6 +24,7 @@ def _main():
         input_csv_file_path,
         base_reverse_dns_map_file_path,
         known_unknown_list_file_path,
+        psl_overrides_file_path,
     ]:
         if not os.path.exists(p):
             logger.error(f"{p} does not exist")
@@ -38,6 +40,18 @@ def _main():
                 )
             else:
                 known_unknown_domains.append(domain)
+    logger.info(f"Loading {psl_overrides_file_path}")
+    psl_overrides = []
+    with open(psl_overrides_file_path) as f:
+        for line in f.readlines():
+            domain = line.lower().strip()
+            if domain in psl_overrides:
+                logger.warning(
+                    f"{domain} is in {psl_overrides_file_path} \
+                        multiple times"
+                )
+            else:
+                psl_overrides.append(domain)
     logger.info(f"Loading {base_reverse_dns_map_file_path}")
     known_domains = []
     with open(base_reverse_dns_map_file_path) as f:
@@ -52,13 +66,20 @@ def _main():
             if domain in known_unknown_domains and known_domains:
                 pass
                 logger.warning(
-                    f"{domain} is in {known_unknown_list_file_path} and {base_reverse_dns_map_file_path}"
+                    f"{domain} is in {known_unknown_list_file_path} and \
+                        {base_reverse_dns_map_file_path}"
                 )
 
     logger.info(f"Checking domains against {base_reverse_dns_map_file_path}")
     with open(input_csv_file_path) as f:
         for row in csv.DictReader(f):
             domain = row["source_name"].lower().strip()
+            if domain == "":
+                continue
+            for psl_domain in psl_overrides:
+                if domain.endswith(psl_domain):
+                    domain = psl_domain
+                    break
             if domain not in known_domains and domain not in known_unknown_domains:
                 logger.info(f"New unknown domain found: {domain}")
                 output_rows.append(row)

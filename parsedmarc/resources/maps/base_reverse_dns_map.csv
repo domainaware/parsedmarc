@@ -84,6 +84,8 @@ asahikawa-med.ac.jp,Asahikawa Med,Healthcare
 ashtelstudios.com,Ashtel Studios,Healthcare
 asiaitserver.com, Asia IT Solution Co.,MSP
 askbis.com,BIS,Web Host
+asl2.liguria.it,ASL2,Healthcare
+asmecal.it,ASMENET CALABRIA,Government
 assaytechnology.com,Assay Technology,Industrial
 assentportal.com,Assent,SaaS
 atmailcloud.com,atmail,Email Provider
@@ -92,6 +94,7 @@ atw.ne.jp,ATW,Web Host
 au.com,au,ISP
 auone-net.jp,KDDI,ISP
 aussiebb.com.au,Aussie Broadband,ISP
+autotask.net,Kaseya,SaaS
 averypartners.net,Avery Partners,Healthcare
 avis.ne.jp,Densan Avis,ISP
 aviso.ci,Orange,ISP
@@ -161,8 +164,8 @@ calpoly.edu,Cal Poly,Education
 calvin.edu,Calvin University,Education
 canonet.ne.jp,Canonet,MSP
 cardhealth.com,Cardinal Health,Healthcare
-cardinalhealth.com,Cardinal Health,Healthcare
 cardinal.com,Cardinal Health,Healthcare
+cardinalhealth.com,Cardinal Health,Healthcare
 carecentrix.com,CareCentrix,Healthcare
 carrierzone.com,carrierzone,Email Security
 carsforkids.org,Cars For Kids,Nonprofit
@@ -176,6 +179,7 @@ centerasecurity.com,Centera Email Defence,Email Security
 centerasecurity.dk,Centera Email Defence,Email Security
 centralinteractiva.com.mx,Central Interactiva,Marketing
 centurylink.com.pe,Cirion,MSP
+chaiyohosting.com,Chaiy oHosting,Web Host
 charter.net,Charter,ISP
 chiba-u.jp,Chiba University,Education
 chikamori.com,Chikamori Health Care Group,Healthcare
@@ -274,6 +278,7 @@ default-host.net,INHOSTED LP,Web Host
 delhitel.net,Delhi Telephone Company,ISP
 deskwing.net,DESKWING,Email Provider
 dexanet.co.id,Dexanet,ISP
+dfn.nl,DELTA Fiber,ISP
 dgsys.es,DGsys,Web Host
 dhl.com,DHL,logistics
 diakovere.de,DIAKOVERE,Healthcare
@@ -328,6 +333,7 @@ ecm8.com,Campaign Master (UK),Marketing
 edgepark.com,Edgepark,Healthcare
 edu.com,InstructionalAssistant,SaaS
 eduneering.com,UL EHS training,SaaS
+egress.cloud,Egress Software,Email Security
 egs-seg.gc.ca,Canada Government Electronic Directory Services (GEDS),Government
 ehafconsulting.org,EHAF Consulting Engineers,Construction
 ehime-u.ac.jp,Ehime University,Education
@@ -340,9 +346,10 @@ elcom.ru,Rostelcom,ISP
 electric.net,VIPRE,Email Security
 elevatedstudios.tech,Elevated Studios,Web Host
 eleven.mx,E;rven Marketing Labs,Marketing
-elink.net,Earthlink,ISP
 elive.net,Elive,Web Host
 ellipse.net,Ellipse,MSP
+elmecnet.net,Elmec Informatica,MSP
+elnk.net,Earthlink,ISP
 email-od.com,SocketLabs,SaaS
 emailarray.com,Emailarray,Email Provider
 emailowl.com,NameSilo,Web Host
@@ -458,6 +465,7 @@ gsbridge.com,Golden State Bridge,Industrial
 gtnexus.com,Infor Nexus (Formerly GT Nexus),SaaS
 gts.sk,GTS Slovakia,ISP
 guardedhost.com,Omnis Network,Web Host
+gva.es,Generalitat Valenciana,Government
 gwu.edu,The George Washington University,Education
 h-isac.org,H-ISAC,Healthcare
 hammacher.com,Hammacher Schlemmer,Retail
@@ -654,6 +662,7 @@ lghealth.org,Penn Medicine Lancaster General Health,Healthcare
 lindsaymunicipalhospital.com,Lindsay Municipal Hospital,Healthcare
 link3.net,Link3 Technologies,ISP
 linkedin.com,LinkedIn,Social Media
+linode.com,Linode,Web Host
 live-servers.net,Fasthosts Internet Ltd,Web Host
 livedo.jp,Livedo Corporation,Healthcare
 llumc.edu,Loma Linda University Medical Center,Healthcare
@@ -731,6 +740,7 @@ menlosecurity.com,Menlo Security,Email Security
 mercranet.com,Mercranet,Web Host
 mercurygate.net,MercuryGate,SaaS
 meric.net.tr,Meriç Hosting,Web Host
+merula.net,Merula,ISP
 messagelabs.com,Symantec Email Security,Email Security
 messagingengine.com,Fastmail,Email Provider
 mesvr.com,ReadNotify,Email Provider
@@ -740,6 +750,7 @@ mho.de,Marienhospital Osnabrück,Healthcare
 mhos.de,Marienhospital Osnabrück,Healthcare
 mia.net,HostDrive,Web Host
 miamioh.edu,Miami University,Education
+microfocus-japan.com,Micro Focus,MSP
 microsoft.com,Microsoft,Technology
 middlesex.ca,"Middlesex County, Canada",Government
 midi-loisirs.com,Midi Loisirs,Entertainment
@@ -803,6 +814,7 @@ nagoya-cu.ac.jp,Nagoya City University,Education
 nagoya-u.ac.jp,Nagoya University,Education
 nahealth.com,Northern Arizona Healthcare,Healthcare
 name.com,Name.com,Web Host
+nameserver.sk,Webglobe,Web Host
 namespro.ca,Namespro,Web Host
 nano.uz,Nano Telecom,ISP
 nascoeducation.com,Nasco EDucation,Education
@@ -826,9 +838,11 @@ netrevolution.com,NetRevolution,ISP
 netroad.ru,Mobile TeleSystems,ISP
 netsolus.com,netsolus KC,MSP
 netsville.com,Netsville,Marketing
+nettlinx.com,Nelinx,ISP
 network80.com,Network80,Web Host
 neuca.pl,NECUA Group,Healthcare
 newpages.com.my,NEWPAGES,Retail
+newsmanapp.com,NewsMAN,Marketing
 newsunseo.com,NewSunSEO,Marketing
 newtekwebhosting.com,Newtek Technology Solutions,Web Host
 nexcess.net,Nexcess,Web Host
@@ -976,6 +990,7 @@ prw.net,Puerto Rico Webmasters,Web Host
 pserver.space,Profitserver,Web Host
 psychz.net,Psychz Networks,Web Host
 ptd.net,PTD,ISP
+ptrcloud.net,GMO GlobalSign,IaaS
 pubnix.net,PubNIX,Web Host
 puc-rio.br,PUC Rio,Education
 pucminas.br,PUC Minas,Education
@@ -1100,6 +1115,7 @@ signium.co.jp,Signium,Consulting
 siho.org,Siho Insurance Services,Finance
 simpro.com.br,Simpro,Healthcare
 simus.uz,Simus,ISP
+sinergit.com.do,Sinergit,MSP
 siriustelecom.uz,Sirius Telecom,ISP
 siteprotect.com,SiteMail,Email Provider
 sixinternet.com.br,Six Internet,ISP
@@ -1220,6 +1236,7 @@ tktelekom.pl,TK Telecom,Healthcare
 tm.net,Mercury Telecom,ISP
 tmc.edu,Truett McConnell University,Education
 tmcz.cz,T-Mobile,ISP
+tmd.ac.jp,Science Tokyo,Education
 tmddedicated.com,TMDHosting,Web Host
 tmkultra.net.br,Tmk Net,ISP
 tnc-neuro.com,Tallahassee Neurological Clinic,Healthcare
@@ -1340,6 +1357,7 @@ web-dns1.com,Web Hosting Canada,Web Host
 web-hosting.com,Namecheap,Web Host
 web.africa,Webafrica,ISP
 webetic.net,Webetic,Web Host
+webglobe.com,Webglobe,Web Host
 webhostingireland.ie,Hosting Ireland,Web Host
 webmasters.com,Webmasters.com,Web Host
 webnames.ca,Webnames.ca,Web Host
@@ -1380,6 +1398,7 @@ xinet.com.mx,Xinet,MSP
 xipline.com,Ritter Communications,ISP
 xmission.com,XMission,SaaS
 xmr3.com,OpenText,SaaS
+xnet.mx,Xnet,MSP
 xrea.com,XREA,Web Host
 xserver.jp,Xserver,Web Host
 yadtel.net,Zirrus,ISP
@@ -1398,6 +1417,8 @@ yuuai.or.jp,Social Medical Corporation Yuuaikai,Healthcare
 z.com,Z.com,Web Host
 zaansmc.nl,Zaans Medical Center,Healthcare
 zare.com,Zare,Web Host
+zcmail.net,Zoho Campaigns,Marketing
+zcsend.net,Zoho Campaigns,Marketing
 zdsys.com,Zendesk,SaaS
 zedality.com,Zedality,Web Host
 zirrus.com,Xirrus.com,ISP
@@ -1414,3 +1435,10 @@ zsttk.ru,TTK,ISP
 zyner.net,Zyner,Email Provider
 zyner.one,Zyner,Email Provider
 zyner.org,Zyner,Email Provider
+akura.ne.jp,Akura,Logistics
+assp.org,American Society of Safety Professionals,Healthcare
+complemar.com,Complemar,Logistics
+victorkaiser.com,Global Transport,Logistics
+bnpparibas.fr,Banque BNP Paribas,Finance
+clarix.com,Clarix,MSP
+collectivhosting.com,Collectiv,Web Host

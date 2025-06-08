@@ -45,6 +45,7 @@
         "htpasswd",
         "httpasswd",
         "IMAP",
+        "infile",
         "Interaktive",
         "IPDB",
         "journalctl",
