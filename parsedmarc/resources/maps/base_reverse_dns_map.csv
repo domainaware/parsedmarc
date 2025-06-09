@@ -1,4 +1,5 @@
 base_reverse_dns,name,type
+./
 101-clientes-izzi.mx,Izzi Telecom,ISP
 118-clientes-izzi.mx,Izzi Telecom,ISP
 163data.com.cn,China Telecom,ISP
@@ -21,6 +22,7 @@ activegate-ss.jp,Active! gate SS,Email Security
 adairit.com,Adair IT,MSP
 admintek.net,Admintek,Web Host
 admintekcr.net,Admintek,Web Host
+admiral.ne.jp,ASJ,ISP
 adnhosting.ca,ADN Communications,Web Host
 adnsl.com,ADN Telecom,ISP
 adp.com,ADP,Finance
@@ -240,6 +242,7 @@ convention.co.jp,Japan Convention Services,Marketing
 convergent-interfreight.com,Convergent Interfreight,Logistics
 convergentindia.com,Convergent Wireless,MSP
 corbina.ru,PJSC VimpelCom,ISP
+corblock.com,Corblock,Industrial
 corewellhealth.org,Corewell Health,Healthcare
 cornell.edu,Cornell University,Education
 cotecal.com.ar,Cotecal,ISP
@@ -372,6 +375,7 @@ entelchile.net,Entel,ISP
 entelvias.com.br,Entelvias,ISP
 enternetprovedor.com.br,Enternet,ISP
 entrata.com,Entrata,SaaS
+entrustedmail.net,EntrustedMail,Email Security
 eonemedia.com,eOneMedia,Photography
 epicpc.com,Epic Health,Healthcare
 epicura.be,EpiCURA,Healthcare
@@ -435,8 +439,10 @@ fuse.net,Altafiber (Formerly Cincinnati Bell),ISP
 fusionconnect.com,Fusion Connect,MSP
 future-bridge.eu,Future Bridge Events,Marketing
 gaggle.net,Gaggle,SaaS
+gallerycollection.com,The Gallery Collection,Retail
 gandi.net,Gandi.net,Web Host
 gastrogainesville.com,Gastroenterology Associates of Gainesville,Healthcare
+gatormail.co.uk,Spotler,Marketing
 gazella.es,Orix Systems,MSP
 gci.net,GCI,ISP
 gcicom.net,Nasstar,MSP
@@ -541,6 +547,7 @@ icehosting.nl,IceHosting,Web Host
 icewarpcloud.in,IceWrap,Email Provider
 ideaservers.net,Hetzner,Web Host
 idig.net,Canadian Web Hosting,Web Host
+idodns.com,IDO DNS,MSP
 iftnet.com.br,IFTNET Telecom,ISP
 iglou.com,IgLou Internet Services,ISP
 iij4u.or.jp, Internet Initiative Japan,ISP
@@ -556,6 +563,7 @@ incontact.com,NICE CX,SaaS
 indemed.com,Cardinal Health at-home (Formerly Independence Medical),Healthcare
 indytel.com,Independence Light & Power Telecommunications,ISP
 ineedbob.com,Computer Solutions,MSP
+inet.vn,INET,Web Host
 infinivan.com,InfiniVAN,ISP
 infolink.ru,Infolink,ISP
 infomaniak.ch,infomaniak,Web Host
@@ -1029,6 +1037,7 @@ redcotel.bo,Cotel Ltda.,ISP
 redexpertos.com,RedExpertos,Web Host
 rediffmailpro.com,Rediffmail Pro,Email Provider
 redirection.net,Redirectionet,Web Host
+reg.ru,Reg.ru,Web Host
 reg365.net,register365,Web Host
 regentbranding.co.uk,Regent Branding,Marketing
 regiomed-kliniken.de,REGIOMED-KLINIKEN GmbH,Healthcare
@@ -1175,6 +1184,7 @@ stellarllc.net,Gardonville Cooperative Telephone Association,ISP
 stertec.co.jp,KUNIMORI-STAR Group,MSP
 stetnet.com.br,Webby agora � Alares,ISP
 stewarthowe.com,Newfold Digital,Web Host
+sti.net,Sierra Tel,ISP
 stjansdal.nl,Hospital St Jansdal,Healthcare
 stokes.nc.us,"Stokes County, North Carolina",Government
 stomabags.com,Stomabags.com,Healthcare
@@ -1223,6 +1233,7 @@ tevapharm.com,Teva Pharmaceuticals,Healthcare
 texas.gov,The Government of Texas,Government
 tfn.net.tw,Taiwan Fixed Network,ISP
 thechristhospital.com,The Christ Hospital,Healthcare
+thegameshowcompany.ca,The Game Show Company,Entertainment
 thomsonreuters.com,Thomson Reuters,SaaS
 tical.com,Grupo Tical,Logistics
 tidewater.net,Tidewater Telecom,ISP
@@ -1345,6 +1356,7 @@ vodacom.co.za,Vodacom,ISP
 vodafonedsl.it,Vodafone Itily,ISP
 vodien.com,Vodien,Web Host
 voicehost.co.uk,VoiceHost,PaaS
+voith.com,Voith,Industrial
 volstate.net,IT Voice,MSP
 vom.com,Valley of the Moon,ISP
 vote4mentalhealth.org,NAMI,Healthcare
@@ -1366,12 +1378,14 @@ web.africa,Webafrica,ISP
 webetic.net,Webetic,Web Host
 webglobe.com,Webglobe,Web Host
 webhostingireland.ie,Hosting Ireland,Web Host
+webline-servers.com,Webline Services,Web Host
 webmasters.com,Webmasters.com,Web Host
 webnames.ca,Webnames.ca,Web Host
 webninja.com.au,Web Ninja,SaaS
 webpal.com,WebPal,Web Host
 webpal.net,WebPal,Web Host
 websitehostserver.net,GreenGeeks,Web Host
+webzine1.com,Webzine Online,Web Host
 webzineonline.com,Webzine Online,Marketing
 wescor.com,Wescor Inc.,Healthcare
 westbrook.ms,Westbrook Construction,Construction
