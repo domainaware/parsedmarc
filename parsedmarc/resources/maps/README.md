@@ -44,6 +44,7 @@ The `service_type` is based on the following rule precedence:
 - IaaS
 - Industrial
 - ISP
+- Legal
 - Logistics
 - Manufacturing
 - Marketing
@@ -53,6 +54,7 @@ The `service_type` is based on the following rule precedence:
 - Nonprofit
 - PaaS
 - Photography
+- Physical Security
 - Print
 - Publishing
 - Real Estate
