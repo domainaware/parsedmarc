@@ -44,6 +44,7 @@ airtel.in,Airtel,ISP
 airtelbroadband.in,Airtel,ISP
 ajusa.com,AJ-USA,Retail
 aknet.kg,AkNet,ISP
+akura.ne.jp,Akura,Logistics
 albatros.uz,Albatros Health Care,Healthcare
 alembic.co.in,Alembic Pharmaceuticals,Healthcare
 alestra.net.mx,Alestra,ISP
@@ -88,6 +89,7 @@ asl2.liguria.it,ASL2,Healthcare
 asmecal.it,ASMENET CALABRIA,Government
 assaytechnology.com,Assay Technology,Industrial
 assentportal.com,Assent,SaaS
+assp.org,American Society of Safety Professionals,Healthcare
 atmailcloud.com,atmail,Email Provider
 ats.ca,ATS Healthcare,Healthcare
 atw.ne.jp,ATW,Web Host
@@ -135,6 +137,7 @@ bluehost.com,Bluehost,Web Host
 bluemission.net,Blue Mission,Web Host
 bluesea.org,Blue Sea Foundation,Marketing
 bluetie.com,BlueTie,MSP
+bnpparibas.fr,Banque BNP Paribas,Finance
 bohc.co.jp,Benefit One Inc.,Retail
 bostrad.com,Bostrad Supply Chain Ltd,Logistics
 bov.com,Bank of Valletta,Finance
@@ -192,6 +195,7 @@ circleamedical.com,Circle A Medical,Healthcare
 cirrushosting.com,Cirrus Hosting,Web Host
 cisco.com,Cisco,Technology
 ckt.net,Craw-Kan Telephone Cooperative,ISP
+clarix.com,Clarix,MSP
 claro.com.do,Claro,ISP
 claro.com.ec,Claro,ISP
 claro.net.do,Mail2World,Email Provider
@@ -213,6 +217,7 @@ codetel.net.do,codetel.net.do,ISP
 coeficiente.net.mx,Coeficiente,ISP
 cogeco.ca,Cogeco,ISP
 cogeco.net,Cogoco,ISP
+collectivhosting.com,Collectiv,Web Host
 colocrossing.com,ColoCrossing,ISP
 combell.com,Combell,Web Host
 comcast.net,Comcast,ISP
@@ -220,6 +225,7 @@ comcastbusiness.net,Comcast Business,ISP
 comfori.com,Comfori,SaaS
 comline.com,West Coast Internet (WCI),ISP
 communitect.com,Solutionreach,SaaS
+complemar.com,Complemar,Logistics
 compliancearchitects.net,Compliance Aarchitects,Healthcare
 compu-type.net,Compu-Type,MSP
 computronics.com,Computronics,Technology
@@ -1322,6 +1328,7 @@ verizonbusiness.com,Verizon Business,ISP
 verointernet.com.br,Internet de Verdade,ISP
 versanet.de,1&1 Versatel,ISP
 vicc.co,Venco Imtiaz Contracting Co,Industrial
+victorkaiser.com,Global Transport,Logistics
 videotron.ca,Videotron,ISP
 videotron.com,Videotron,ISP
 viecuri.nl,VieCuri,Healthcare
@@ -1435,10 +1442,3 @@ zsttk.ru,TTK,ISP
 zyner.net,Zyner,Email Provider
 zyner.one,Zyner,Email Provider
 zyner.org,Zyner,Email Provider
-akura.ne.jp,Akura,Logistics
-assp.org,American Society of Safety Professionals,Healthcare
-complemar.com,Complemar,Logistics
-victorkaiser.com,Global Transport,Logistics
-bnpparibas.fr,Banque BNP Paribas,Finance
-clarix.com,Clarix,MSP
-collectivhosting.com,Collectiv,Web Host

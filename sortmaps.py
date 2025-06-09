@@ -23,8 +23,16 @@ def sort_csv(filepath, column=0):
         writer.writerow(header)
         writer.writerows(sorted_rows)
 
-def sort_list_file(filepath, lowercase=True, strip=True, deduplicate=True,
-                   remove_blank_lines=True, ending_newline=True, newline="\n"):
+
+def sort_list_file(
+    filepath,
+    lowercase=True,
+    strip=True,
+    deduplicate=True,
+    remove_blank_lines=True,
+    ending_newline=True,
+    newline="\n",
+):
     with open(filepath, mode="r", newline=newline) as infile:
         lines = infile.readlines()
         for i in range(len(lines)):
@@ -39,14 +47,13 @@ def sort_list_file(filepath, lowercase=True, strip=True, deduplicate=True,
                 lines.remove("")
         lines = sorted(lines)
         if ending_newline:
-            if lines[-1] != newline: 
-                lines.append(newline)
+            if lines[-1] != "":
+                lines.append("")
     with open(filepath, mode="w", newline=newline) as outfile:
-        outfile.write("\n".join(newline))
-        outfile.write(newline)
+        outfile.write("\n".join(lines))
 
 
 for csv_file in map_files:
     sort_csv(os.path.join(maps_dir, csv_file))
 for list_file in list_files:
-    sort_list_file( os.path.join(maps_dir, list_file))
+    sort_list_file(os.path.join(maps_dir, list_file))
