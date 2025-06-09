@@ -47,8 +47,7 @@ def _main():
             domain = line.lower().strip()
             if domain in psl_overrides:
                 logger.warning(
-                    f"{domain} is in {psl_overrides_file_path} \
-                        multiple times"
+                    f"{domain} is in {psl_overrides_file_path} multiple times"
                 )
             else:
                 psl_overrides.append(domain)

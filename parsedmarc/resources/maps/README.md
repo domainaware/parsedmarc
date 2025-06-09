@@ -27,6 +27,7 @@ The `service_type` is based on the following rule precedence:
 - Agriculture
 - Automotive
 - Beauty
+- Conglomerate
 - Construction
 - Consulting
 - Defense
