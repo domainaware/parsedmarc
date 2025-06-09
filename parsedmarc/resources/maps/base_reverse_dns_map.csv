@@ -1,5 +1,4 @@
 base_reverse_dns,name,type
-./
 101-clientes-izzi.mx,Izzi Telecom,ISP
 118-clientes-izzi.mx,Izzi Telecom,ISP
 163data.com.cn,China Telecom,ISP
@@ -337,6 +336,7 @@ dishemail.com,DISH,ISP
 dji.com,DJI,Technology
 dlivry.co,Twilio SendGrid,Marketing
 dmmhosts.com,DMM Hosts,Web Host
+dnchosting.com,Directnic,Web Host
 dnns.net,No-IP Dynamic DNS,Web Host
 dnsthai.com,Aptum Technologies,MSP
 doctors.org.uk,Doctors.net.uk,Healthcare
@@ -347,6 +347,7 @@ donpac.ru,Rostelecom,ISP
 dosscloudservices.com,Doss Business Systems,MSP
 doteasy.com,Doteasy,Web Host
 dotroll.com,DotRoll,Web Host
+draminski.com,Dramiński Technology,Healthcare
 dreamcompute.com,Dreamhost,Web Host
 dreamhost.com,Dreamhost,Web Host
 dreamhostps.com,Dreamhost,Web Host
@@ -362,6 +363,7 @@ dynamic-mytachyon.in,Tachyon Communications,ISP
 dyspatchit.net,Dyspatchit,Marketing
 e-mmunity.net,VIPRE,Email Security
 e2ma.net,Emma,Marketing
+eaglecom.net,Vyve Broadband,ISP
 eastern-tele.com,Eastern Communications,ISP
 easterndsl.com.ph,Eastern Communications,ISP
 eastlink.ca,Eastlink,ISP
