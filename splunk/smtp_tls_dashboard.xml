@@ -34,7 +34,7 @@
       <table>
         <search>
           <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$
-| rename  policies{}.policy_domain as policy_domain
+| rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
 | rename policies{}.failure_details{}.failed_session_count as failed_sessions
@@ -58,7 +58,7 @@
       <table>
         <search>
           <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$
-| rename  policies{}.policy_domain as policy_domain
+| rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
 | rename policies{}.failure_details{}.failed_session_count as failed_sessions
@@ -84,7 +84,7 @@
       <table>
         <search>
           <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.failure_details{}.result_type=*
-| rename  policies{}.policy_domain as policy_domain
+| rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
 | rename policies{}.failure_details{}.failed_session_count as failed_sessions
