@@ -17,6 +17,7 @@ touch build/html/.nojekyll
 if [  -d "./../parsedmarc-docs" ]; then
   cp -rf build/html/* ../../parsedmarc-docs/
 fi
+cd ..
 python3 sortmaps.py
 python3 tests.py
 rm -rf dist/ build/
