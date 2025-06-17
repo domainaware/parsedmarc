@@ -1580,7 +1580,7 @@ def get_dmarc_reports_from_mailbox(
 
     if since:
         _since = 1440  # default one day
-        if re.match(r"\d+[mhd]$", since):
+        if re.match(r"\d+[mhdw]$", since):
             s = re.split(r"(\d+)", since)
             if s[2] == "m":
                 _since = int(s[1])
