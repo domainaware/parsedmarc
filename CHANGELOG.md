@@ -6,6 +6,8 @@ Changelog
 
 - Fix CSV download
 
+- Fix since option to correctly work with weeks
+
 8.18.4
 ------
 
@@ -693,7 +695,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 -----
 
 - Add filename and line number to logging output
-- Improved IMAP error handling  
+- Improved IMAP error handling
 - Add CLI options
 
   ```text
