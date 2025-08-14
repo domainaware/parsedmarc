@@ -369,7 +369,7 @@ The full set of configuration options are:
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
 
 - `maildir`
-  - `reports_folder` - str: Full path for mailbox maidir location (Default: `INBOX`)
+  - `maildir_path` - str: Full path for mailbox maidir location (Default: `INBOX`)
   - `maildir_create` - bool: Create maildir if not present (Default: False)
 
 - `webhook` - Post the individual reports to a webhook url with the report as the JSON body
