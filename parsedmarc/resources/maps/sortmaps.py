@@ -3,7 +3,7 @@
 import os
 import csv
 
-maps_dir = os.path.join("parsedmarc", "resources", "maps")
+maps_dir = os.path.join(".")
 map_files = ["base_reverse_dns_map.csv"]
 list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
 
