@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.18.7
+------
+
+Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
+
 8.18.6
 ------
 
