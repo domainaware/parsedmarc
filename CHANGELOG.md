@@ -8,7 +8,7 @@ Changelog
 - Add 183 entries to `base_reverse_dns_map.csv`
 - Add 57 entries to `known_unknown_base_reverse_dns.txt`
 - Check for invalid UTF-8 bytes in `base_reverse_dns_map.csv` at build
-- Remove unneeded items from the `parsedmarc.resources` module at build
+- Exclude unneeded items from the `parsedmarc.resources` module at build
 
 8.18.5
 ------
