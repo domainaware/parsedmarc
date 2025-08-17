@@ -67,6 +67,7 @@ build = [
     "ruff",
     "sphinx",
     "sphinx_rtd_theme",
+    "pandas",
 ]
 
 [project.scripts]

@@ -1,27 +1,34 @@
 #!/usr/bin/env python3
 
 import os
-import csv
+import pandas as pd
 
 maps_dir = os.path.join(".")
 map_files = ["base_reverse_dns_map.csv"]
 list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
 
 
-def sort_csv(filepath, column=0):
-    with open(filepath, mode="r", newline="") as infile:
-        reader = csv.reader(infile)
-        header = next(reader)
-        sorted_rows = sorted(reader, key=lambda row: row[column])
-        existing_values = []
-        for row in sorted_rows:
-            if row[column] in existing_values:
-                print(f"Warning: {row[column]} is in {filepath} multiple times")
+def sort_csv(filepath, column=0, strip_whitespace=True):
+    # Load CSV into  aDataFrame
+    df = pd.read_csv(filepath)
 
-    with open(filepath, mode="w", newline="\n") as outfile:
-        writer = csv.writer(outfile)
-        writer.writerow(header)
-        writer.writerows(sorted_rows)
+    if strip_whitespace:
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+    # Get the first column name
+    col_name = df.columns[column]
+
+    # Check for duplicates in the first column
+    duplicates = df[df.duplicated(subset=[col_name], keep=False)]
+    if not duplicates.empty:
+        print(f"⚠️ Warning: Duplicate values found in column '{col_name}':")
+        print(duplicates[[col_name]])
+
+    # Sort by the first column
+    df = df.sort_values(by=col_name)
+
+    # Save back to the same file (overwrite, no index column)
+    df.to_csv(filepath, index=False)
 
 
 def sort_list_file(
