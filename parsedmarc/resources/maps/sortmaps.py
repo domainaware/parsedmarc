@@ -8,24 +8,26 @@ map_files = ["base_reverse_dns_map.csv"]
 list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
 
 
-def sort_csv(filepath, column=0, strip_whitespace=True):
-    # Load CSV into  aDataFrame
+def sort_csv(
+    filepath, column=0, column_name=None, strip_whitespace=True, duplicates_warning=True
+):
+    # Load CSV into a DataFrame
     df = pd.read_csv(filepath)
 
     if strip_whitespace:
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
 
-    # Get the first column name
-    col_name = df.columns[column]
+    if column_name is None:
+        column_name = df.columns[column]
 
-    # Check for duplicates in the first column
-    duplicates = df[df.duplicated(subset=[col_name], keep=False)]
-    if not duplicates.empty:
-        print(f"⚠️ Warning: Duplicate values found in column '{col_name}':")
-        print(duplicates[[col_name]])
+    # Check for duplicates
+    duplicates = df[df.duplicated(subset=[column_name], keep=False)]
+    if duplicates_warning and not duplicates.empty:
+        print(f"⚠️ Warning: Duplicate values found in column '{column_name}':")
+        print(duplicates[[column_name]])
 
     # Sort by the first column
-    df = df.sort_values(by=col_name)
+    df = df.sort_values(by=column_name)
 
     # Save back to the same file (overwrite, no index column)
     df.to_csv(filepath, index=False)
