@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import logging
 import os
 import csv
 
@@ -16,10 +15,6 @@ def _main():
 
     output_rows = []
 
-    logging.basicConfig()
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
     for p in [
         input_csv_file_path,
         base_reverse_dns_map_file_path,
@@ -27,49 +22,30 @@ def _main():
         psl_overrides_file_path,
     ]:
         if not os.path.exists(p):
-            logger.error(f"{p} does not exist")
+            print(f"Error: {p} does not exist")
             exit(1)
-    logger.info(f"Loading {known_unknown_list_file_path}")
-    known_unknown_domains = []
-    with open(known_unknown_list_file_path) as f:
-        for line in f.readlines():
-            domain = line.lower().strip()
-            if domain in known_unknown_domains:
-                logger.warning(
-                    f"{domain} is in {known_unknown_list_file_path} multiple times"
-                )
-            else:
-                known_unknown_domains.append(domain)
-    logger.info(f"Loading {psl_overrides_file_path}")
-    psl_overrides = []
-    with open(psl_overrides_file_path) as f:
-        for line in f.readlines():
-            domain = line.lower().strip()
-            if domain in psl_overrides:
-                logger.warning(
-                    f"{domain} is in {psl_overrides_file_path} multiple times"
-                )
-            else:
-                psl_overrides.append(domain)
-    logger.info(f"Loading {base_reverse_dns_map_file_path}")
-    known_domains = []
-    with open(base_reverse_dns_map_file_path) as f:
-        for row in csv.DictReader(f):
-            domain = row["base_reverse_dns"].lower().strip()
-            if domain in known_domains:
-                logger.warning(
-                    f"{domain} is in {base_reverse_dns_map_file_path} multiple times"
-                )
-            else:
-                known_domains.append(domain)
-            if domain in known_unknown_domains and known_domains:
-                pass
-                logger.warning(
-                    f"{domain} is in {known_unknown_list_file_path} and \
-                        {base_reverse_dns_map_file_path}"
-                )
 
-    logger.info(f"Checking domains against {base_reverse_dns_map_file_path}")
+    known_unknown_domains = []
+    psl_overrides = []
+    known_domains = []
+    output_rows = []
+
+    def load_list(file_path, list_var):
+        print(f"Loading {file_path}")
+        list_var = []
+        with open(file_path) as f:
+            for line in f.readlines():
+                domain = line.lower().strip()
+                if domain in list_var:
+                    print(f"Error: {domain} is in {file_path} multiple times")
+                    exit(1)
+            else:
+                list_var.append(domain)
+
+    load_list(known_unknown_list_file_path, known_unknown_domains)
+    load_list(psl_overrides_file_path, psl_overrides)
+
+    print(f"Checking domains against {base_reverse_dns_map_file_path}")
     with open(input_csv_file_path) as f:
         for row in csv.DictReader(f):
             domain = row["source_name"].lower().strip()
@@ -80,9 +56,9 @@ def _main():
                     domain = psl_domain
                     break
             if domain not in known_domains and domain not in known_unknown_domains:
-                logger.info(f"New unknown domain found: {domain}")
+                print(f"New unknown domain found: {domain}")
                 output_rows.append(row)
-    logger.info(f"Writing {output_csv_file_path}")
+    print(f"Writing {output_csv_file_path}")
     with open(output_csv_file_path, "w") as f:
         writer = csv.DictWriter(f, fieldnames=csv_headers, lineterminator="\n")
         writer.writeheader()
