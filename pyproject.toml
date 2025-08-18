@@ -67,8 +67,6 @@ build = [
     "ruff",
     "sphinx",
     "sphinx_rtd_theme",
-    "pandas>=2.2.2",
-    "numpy<2"
 ]
 
 [project.scripts]

@@ -1,36 +1,37 @@
 #!/usr/bin/env python3
 
 import os
-import pandas as pd
+import csv
 
 maps_dir = os.path.join(".")
 map_files = ["base_reverse_dns_map.csv"]
 list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
 
 
-def sort_csv(
-    filepath, column=0, column_name=None, strip_whitespace=True, duplicates_warning=True
-):
-    # Load CSV into a DataFrame
-    df = pd.read_csv(filepath)
+def sort_csv(filepath, column=0, strip_whitespace=True):
+    with open(filepath, mode="r", newline="") as infile:
+        reader = csv.reader(infile)
+        header = next(reader)
 
-    if strip_whitespace:
-        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        def normalize_row(row):
+            return [
+                field.strip() if strip_whitespace and isinstance(field, str) else field
+                for field in row
+            ]
 
-    if column_name is None:
-        column_name = df.columns[column]
+        rows = [normalize_row(row) for row in reader]
+        sorted_rows = sorted(rows, key=lambda row: row[column])
+        existing_values = []
+        for row in sorted_rows:
+            if row[column] in existing_values:
+                print(f"Warning: {row[column]} is in {filepath} multiple times")
+            else:
+                existing_values.append(row[column])
 
-    # Check for duplicates
-    duplicates = df[df.duplicated(subset=[column_name], keep=False)]
-    if duplicates_warning and not duplicates.empty:
-        print(f"⚠️ Warning: Duplicate values found in column '{column_name}':")
-        print(duplicates[[column_name]])
-
-    # Sort by the first column
-    df = df.sort_values(by=column_name)
-
-    # Save back to the same file (overwrite, no index column)
-    df.to_csv(filepath, index=False)
+    with open(filepath, mode="w", newline="\n") as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(header)
+        writer.writerows(sorted_rows)
 
 
 def sort_list_file(
