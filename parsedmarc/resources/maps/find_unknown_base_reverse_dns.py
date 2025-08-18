@@ -84,7 +84,7 @@ def _main():
                 output_rows.append(row)
     logger.info(f"Writing {output_csv_file_path}")
     with open(output_csv_file_path, "w") as f:
-        writer = csv.DictWriter(f, fieldnames=csv_headers)
+        writer = csv.DictWriter(f, fieldnames=csv_headers, lineterminator="\n")
         writer.writeheader()
         writer.writerows(output_rows)
 
