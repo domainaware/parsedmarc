@@ -9,7 +9,7 @@ list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
 
 
 def sort_csv(filepath, column=0, strip_whitespace=True):
-    with open(filepath, mode="r", newline="") as infile:
+    with open(filepath, mode="r", newline="\n") as infile:
         reader = csv.reader(infile)
         header = next(reader)
 
@@ -29,7 +29,7 @@ def sort_csv(filepath, column=0, strip_whitespace=True):
                 existing_values.append(row[column])
 
     with open(filepath, mode="w", newline="\n") as outfile:
-        writer = csv.writer(outfile)
+        writer = csv.writer(outfile, lineterminator="\n")
         writer.writerow(header)
         writer.writerows(sorted_rows)
 
