@@ -104,7 +104,7 @@ def sort_csv(
 
     rows.sort(key=sort_key)
 
-    with path.open(filepath, "w", newline="") as outfile:
+    with open(filepath, "w", newline="") as outfile:
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
