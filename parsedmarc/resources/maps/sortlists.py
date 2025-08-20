@@ -70,9 +70,9 @@ def sort_csv(
     ) -> None:
         if sort_field_value_must_be_unique:
             if row[sort_field] in seen_sort_field_values:
-                errors.append(f"Line {line_no}: Duplicate row for '{sort_field}'")
+                errors.append(f"Line {line_no}: Duplicate row for '{row[sort_field]}'")
             else:
-                seen_sort_field_values.append(sort_field)
+                seen_sort_field_values.append(row[sort_field])
         for rf in required_fields:
             val = row.get(rf)
             if val is None or val == "":
