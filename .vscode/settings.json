@@ -109,6 +109,7 @@
         "setuptools",
         "smartquotes",
         "SMTPTLS",
+        "sortlists",
         "sortmaps",
         "sourcetype",
         "STARTTLS",

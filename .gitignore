@@ -106,7 +106,7 @@ ENV/
 .idea/
 
 # VS Code launch config
-.vscode/launch.json
+#.vscode/launch.json
 
 # Visual Studio Code settings
 #.vscode/

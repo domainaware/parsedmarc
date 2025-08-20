@@ -1,0 +1,44 @@
+Agriculture
+Automotive
+Beauty
+Conglomerate
+Construction
+Consulting
+Defense
+Education
+Email Provider
+Email Security
+Entertainment
+Event Planning
+Finance
+Food
+Government
+Government Media
+Healthcare
+ISP
+IaaS
+Industrial
+Legal
+Logistics
+MSP
+MSSP
+Manufacturing
+Marketing
+News
+Nonprofit
+PaaS
+Photography
+Physical Security
+Print
+Publishing
+Real Estate
+Retail
+SaaS
+Science
+Search Engine
+Social Media
+Sports
+Staffing
+Technology
+Travel
+Web Host

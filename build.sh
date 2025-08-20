@@ -19,7 +19,7 @@ if [  -d "./../parsedmarc-docs" ]; then
 fi
 cd ..
 cd parsedmarc/resources/maps
-python3 sortmaps.py
+python3 sortlists.py
 echo "Checking for invalid UTF-8 bytes in base_reverse_dns_map.csv"
 python3 find_bad_utf8.py base_reverse_dns_map.csv
 cd ../../..

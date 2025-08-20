@@ -15,22 +15,14 @@ def _main():
 
     output_rows = []
 
-    for p in [
-        input_csv_file_path,
-        base_reverse_dns_map_file_path,
-        known_unknown_list_file_path,
-        psl_overrides_file_path,
-    ]:
-        if not os.path.exists(p):
-            print(f"Error: {p} does not exist")
-            exit(1)
-
     known_unknown_domains = []
     psl_overrides = []
     known_domains = []
     output_rows = []
 
     def load_list(file_path, list_var):
+        if not os.path.exists(file_path):
+            print(f"Error: {file_path} does not exist")
         print(f"Loading {file_path}")
         list_var = []
         with open(file_path) as f:
@@ -44,9 +36,11 @@ def _main():
 
     load_list(known_unknown_list_file_path, known_unknown_domains)
     load_list(psl_overrides_file_path, psl_overrides)
-
-    print(f"Checking domains against {base_reverse_dns_map_file_path}")
+    if not os.path.exists(input_csv_file_path):
+        print(f"Error: {input_csv_file_path} does not exist")
+        exit(1)
     with open(input_csv_file_path) as f:
+        print(f"Checking domains against {base_reverse_dns_map_file_path}")
         for row in csv.DictReader(f):
             domain = row["source_name"].lower().strip()
             if domain == "":
