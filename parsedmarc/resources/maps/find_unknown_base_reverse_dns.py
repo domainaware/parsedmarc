@@ -30,8 +30,8 @@ def _main():
                 if domain in list_var:
                     print(f"Error: {domain} is in {file_path} multiple times")
                     exit(1)
-            else:
-                list_var.append(domain)
+                else:
+                    list_var.append(domain)
 
     load_list(known_unknown_list_file_path, known_unknown_domains)
     load_list(psl_overrides_file_path, psl_overrides)
@@ -55,10 +55,9 @@ def _main():
                 )
                 exit(1)
     if not os.path.exists(input_csv_file_path):
-        print(f"Error: {input_csv_file_path} does not exist")
+        print(f"Error: {base_reverse_dns_map_file_path} does not exist")
         exit(1)
     with open(input_csv_file_path) as f:
-        print(f"Checking domains against {base_reverse_dns_map_file_path}")
         for row in csv.DictReader(f):
             domain = row["source_name"].lower().strip()
             if domain == "":
@@ -72,10 +71,9 @@ def _main():
                 output_rows.append(row)
     print(f"Writing {output_csv_file_path}")
     with open(output_csv_file_path, "w") as f:
-        writer = csv.DictWriter(f, fieldnames=csv_headers, lineterminator="\n")
+        writer = csv.DictWriter(f, fieldnames=csv_headers)
         writer.writeheader()
         writer.writerows(output_rows)
-
 
 if __name__ == "__main__":
     _main()
