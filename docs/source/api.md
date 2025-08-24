@@ -21,7 +21,6 @@
    :members:
 ```
 
-
 ## parsedmarc.splunk
 
 ```{eval-rst}

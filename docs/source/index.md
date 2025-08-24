@@ -33,15 +33,16 @@ and Valimail.
 
 ## Features
 
-- Parses draft and 1.0 standard aggregate/rua reports
-- Parses forensic/failure/ruf reports
+- Parses draft and 1.0 standard aggregate/rua DMARC reports
+- Parses forensic/failure/ruf DMARC reports
+- Parses reports from SMTP TLS Reporting
 - Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail API
 - Transparently handles gzip or zip compressed reports
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch/OpenSearch and/or Splunk, for use with
-  premade dashboards
+- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
+    with premade dashboards
 - Optionally send reports to Apache Kafka
 
 ```{toctree}

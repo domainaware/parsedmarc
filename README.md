@@ -34,10 +34,10 @@ Thanks to all
 
 ## Features
 
-- Parses draft and 1.0 standard aggregate/rua reports
-- Parses forensic/failure/ruf reports
-- Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail
-    API
+- Parses draft and 1.0 standard aggregate/rua DMARC reports
+- Parses forensic/failure/ruf DMARC reports
+- Parses reports from SMTP TLS Reporting
+- Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail API
 - Transparently handles gzip or zip compressed reports
 - Consistent data structures
 - Simple JSON and/or CSV output
