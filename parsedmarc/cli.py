@@ -1586,6 +1586,7 @@ def _main():
                 username=opts.smtp_user,
                 password=opts.smtp_password,
                 subject=opts.smtp_subject,
+                require_encryption=opts.smtp_ssl,
             )
         except Exception:
             logger.exception("Failed to email results")
