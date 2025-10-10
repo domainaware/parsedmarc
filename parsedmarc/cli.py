@@ -631,8 +631,7 @@ def _main():
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
-        webhook_timeout=60,
-        prettify_json=True
+        webhook_timeout=60
     )
     args = arg_parser.parse_args()
 
