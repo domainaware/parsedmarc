@@ -480,12 +480,6 @@ def _main():
     )
     arg_parser.add_argument("--log-file", default=None, help="output logging to a file")
     arg_parser.add_argument(
-        "--prettify-json",
-        action="store_true",
-        default=True,
-        help="format JSON output with indentation(default: True)"
-    )
-    arg_parser.add_argument(
         "--no-prettify-json",
         action="store_false",
         dest="prettify_json",
@@ -626,7 +620,7 @@ def _main():
         la_dcr_forensic_stream=None,
         la_dcr_smtp_tls_stream=None,
         gelf_host=None,
-        gelf_port=None,
+        gelf_port=None,p
         gelf_mode=None,
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
