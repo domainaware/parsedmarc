@@ -102,7 +102,8 @@ def _main():
     """Called when the module is executed"""
 
     def process_reports(reports_):
-        output_str = "{0}\n".format(json.dumps(reports_, ensure_ascii=False, indent=2))
+        indent_value = 2 if opts.prettify_json else None
+        output_str = "{0}\n".format(json.dumps(reports_, ensure_ascii=False, indent=indent_value))
 
         if not opts.silent:
             print(output_str)
@@ -189,8 +190,9 @@ def _main():
 
                 try:
                     if opts.webhook_aggregate_url:
+                        indent_value = 2 if opts.prettify_json else None
                         webhook_client.save_aggregate_report_to_webhook(
-                            json.dumps(report, ensure_ascii=False, indent=2)
+                            json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
                     logger.error("Webhook Error: {0}".format(error_.__str__()))
@@ -271,8 +273,9 @@ def _main():
 
                 try:
                     if opts.webhook_forensic_url:
+                        indent_value = 2 if opts.prettify_json else None
                         webhook_client.save_forensic_report_to_webhook(
-                            json.dumps(report, ensure_ascii=False, indent=2)
+                            json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
                     logger.error("Webhook Error: {0}".format(error_.__str__()))
@@ -353,8 +356,9 @@ def _main():
 
                 try:
                     if opts.webhook_smtp_tls_url:
+                        indent_value = 2 if opts.prettify_json else None
                         webhook_client.save_smtp_tls_report_to_webhook(
-                            json.dumps(report, ensure_ascii=False, indent=2)
+                            json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
                     logger.error("Webhook Error: {0}".format(error_.__str__()))
@@ -475,6 +479,12 @@ def _main():
         "--debug", action="store_true", help="print debugging information"
     )
     arg_parser.add_argument("--log-file", default=None, help="output logging to a file")
+    arg_parser.add_argument(
+        "--no-prettify-json",
+        action="store_false",
+        dest="prettify_json",
+        help="output JSON in a single line without indentation"
+    )
     arg_parser.add_argument("-v", "--version", action="version", version=__version__)
 
     aggregate_reports = []
@@ -504,6 +514,7 @@ def _main():
         dns_timeout=args.dns_timeout,
         debug=args.debug,
         verbose=args.verbose,
+        prettify_json=args.prettify_json,
         save_aggregate=False,
         save_forensic=False,
         save_smtp_tls=False,
@@ -614,7 +625,7 @@ def _main():
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
-        webhook_timeout=60,
+        webhook_timeout=60
     )
     args = arg_parser.parse_args()
 
@@ -701,6 +712,8 @@ def _main():
                 opts.reverse_dns_map_path = general_config["reverse_dns_path"]
             if "reverse_dns_map_url" in general_config:
                 opts.reverse_dns_map_url = general_config["reverse_dns_url"]
+            if "prettify_json" in general_config:
+                opts.prettify_json = general_config.getboolean("prettify_json")
 
         if "mailbox" in config.sections():
             mailbox_config = config["mailbox"]
