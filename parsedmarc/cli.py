@@ -620,7 +620,7 @@ def _main():
         la_dcr_forensic_stream=None,
         la_dcr_smtp_tls_stream=None,
         gelf_host=None,
-        gelf_port=None,p
+        gelf_port=None,
         gelf_mode=None,
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
