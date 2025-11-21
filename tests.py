@@ -75,7 +75,9 @@ class Test(unittest.TestCase):
         file = "samples/extract_report/nice-input.xml"
         print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report(file)
-        xmlin = open("samples/extract_report/nice-input.xml").read()
+        xmlin_file = open("samples/extract_report/nice-input.xml")
+        xmlin = xmlin_file.read()
+        xmlin_file.close()
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
 
