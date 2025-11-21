@@ -63,7 +63,9 @@ class Test(unittest.TestCase):
             data = f.read()
         print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report(data)
-        xmlin = open("samples/extract_report/nice-input.xml").read()
+        xmlin_file = open("samples/extract_report/nice-input.xml")
+        xmlin = xmlin_file.read()
+        xmlin_file.close()
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
 
@@ -83,7 +85,9 @@ class Test(unittest.TestCase):
         file = "samples/extract_report/nice-input.xml.gz"
         print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
-        xmlin = open("samples/extract_report/nice-input.xml").read()
+        xmlin_file = open("samples/extract_report/nice-input.xml")
+        xmlin = xmlin_file.read()
+        xmlin_file.close()
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
 
@@ -93,12 +97,13 @@ class Test(unittest.TestCase):
         file = "samples/extract_report/nice-input.xml.zip"
         print("Testing {0}: ".format(file), end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
-        print(xmlout)
-        xmlin = minify_xml(open("samples/extract_report/nice-input.xml").read())
-        print(xmlin)
+        xmlin_file = open("samples/extract_report/nice-input.xml")
+        xmlin = minify_xml(xmlin_file.read())
+        xmlin_file.close()
         self.assertTrue(compare_xml(xmlout, xmlin))
-        xmlin = minify_xml(open("samples/extract_report/changed-input.xml").read())
-        print(xmlin)
+        xmlin_file = open("samples/extract_report/changed-input.xml")
+        xmlin = xmlin_file.read()
+        xmlin_file.close()
         self.assertFalse(compare_xml(xmlout, xmlin))
         print("Passed!")
 
