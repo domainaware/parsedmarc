@@ -1,6 +1,12 @@
 Changelog
 =========
 
+8.18.8
+------
+
+- Fix parsing emails with an uncompressed aggregate report attachment (Closes #607)
+- Add `--no-prettify-json` CLI option (PR #617)
+
 8.18.7
 ------
 

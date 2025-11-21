@@ -12,6 +12,22 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "sample.eml",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "parsedmarc.cli",
+      "args": ["samples/private/sample.eml"]
+    },
+    {
+      "name": "find_sus_domains.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "find_sus_domains.py",
+      "args": ["-i", "unknown_domains.txt", "-o", "sus_domains.csv"],
+      "cwd": "${workspaceFolder}/parsedmarc/resources/maps",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "sortlists.py",
       "type": "debugpy",
       "request": "launch",

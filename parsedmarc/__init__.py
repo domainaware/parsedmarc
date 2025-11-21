@@ -1261,28 +1261,28 @@ def parse_report_email(
                 payload = b64decode(payload)
                 if payload.startswith(MAGIC_ZIP) or payload.startswith(MAGIC_GZIP):
                     payload = extract_report(payload)
-                    ns = nameservers
-                    if payload.startswith("{"):
-                        smtp_tls_report = parse_smtp_tls_report_json(payload)
-                        result = OrderedDict(
-                            [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
-                        )
-                        return result
-                    aggregate_report = parse_aggregate_report_xml(
-                        payload,
-                        ip_db_path=ip_db_path,
-                        always_use_local_files=always_use_local_files,
-                        reverse_dns_map_path=reverse_dns_map_path,
-                        reverse_dns_map_url=reverse_dns_map_url,
-                        offline=offline,
-                        nameservers=ns,
-                        timeout=dns_timeout,
-                        keep_alive=keep_alive,
-                    )
+                ns = nameservers
+                if payload.startswith("{"):
+                    smtp_tls_report = parse_smtp_tls_report_json(payload)
                     result = OrderedDict(
-                        [("report_type", "aggregate"), ("report", aggregate_report)]
+                        [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
                     )
                     return result
+                aggregate_report = parse_aggregate_report_xml(
+                    payload,
+                    ip_db_path=ip_db_path,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    offline=offline,
+                    nameservers=ns,
+                    timeout=dns_timeout,
+                    keep_alive=keep_alive,
+                )
+                result = OrderedDict(
+                    [("report_type", "aggregate"), ("report", aggregate_report)]
+                )
+                return result
 
             except (TypeError, ValueError, binascii.Error):
                 pass

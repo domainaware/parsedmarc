@@ -103,7 +103,9 @@ def _main():
 
     def process_reports(reports_):
         indent_value = 2 if opts.prettify_json else None
-        output_str = "{0}\n".format(json.dumps(reports_, ensure_ascii=False, indent=indent_value))
+        output_str = "{0}\n".format(
+            json.dumps(reports_, ensure_ascii=False, indent=indent_value)
+        )
 
         if not opts.silent:
             print(output_str)
@@ -483,7 +485,7 @@ def _main():
         "--no-prettify-json",
         action="store_false",
         dest="prettify_json",
-        help="output JSON in a single line without indentation"
+        help="output JSON in a single line without indentation",
     )
     arg_parser.add_argument("-v", "--version", action="version", version=__version__)
 
@@ -625,7 +627,7 @@ def _main():
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
-        webhook_timeout=60
+        webhook_timeout=60,
     )
     args = arg_parser.parse_args()
 
