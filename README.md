@@ -3,13 +3,13 @@
 [![Build
 Status](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg)](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml)
 [![Code
-Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/main/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
+Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
 [![PyPI
 Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project/parsedmarc/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/domainaware/parsedmarc/refs/heads/main/docs/source/_static/screenshots/dmarc-summary-charts.png?raw=true" alt="A screenshot of DMARC summary charts in Kibana"/>
+  <img src="https://raw.githubusercontent.com/domainaware/parsedmarc/refs/heads/master/docs/source/_static/screenshots/dmarc-summary-charts.png?raw=true" alt="A screenshot of DMARC summary charts in Kibana"/>
 </p>
 
 `parsedmarc` is a Python module and CLI utility for parsing DMARC
