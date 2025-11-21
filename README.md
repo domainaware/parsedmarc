@@ -3,7 +3,7 @@
 [![Build
 Status](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml/badge.svg)](https://github.com/domainaware/parsedmarc/actions/workflows/python-tests.yml)
 [![Code
-Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/master/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
+Coverage](https://codecov.io/gh/domainaware/parsedmarc/branch/main/graph/badge.svg)](https://codecov.io/gh/domainaware/parsedmarc)
 [![PyPI
 Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project/parsedmarc/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
