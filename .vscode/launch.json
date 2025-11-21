@@ -12,6 +12,13 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "tests.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "tests.py",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "sample.eml",
       "type": "debugpy",
       "request": "launch",

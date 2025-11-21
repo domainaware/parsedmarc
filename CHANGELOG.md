@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.10.9
+------
+
+- Complete fix for #687 and more robust report type detection
+
 8.18.8
 ------
 

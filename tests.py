@@ -43,11 +43,12 @@ class Test(unittest.TestCase):
 
     def testExtractReportXMLComparator(self):
         """Test XML comparator function"""
-        print()
-        xmlnice = open("samples/extract_report/nice-input.xml").read()
-        print(xmlnice)
-        xmlchanged = minify_xml(open("samples/extract_report/changed-input.xml").read())
-        print(xmlchanged)
+        xmlnice_file = open("samples/extract_report/nice-input.xml")
+        xmlnice = xmlnice_file.read()
+        xmlnice_file.close()
+        xmlchanged_file = open("samples/extract_report/changed-input.xml")
+        xmlchanged = minify_xml(xmlchanged_file.read())
+        xmlchanged_file.close()
         self.assertTrue(compare_xml(xmlnice, xmlnice))
         self.assertTrue(compare_xml(xmlchanged, xmlchanged))
         self.assertFalse(compare_xml(xmlnice, xmlchanged))

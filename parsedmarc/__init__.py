@@ -17,7 +17,7 @@ import zlib
 from base64 import b64decode
 from collections import OrderedDict
 from csv import DictWriter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO, StringIO
 from typing import Callable
 
@@ -1184,7 +1184,7 @@ def parse_report_email(
             input_ = input_.decode(encoding="utf8", errors="replace")
         msg = mailparser.parse_from_string(input_)
         msg_headers = json.loads(msg.headers_json)
-        date = email.utils.format_datetime(datetime.utcnow())
+        date = email.utils.format_datetime(datetime.now(timezone.utc))
         if "Date" in msg_headers:
             date = human_timestamp_to_datetime(msg_headers["Date"])
         msg = email.message_from_string(input_)
@@ -1261,39 +1261,39 @@ def parse_report_email(
                 payload = b64decode(payload)
                 if payload.startswith(MAGIC_ZIP) or payload.startswith(MAGIC_GZIP):
                     payload = extract_report(payload)
-                ns = nameservers
+                if isinstance(payload, bytes):
+                    payload = payload.decode("utf-8", errors="replace")
                 if payload.startswith("{"):
                     smtp_tls_report = parse_smtp_tls_report_json(payload)
                     result = OrderedDict(
                         [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
                     )
+                elif payload.strip().startswith("<"):
+                    aggregate_report = parse_aggregate_report_xml(
+                        payload,
+                        ip_db_path=ip_db_path,
+                        always_use_local_files=always_use_local_files,
+                        reverse_dns_map_path=reverse_dns_map_path,
+                        reverse_dns_map_url=reverse_dns_map_url,
+                        offline=offline,
+                        nameservers=nameservers,
+                        timeout=dns_timeout,
+                        keep_alive=keep_alive,
+                    )
+                    result = OrderedDict(
+                        [("report_type", "aggregate"), ("report", aggregate_report)]
+                    )
+
                     return result
-                aggregate_report = parse_aggregate_report_xml(
-                    payload,
-                    ip_db_path=ip_db_path,
-                    always_use_local_files=always_use_local_files,
-                    reverse_dns_map_path=reverse_dns_map_path,
-                    reverse_dns_map_url=reverse_dns_map_url,
-                    offline=offline,
-                    nameservers=ns,
-                    timeout=dns_timeout,
-                    keep_alive=keep_alive,
-                )
-                result = OrderedDict(
-                    [("report_type", "aggregate"), ("report", aggregate_report)]
-                )
-                return result
 
             except (TypeError, ValueError, binascii.Error):
                 pass
 
-            except InvalidAggregateReport as e:
-                error = (
-                    'Message with subject "{0}" '
-                    "is not a valid "
-                    "aggregate DMARC report: {1}".format(subject, e)
+            except InvalidDMARCReport:
+                error = 'Message with subject "{0}" is not a valid DMARC report'.format(
+                    subject
                 )
-                raise InvalidDMARCReport(error)
+                raise ParserError(error)
 
             except Exception as e:
                 error = 'Unable to parse message with subject "{0}": {1}'.format(
@@ -1604,14 +1604,18 @@ def get_dmarc_reports_from_mailbox(
                 "Only days and weeks values in 'since' option are \
                          considered for IMAP conections. Examples: 2d or 1w"
             )
-            since = (datetime.utcnow() - timedelta(minutes=_since)).date()
-            current_time = datetime.utcnow().date()
+            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).date()
+            current_time = datetime.now(timezone.utc).date()
         elif isinstance(connection, MSGraphConnection):
-            since = (datetime.utcnow() - timedelta(minutes=_since)).isoformat() + "Z"
-            current_time = datetime.utcnow().isoformat() + "Z"
+            since = (
+                datetime.now(timezone.utc) - timedelta(minutes=_since)
+            ).isoformat() + "Z"
+            current_time = datetime.now(timezone.utc).isoformat() + "Z"
         elif isinstance(connection, GmailConnection):
-            since = (datetime.utcnow() - timedelta(minutes=_since)).strftime("%s")
-            current_time = datetime.utcnow().strftime("%s")
+            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime(
+                "%s"
+            )
+            current_time = datetime.now(timezone.utc).strftime("%s")
         else:
             pass
 
