@@ -30,7 +30,7 @@ def _main():
                 if domain in list_var:
                     print(f"Error: {domain} is in {file_path} multiple times")
                     exit(1)
-                else:
+                elif domain != "":
                     list_var.append(domain)
 
     load_list(known_unknown_list_file_path, known_unknown_domains)
@@ -64,7 +64,7 @@ def _main():
                 continue
             for psl_domain in psl_overrides:
                 if domain.endswith(psl_domain):
-                    domain = psl_domain
+                    domain = psl_domain.strip(".").strip("-")
                     break
             if domain not in known_domains and domain not in known_unknown_domains:
                 print(f"New unknown domain found: {domain}")
@@ -74,6 +74,7 @@ def _main():
         writer = csv.DictWriter(f, fieldnames=csv_headers)
         writer.writeheader()
         writer.writerows(output_rows)
+
 
 if __name__ == "__main__":
     _main()

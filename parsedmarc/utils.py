@@ -44,6 +44,12 @@ parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 null_file = open(os.devnull, "w")
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
+psl = publicsuffixlist.PublicSuffixList()
+psl_overrides_path = str(files(parsedmarc.resources.maps).joinpath("psl_overrides.txt"))
+with open(psl_overrides_path) as f:
+    psl_overrides = f.readlines()
+    while "" in psl_overrides:
+        psl_overrides.remove("")
 
 
 class EmailParserError(RuntimeError):
@@ -78,7 +84,8 @@ def get_base_domain(domain):
 
     .. note::
         Results are based on a list of public domain suffixes at
-        https://publicsuffix.org/list/public_suffix_list.dat.
+        https://publicsuffix.org/list/public_suffix_list.dat and overrides included in
+        parsedmarc.resources.maps.psl_overrides.txt
 
     Args:
         domain (str): A domain or subdomain
@@ -87,8 +94,12 @@ def get_base_domain(domain):
         str: The base domain of the given domain
 
     """
-    psl = publicsuffixlist.PublicSuffixList()
-    return psl.privatesuffix(domain)
+    domain = domain.lower()
+    publicsuffix = psl.privatesuffix(domain)
+    for override in psl_overrides:
+        if domain.endswith(override):
+            return override.strip(".").strip("-")
+    return publicsuffix
 
 
 def query_dns(domain, record_type, cache=None, nameservers=None, timeout=2.0):

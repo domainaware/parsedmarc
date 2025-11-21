@@ -1200,12 +1200,29 @@ def parse_report_email(
     if "Subject" in msg_headers:
         subject = msg_headers["Subject"]
     for part in msg.walk():
-        content_type = part.get_content_type()
+        content_type = part.get_content_type().lower()
         payload = part.get_payload()
         if not isinstance(payload, list):
             payload = [payload]
         payload = payload[0].__str__()
-        if content_type == "message/feedback-report":
+        if content_type.startswith("multipart/"):
+            continue
+        elif content_type == "text/xml":
+            aggregate_report = parse_aggregate_report_xml(
+                payload,
+                ip_db_path=ip_db_path,
+                always_use_local_files=always_use_local_files,
+                reverse_dns_map_path=reverse_dns_map_path,
+                reverse_dns_map_url=reverse_dns_map_url,
+                offline=offline,
+                nameservers=nameservers,
+                timeout=dns_timeout,
+                keep_alive=keep_alive,
+            )
+            result = OrderedDict(
+                [("report_type", "aggregate"), ("report", aggregate_report)]
+            )
+        elif content_type == "message/feedback-report":
             try:
                 if "Feedback-Type" in payload:
                     feedback_report = payload
@@ -1216,13 +1233,12 @@ def parse_report_email(
                 feedback_report = feedback_report.replace("\\n", "\n")
             except (ValueError, TypeError, binascii.Error):
                 feedback_report = payload
-
         elif content_type == "text/rfc822-headers":
             sample = payload
         elif content_type == "message/rfc822":
             sample = payload
         elif content_type == "application/tlsrpt+json":
-            if "{" not in payload:
+            if not payload.strip().startswith("{"):
                 payload = str(b64decode(payload))
             smtp_tls_report = parse_smtp_tls_report_json(payload)
             return OrderedDict(
@@ -1234,7 +1250,6 @@ def parse_report_email(
             return OrderedDict(
                 [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
             )
-
         elif content_type == "text/plain":
             if "A message claiming to be from you has failed" in payload:
                 try:
@@ -1263,7 +1278,7 @@ def parse_report_email(
                     payload = extract_report(payload)
                 if isinstance(payload, bytes):
                     payload = payload.decode("utf-8", errors="replace")
-                if payload.startswith("{"):
+                if payload.strip().startswith("{"):
                     smtp_tls_report = parse_smtp_tls_report_json(payload)
                     result = OrderedDict(
                         [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
