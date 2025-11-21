@@ -9,7 +9,7 @@ Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
 
 <p align="center">
-  <img src="https://github.com/domainaware/parsedmarc/raw/master/docs/source/_static/screenshots/dmarc-summary-charts.png?raw=true" alt="A screenshot of DMARC summary charts in Kibana"/>
+  <img src="https://raw.githubusercontent.com/domainaware/parsedmarc/refs/heads/main/docs/source/_static/screenshots/dmarc-summary-charts.png?raw=true" alt="A screenshot of DMARC summary charts in Kibana"/>
 </p>
 
 `parsedmarc` is a Python module and CLI utility for parsing DMARC
