@@ -2,6 +2,7 @@ base_reverse_dns,name,type
 1000island.net,1000 Island,ISP
 163.com,163,Email Provider
 163data.com.cn,China Telecom,ISP
+180 Medical,180medical.com,Healthcare
 1e100.net,Google,Technology
 263.net,263,Email Provider
 2day.kz,2DAY Telecom LLP,ISP
@@ -24,6 +25,7 @@ acessecomunicacao.com.br,Acesse,ISP
 acessoline.net.br,Alt Telecom,ISP
 acropolis.org,New Acropolis,Education
 activegate-ss.jp,Active! gate SS,Email Security
+adabank.com.tr,Dünya Katılım,Finance
 adairit.com,Adair IT,MSP
 additionnetworks.net,CherryRoad Technologies,MSP
 admintek.net,Admintek,Web Host
@@ -63,6 +65,7 @@ alembic.co.in,Alembic Pharmaceuticals,Healthcare
 alestra.net.mx,Alestra,ISP
 aliyun.com,Alibaba Cloud,Web Host
 alliancebroadband.in,Alliance Broadband,ISP
+alligacom.com,TrueCommerce,SaaS
 almanet.net,Alma Communications,ISP
 alpha-mail.net,Otsuka Corporation,MSP
 alpha-prm.jp,Otsuka Corporation,MSP
@@ -87,6 +90,7 @@ antilles-sante.com,AAS Medical,Healthcare
 antispamcloud.com,N-able,Email Security
 antispameurope.com,Hornetsecurity,Email Security
 anylogic.com,AnyLogic,SaaS
+apaudit.eu,Transparent,Finance
 aplusgroup.net,A Plus International,Healthcare
 apple.com,Apple,Email Provider
 applefibernet.com,Apple Fibernet,ISP
@@ -434,6 +438,7 @@ dtel.com.br,Dtel Telecom,ISP
 dts-security.de,DTS,MSP
 duck.com,DuckDuckGo,Search Engine
 duke.edu,Duke University,Education
+dunyakatilim.com.tr,Dünya Katılım,Finance
 dvcotechnology.com,Cision,Marketing
 dwgreen.com,DW Green Company,Marketing
 dwit.co.kr,Daewon Information Technology Co.,MSP
@@ -737,6 +742,8 @@ imsbiz.com,Hong Kong Telecommunications (HKT),ISP
 incontact.com,NICE CX,SaaS
 indemed.com,Cardinal Health at-home (Formerly Independence Medical),Healthcare
 indiana.edu,Indiana University Bloomington,Education
+indosat.com,IM3,ISP
+indosatooredoo.com,IM3,ISP
 indytel.com,Independence Light & Power Telecommunications,ISP
 ineedbob.com,Computer Solutions,MSP
 inet.vn,INET,Web Host
@@ -763,6 +770,7 @@ internet-webhosting.com,iWHOST,Web Host
 internetmailserver.net,Internet Mail Server Networks,Email Provider
 investinmiddlesex.ca,"Middlesex County, Canada",Government
 inxserver.de,Inxmail,Marketing
+ioflood.net,I/O Flood,Web Host
 ionblade.com,IonBLADE,Web Host
 ip-135-148-195.us,OVH,Web Host
 ip-146-59-84.eu,OVH,Web Host
@@ -870,10 +878,12 @@ ktis.net,Kingdom Networks,ISP
 ktk-sol.co.jp,KtK Solutions,Email Security
 ktnet.kg,Кыргызтелеком,ISP
 kundenserver.de,domainfactory GmbH,Web Host
+kylos.pl,Kylos,Web Host
 kyoei-med.co.jp,Kyoei Medical Instruments,Healthcare
 kyoto-u.ac.jp,Kyoto University,Education
 l3harris.com,L3Harris,Defense
 laboratoires-thea.fr,Laboratoires Théa,Healthcare
+laca.org,Licking Area Computer Association,Nonprofit
 larkinhospital.com,Larkin Health System,Healthcare
 larrycomputerguy.com,Larry The Computer Guy,MSP
 latineve.co.jp,LATIN EVE,Retail
@@ -1101,6 +1111,7 @@ nascoeducation.com,Nasco EDucation,Education
 nationalhha.com,National Home Health,Healthcare
 navayuga.com,Navayuga,Industrial
 naviexp.jp,NaviExp,MSP
+nazwa.pl,NetArt Group,Web Host
 nbcb.cn,Bank of Ningbo,Finance
 nctc.com,NCTC,ISP
 nearlyfreespeech.net,NearlyFreeSpeach.NET,Web Host
@@ -1146,6 +1157,7 @@ nifty.com,@nifty,Web Host
 niigata-u.ac.jp,Niigata University,Education
 niosh.com.my,Malaysian National Institute of Occupational Safety and Health,Government
 nititancommercial.com,Niti Tan Commercial,Industrial
+nktele.com,NkTelecom,Web Host
 no-ip.com,No-IP Dynamic DNS,Web Host
 nocdirect.com,JaguarPC,Web Host
 nolegia.net,Nolegia,Web Host
@@ -1642,7 +1654,7 @@ titan.email,Titan,Email Provider
 titanhq.com,TitanHQ,Email Security
 tix.it,Tuscany Internet eXchange,ISP
 tkreal.ru,The Real Group,Logistics
-tktelekom.pl,TK Telecom,Healthcare
+tktelekom.pl,TK Telecom,ISP
 tm.net,Mercury Telecom,ISP
 tmc.edu,Truett McConnell University,Education
 tmccorp.com,TMC,Industrial
@@ -1668,6 +1680,7 @@ tpgi.com.au,TPG,ISP
 tpnet.pl,Orange,ISP
 tps.uz,TPS Telecom,ISP
 tradeindia.com,TradeIndia,SaaS
+transparent.eu,Transparent,Finance
 transtelco.net,Flō Networks,ISP
 transtelecom.net,Trans Telecom,ISP
 trendmicro.com,Trend Micro,Email Security
