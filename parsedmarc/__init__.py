@@ -1207,21 +1207,6 @@ def parse_report_email(
         payload = payload[0].__str__()
         if content_type.startswith("multipart/"):
             continue
-        elif content_type == "text/xml":
-            aggregate_report = parse_aggregate_report_xml(
-                payload,
-                ip_db_path=ip_db_path,
-                always_use_local_files=always_use_local_files,
-                reverse_dns_map_path=reverse_dns_map_path,
-                reverse_dns_map_url=reverse_dns_map_url,
-                offline=offline,
-                nameservers=nameservers,
-                timeout=dns_timeout,
-                keep_alive=keep_alive,
-            )
-            result = OrderedDict(
-                [("report_type", "aggregate"), ("report", aggregate_report)]
-            )
         elif content_type == "message/feedback-report":
             try:
                 if "Feedback-Type" in payload:
