@@ -47,7 +47,7 @@ mailparser_logger.setLevel(logging.CRITICAL)
 psl = publicsuffixlist.PublicSuffixList()
 psl_overrides_path = str(files(parsedmarc.resources.maps).joinpath("psl_overrides.txt"))
 with open(psl_overrides_path) as f:
-    psl_overrides = f.readlines()
+    psl_overrides = [line.rstrip() for line in f.readlines()]
     while "" in psl_overrides:
         psl_overrides.remove("")
 
