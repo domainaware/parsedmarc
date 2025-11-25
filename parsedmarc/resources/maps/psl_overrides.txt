@@ -5,6 +5,7 @@
 -imnet.com.br
 -mcnbd.com
 -smile.com.bd
+-tataidc.co.in
 -veloxfiber.com.br
 -wconect.com.br
 .amazonaws.com
