@@ -13,6 +13,7 @@
 .cloudaccess.net
 .ddnsgeek.com
 .fastvps-server.com
+.in-addr-arpa
 .in-addr.arpa
 .kasserver.com
 .kinghost.net
