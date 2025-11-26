@@ -114,10 +114,16 @@ def _main():
             domain = get_base_domain(domain)
             for prefix in index_prefix_domain_map:
                 if domain in index_prefix_domain_map[prefix]:
-                    prefix = prefix.lower().strip().strip("_").replace(" ", "_").replace("-", "_")
+                    prefix = (
+                        prefix.lower()
+                        .strip()
+                        .strip("_")
+                        .replace(" ", "_")
+                        .replace("-", "_")
+                    )
                     prefix = f"{prefix}_"
                     return prefix
-        return None 
+        return None
 
     def process_reports(reports_):
         indent_value = 2 if opts.prettify_json else None
@@ -147,7 +153,8 @@ def _main():
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -168,7 +175,8 @@ def _main():
                         opensearch.save_aggregate_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -234,7 +242,8 @@ def _main():
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -253,7 +262,8 @@ def _main():
                         opensearch.save_forensic_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -317,7 +327,8 @@ def _main():
                         elastic.save_smtp_tls_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -336,7 +347,8 @@ def _main():
                         opensearch.save_smtp_tls_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix or get_index_prefix(report),
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
