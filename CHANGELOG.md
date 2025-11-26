@@ -1,14 +1,14 @@
 Changelog
 =========
 
-8.11.0
+8.19.0
 ------
 
 - PSL overrides so that services like AWS are correctly identified
 - Additional improvements to report type detection
 - Additional services added to `base_reverse_dns_map.csv`
 
-8.10.9
+8.18.9
 ------
 
 - Complete fix for #687 and more robust report type detection
