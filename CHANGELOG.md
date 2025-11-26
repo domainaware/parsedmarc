@@ -4,6 +4,7 @@ Changelog
 8.19.0
 ------
 
+- Add multi-tenant support via an index-prefix domain mapping file
 - PSL overrides so that services like AWS are correctly identified
 - Additional improvements to report type detection
 - Additional services added to `base_reverse_dns_map.csv`
