@@ -1217,7 +1217,7 @@ def _main():
             if "smtp_tls_url" in webhook_config:
                 opts.webhook_smtp_tls_url = webhook_config["smtp_tls_url"]
             if "timeout" in webhook_config:
-                opts.webhook_timeout = webhook_config["timeout"]
+                opts.webhook_timeout = webhook_config.getint("timeout")
 
     logger.setLevel(logging.ERROR)
 
