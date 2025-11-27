@@ -448,19 +448,16 @@ Increasing this value increases resource usage.
 
 ## Multi-tenant support
 
-Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a json file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
+Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
 
-```json
-{
-    "example": [
-        "example.com",
-        "example.net",
-        "example.org",
-    ],
-    "whalensolutions": [
-        "whalensolutions.com",
-    ]
-}
+```yaml
+example:
+  - example.com
+  - example.net
+  - example.org
+
+whalensolutions:
+  - whalensolutions.com
 ```
 
 Save it to disk where the user running ParseDMARC can read it, then set `index_prefix_domain_map` to that filepath in the `[general]` section of the ParseDMARC configuration file and do not set an `index_prefix` option in the `[elasticsearch]` or `[opensearch]` sections.

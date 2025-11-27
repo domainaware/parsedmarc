@@ -9,6 +9,7 @@ from configparser import ConfigParser
 from glob import glob
 import logging
 import math
+import yaml
 from collections import OrderedDict
 import json
 from ssl import CERT_NONE, create_default_context
@@ -674,7 +675,7 @@ def _main():
             general_config = config["general"]
             if "index_prefix_domain_map" in general_config:
                 with open(general_config["index_prefix_domain_map"]) as f:
-                    index_prefix_domain_map = json.loads(f.read())
+                    index_prefix_domain_map = yaml.safe_load(f)
             if "offline" in general_config:
                 opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
