@@ -123,6 +123,7 @@ The full set of configuration options are:
   - `index_prefix_domain_map` -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
+  - `silent` - bool: Set this to `False` to output results to STDOUT
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file

@@ -673,6 +673,9 @@ def _main():
         config.read(args.config_file)
         if "general" in config.sections():
             general_config = config["general"]
+            if "silent" in general_config:
+                if general_config["silent"].lower() == "false":
+                    opts.silent = False
             if "index_prefix_domain_map" in general_config:
                 with open(general_config["index_prefix_domain_map"]) as f:
                     index_prefix_domain_map = yaml.safe_load(f)
