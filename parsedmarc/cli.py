@@ -9,6 +9,7 @@ from configparser import ConfigParser
 from glob import glob
 import logging
 import math
+import yaml
 from collections import OrderedDict
 import json
 from ssl import CERT_NONE, create_default_context
@@ -46,7 +47,7 @@ from parsedmarc.mail import (
 from parsedmarc.mail.graph import AuthMethod
 
 from parsedmarc.log import logger
-from parsedmarc.utils import is_mbox, get_reverse_dns
+from parsedmarc.utils import is_mbox, get_reverse_dns, get_base_domain
 from parsedmarc import SEEN_AGGREGATE_REPORT_IDS
 
 http.client._MAXHEADERS = 200  # pylint:disable=protected-access
@@ -101,6 +102,30 @@ def cli_parse(
 def _main():
     """Called when the module is executed"""
 
+    def get_index_prefix(report):
+        if index_prefix_domain_map is None:
+            return None
+        if "policy_published" in report:
+            domain = report["policy_published"]["domain"]
+        elif "reported_domain" in report:
+            domain = report("reported_domain")
+        elif "policies" in report:
+            domain = report["policies"][0]["domain"]
+        if domain:
+            domain = get_base_domain(domain)
+            for prefix in index_prefix_domain_map:
+                if domain in index_prefix_domain_map[prefix]:
+                    prefix = (
+                        prefix.lower()
+                        .strip()
+                        .strip("_")
+                        .replace(" ", "_")
+                        .replace("-", "_")
+                    )
+                    prefix = f"{prefix}_"
+                    return prefix
+        return None
+
     def process_reports(reports_):
         indent_value = 2 if opts.prettify_json else None
         output_str = "{0}\n".format(
@@ -129,7 +154,8 @@ def _main():
                         elastic.save_aggregate_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix,
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -150,7 +176,8 @@ def _main():
                         opensearch.save_aggregate_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix,
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -216,7 +243,8 @@ def _main():
                         elastic.save_forensic_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix,
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -235,7 +263,8 @@ def _main():
                         opensearch.save_forensic_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix,
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -299,7 +328,8 @@ def _main():
                         elastic.save_smtp_tls_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
-                            index_prefix=opts.elasticsearch_index_prefix,
+                            index_prefix=opts.elasticsearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -318,7 +348,8 @@ def _main():
                         opensearch.save_smtp_tls_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
-                            index_prefix=opts.opensearch_index_prefix,
+                            index_prefix=opts.opensearch_index_prefix
+                            or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
@@ -638,9 +669,16 @@ def _main():
             exit(-1)
         opts.silent = True
         config = ConfigParser()
+        index_prefix_domain_map = None
         config.read(args.config_file)
         if "general" in config.sections():
             general_config = config["general"]
+            if "silent" in general_config:
+                if general_config["silent"].lower() == "false":
+                    opts.silent = False
+            if "index_prefix_domain_map" in general_config:
+                with open(general_config["index_prefix_domain_map"]) as f:
+                    index_prefix_domain_map = yaml.safe_load(f)
             if "offline" in general_config:
                 opts.offline = general_config.getboolean("offline")
             if "strip_attachment_payloads" in general_config:
@@ -1182,7 +1220,7 @@ def _main():
             if "smtp_tls_url" in webhook_config:
                 opts.webhook_smtp_tls_url = webhook_config["smtp_tls_url"]
             if "timeout" in webhook_config:
-                opts.webhook_timeout = webhook_config["timeout"]
+                opts.webhook_timeout = webhook_config.getint("timeout")
 
     logger.setLevel(logging.ERROR)
 

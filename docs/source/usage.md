@@ -120,8 +120,10 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
+  - `index_prefix_domain_map` -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
+  - `silent` - bool: Set this to `False` to output results to STDOUT
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
@@ -443,6 +445,28 @@ PUT _cluster/settings
 ```
 
 Increasing this value increases resource usage.
+:::
+
+## Multi-tenant support
+
+Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
+
+```yaml
+example:
+  - example.com
+  - example.net
+  - example.org
+
+whalensolutions:
+  - whalensolutions.com
+```
+
+Save it to disk where the user running ParseDMARC can read it, then set `index_prefix_domain_map` to that filepath in the `[general]` section of the ParseDMARC configuration file and do not set an `index_prefix` option in the `[elasticsearch]` or `[opensearch]` sections.
+
+When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of Opensearch or the ELK stack to only grant users access to the indexes that they need.
+
+ :::{note}
+ A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
 :::
 
 ## Running parsedmarc as a systemd service

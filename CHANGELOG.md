@@ -1,7 +1,17 @@
 Changelog
 =========
 
-8.10.9
+8.19.0
+------
+
+- Add multi-tenant support via an index-prefix domain mapping file
+- PSL overrides so that services like AWS are correctly identified
+- Additional improvements to report type detection
+- Fix webhook timeout parsing (PR #623)
+- Output to STDOUT when the new general config boolean `silent` is set to `False` (Close #614)
+- Additional services added to `base_reverse_dns_map.csv`
+
+8.18.9
 ------
 
 - Complete fix for #687 and more robust report type detection
