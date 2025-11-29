@@ -269,7 +269,6 @@ def _append_parsed_record(
         records.append(new_rec)
 
 
-
 def _parse_report_record(
     record: dict,
     ip_db_path: str = None,
