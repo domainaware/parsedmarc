@@ -23,7 +23,6 @@ from collections import OrderedDict
 from csv import DictWriter
 from datetime import datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
-from typing import Callable
 
 import mailparser
 import xmltodict
