@@ -252,15 +252,10 @@ def _append_parsed_record(
     if not buckets:
         return
 
-    num_parts = len(buckets)
-
     for part_index, bucket in enumerate(buckets):
         new_rec = parsed_record.copy()
         new_rec["count"] = bucket["count"]
-
         new_rec["normalized_timespan"] = True
-        new_rec["normalized_timespan_parts"] = num_parts
-        new_rec["normalized_timespan_part_index"] = part_index
 
         new_rec["interval_begin"] = bucket["begin"].strftime("%Y-%m-%d %H:%M:%S")
         new_rec["interval_end"] = bucket["end"].strftime("%Y-%m-%d %H:%M:%S")
