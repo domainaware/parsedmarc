@@ -1207,6 +1207,8 @@ def parse_report_email(
         payload = payload[0].__str__()
         if content_type.startswith("multipart/"):
             continue
+        if content_type == "text/html":
+            continue
         elif content_type == "message/feedback-report":
             try:
                 if "Feedback-Type" in payload:
