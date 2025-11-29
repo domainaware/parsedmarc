@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union, IO, Callable
 
 import binascii
 import email
@@ -87,7 +87,7 @@ def _bucket_interval_by_day(
     begin: datetime,
     end: datetime,
     total_count: int,
-) -> List[Dict[str, Any]]:
+) -> List[Dict[Any]]:
     """
     Split the interval [begin, end) into daily buckets and distribute
     `total_count` proportionally across those buckets.
@@ -267,14 +267,14 @@ def _append_parsed_record(
 
 
 def _parse_report_record(
-    record,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    nameservers=None,
-    dns_timeout=2.0,
+    record: dict,
+    ip_db_path: str = None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    offline: bool = False,
+    nameservers: list[str] = None,
+    dns_timeout: float = 2.0,
 ):
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -429,7 +429,7 @@ def _parse_report_record(
     return new_record
 
 
-def _parse_smtp_tls_failure_details(failure_details):
+def _parse_smtp_tls_failure_details(failure_details: dict):
     try:
         new_failure_details = OrderedDict(
             result_type=failure_details["result-type"],
@@ -465,7 +465,7 @@ def _parse_smtp_tls_failure_details(failure_details):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def _parse_smtp_tls_report_policy(policy):
+def _parse_smtp_tls_report_policy(policy: dict):
     policy_types = ["tlsa", "sts", "no-policy-found"]
     try:
         policy_domain = policy["policy"]["policy-domain"]
@@ -502,7 +502,7 @@ def _parse_smtp_tls_report_policy(policy):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def parse_smtp_tls_report_json(report):
+def parse_smtp_tls_report_json(report: dict):
     """Parses and validates an SMTP TLS report"""
     required_fields = [
         "organization-name",
@@ -541,7 +541,7 @@ def parse_smtp_tls_report_json(report):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def parsed_smtp_tls_reports_to_csv_rows(reports):
+def parsed_smtp_tls_reports_to_csv_rows(reports: dict):
     """Converts one oor more parsed SMTP TLS reports into a list of single
     layer OrderedDict objects suitable for use in a CSV"""
     if type(reports) is OrderedDict:
@@ -576,7 +576,7 @@ def parsed_smtp_tls_reports_to_csv_rows(reports):
     return rows
 
 
-def parsed_smtp_tls_reports_to_csv(reports):
+def parsed_smtp_tls_reports_to_csv(reports: dict):
     """
     Converts one or more parsed SMTP TLS reports to flat CSV format, including
     headers
@@ -622,15 +622,15 @@ def parsed_smtp_tls_reports_to_csv(reports):
 
 
 def parse_aggregate_report_xml(
-    xml,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    nameservers=None,
-    timeout=2.0,
-    keep_alive=None,
+    xml: str,
+    ip_db_path: bool = None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: bool = None,
+    reverse_dns_map_url: bool = None,
+    offline: bool = False,
+    nameservers: bool = None,
+    timeout: float = 2.0,
+    keep_alive: bool = None,
 ):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
@@ -836,7 +836,7 @@ def parse_aggregate_report_xml(
         raise InvalidAggregateReport("Unexpected error: {0}".format(error.__str__()))
 
 
-def extract_report(content):
+def extract_report(content: Union[bytes, str, IO[Any]]):
     """
     Extracts text from a zip or gzip file, as a base64-encoded string,
     file-like object, or bytes.
@@ -900,15 +900,15 @@ def extract_report_from_file_path(file_path):
 
 
 def parse_aggregate_report_file(
-    _input,
-    offline=False,
-    always_use_local_files=None,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    ip_db_path=None,
-    nameservers=None,
-    dns_timeout=2.0,
-    keep_alive=None,
+    _input: Union[str, bytes, IO[Any]],
+    offline: bool = False,
+    always_use_local_files: bool = None,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    ip_db_path: str = None,
+    nameservers: list[str] = None,
+    dns_timeout: float = 2.0,
+    keep_alive: Callable = None,
 ):
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
@@ -947,7 +947,7 @@ def parse_aggregate_report_file(
     )
 
 
-def parsed_aggregate_reports_to_csv_rows(reports):
+def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
     """
     Converts one or more parsed aggregate reports to list of dicts in flat CSV
     format
@@ -1065,7 +1065,7 @@ def parsed_aggregate_reports_to_csv_rows(reports):
     return rows
 
 
-def parsed_aggregate_reports_to_csv(reports):
+def parsed_aggregate_reports_to_csv(reports: list[OrderedDict]):
     """
     Converts one or more parsed aggregate reports to flat CSV format, including
     headers
@@ -1131,17 +1131,17 @@ def parsed_aggregate_reports_to_csv(reports):
 
 
 def parse_forensic_report(
-    feedback_report,
-    sample,
-    msg_date,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    ip_db_path=None,
-    nameservers=None,
-    dns_timeout=2.0,
-    strip_attachment_payloads=False,
+    feedback_report: str,
+    sample:str,
+    msg_date: datetime,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    offline: bool = False,
+    ip_db_path: str = None,
+    nameservers: list[str] = None,
+    dns_timeout: float = 2.0,
+    strip_attachment_payloads: bool = False,
 ):
     """
     Converts a DMARC forensic report and sample to a ``OrderedDict``
@@ -1270,7 +1270,7 @@ def parse_forensic_report(
         raise InvalidForensicReport("Unexpected error: {0}".format(error.__str__()))
 
 
-def parsed_forensic_reports_to_csv_rows(reports):
+def parsed_forensic_reports_to_csv_rows(reports: list[OrderedDict]):
     """
     Converts one or more parsed forensic reports to a list of dicts in flat CSV
     format
@@ -1306,7 +1306,7 @@ def parsed_forensic_reports_to_csv_rows(reports):
     return rows
 
 
-def parsed_forensic_reports_to_csv(reports):
+def parsed_forensic_reports_to_csv(reports: list[dict]):
     """
     Converts one or more parsed forensic reports to flat CSV format, including
     headers
@@ -1359,16 +1359,16 @@ def parsed_forensic_reports_to_csv(reports):
 
 
 def parse_report_email(
-    input_,
-    offline=False,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    nameservers=None,
-    dns_timeout=2.0,
-    strip_attachment_payloads=False,
-    keep_alive=None,
+    input_: Union[bytes, str],
+    offline: bool = False,
+    ip_db_path: str = None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    nameservers: list[str] = None,
+    dns_timeout: float =2.0,
+    strip_attachment_payloads: bool = False,
+    keep_alive: callable = None,
 ):
     """
     Parses a DMARC report from an email
@@ -1553,16 +1553,16 @@ def parse_report_email(
 
 
 def parse_report_file(
-    input_,
-    nameservers=None,
-    dns_timeout=2.0,
-    strip_attachment_payloads=False,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    keep_alive=None,
+    input_: Union[bytes, str, IO[Any]],
+    nameservers: list[str] = None,
+    dns_timeout: float =2.0,
+    strip_attachment_payloads: bool = False,
+    ip_db_path: str = None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str  = None,
+    offline: bool = False,
+    keep_alive: Callable = None,
 ):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
@@ -1632,15 +1632,15 @@ def parse_report_file(
 
 
 def get_dmarc_reports_from_mbox(
-    input_,
-    nameservers=None,
-    dns_timeout=2.0,
-    strip_attachment_payloads=False,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
+    input_: str,
+    nameservers: list[str] = None,
+    dns_timeout: float = 2.0,
+    strip_attachment_payloads: bool=False,
+    ip_db_path: str=None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    offline: bool = False,
 ):
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
@@ -1718,22 +1718,22 @@ def get_dmarc_reports_from_mbox(
 
 def get_dmarc_reports_from_mailbox(
     connection: MailboxConnection,
-    reports_folder="INBOX",
-    archive_folder="Archive",
-    delete=False,
-    test=False,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    nameservers=None,
-    dns_timeout=6.0,
-    strip_attachment_payloads=False,
-    results=None,
-    batch_size=10,
-    since=None,
-    create_folders=True,
+    reports_folder: str ="INBOX",
+    archive_folder: str ="Archive",
+    delete: bool = False,
+    test:bool = False,
+    ip_db_path: str =None,
+    always_use_local_files: str = False,
+    reverse_dns_map_path: str= None,
+    reverse_dns_map_url: str = None,
+    offline: bool = False,
+    nameservers:list[str] = None,
+    dns_timeout: float = 6.0,
+    strip_attachment_payloads: bool = False,
+    results: dict =None,
+    batch_size: int = 10,
+    since: datetime = None,
+    create_folders:bool = True,
 ):
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2036,20 +2036,20 @@ def get_dmarc_reports_from_mailbox(
 def watch_inbox(
     mailbox_connection: MailboxConnection,
     callback: Callable,
-    reports_folder="INBOX",
-    archive_folder="Archive",
-    delete=False,
-    test=False,
-    check_timeout=30,
-    ip_db_path=None,
-    always_use_local_files=False,
-    reverse_dns_map_path=None,
-    reverse_dns_map_url=None,
-    offline=False,
-    nameservers=None,
-    dns_timeout=6.0,
-    strip_attachment_payloads=False,
-    batch_size=None,
+    reports_folder: str = "INBOX",
+    archive_folder: str = "Archive",
+    delete: bool =False,
+    test: bool = False,
+    check_timeout: int = 30,
+    ip_db_path: str = None,
+    always_use_local_files: bool =False,
+    reverse_dns_map_path: str = None,
+    reverse_dns_map_url: str = None,
+    offline: bool = False,
+    nameservers: list[str] = None,
+    dns_timeout: float = 6.0,
+    strip_attachment_payloads: bool = False,
+    batch_size: int = None,
 ):
     """
     Watches the mailbox for new messages and
@@ -2137,14 +2137,14 @@ def append_csv(filename, csv):
 
 
 def save_output(
-    results,
-    output_directory="output",
-    aggregate_json_filename="aggregate.json",
-    forensic_json_filename="forensic.json",
-    smtp_tls_json_filename="smtp_tls.json",
-    aggregate_csv_filename="aggregate.csv",
-    forensic_csv_filename="forensic.csv",
-    smtp_tls_csv_filename="smtp_tls.csv",
+    results: OrderedDict,
+    output_directory:str ="output",
+    aggregate_json_filename: str ="aggregate.json",
+    forensic_json_filename:str ="forensic.json",
+    smtp_tls_json_filename: str = "smtp_tls.json",
+    aggregate_csv_filename: str = "aggregate.csv",
+    forensic_csv_filename: str = "forensic.csv",
+    smtp_tls_csv_filename: str = "smtp_tls.csv",
 ):
     """
     Save report data in the given directory
@@ -2222,7 +2222,7 @@ def save_output(
             sample_file.write(sample)
 
 
-def get_report_zip(results):
+def get_report_zip(results: OrderedDict):
     """
     Creates a zip file of parsed report output
 
