@@ -238,32 +238,36 @@ def _append_parsed_record(
         normalize: Whether this report exceeded the allowed timespan
                    and should be normalized per-day.
     """
-    # No normalization needed → append as-is.
+
     if not normalize:
         parsed_record["normalized_timespan"] = False
+        parsed_record["interval_begin"] = begin_dt.strftime("%Y-%m-%d %H:%M:%S")
+        parsed_record["interval_end"] = end_dt.strftime("%Y-%m-%d %H:%M:%S")
+
         records.append(parsed_record)
         return
 
-    # Normalize case: split the record's count into daily buckets.
+    # Normalization path: break record into daily buckets
     total_count = int(parsed_record.get("count", 0))
     buckets = _bucket_interval_by_day(begin_dt, end_dt, total_count)
-
     if not buckets:
         return
 
     num_parts = len(buckets)
 
-    for idx, bucket in enumerate(buckets):
+    for part_index, bucket in enumerate(buckets):
         new_rec = parsed_record.copy()
         new_rec["count"] = bucket["count"]
+
         new_rec["normalized_timespan"] = True
         new_rec["normalized_timespan_parts"] = num_parts
-        new_rec["normalized_timespan_part_index"] = idx
+        new_rec["normalized_timespan_part_index"] = part_index
 
         new_rec["interval_begin"] = bucket["begin"].strftime("%Y-%m-%d %H:%M:%S")
         new_rec["interval_end"] = bucket["end"].strftime("%Y-%m-%d %H:%M:%S")
 
         records.append(new_rec)
+
 
 
 def _parse_report_record(
@@ -1132,7 +1136,7 @@ def parsed_aggregate_reports_to_csv(reports: list[OrderedDict]):
 
 def parse_forensic_report(
     feedback_report: str,
-    sample:str,
+    sample: str,
     msg_date: datetime,
     always_use_local_files: bool = False,
     reverse_dns_map_path: str = None,
@@ -1366,7 +1370,7 @@ def parse_report_email(
     reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
     nameservers: list[str] = None,
-    dns_timeout: float =2.0,
+    dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     keep_alive: callable = None,
 ):
@@ -1555,12 +1559,12 @@ def parse_report_email(
 def parse_report_file(
     input_: Union[bytes, str, IO[Any]],
     nameservers: list[str] = None,
-    dns_timeout: float =2.0,
+    dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     ip_db_path: str = None,
     always_use_local_files: bool = False,
     reverse_dns_map_path: str = None,
-    reverse_dns_map_url: str  = None,
+    reverse_dns_map_url: str = None,
     offline: bool = False,
     keep_alive: Callable = None,
 ):
@@ -1635,8 +1639,8 @@ def get_dmarc_reports_from_mbox(
     input_: str,
     nameservers: list[str] = None,
     dns_timeout: float = 2.0,
-    strip_attachment_payloads: bool=False,
-    ip_db_path: str=None,
+    strip_attachment_payloads: bool = False,
+    ip_db_path: str = None,
     always_use_local_files: bool = False,
     reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
@@ -1718,22 +1722,22 @@ def get_dmarc_reports_from_mbox(
 
 def get_dmarc_reports_from_mailbox(
     connection: MailboxConnection,
-    reports_folder: str ="INBOX",
-    archive_folder: str ="Archive",
+    reports_folder: str = "INBOX",
+    archive_folder: str = "Archive",
     delete: bool = False,
-    test:bool = False,
-    ip_db_path: str =None,
+    test: bool = False,
+    ip_db_path: str = None,
     always_use_local_files: str = False,
-    reverse_dns_map_path: str= None,
+    reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
     offline: bool = False,
-    nameservers:list[str] = None,
+    nameservers: list[str] = None,
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
-    results: dict =None,
+    results: dict = None,
     batch_size: int = 10,
     since: datetime = None,
-    create_folders:bool = True,
+    create_folders: bool = True,
 ):
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2038,11 +2042,11 @@ def watch_inbox(
     callback: Callable,
     reports_folder: str = "INBOX",
     archive_folder: str = "Archive",
-    delete: bool =False,
+    delete: bool = False,
     test: bool = False,
     check_timeout: int = 30,
     ip_db_path: str = None,
-    always_use_local_files: bool =False,
+    always_use_local_files: bool = False,
     reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
     offline: bool = False,
@@ -2138,9 +2142,9 @@ def append_csv(filename, csv):
 
 def save_output(
     results: OrderedDict,
-    output_directory:str ="output",
-    aggregate_json_filename: str ="aggregate.json",
-    forensic_json_filename:str ="forensic.json",
+    output_directory: str = "output",
+    aggregate_json_filename: str = "aggregate.json",
+    forensic_json_filename: str = "forensic.json",
     smtp_tls_json_filename: str = "smtp_tls.json",
     aggregate_csv_filename: str = "aggregate.csv",
     forensic_csv_filename: str = "forensic.csv",
