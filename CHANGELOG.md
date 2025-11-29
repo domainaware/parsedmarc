@@ -1,6 +1,11 @@
 Changelog
 =========
 
+8.19.1
+------
+
+- Ignore HTML content type in report email parsing (#626)
+
 8.19.0
 ------
 
