@@ -4,7 +4,7 @@ Changelog
 9.0.0
 ------
 
-- Normalize aggregate DMARC report volumes when a report timespan exceeds 27 hours
+- Normalize aggregate DMARC report volumes when a report timespan exceeds 24 hours
 
 8.19.1
 ------
