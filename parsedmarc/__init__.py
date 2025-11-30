@@ -1006,7 +1006,6 @@ def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
             row = report_dict.copy()
             row["begin_date"] = record["interval_begin"]
             row["end_date"] = record["interval_end"]
-            row["normalized_timestamp"] = record["normalized_timespan"]
             row["source_ip_address"] = record["source"]["ip_address"]
             row["source_country"] = record["source"]["country"]
             row["source_reverse_dns"] = record["source"]["reverse_dns"]
@@ -1087,6 +1086,7 @@ def parsed_aggregate_reports_to_csv(reports: list[OrderedDict]):
         "report_id",
         "begin_date",
         "end_date",
+        "normalized_timespan",
         "errors",
         "domain",
         "adkim",
