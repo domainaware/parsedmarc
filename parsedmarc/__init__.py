@@ -991,6 +991,7 @@ def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
             report_id=report_id,
             begin_date=begin_date,
             end_date=end_date,
+            normalized_timespan=normalized_timespan,
             errors=errors,
             domain=domain,
             adkim=adkim,
