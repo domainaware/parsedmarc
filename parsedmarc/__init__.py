@@ -1572,6 +1572,7 @@ def parse_report_file(
     reverse_dns_map_url: str = None,
     offline: bool = False,
     keep_alive: Callable = None,
+    normalize_timespan_threshold_hours: float = 24,
 ):
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
@@ -1614,6 +1615,7 @@ def parse_report_file(
             nameservers=nameservers,
             dns_timeout=dns_timeout,
             keep_alive=keep_alive,
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         results = OrderedDict([("report_type", "aggregate"), ("report", report)])
     except InvalidAggregateReport:
@@ -1634,6 +1636,7 @@ def parse_report_file(
                     dns_timeout=dns_timeout,
                     strip_attachment_payloads=sa,
                     keep_alive=keep_alive,
+                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
             except InvalidDMARCReport:
                 raise ParserError("Not a valid report")
