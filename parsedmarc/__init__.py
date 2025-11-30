@@ -627,7 +627,8 @@ def parse_aggregate_report_xml(
     offline: bool = False,
     nameservers: bool = None,
     timeout: float = 2.0,
-    keep_alive: bool = None,
+    keep_alive: callable = None,
+    normalize_timespan_threshold_hours: float = 24.0
 ):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
@@ -642,6 +643,7 @@ def parse_aggregate_report_xml(
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
         keep_alive (callable): Keep alive function
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         OrderedDict: The parsed aggregate DMARC report
@@ -711,10 +713,7 @@ def parse_aggregate_report_xml(
         end_ts = int(date_range["end"])
         span_seconds = end_ts - begin_ts
 
-        # 27h gives some slack around “daily”.
-        NORMALIZE_SPAN_THRESHOLD_SECONDS = 27 * 3600
-
-        normalize_timespan = span_seconds > NORMALIZE_SPAN_THRESHOLD_SECONDS
+        normalize_timespan = span_seconds > normalize_timespan_threshold_hours * 3600
 
         date_range["begin"] = timestamp_to_human(begin_ts)
         date_range["end"] = timestamp_to_human(end_ts)
@@ -906,6 +905,8 @@ def parse_aggregate_report_file(
     nameservers: list[str] = None,
     dns_timeout: float = 2.0,
     keep_alive: Callable = None,
+    normalize_timespan_threshold_hours: float = 24.0
+
 ):
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
@@ -921,6 +922,7 @@ def parse_aggregate_report_file(
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
         keep_alive (callable): Keep alive function
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         OrderedDict: The parsed DMARC aggregate report
@@ -941,6 +943,7 @@ def parse_aggregate_report_file(
         nameservers=nameservers,
         timeout=dns_timeout,
         keep_alive=keep_alive,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
     )
 
 
@@ -1371,6 +1374,7 @@ def parse_report_email(
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     keep_alive: callable = None,
+    normalize_timespan_threshold_hours: float = 24.0
 ):
     """
     Parses a DMARC report from an email
@@ -1387,6 +1391,7 @@ def parse_report_email(
         strip_attachment_payloads (bool): Remove attachment payloads from
             forensic report results
         keep_alive (callable): keep alive function
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         OrderedDict:
@@ -1499,6 +1504,7 @@ def parse_report_email(
                         nameservers=nameservers,
                         timeout=dns_timeout,
                         keep_alive=keep_alive,
+                        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                     )
                     result = OrderedDict(
                         [("report_type", "aggregate"), ("report", aggregate_report)]
@@ -1643,6 +1649,7 @@ def get_dmarc_reports_from_mbox(
     reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
     offline: bool = False,
+    normalize_timespan_threshold_hours: float = 24.0
 ):
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
@@ -1659,6 +1666,7 @@ def get_dmarc_reports_from_mbox(
         reverse_dns_map_url (str): URL to a reverse DNS map file
         ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1688,6 +1696,7 @@ def get_dmarc_reports_from_mbox(
                     nameservers=nameservers,
                     dns_timeout=dns_timeout,
                     strip_attachment_payloads=sa,
+                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
                 )
                 if parsed_email["report_type"] == "aggregate":
                     report_org = parsed_email["report"]["report_metadata"]["org_name"]
@@ -1736,6 +1745,8 @@ def get_dmarc_reports_from_mailbox(
     batch_size: int = 10,
     since: datetime = None,
     create_folders: bool = True,
+    normalize_timespan_threshold_hours: float = 24
+
 ):
     """
     Fetches and parses DMARC reports from a mailbox
@@ -1762,6 +1773,7 @@ def get_dmarc_reports_from_mailbox(
             (units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"})
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``
@@ -1879,6 +1891,7 @@ def get_dmarc_reports_from_mailbox(
                 offline=offline,
                 strip_attachment_payloads=sa,
                 keep_alive=connection.keepalive,
+                normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
             )
             if parsed_email["report_type"] == "aggregate":
                 report_org = parsed_email["report"]["report_metadata"]["org_name"]
@@ -2030,6 +2043,7 @@ def get_dmarc_reports_from_mailbox(
             reverse_dns_map_url=reverse_dns_map_url,
             offline=offline,
             since=current_time,
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
         )
 
     return results
@@ -2052,6 +2066,7 @@ def watch_inbox(
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
     batch_size: int = None,
+    normalize_timespan_threshold_hours: float = 24
 ):
     """
     Watches the mailbox for new messages and
@@ -2077,6 +2092,7 @@ def watch_inbox(
         strip_attachment_payloads (bool): Replace attachment payloads in
             forensic report samples with None
         batch_size (int): Number of messages to read and process before saving
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
     """
 
     def check_callback(connection):
@@ -2097,6 +2113,7 @@ def watch_inbox(
             strip_attachment_payloads=sa,
             batch_size=batch_size,
             create_folders=False,
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
         )
         callback(res)
 
