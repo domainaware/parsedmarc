@@ -264,7 +264,7 @@ def set_hosts(
     ssl_cert_path=None,
     username=None,
     password=None,
-    apiKey=None,
+    api_key=None,
     timeout=60.0,
 ):
     """
@@ -276,7 +276,7 @@ def set_hosts(
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication
         password (str): The password to use for authentication
-        apiKey (str): The Base64 encoded API key to use for authentication
+        api_key (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
     """
     if not isinstance(hosts, list):
@@ -291,8 +291,8 @@ def set_hosts(
             conn_params["verify_certs"] = False
     if username:
         conn_params["http_auth"] = username + ":" + password
-    if apiKey:
-        conn_params["api_key"] = apiKey
+    if api_key:
+        conn_params["api_key"] = api_key
     connections.create_connection(**conn_params)
 
 

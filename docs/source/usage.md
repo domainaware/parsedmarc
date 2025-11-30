@@ -254,7 +254,7 @@ The full set of configuration options are:
     :::
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
-  - `apiKey` - str: API key
+  - `api_key` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
@@ -277,7 +277,7 @@ The full set of configuration options are:
     :::
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
-  - `apiKey` - str: API key
+  - `api_key` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
