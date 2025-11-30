@@ -169,7 +169,7 @@ The full set of configuration options are:
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
   - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`) 
-      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}). 
+      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}. 
       Defaults to `1d` if incorrect value is provided.
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
