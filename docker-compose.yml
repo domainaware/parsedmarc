@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.3.1
@@ -14,7 +12,7 @@ services:
       - xpack.security.enabled=false
       - xpack.license.self_generated.type=basic
     ports:
-      - 127.0.0.1:9200:9200
+      - "127.0.0.1:9200:9200"
     ulimits:
       memlock:
         soft: -1
@@ -41,7 +39,7 @@ services:
       - bootstrap.memory_lock=true
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
     ports:
-      - 127.0.0.1:9201:9200
+      - "127.0.0.1:9201:9200"
     ulimits:
       memlock:
         soft: -1
