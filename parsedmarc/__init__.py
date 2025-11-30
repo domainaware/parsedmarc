@@ -721,7 +721,7 @@ def parse_aggregate_report_xml(
 
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
-        new_report_metadata["normalized_timespan"] = normalize_timespan
+        new_report_metadata["timespan_requires_normalization"] = normalize_timespan
         new_report_metadata["original_span_seconds"] = span_seconds
         begin_dt = human_timestamp_to_datetime(
             new_report_metadata["begin_date"], to_utc=True
@@ -973,6 +973,7 @@ def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
         report_id = report["report_metadata"]["report_id"]
         begin_date = report["report_metadata"]["begin_date"]
         end_date = report["report_metadata"]["end_date"]
+        normalized_timespan = report["report_metadata"]["timespan_requires_normalization"]
         errors = "|".join(report["report_metadata"]["errors"])
         domain = report["policy_published"]["domain"]
         adkim = report["policy_published"]["adkim"]
@@ -1002,6 +1003,9 @@ def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
 
         for record in report["records"]:
             row = report_dict.copy()
+            row["begin_date"] = record["interval_begin"]
+            row["end_date"] = record["interval_end"]
+            row["normalized_timestamp"] = record["normalized_timespan"]
             row["source_ip_address"] = record["source"]["ip_address"]
             row["source_country"] = record["source"]["country"]
             row["source_reverse_dns"] = record["source"]["reverse_dns"]
