@@ -723,11 +723,11 @@ def _main():
                     )
                     exit(-1)
             if "save_aggregate" in general_config:
-                opts.save_aggregate = general_config["save_aggregate"]
+                opts.save_aggregate = general_config.getboolean("save_aggregate")
             if "save_forensic" in general_config:
-                opts.save_forensic = general_config["save_forensic"]
+                opts.save_forensic = general_config.getboolean("save_forensic")
             if "save_smtp_tls" in general_config:
-                opts.save_smtp_tls = general_config["save_smtp_tls"]
+                opts.save_smtp_tls = general_config.getboolean("save_smtp_tls")
             if "debug" in general_config:
                 opts.debug = general_config.getboolean("debug")
             if "verbose" in general_config:
@@ -798,8 +798,7 @@ def _main():
             if "ssl" in imap_config:
                 opts.imap_ssl = imap_config.getboolean("ssl")
             if "skip_certificate_verification" in imap_config:
-                imap_verify = imap_config.getboolean("skip_certificate_verification")
-                opts.imap_skip_certificate_verification = imap_verify
+                opts.imap_skip_certificate_verification = imap_config.getboolean("skip_certificate_verification")
             if "user" in imap_config:
                 opts.imap_user = imap_config["user"]
             else:
@@ -1169,7 +1168,7 @@ def _main():
             )
             opts.gmail_api_scopes = _str_to_list(opts.gmail_api_scopes)
             if "oauth2_port" in gmail_api_config:
-                opts.gmail_api_oauth2_port = gmail_api_config.get("oauth2_port", 8080)
+                opts.gmail_api_oauth2_port = gmail_api_config.getint("oauth2_port", 8080)
 
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
