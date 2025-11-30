@@ -678,10 +678,10 @@ def _main():
             general_config = config["general"]
             if "silent" in general_config:
                 opts.silent = general_config.getboolean("silent")
-                if "normalize_timespan_threshold_hours" in general_config:
-                    opts.normalize_timespan_threshold_hours = general_config.getfloat(
-                        "normalize_timespan_threshold_hours"
-                    )
+            if "normalize_timespan_threshold_hours" in general_config:
+                opts.normalize_timespan_threshold_hours = general_config.getfloat(
+                    "normalize_timespan_threshold_hours"
+                )
             if "index_prefix_domain_map" in general_config:
                 with open(general_config["index_prefix_domain_map"]) as f:
                     index_prefix_domain_map = yaml.safe_load(f)
