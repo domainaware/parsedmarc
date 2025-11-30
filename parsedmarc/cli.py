@@ -1513,7 +1513,7 @@ def _main():
             if opts.imap_skip_certificate_verification:
                 logger.debug("Skipping IMAP certificate verification")
                 verify = False
-            if opts.imap_ssl is False:
+            if not opts.imap_ssl:
                 ssl = False
 
             mailbox_connection = IMAPConnection(
