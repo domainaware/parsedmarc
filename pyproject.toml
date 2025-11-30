@@ -86,11 +86,11 @@ include = [
 
 [tool.hatch.build]
 exclude = [
-"base_reverse_dns.csv",
-"find_bad_utf8.py",
-"find_unknown_base_reverse_dns.py",
-"unknown_base_reverse_dns.csv",
-"sortmaps.py",
-"README.md",
-"*.bak"
+    "base_reverse_dns.csv",
+    "find_bad_utf8.py",
+    "find_unknown_base_reverse_dns.py",
+    "unknown_base_reverse_dns.csv",
+    "sortmaps.py",
+    "README.md",
+    "*.bak"
 ]
