@@ -78,7 +78,9 @@ class HECClient(object):
                 new_report = dict()
                 for metadata in report["report_metadata"]:
                     new_report[metadata] = report["report_metadata"][metadata]
-                new_report["interval_begin"] = report ["interval_begin"]
+                new_report["interval_begin"] = record["interval_begin"]
+                new_report["interval_end"] =  record["interval_end"]
+                new_report["normalized_timespan"] = record["normalized_timespan"] 
                 new_report["published_policy"] = report["policy_published"]
                 new_report["source_ip_address"] = record["source"]["ip_address"]
                 new_report["source_country"] = record["source"]["country"]
