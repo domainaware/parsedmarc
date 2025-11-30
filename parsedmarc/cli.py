@@ -678,7 +678,9 @@ def _main():
                     opts.silent = False
                 normalize_timespan_threshold_hours = 24.0
                 if "normalize_timespan_threshold_hours" in general_config:
-                    normalize_timespan_threshold_hours = general_config.getfloat("normalize_timespan_threshold_hours") 
+                    normalize_timespan_threshold_hours = general_config.getfloat(
+                        "normalize_timespan_threshold_hours"
+                    )
             if "index_prefix_domain_map" in general_config:
                 with open(general_config["index_prefix_domain_map"]) as f:
                     index_prefix_domain_map = yaml.safe_load(f)
@@ -1498,7 +1500,7 @@ def _main():
             reverse_dns_map_path=opts.reverse_dns_map_path,
             reverse_dns_map_url=opts.reverse_dns_map_url,
             offline=opts.offline,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]

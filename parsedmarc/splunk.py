@@ -79,8 +79,8 @@ class HECClient(object):
                 for metadata in report["report_metadata"]:
                     new_report[metadata] = report["report_metadata"][metadata]
                 new_report["interval_begin"] = record["interval_begin"]
-                new_report["interval_end"] =  record["interval_end"]
-                new_report["normalized_timespan"] = record["normalized_timespan"] 
+                new_report["interval_end"] = record["interval_end"]
+                new_report["normalized_timespan"] = record["normalized_timespan"]
                 new_report["published_policy"] = report["policy_published"]
                 new_report["source_ip_address"] = record["source"]["ip_address"]
                 new_report["source_country"] = record["source"]["country"]
@@ -101,7 +101,9 @@ class HECClient(object):
                     new_report["spf_results"] = record["auth_results"]["spf"]
 
                 data["sourcetype"] = "dmarc:aggregate"
-                timestamp = human_timestamp_to_unix_timestamp(new_report["interval_begin"])
+                timestamp = human_timestamp_to_unix_timestamp(
+                    new_report["interval_begin"]
+                )
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
                 json_str += "{0}\n".format(json.dumps(data))

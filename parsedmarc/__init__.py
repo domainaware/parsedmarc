@@ -628,7 +628,7 @@ def parse_aggregate_report_xml(
     nameservers: bool = None,
     timeout: float = 2.0,
     keep_alive: callable = None,
-    normalize_timespan_threshold_hours: float = 24.0
+    normalize_timespan_threshold_hours: float = 24.0,
 ):
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
@@ -905,8 +905,7 @@ def parse_aggregate_report_file(
     nameservers: list[str] = None,
     dns_timeout: float = 2.0,
     keep_alive: Callable = None,
-    normalize_timespan_threshold_hours: float = 24.0
-
+    normalize_timespan_threshold_hours: float = 24.0,
 ):
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
@@ -976,7 +975,9 @@ def parsed_aggregate_reports_to_csv_rows(reports: list[dict]):
         report_id = report["report_metadata"]["report_id"]
         begin_date = report["report_metadata"]["begin_date"]
         end_date = report["report_metadata"]["end_date"]
-        normalized_timespan = report["report_metadata"]["timespan_requires_normalization"]
+        normalized_timespan = report["report_metadata"][
+            "timespan_requires_normalization"
+        ]
         errors = "|".join(report["report_metadata"]["errors"])
         domain = report["policy_published"]["domain"]
         adkim = report["policy_published"]["adkim"]
@@ -1374,7 +1375,7 @@ def parse_report_email(
     dns_timeout: float = 2.0,
     strip_attachment_payloads: bool = False,
     keep_alive: callable = None,
-    normalize_timespan_threshold_hours: float = 24.0
+    normalize_timespan_threshold_hours: float = 24.0,
 ):
     """
     Parses a DMARC report from an email
@@ -1649,7 +1650,7 @@ def get_dmarc_reports_from_mbox(
     reverse_dns_map_path: str = None,
     reverse_dns_map_url: str = None,
     offline: bool = False,
-    normalize_timespan_threshold_hours: float = 24.0
+    normalize_timespan_threshold_hours: float = 24.0,
 ):
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
@@ -1696,7 +1697,7 @@ def get_dmarc_reports_from_mbox(
                     nameservers=nameservers,
                     dns_timeout=dns_timeout,
                     strip_attachment_payloads=sa,
-                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
+                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
                 if parsed_email["report_type"] == "aggregate":
                     report_org = parsed_email["report"]["report_metadata"]["org_name"]
@@ -1745,8 +1746,7 @@ def get_dmarc_reports_from_mailbox(
     batch_size: int = 10,
     since: datetime = None,
     create_folders: bool = True,
-    normalize_timespan_threshold_hours: float = 24
-
+    normalize_timespan_threshold_hours: float = 24,
 ):
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2043,7 +2043,7 @@ def get_dmarc_reports_from_mailbox(
             reverse_dns_map_url=reverse_dns_map_url,
             offline=offline,
             since=current_time,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
 
     return results
@@ -2066,7 +2066,7 @@ def watch_inbox(
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
     batch_size: int = None,
-    normalize_timespan_threshold_hours: float = 24
+    normalize_timespan_threshold_hours: float = 24,
 ):
     """
     Watches the mailbox for new messages and
@@ -2113,7 +2113,7 @@ def watch_inbox(
             strip_attachment_payloads=sa,
             batch_size=batch_size,
             create_folders=False,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         callback(res)
 
