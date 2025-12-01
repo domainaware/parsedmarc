@@ -1604,7 +1604,7 @@ def get_dmarc_reports_from_mailbox(
         if isinstance(connection, IMAPConnection):
             logger.debug(
                 "Only days and weeks values in 'since' option are \
-                         considered for IMAP conections. Examples: 2d or 1w"
+                         considered for IMAP connections. Examples: 2d or 1w"
             )
             since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).date()
             current_time = datetime.now(timezone.utc).date()

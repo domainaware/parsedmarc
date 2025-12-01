@@ -277,7 +277,7 @@ def get_ip_address_country(ip_address, db_path=None):
     ]
 
     if db_path is not None:
-        if os.path.isfile(db_path) is False:
+        if not os.path.isfile(db_path):
             db_path = None
             logger.warning(
                 f"No file exists at {db_path}. Falling back to an "

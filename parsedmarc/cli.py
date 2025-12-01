@@ -591,7 +591,7 @@ def _main():
         elasticsearch_monthly_indexes=False,
         elasticsearch_username=None,
         elasticsearch_password=None,
-        elasticsearch_apiKey=None,
+        elasticsearch_api_key=None,
         opensearch_hosts=None,
         opensearch_timeout=60,
         opensearch_number_of_shards=1,
@@ -603,7 +603,7 @@ def _main():
         opensearch_monthly_indexes=False,
         opensearch_username=None,
         opensearch_password=None,
-        opensearch_apiKey=None,
+        opensearch_api_key=None,
         kafka_hosts=None,
         kafka_username=None,
         kafka_password=None,
@@ -974,8 +974,12 @@ def _main():
                 opts.elasticsearch_username = elasticsearch_config["user"]
             if "password" in elasticsearch_config:
                 opts.elasticsearch_password = elasticsearch_config["password"]
+            # Until 8.20
             if "apiKey" in elasticsearch_config:
                 opts.elasticsearch_apiKey = elasticsearch_config["apiKey"]
+            # Since 8.20
+            if "api_key" in elasticsearch_config:
+                opts.elasticsearch_apiKey = elasticsearch_config["api_key"]
 
         if "opensearch" in config:
             opensearch_config = config["opensearch"]
@@ -1010,8 +1014,12 @@ def _main():
                 opts.opensearch_username = opensearch_config["user"]
             if "password" in opensearch_config:
                 opts.opensearch_password = opensearch_config["password"]
+            # Until 8.20
             if "apiKey" in opensearch_config:
                 opts.opensearch_apiKey = opensearch_config["apiKey"]
+            # Since 8.20
+            if "api_key" in opensearch_config:
+                opts.opensearch_apiKey = opensearch_config["api_key"]
 
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
@@ -1274,7 +1282,7 @@ def _main():
                     opts.elasticsearch_ssl_cert_path,
                     opts.elasticsearch_username,
                     opts.elasticsearch_password,
-                    opts.elasticsearch_apiKey,
+                    opts.elasticsearch_api_key,
                     timeout=opts.elasticsearch_timeout,
                 )
                 elastic.migrate_indexes(
@@ -1306,7 +1314,7 @@ def _main():
                     opts.opensearch_ssl_cert_path,
                     opts.opensearch_username,
                     opts.opensearch_password,
-                    opts.opensearch_apiKey,
+                    opts.opensearch_api_key,
                     timeout=opts.opensearch_timeout,
                 )
                 opensearch.migrate_indexes(
@@ -1512,7 +1520,7 @@ def _main():
             if opts.imap_skip_certificate_verification:
                 logger.debug("Skipping IMAP certificate verification")
                 verify = False
-            if opts.imap_ssl is False:
+            if not opts.imap_ssl:
                 ssl = False
 
             mailbox_connection = IMAPConnection(

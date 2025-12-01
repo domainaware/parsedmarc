@@ -20,7 +20,7 @@ from parsedmarc import __version__
 # -- Project information -----------------------------------------------------
 
 project = "parsedmarc"
-copyright = "2018 - 2023, Sean Whalen and contributors"
+copyright = "2018 - 2025, Sean Whalen and contributors"
 author = "Sean Whalen and contributors"
 
 # The version info for the project you're documenting, acts as replacement for

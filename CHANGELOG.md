@@ -278,7 +278,7 @@ Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
 
 - Fix handling of non-domain organization names (PR #411 fixes issue #410)
 - Skip processing of aggregate reports with a date range that is too long to be valid (PR #408 fixes issue #282)
-- Better error handeling for Elasticsearch queries and file parsing (PR #417)
+- Better error handling for Elasticsearch queries and file parsing (PR #417)
 
 8.6.0
 -----
@@ -474,7 +474,7 @@ Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
 6.7.3
 -----
 
-- Make `dkim_aligned` and `spf_aligned` case insensitive (PR #132)
+- Make `dkim_aligned` and `spf_aligned` case-insensitive (PR #132)
 
 6.7.2
 -----
@@ -511,7 +511,7 @@ Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
 6.5.5
 -----
 
-- Set set minimum `publicsuffix2` version
+- Set minimum `publicsuffix2` version
 
 6.5.4
 -----
@@ -641,7 +641,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 6.2.0
 -----
 
-- Add support for multi-process parallelized processing via CLI (Thanks zscholl - PR #62)
+- Add support for multiprocess parallelized processing via CLI (Thanks zscholl - PR #62)
 - Save sha256 hashes of attachments in forensic samples to Elasticsearch
 
 6.1.8
@@ -755,7 +755,7 @@ in the ``elasticsearch`` configuration file section (closes issue #78)
 5.1.2
 -----
 
-- Workaround unexpected Office365/Exchange IMAP responses
+- Workaround unexpected Office 365/Exchange IMAP responses
 
 5.1.1
 -----
@@ -982,7 +982,7 @@ system path
 - Fall back to plain text SMTP if `--outgoing-ssl` is not used and `STARTTLS`
 is not supported by the server
 - Always use `\n` as the newline when generating CSVs
-- Workaround for random Exchange/Office365 `Server Unavailable` IMAP errors
+- Workaround for random Exchange/Office 365 `Server Unavailable` IMAP errors
 
 3.9.7
 -----
@@ -1060,7 +1060,7 @@ does not work - fixes dovecot support (#5)
 3.7.2
 -----
 
-- Change uses uses of the `DocType` class to `Document`, to properly support `elasticsearch-dsl` `6.2.0` (this also fixes use in pypy)
+- Change uses of the `DocType` class to `Document`, to properly support `elasticsearch-dsl` `6.2.0` (this also fixes use in pypy)
 - Add documentation for installation under pypy
 
 3.7.1

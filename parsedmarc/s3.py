@@ -8,7 +8,7 @@ from parsedmarc.utils import human_timestamp_to_datetime
 
 
 class S3Client(object):
-    """A client for a Amazon S3"""
+    """A client for interacting with Amazon S3"""
 
     def __init__(
         self,

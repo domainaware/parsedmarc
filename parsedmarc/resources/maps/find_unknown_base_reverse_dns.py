@@ -13,8 +13,6 @@ def _main():
 
     csv_headers = ["source_name", "message_count"]
 
-    output_rows = []
-
     known_unknown_domains = []
     psl_overrides = []
     known_domains = []

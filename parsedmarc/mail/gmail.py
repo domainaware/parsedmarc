@@ -152,3 +152,4 @@ class GmailConnection(MailboxConnection):
         for label in labels:
             if label_name == label["id"] or label_name == label["name"]:
                 return label["id"]
+        return ""
