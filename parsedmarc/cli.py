@@ -77,6 +77,7 @@ def cli_parse(
     always_use_local_files,
     reverse_dns_map_path,
     reverse_dns_map_url,
+    normalize_timespan_threshold_hours,
     conn,
 ):
     """Separated this function for multiprocessing"""
@@ -91,6 +92,7 @@ def cli_parse(
             nameservers=nameservers,
             dns_timeout=dns_timeout,
             strip_attachment_payloads=sa,
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         conn.send([file_results, file_path])
     except ParserError as error:
@@ -659,6 +661,7 @@ def _main():
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
+        normalize_timespan_threshold_hours=24.0,
     )
     args = arg_parser.parse_args()
 
@@ -674,8 +677,11 @@ def _main():
         if "general" in config.sections():
             general_config = config["general"]
             if "silent" in general_config:
-                if general_config["silent"].lower() == "false":
-                    opts.silent = False
+                opts.silent = general_config.getboolean("silent")
+            if "normalize_timespan_threshold_hours" in general_config:
+                opts.normalize_timespan_threshold_hours = general_config.getfloat(
+                    "normalize_timespan_threshold_hours"
+                )
             if "index_prefix_domain_map" in general_config:
                 with open(general_config["index_prefix_domain_map"]) as f:
                     index_prefix_domain_map = yaml.safe_load(f)
@@ -1456,6 +1462,7 @@ def _main():
                     opts.always_use_local_files,
                     opts.reverse_dns_map_path,
                     opts.reverse_dns_map_url,
+                    opts.normalize_timespan_threshold_hours,
                     child_conn,
                 ),
             )
@@ -1506,6 +1513,7 @@ def _main():
             reverse_dns_map_path=opts.reverse_dns_map_path,
             reverse_dns_map_url=opts.reverse_dns_map_url,
             offline=opts.offline,
+            normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
         )
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
@@ -1615,6 +1623,7 @@ def _main():
                 test=opts.mailbox_test,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 since=opts.mailbox_since,
+                normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -1677,6 +1686,7 @@ def _main():
                 reverse_dns_map_path=opts.reverse_dns_map_path,
                 reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline,
+                normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
             )
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
