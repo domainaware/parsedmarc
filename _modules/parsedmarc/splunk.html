@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 8.19.1 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 9.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=4eb1041f"></script>
+      <script src="../../_static/documentation_options.js?v=0b13d40c"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -167,6 +167,9 @@
                 <span class="n">new_report</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
                     <span class="n">new_report</span><span class="p">[</span><span class="n">metadata</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="n">metadata</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;interval_end&quot;</span><span class="p">]</span>
+                <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;normalized_timespan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;normalized_timespan&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;published_policy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;source_country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
@@ -187,7 +190,9 @@
                     <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
 
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:aggregate&quot;</span>
-                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">])</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 8.19.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=4eb1041f"></script>
+      <script src="../_static/documentation_options.js?v=0b13d40c"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -83,6 +83,10 @@
 
 <span class="sd">&quot;&quot;&quot;A Python package for parsing DMARC reports&quot;&quot;&quot;</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">IO</span><span class="p">,</span> <span class="n">Callable</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">binascii</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">email</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">email.utils</span>
@@ -98,9 +102,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">base64</span><span class="w"> </span><span class="kn">import</span> <span class="n">b64decode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">csv</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictWriter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">tzinfo</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">mailparser</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xmltodict</span>
@@ -175,15 +178,196 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_bucket_interval_by_day</span><span class="p">(</span>
+    <span class="n">begin</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+    <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+    <span class="n">total_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split the interval [begin, end) into daily buckets and distribute</span>
+<span class="sd">    `total_count` proportionally across those buckets.</span>
+
+<span class="sd">    The function:</span>
+<span class="sd">      1. Identifies each calendar day touched by [begin, end)</span>
+<span class="sd">      2. Computes how many seconds of the interval fall into each day</span>
+<span class="sd">      3. Assigns counts in proportion to those overlaps</span>
+<span class="sd">      4. Ensures the final counts sum exactly to total_count</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        begin: timezone-aware datetime, inclusive start of interval</span>
+<span class="sd">        end: timezone-aware datetime, exclusive end of interval</span>
+<span class="sd">        total_count: number of messages to distribute</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A list of dicts like:</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;begin&quot;: datetime,</span>
+<span class="sd">                &quot;end&quot;: datetime,</span>
+<span class="sd">                &quot;count&quot;: int</span>
+<span class="sd">            }</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># --- Input validation ----------------------------------------------------</span>
+    <span class="k">if</span> <span class="n">begin</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;begin must be earlier than end&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">begin</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">end</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;begin and end must be timezone-aware&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">begin</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">end</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;begin and end must have the same tzinfo&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">total_count</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;total_count must be non-negative&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- Short-circuit trivial cases -----------------------------------------</span>
+    <span class="n">interval_seconds</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">begin</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">interval_seconds</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">total_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">tz</span><span class="p">:</span> <span class="n">tzinfo</span> <span class="o">=</span> <span class="n">begin</span><span class="o">.</span><span class="n">tzinfo</span>
+
+    <span class="c1"># --- Step 1: Determine all calendar days touched by [begin, end) ----------</span>
+    <span class="c1">#</span>
+    <span class="c1"># For example:</span>
+    <span class="c1">#   begin = Jan 1 12:00</span>
+    <span class="c1">#   end   = Jan 3 06:00</span>
+    <span class="c1">#</span>
+    <span class="c1"># We need buckets for:</span>
+    <span class="c1">#   Jan 1 12:00 → Jan 2 00:00</span>
+    <span class="c1">#   Jan 2 00:00 → Jan 3 00:00</span>
+    <span class="c1">#   Jan 3 00:00 → Jan 3 06:00</span>
+    <span class="c1">#</span>
+
+    <span class="c1"># Start at midnight on the day of `begin`.</span>
+    <span class="n">day_cursor</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="n">begin</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">begin</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">begin</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">tz</span><span class="p">)</span>
+
+    <span class="c1"># If `begin` is earlier on that day (e.g. 10:00), we want that midnight.</span>
+    <span class="c1"># If `begin` is past that midnight (e.g. 00:30), this is correct.</span>
+    <span class="c1"># If `begin` is BEFORE that midnight (rare unless tz shifts), adjust:</span>
+    <span class="k">if</span> <span class="n">day_cursor</span> <span class="o">&gt;</span> <span class="n">begin</span><span class="p">:</span>
+        <span class="n">day_cursor</span> <span class="o">-=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">day_buckets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="n">day_cursor</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+        <span class="n">day_start</span> <span class="o">=</span> <span class="n">day_cursor</span>
+        <span class="n">day_end</span> <span class="o">=</span> <span class="n">day_cursor</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Overlap between [begin, end) and this day</span>
+        <span class="n">overlap_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">begin</span><span class="p">,</span> <span class="n">day_start</span><span class="p">)</span>
+        <span class="n">overlap_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">day_end</span><span class="p">)</span>
+
+        <span class="n">overlap_seconds</span> <span class="o">=</span> <span class="p">(</span><span class="n">overlap_end</span> <span class="o">-</span> <span class="n">overlap_start</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">overlap_seconds</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">day_buckets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;begin&quot;</span><span class="p">:</span> <span class="n">overlap_start</span><span class="p">,</span>
+                    <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">overlap_end</span><span class="p">,</span>
+                    <span class="s2">&quot;seconds&quot;</span><span class="p">:</span> <span class="n">overlap_seconds</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="n">day_cursor</span> <span class="o">=</span> <span class="n">day_end</span>
+
+    <span class="c1"># --- Step 2: Pro-rate counts across buckets -------------------------------</span>
+    <span class="c1">#</span>
+    <span class="c1"># Compute the exact fractional count for each bucket:</span>
+    <span class="c1">#     bucket_fraction = bucket_seconds / interval_seconds</span>
+    <span class="c1">#     bucket_exact    = total_count * bucket_fraction</span>
+    <span class="c1">#</span>
+    <span class="c1"># Then apply a &quot;largest remainder&quot; rounding strategy to ensure the sum</span>
+    <span class="c1"># equals exactly total_count.</span>
+
+    <span class="n">exact_values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;seconds&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">interval_seconds</span><span class="p">)</span> <span class="o">*</span> <span class="n">total_count</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">day_buckets</span>
+    <span class="p">]</span>
+
+    <span class="n">floor_values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
+    <span class="n">fractional_parts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
+
+    <span class="c1"># How many counts do we still need to distribute after flooring?</span>
+    <span class="n">remainder</span> <span class="o">=</span> <span class="n">total_count</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">floor_values</span><span class="p">)</span>
+
+    <span class="c1"># Sort buckets by descending fractional remainder</span>
+    <span class="n">indices_by_fraction</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">day_buckets</span><span class="p">)),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">fractional_parts</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+        <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Start with floor values</span>
+    <span class="n">final_counts</span> <span class="o">=</span> <span class="n">floor_values</span><span class="p">[:]</span>
+
+    <span class="c1"># Add +1 to the buckets with the largest fractional parts</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">indices_by_fraction</span><span class="p">[:</span><span class="n">remainder</span><span class="p">]:</span>
+        <span class="n">final_counts</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># --- Step 3: Build the final per-day result list -------------------------</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">day_buckets</span><span class="p">,</span> <span class="n">final_counts</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;begin&quot;</span><span class="p">:</span> <span class="n">bucket</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">bucket</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="n">count</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_append_parsed_record</span><span class="p">(</span>
+    <span class="n">parsed_record</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">records</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">begin_dt</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+    <span class="n">end_dt</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Append a parsed DMARC record either unchanged or normalized.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parsed_record: The record returned by _parse_report_record().</span>
+<span class="sd">        records: Accumulating list of output records.</span>
+<span class="sd">        begin_dt: Report-level begin datetime (UTC).</span>
+<span class="sd">        end_dt: Report-level end datetime (UTC).</span>
+<span class="sd">        normalize: Whether this report exceeded the allowed timespan</span>
+<span class="sd">                   and should be normalized per-day.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">normalize</span><span class="p">:</span>
+        <span class="n">parsed_record</span><span class="p">[</span><span class="s2">&quot;normalized_timespan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">parsed_record</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+        <span class="n">parsed_record</span><span class="p">[</span><span class="s2">&quot;interval_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+
+        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_record</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Normalization path: break record into daily buckets</span>
+    <span class="n">total_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parsed_record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">buckets</span> <span class="o">=</span> <span class="n">_bucket_interval_by_day</span><span class="p">(</span><span class="n">begin_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">total_count</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">buckets</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">for</span> <span class="n">part_index</span><span class="p">,</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">buckets</span><span class="p">):</span>
+        <span class="n">new_rec</span> <span class="o">=</span> <span class="n">parsed_record</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">new_rec</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bucket</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+        <span class="n">new_rec</span><span class="p">[</span><span class="s2">&quot;normalized_timespan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">new_rec</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bucket</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+        <span class="n">new_rec</span><span class="p">[</span><span class="s2">&quot;interval_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bucket</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span>
+
+        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rec</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_report_record</span><span class="p">(</span>
-    <span class="n">record</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">record</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a record from a DMARC aggregate report into a more consistent</span>
@@ -338,7 +522,7 @@
     <span class="k">return</span> <span class="n">new_record</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_failure_details</span><span class="p">(</span><span class="n">failure_details</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_failure_details</span><span class="p">(</span><span class="n">failure_details</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">new_failure_details</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
             <span class="n">result_type</span><span class="o">=</span><span class="n">failure_details</span><span class="p">[</span><span class="s2">&quot;result-type&quot;</span><span class="p">],</span>
@@ -374,7 +558,7 @@
         <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">policy_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tlsa&quot;</span><span class="p">,</span> <span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="s2">&quot;no-policy-found&quot;</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">policy_domain</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-domain&quot;</span><span class="p">]</span>
@@ -413,7 +597,7 @@
 
 <div class="viewcode-block" id="parse_smtp_tls_report_json">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_smtp_tls_report_json">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses and validates an SMTP TLS report&quot;&quot;&quot;</span>
     <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;organization-name&quot;</span><span class="p">,</span>
@@ -455,7 +639,7 @@
 
 <div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts one oor more parsed SMTP TLS reports into a list of single</span>
 <span class="sd">    layer OrderedDict objects suitable for use in a CSV&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="ow">is</span> <span class="n">OrderedDict</span><span class="p">:</span>
@@ -493,7 +677,7 @@
 
 <div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed SMTP TLS reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
@@ -542,15 +726,16 @@
 <div class="viewcode-block" id="parse_aggregate_report_xml">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_xml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_xml</span><span class="p">(</span>
-    <span class="n">xml</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
 
@@ -565,6 +750,7 @@
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        keep_alive (callable): Keep alive function</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed aggregate DMARC report</span>
@@ -629,13 +815,27 @@
         <span class="n">report_id</span> <span class="o">=</span> <span class="n">report_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;@&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_id</span>
         <span class="n">date_range</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;date_range&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">86400</span><span class="p">:</span>
-            <span class="n">_error</span> <span class="o">=</span> <span class="s2">&quot;Time span &gt; 24 hours - RFC 7489 section 7.2&quot;</span>
-            <span class="k">raise</span> <span class="n">InvalidAggregateReport</span><span class="p">(</span><span class="n">_error</span><span class="p">)</span>
-        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span>
-        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
+
+        <span class="n">begin_ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">])</span>
+        <span class="n">end_ts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
+        <span class="n">span_seconds</span> <span class="o">=</span> <span class="n">end_ts</span> <span class="o">-</span> <span class="n">begin_ts</span>
+
+        <span class="n">normalize_timespan</span> <span class="o">=</span> <span class="n">span_seconds</span> <span class="o">&gt;</span> <span class="n">normalize_timespan_threshold_hours</span> <span class="o">*</span> <span class="mi">3600</span>
+
+        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">begin_ts</span><span class="p">)</span>
+        <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp_to_human</span><span class="p">(</span><span class="n">end_ts</span><span class="p">)</span>
+
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;begin&quot;</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_range</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
+        <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;timespan_requires_normalization&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize_timespan</span>
+        <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;original_timespan_seconds&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">span_seconds</span>
+        <span class="n">begin_dt</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span>
+            <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">end_dt</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span>
+            <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
         <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">]]</span>
@@ -694,7 +894,13 @@
                         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                         <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
+                    <span class="n">_append_parsed_record</span><span class="p">(</span>
+                        <span class="n">parsed_record</span><span class="o">=</span><span class="n">report_record</span><span class="p">,</span>
+                        <span class="n">records</span><span class="o">=</span><span class="n">records</span><span class="p">,</span>
+                        <span class="n">begin_dt</span><span class="o">=</span><span class="n">begin_dt</span><span class="p">,</span>
+                        <span class="n">end_dt</span><span class="o">=</span><span class="n">end_dt</span><span class="p">,</span>
+                        <span class="n">normalize</span><span class="o">=</span><span class="n">normalize_timespan</span><span class="p">,</span>
+                    <span class="p">)</span>
                 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Could not parse record: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
@@ -709,7 +915,13 @@
                 <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                 <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report_record</span><span class="p">)</span>
+            <span class="n">_append_parsed_record</span><span class="p">(</span>
+                <span class="n">parsed_record</span><span class="o">=</span><span class="n">report_record</span><span class="p">,</span>
+                <span class="n">records</span><span class="o">=</span><span class="n">records</span><span class="p">,</span>
+                <span class="n">begin_dt</span><span class="o">=</span><span class="n">begin_dt</span><span class="p">,</span>
+                <span class="n">end_dt</span><span class="o">=</span><span class="n">end_dt</span><span class="p">,</span>
+                <span class="n">normalize</span><span class="o">=</span><span class="n">normalize_timespan</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">records</span>
 
@@ -730,7 +942,7 @@
 
 <div class="viewcode-block" id="extract_report">
 <a class="viewcode-back" href="../api.html#parsedmarc.extract_report">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">IO</span><span class="p">[</span><span class="n">Any</span><span class="p">]]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extracts text from a zip or gzip file, as a base64-encoded string,</span>
 <span class="sd">    file-like object, or bytes.</span>
@@ -800,15 +1012,16 @@
 <div class="viewcode-block" id="parse_aggregate_report_file">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_file</span><span class="p">(</span>
-    <span class="n">_input</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">IO</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as an</span>
 <span class="sd">    aggregate DMARC report</span>
@@ -824,6 +1037,7 @@
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        keep_alive (callable): Keep alive function</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: The parsed DMARC aggregate report</span>
@@ -844,13 +1058,14 @@
         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
         <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
+        <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to list of dicts in flat CSV</span>
 <span class="sd">    format</span>
@@ -879,6 +1094,9 @@
         <span class="n">report_id</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
         <span class="n">begin_date</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span>
         <span class="n">end_date</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span>
+        <span class="n">normalized_timespan</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span>
+            <span class="s2">&quot;timespan_requires_normalization&quot;</span>
+        <span class="p">]</span>
         <span class="n">errors</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;errors&quot;</span><span class="p">])</span>
         <span class="n">domain</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
         <span class="n">adkim</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;adkim&quot;</span><span class="p">]</span>
@@ -896,6 +1114,7 @@
             <span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">,</span>
             <span class="n">begin_date</span><span class="o">=</span><span class="n">begin_date</span><span class="p">,</span>
             <span class="n">end_date</span><span class="o">=</span><span class="n">end_date</span><span class="p">,</span>
+            <span class="n">normalized_timespan</span><span class="o">=</span><span class="n">normalized_timespan</span><span class="p">,</span>
             <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
             <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
             <span class="n">adkim</span><span class="o">=</span><span class="n">adkim</span><span class="p">,</span>
@@ -908,6 +1127,8 @@
 
         <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]:</span>
             <span class="n">row</span> <span class="o">=</span> <span class="n">report_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;interval_end&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_ip_address&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;ip_address&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span>
@@ -971,7 +1192,7 @@
 
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
@@ -991,6 +1212,7 @@
         <span class="s2">&quot;report_id&quot;</span><span class="p">,</span>
         <span class="s2">&quot;begin_date&quot;</span><span class="p">,</span>
         <span class="s2">&quot;end_date&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;normalized_timespan&quot;</span><span class="p">,</span>
         <span class="s2">&quot;errors&quot;</span><span class="p">,</span>
         <span class="s2">&quot;domain&quot;</span><span class="p">,</span>
         <span class="s2">&quot;adkim&quot;</span><span class="p">,</span>
@@ -1040,17 +1262,17 @@
 <div class="viewcode-block" id="parse_forensic_report">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_forensic_report">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_forensic_report</span><span class="p">(</span>
-    <span class="n">feedback_report</span><span class="p">,</span>
-    <span class="n">sample</span><span class="p">,</span>
-    <span class="n">msg_date</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">feedback_report</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">msg_date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a DMARC forensic report and sample to a ``OrderedDict``</span>
@@ -1182,7 +1404,7 @@
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to a list of dicts in flat CSV</span>
 <span class="sd">    format</span>
@@ -1221,7 +1443,7 @@
 
 <div class="viewcode-block" id="parsed_forensic_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed forensic reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
@@ -1277,16 +1499,17 @@
 <div class="viewcode-block" id="parse_report_email">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_report_email">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_report_email</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parses a DMARC report from an email</span>
@@ -1303,6 +1526,7 @@
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
 <span class="sd">            forensic report results</span>
 <span class="sd">        keep_alive (callable): keep alive function</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict:</span>
@@ -1415,6 +1639,7 @@
                         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                         <span class="n">timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
                         <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
+                        <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
                         <span class="p">[(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">aggregate_report</span><span class="p">)]</span>
@@ -1474,16 +1699,17 @@
 <div class="viewcode-block" id="parse_report_file">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_report_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_report_file</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">IO</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
 <span class="sd">    file-like object. or bytes</span>
@@ -1526,6 +1752,7 @@
             <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
             <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
             <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
+            <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s2">&quot;report_type&quot;</span><span class="p">,</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">report</span><span class="p">)])</span>
     <span class="k">except</span> <span class="n">InvalidAggregateReport</span><span class="p">:</span>
@@ -1546,6 +1773,7 @@
                     <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
                     <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
                     <span class="n">keep_alive</span><span class="o">=</span><span class="n">keep_alive</span><span class="p">,</span>
+                    <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="n">InvalidDMARCReport</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;Not a valid report&quot;</span><span class="p">)</span>
@@ -1556,15 +1784,16 @@
 <div class="viewcode-block" id="get_dmarc_reports_from_mbox">
 <a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mbox">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_dmarc_reports_from_mbox</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a mailbox in mbox format containing e-mails with attached</span>
 <span class="sd">    DMARC reports</span>
@@ -1581,6 +1810,7 @@
 <span class="sd">        reverse_dns_map_url (str): URL to a reverse DNS map file</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
 <span class="sd">        offline (bool): Do not make online queries for geolocation or DNS</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``</span>
@@ -1610,6 +1840,7 @@
                     <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                     <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
                     <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
+                    <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">:</span>
                     <span class="n">report_org</span> <span class="o">=</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">][</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
@@ -1645,22 +1876,23 @@
 <a class="viewcode-back" href="../api.html#parsedmarc.get_dmarc_reports_from_mailbox">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_dmarc_reports_from_mailbox</span><span class="p">(</span>
     <span class="n">connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
-    <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
-    <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
-    <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">results</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">since</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">create_folders</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">reports_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
+    <span class="n">archive_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
+    <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">create_folders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fetches and parses DMARC reports from a mailbox</span>
@@ -1687,6 +1919,7 @@
 <span class="sd">            (units - {&quot;m&quot;:&quot;minutes&quot;, &quot;h&quot;:&quot;hours&quot;, &quot;d&quot;:&quot;days&quot;, &quot;w&quot;:&quot;weeks&quot;})</span>
 <span class="sd">        create_folders (bool): Whether to create the destination folders</span>
 <span class="sd">            (not used in watch)</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        OrderedDict: Lists of ``aggregate_reports`` and ``forensic_reports``</span>
@@ -1804,6 +2037,7 @@
                 <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
                 <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
                 <span class="n">keep_alive</span><span class="o">=</span><span class="n">connection</span><span class="o">.</span><span class="n">keepalive</span><span class="p">,</span>
+                <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;aggregate&quot;</span><span class="p">:</span>
                 <span class="n">report_org</span> <span class="o">=</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">][</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span>
@@ -1955,6 +2189,7 @@
             <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
             <span class="n">since</span><span class="o">=</span><span class="n">current_time</span><span class="p">,</span>
+            <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">results</span></div>
@@ -1966,20 +2201,21 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">watch_inbox</span><span class="p">(</span>
     <span class="n">mailbox_connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span>
     <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
-    <span class="n">reports_folder</span><span class="o">=</span><span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
-    <span class="n">archive_folder</span><span class="o">=</span><span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
-    <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">check_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
-    <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">reports_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;INBOX&quot;</span><span class="p">,</span>
+    <span class="n">archive_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
+    <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">check_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Watches the mailbox for new messages and</span>
@@ -2005,6 +2241,7 @@
 <span class="sd">        strip_attachment_payloads (bool): Replace attachment payloads in</span>
 <span class="sd">            forensic report samples with None</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
+<span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">check_callback</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
@@ -2025,6 +2262,7 @@
             <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">sa</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="n">create_folders</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
@@ -2070,14 +2308,14 @@
 <div class="viewcode-block" id="save_output">
 <a class="viewcode-back" href="../api.html#parsedmarc.save_output">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_output</span><span class="p">(</span>
-    <span class="n">results</span><span class="p">,</span>
-    <span class="n">output_directory</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
-    <span class="n">aggregate_json_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
-    <span class="n">forensic_json_filename</span><span class="o">=</span><span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
-    <span class="n">smtp_tls_json_filename</span><span class="o">=</span><span class="s2">&quot;smtp_tls.json&quot;</span><span class="p">,</span>
-    <span class="n">aggregate_csv_filename</span><span class="o">=</span><span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
-    <span class="n">forensic_csv_filename</span><span class="o">=</span><span class="s2">&quot;forensic.csv&quot;</span><span class="p">,</span>
-    <span class="n">smtp_tls_csv_filename</span><span class="o">=</span><span class="s2">&quot;smtp_tls.csv&quot;</span><span class="p">,</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">,</span>
+    <span class="n">output_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span>
+    <span class="n">aggregate_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
+    <span class="n">forensic_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
+    <span class="n">smtp_tls_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls.json&quot;</span><span class="p">,</span>
+    <span class="n">aggregate_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
+    <span class="n">forensic_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;forensic.csv&quot;</span><span class="p">,</span>
+    <span class="n">smtp_tls_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls.csv&quot;</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save report data in the given directory</span>
@@ -2158,7 +2396,7 @@
 
 <div class="viewcode-block" id="get_report_zip">
 <a class="viewcode-back" href="../api.html#parsedmarc.get_report_zip">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_report_zip</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a zip file of parsed report output</span>
 

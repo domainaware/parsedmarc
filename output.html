@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sample outputs &mdash; parsedmarc 8.19.1 documentation</title>
+  <title>Sample outputs &mdash; parsedmarc 9.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=4eb1041f"></script>
+      <script src="_static/documentation_options.js?v=0b13d40c"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -116,6 +116,8 @@ of the report schema.</p>
 <span class="w">    </span><span class="nt">&quot;report_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;9391651994964116463&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;begin_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-27 20:00:00&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;end_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-28 19:59:59&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timespan_requires_normalization&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;original_timespan_seconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">86399</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;policy_published&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -132,8 +134,10 @@ of the report schema.</p>
 <span class="w">      </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;ip_address&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;72.150.241.94&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;country&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;US&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;adsl-72-150-241-94.shv.bellsouth.net&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bellsouth.net&quot;</span>
+<span class="w">        </span><span class="nt">&quot;reverse_dns&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;base_domain&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
 <span class="w">      </span><span class="p">},</span>
 <span class="w">      </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;alignment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -167,7 +171,10 @@ of the report schema.</p>
 <span class="w">            </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pass&quot;</span>
 <span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">]</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;normalized_timespan&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;interval_begin&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-28 00:00:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;interval_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-04-28 23:59:59&quot;</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
@@ -176,8 +183,9 @@ of the report schema.</p>
 </section>
 <section id="csv-aggregate-report">
 <h3>CSV aggregate report<a class="headerlink" href="#csv-aggregate-report" title="Link to this heading"></a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
-draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,normalized_timespan,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,source_name,source_type,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
+draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-28 00:00:00,2012-04-28 23:59:59,False,,example.com,r,r,none,none,100,0,72.150.241.94,US,,,,,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
+draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-28 00:00:00,2012-04-28 23:59:59,False,,example.com,r,r,none,none,100,0,72.150.241.94,US,,,,,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
 </pre></div>
 </div>
 </section>

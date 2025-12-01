@@ -23,6 +23,8 @@ of the report schema.
     "report_id": "9391651994964116463",
     "begin_date": "2012-04-27 20:00:00",
     "end_date": "2012-04-28 19:59:59",
+    "timespan_requires_normalization": false,
+    "original_timespan_seconds": 86399,
     "errors": []
   },
   "policy_published": {
@@ -39,8 +41,10 @@ of the report schema.
       "source": {
         "ip_address": "72.150.241.94",
         "country": "US",
-        "reverse_dns": "adsl-72-150-241-94.shv.bellsouth.net",
-        "base_domain": "bellsouth.net"
+        "reverse_dns": null,
+        "base_domain": null,
+        "name": null,
+        "type": null
       },
       "count": 2,
       "alignment": {
@@ -74,7 +78,10 @@ of the report schema.
             "result": "pass"
           }
         ]
-      }
+      },
+      "normalized_timespan": false,
+      "interval_begin": "2012-04-28 00:00:00",
+      "interval_end": "2012-04-28 23:59:59"
     }
   ]
 }
@@ -83,8 +90,10 @@ of the report schema.
 ### CSV aggregate report
 
 ```text
-xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
-draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-27 20:00:00,2012-04-28 19:59:59,,example.com,r,r,none,none,100,0,72.150.241.94,US,adsl-72-150-241-94.shv.bellsouth.net,bellsouth.net,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
+xml_schema,org_name,org_email,org_extra_contact_info,report_id,begin_date,end_date,normalized_timespan,errors,domain,adkim,aspf,p,sp,pct,fo,source_ip_address,source_country,source_reverse_dns,source_base_domain,source_name,source_type,count,spf_aligned,dkim_aligned,dmarc_aligned,disposition,policy_override_reasons,policy_override_comments,envelope_from,header_from,envelope_to,dkim_domains,dkim_selectors,dkim_results,spf_domains,spf_scopes,spf_results
+draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-28 00:00:00,2012-04-28 23:59:59,False,,example.com,r,r,none,none,100,0,72.150.241.94,US,,,,,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
+draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391651994964116463,2012-04-28 00:00:00,2012-04-28 23:59:59,False,,example.com,r,r,none,none,100,0,72.150.241.94,US,,,,,2,True,False,True,none,,,example.com,example.com,,example.com,none,fail,example.com,mfrom,pass
+
 ```
 
 ## Sample forensic report output
