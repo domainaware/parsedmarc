@@ -798,7 +798,9 @@ def _main():
             if "ssl" in imap_config:
                 opts.imap_ssl = imap_config.getboolean("ssl")
             if "skip_certificate_verification" in imap_config:
-                opts.imap_skip_certificate_verification = imap_config.getboolean("skip_certificate_verification")
+                opts.imap_skip_certificate_verification = imap_config.getboolean(
+                    "skip_certificate_verification"
+                )
             if "user" in imap_config:
                 opts.imap_user = imap_config["user"]
             else:
@@ -1176,7 +1178,9 @@ def _main():
             )
             opts.gmail_api_scopes = _str_to_list(opts.gmail_api_scopes)
             if "oauth2_port" in gmail_api_config:
-                opts.gmail_api_oauth2_port = gmail_api_config.getint("oauth2_port", 8080)
+                opts.gmail_api_oauth2_port = gmail_api_config.getint(
+                    "oauth2_port", 8080
+                )
 
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
