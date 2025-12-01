@@ -34,7 +34,7 @@ jobs:
         python-version: ["3.6"]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install Python v3.6
       run: |
         sudo apt-get -q update
@@ -84,6 +84,6 @@ jobs:
       run: |
         hatch build
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
