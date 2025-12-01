@@ -59,8 +59,7 @@ jobs:
       run: python3 -V
     - name: Install system dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libemail-outlook-message-perl
+        sudo apt-get -qy install libemail-outlook-message-perl
     - name: Install Python dependencies
       run: |
         sudo python -m pip install --upgrade pip
