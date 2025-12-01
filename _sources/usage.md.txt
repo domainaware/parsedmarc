@@ -120,8 +120,10 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
+  - `index_prefix_domain_map` -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
+  - `silent` - bool: Set this to `False` to output results to STDOUT
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
@@ -167,7 +169,7 @@ The full set of configuration options are:
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
   - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`) 
-      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}). 
+      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}. 
       Defaults to `1d` if incorrect value is provided.
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
@@ -252,7 +254,7 @@ The full set of configuration options are:
     :::
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
-  - `apiKey` - str: API key
+  - `api_key` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
@@ -275,7 +277,7 @@ The full set of configuration options are:
     :::
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
-  - `apiKey` - str: API key
+  - `api_key` - str: API key
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
@@ -369,7 +371,7 @@ The full set of configuration options are:
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
 
 - `maildir`
-  - `reports_folder` - str: Full path for mailbox maidir location (Default: `INBOX`)
+  - `maildir_path` - str: Full path for mailbox maidir location (Default: `INBOX`)
   - `maildir_create` - bool: Create maildir if not present (Default: False)
 
 - `webhook` - Post the individual reports to a webhook url with the report as the JSON body
@@ -443,6 +445,28 @@ PUT _cluster/settings
 ```
 
 Increasing this value increases resource usage.
+:::
+
+## Multi-tenant support
+
+Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
+
+```yaml
+example:
+  - example.com
+  - example.net
+  - example.org
+
+whalensolutions:
+  - whalensolutions.com
+```
+
+Save it to disk where the user running ParseDMARC can read it, then set `index_prefix_domain_map` to that filepath in the `[general]` section of the ParseDMARC configuration file and do not set an `index_prefix` option in the `[elasticsearch]` or `[opensearch]` sections.
+
+When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of Opensearch or the ELK stack to only grant users access to the indexes that they need.
+
+ :::{note}
+ A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
 :::
 
 ## Running parsedmarc as a systemd service

@@ -1,24 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 8.18.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+  <title>Using parsedmarc &mdash; parsedmarc 8.19.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=4eb1041f"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -37,9 +34,6 @@
           <a href="index.html" class="icon icon-home">
             parsedmarc
           </a>
-              <div class="version">
-                8.18.1
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -54,6 +48,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using parsedmarc</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-tenant-support">Multi-tenant support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
 </ul>
 </li>
@@ -93,9 +88,9 @@
            <div itemprop="articleBody">
              
   <section class="tex2jax_ignore mathjax_ignore" id="using-parsedmarc">
-<h1>Using parsedmarc<a class="headerlink" href="#using-parsedmarc" title="Permalink to this heading"></a></h1>
+<h1>Using parsedmarc<a class="headerlink" href="#using-parsedmarc" title="Link to this heading"></a></h1>
 <section id="cli-help">
-<h2>CLI help<a class="headerlink" href="#cli-help" title="Permalink to this heading"></a></h2>
+<h2>CLI help<a class="headerlink" href="#cli-help" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
                    [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
                    [--forensic-json-filename FORENSIC_JSON_FILENAME]
@@ -147,7 +142,7 @@ configuration file, described below.</p>
 </div>
 </section>
 <section id="configuration-file">
-<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> can be configured by supplying the path to an INI file</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>parsedmarc<span class="w"> </span>-c<span class="w"> </span>/etc/parsedmarc.ini
 </pre></div>
@@ -211,8 +206,10 @@ Elasticsearch, Splunk and/or S3</p></li>
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_smtp_tls</span></code> - bool: Save SMTP-STS report data to
 Elasticsearch, Splunk and/or S3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
 payloads from results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Set this to <code class="docutils literal notranslate"><span class="pre">False</span></code> to output results to STDOUT</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate
 JSON output file</p></li>
@@ -261,7 +258,7 @@ before saving. Default <code class="docutils literal notranslate"><span class="p
 IDLE response or the number of seconds until the next
 mail check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">since</span></code> - str: Search for messages since certain time. (Examples: <code class="docutils literal notranslate"><span class="pre">5m|3h|2d|1w</span></code>)
-Acceptable units - {“m”:“minutes”, “h”:“hours”, “d”:“days”, “w”:“weeks”}).
+Acceptable units - {“m”:“minutes”, “h”:“hours”, “d”:“days”, “w”:“weeks”}.
 Defaults to <code class="docutils literal notranslate"><span class="pre">1d</span></code> if incorrect value is provided.</p></li>
 </ul>
 </li>
@@ -355,7 +352,7 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apiKey</span></code> - str: API key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code> - str: API key</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
 (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
@@ -382,7 +379,7 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apiKey</span></code> - str: API key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code> - str: API key</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
 (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
@@ -504,7 +501,7 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">maildir</span></code></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: Full path for mailbox maidir location (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maildir_path</span></code> - str: Full path for mailbox maidir location (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">maildir_create</span></code> - bool: Create maildir if not present (Default: False)</p></li>
 </ul>
 </li>
@@ -577,8 +574,27 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 <p>Increasing this value increases resource usage.</p>
 </div>
 </section>
+<section id="multi-tenant-support">
+<h2>Multi-tenant support<a class="headerlink" href="#multi-tenant-support" title="Link to this heading"></a></h2>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">8.19.0</span></code>, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">example</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.com</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.net</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.org</span>
+
+<span class="nt">whalensolutions</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">whalensolutions.com</span>
+</pre></div>
+</div>
+<p>Save it to disk where the user running ParseDMARC can read it, then set <code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> to that filepath in the <code class="docutils literal notranslate"><span class="pre">[general]</span></code> section of the ParseDMARC configuration file and do not set an <code class="docutils literal notranslate"><span class="pre">index_prefix</span></code> option in the <code class="docutils literal notranslate"><span class="pre">[elasticsearch]</span></code> or <code class="docutils literal notranslate"><span class="pre">[opensearch]</span></code> sections.</p>
+<p>When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of Opensearch or the ELK stack to only grant users access to the indexes that they need.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.</p>
+</div>
+</section>
 <section id="running-parsedmarc-as-a-systemd-service">
-<h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Permalink to this heading"></a></h2>
+<h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Link to this heading"></a></h2>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
 they arrive.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
@@ -654,7 +670,7 @@ as well as the current process (newest to oldest), run:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2018 - 2023, Sean Whalen and contributors.</p>
+    <p>&#169; Copyright 2018 - 2025, Sean Whalen and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

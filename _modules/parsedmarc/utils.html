@@ -1,23 +1,20 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 8.18.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
+  <title>parsedmarc.utils &mdash; parsedmarc 8.19.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=4eb1041f"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -34,9 +31,6 @@
           <a href="../../index.html" class="icon icon-home">
             parsedmarc
           </a>
-              <div class="version">
-                8.18.1
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -88,60 +82,75 @@
   <h1>Source code for parsedmarc.utils</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Utility functions that might be useful for other projects&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timezone</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">shutil</span>
-<span class="kn">import</span> <span class="nn">mailparser</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">mailbox</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">csv</span>
-<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mailparser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mailbox</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">importlib.resources</span> <span class="k">as</span> <span class="nn">pkg_resources</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="c1"># Try backported to PY&lt;37 `importlib_resources`</span>
-    <span class="kn">import</span> <span class="nn">importlib_resources</span> <span class="k">as</span> <span class="nn">pkg_resources</span>
+    <span class="c1"># Try backported to PY&lt;3 `importlib_resources`</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
 
-<span class="kn">from</span> <span class="nn">dateutil.parser</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_date</span>
-<span class="kn">import</span> <span class="nn">dns.reversename</span>
-<span class="kn">import</span> <span class="nn">dns.resolver</span>
-<span class="kn">import</span> <span class="nn">dns.exception</span>
-<span class="kn">import</span> <span class="nn">geoip2.database</span>
-<span class="kn">import</span> <span class="nn">geoip2.errors</span>
-<span class="kn">import</span> <span class="nn">publicsuffixlist</span>
-<span class="kn">import</span> <span class="nn">requests</span>
 
-<span class="kn">from</span> <span class="nn">parsedmarc.log</span> <span class="kn">import</span> <span class="n">logger</span>
-<span class="kn">import</span> <span class="nn">parsedmarc.resources.dbip</span>
-<span class="kn">import</span> <span class="nn">parsedmarc.resources.maps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dateutil.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_date</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dns.reversename</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dns.resolver</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dns.exception</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">geoip2.database</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">geoip2.errors</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">publicsuffixlist</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.dbip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.maps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">USER_AGENT</span>
 
 <span class="n">parenthesis_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*\(.*\)\s*&quot;</span><span class="p">)</span>
 
 <span class="n">null_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">mailparser_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;mailparser&quot;</span><span class="p">)</span>
 <span class="n">mailparser_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
+<span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffixlist</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">()</span>
+<span class="n">psl_overrides_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;psl_overrides.txt&quot;</span><span class="p">))</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_overrides_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">psl_overrides</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+    <span class="k">while</span> <span class="s2">&quot;&quot;</span> <span class="ow">in</span> <span class="n">psl_overrides</span><span class="p">:</span>
+        <span class="n">psl_overrides</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="EmailParserError"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.EmailParserError">[docs]</a><span class="k">class</span> <span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<div class="viewcode-block" id="EmailParserError">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.EmailParserError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmailParserError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an error parsing the email occurs&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="DownloadError"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.DownloadError">[docs]</a><span class="k">class</span> <span class="nc">DownloadError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+
+<div class="viewcode-block" id="DownloadError">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.DownloadError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DownloadError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an error occurs when downloading a file&quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="decode_base64"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.decode_base64">[docs]</a><span class="k">def</span> <span class="nf">decode_base64</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+
+<div class="viewcode-block" id="decode_base64">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.decode_base64">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">decode_base64</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Decodes a base64 string, with padding being optional</span>
 
@@ -159,13 +168,17 @@
     <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_base_domain">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_base_domain">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_base_domain</span><span class="p">(</span><span class="n">domain</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the base domain name for the given domain</span>
 
 <span class="sd">    .. note::</span>
 <span class="sd">        Results are based on a list of public domain suffixes at</span>
-<span class="sd">        https://publicsuffix.org/list/public_suffix_list.dat.</span>
+<span class="sd">        https://publicsuffix.org/list/public_suffix_list.dat and overrides included in</span>
+<span class="sd">        parsedmarc.resources.maps.psl_overrides.txt</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        domain (str): A domain or subdomain</span>
@@ -174,11 +187,18 @@
 <span class="sd">        str: The base domain of the given domain</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffixlist</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">psl</span><span class="o">.</span><span class="n">privatesuffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span></div>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">publicsuffix</span> <span class="o">=</span> <span class="n">psl</span><span class="o">.</span><span class="n">privatesuffix</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">override</span> <span class="ow">in</span> <span class="n">psl_overrides</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">domain</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">override</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">override</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">publicsuffix</span></div>
 
 
-<div class="viewcode-block" id="query_dns"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.query_dns">[docs]</a><span class="k">def</span> <span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+
+<div class="viewcode-block" id="query_dns">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.query_dns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">query_dns</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Queries DNS</span>
 
@@ -239,7 +259,10 @@
     <span class="k">return</span> <span class="n">records</span></div>
 
 
-<div class="viewcode-block" id="get_reverse_dns"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_reverse_dns">[docs]</a><span class="k">def</span> <span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_reverse_dns">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_reverse_dns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_reverse_dns</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resolves an IP address to a hostname using a reverse DNS query</span>
 
@@ -267,7 +290,10 @@
     <span class="k">return</span> <span class="n">hostname</span></div>
 
 
-<div class="viewcode-block" id="timestamp_to_datetime"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_datetime">[docs]</a><span class="k">def</span> <span class="nf">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
+
+<div class="viewcode-block" id="timestamp_to_datetime">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_datetime">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a UNIX/DMARC timestamp to a Python ``datetime`` object</span>
 
@@ -280,7 +306,10 @@
     <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">timestamp</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="timestamp_to_human"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_human">[docs]</a><span class="k">def</span> <span class="nf">timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
+
+<div class="viewcode-block" id="timestamp_to_human">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.timestamp_to_human">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">timestamp_to_human</span><span class="p">(</span><span class="n">timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a UNIX/DMARC timestamp to a human-readable string</span>
 
@@ -293,7 +322,10 @@
     <span class="k">return</span> <span class="n">timestamp_to_datetime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="human_timestamp_to_datetime"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_datetime">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="human_timestamp_to_datetime">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_datetime">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a Python ``datetime`` object</span>
 
@@ -312,7 +344,10 @@
     <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="k">if</span> <span class="n">to_utc</span> <span class="k">else</span> <span class="n">dt</span></div>
 
 
-<div class="viewcode-block" id="human_timestamp_to_unix_timestamp"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">[docs]</a><span class="k">def</span> <span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
+
+<div class="viewcode-block" id="human_timestamp_to_unix_timestamp">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a UNIX timestamp</span>
 
@@ -326,7 +361,10 @@
     <span class="k">return</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_country"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="get_ip_address_country">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the ISO code for the country associated</span>
 <span class="sd">    with the given IPv4 or IPv6 address</span>
@@ -353,7 +391,7 @@
     <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
             <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;No file exists at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">. Falling back to an &quot;</span>
@@ -368,14 +406,13 @@
                 <span class="k">break</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
-            <span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">dbip</span><span class="p">,</span> <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">path</span><span class="p">:</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">dbip</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
 
-        <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IP database is more than a month old&quot;</span><span class="p">)</span>
+    <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IP database is more than a month old&quot;</span><span class="p">)</span>
 
     <span class="n">db_reader</span> <span class="o">=</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
 
@@ -389,7 +426,10 @@
     <span class="k">return</span> <span class="n">country</span></div>
 
 
-<div class="viewcode-block" id="get_service_from_reverse_dns_base_domain"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a><span class="k">def</span> <span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
+
+<div class="viewcode-block" id="get_service_from_reverse_dns_base_domain">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_service_from_reverse_dns_base_domain">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_service_from_reverse_dns_base_domain</span><span class="p">(</span>
     <span class="n">base_domain</span><span class="p">,</span>
     <span class="n">always_use_local_file</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">local_file_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -413,7 +453,7 @@
 <span class="sd">        the supplied reverse_dns_base_domain and the type will be None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">load_csv</span><span class="p">(</span><span class="n">_csv_file</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_csv</span><span class="p">(</span><span class="n">_csv_file</span><span class="p">):</span>
         <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">_csv_file</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;base_reverse_dns&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -433,20 +473,29 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offline</span> <span class="ow">or</span> <span class="n">always_use_local_file</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">reverse_dns_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trying to fetch reverse DNS map from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
-            <span class="n">csv_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">csv_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
             <span class="n">csv_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">load_csv</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to fetch reverse DNS map: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Not a valid CSV file&quot;</span><span class="p">)</span>
+            <span class="n">csv_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Response body:&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">csv_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reverse_dns_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading included reverse DNS map...&quot;</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
-            <span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">,</span> <span class="s2">&quot;base_reverse_dns_map.csv&quot;</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">path</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">local_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="n">local_file_path</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
-                <span class="n">load_csv</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;base_reverse_dns_map.csv&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">local_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">local_file_path</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+            <span class="n">load_csv</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">service</span> <span class="o">=</span> <span class="n">reverse_dns_map</span><span class="p">[</span><span class="n">base_domain</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -455,7 +504,10 @@
     <span class="k">return</span> <span class="n">service</span></div>
 
 
-<div class="viewcode-block" id="get_ip_address_info"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a><span class="k">def</span> <span class="nf">get_ip_address_info</span><span class="p">(</span>
+
+<div class="viewcode-block" id="get_ip_address_info">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_info">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ip_address_info</span><span class="p">(</span>
     <span class="n">ip_address</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">reverse_dns_map_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -531,7 +583,8 @@
     <span class="k">return</span> <span class="n">info</span></div>
 
 
-<span class="k">def</span> <span class="nf">parse_email_address</span><span class="p">(</span><span class="n">original_address</span><span class="p">):</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_email_address</span><span class="p">(</span><span class="n">original_address</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">original_address</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">display_name</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
@@ -554,7 +607,9 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_filename_safe_string"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_filename_safe_string">[docs]</a><span class="k">def</span> <span class="nf">get_filename_safe_string</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+<div class="viewcode-block" id="get_filename_safe_string">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_filename_safe_string">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_filename_safe_string</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a string to a string that is safe for a filename</span>
 
@@ -576,7 +631,10 @@
     <span class="k">return</span> <span class="n">string</span></div>
 
 
-<div class="viewcode-block" id="is_mbox"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_mbox">[docs]</a><span class="k">def</span> <span class="nf">is_mbox</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+
+<div class="viewcode-block" id="is_mbox">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_mbox">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_mbox</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if the given content is an MBOX mailbox file</span>
 
@@ -597,7 +655,10 @@
     <span class="k">return</span> <span class="n">_is_mbox</span></div>
 
 
-<div class="viewcode-block" id="is_outlook_msg"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_outlook_msg">[docs]</a><span class="k">def</span> <span class="nf">is_outlook_msg</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+
+<div class="viewcode-block" id="is_outlook_msg">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.is_outlook_msg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_outlook_msg</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if the given content is an Outlook msg OLE/MSG file</span>
 
@@ -612,7 +673,10 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="convert_outlook_msg"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.convert_outlook_msg">[docs]</a><span class="k">def</span> <span class="nf">convert_outlook_msg</span><span class="p">(</span><span class="n">msg_bytes</span><span class="p">):</span>
+
+<div class="viewcode-block" id="convert_outlook_msg">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.convert_outlook_msg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_outlook_msg</span><span class="p">(</span><span class="n">msg_bytes</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to</span>
 <span class="sd">    standard RFC 822 format</span>
@@ -648,7 +712,10 @@
     <span class="k">return</span> <span class="n">rfc822</span></div>
 
 
-<div class="viewcode-block" id="parse_email"><a class="viewcode-back" href="../../api.html#parsedmarc.utils.parse_email">[docs]</a><span class="k">def</span> <span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="parse_email">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.parse_email">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_email</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simplified email parser</span>
 
@@ -754,6 +821,7 @@
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;body&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">return</span> <span class="n">parsed_email</span></div>
+
 </pre></div>
 
            </div>
@@ -763,7 +831,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2018 - 2023, Sean Whalen and contributors.</p>
+    <p>&#169; Copyright 2018 - 2025, Sean Whalen and contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
