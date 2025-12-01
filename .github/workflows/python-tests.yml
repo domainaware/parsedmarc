@@ -15,7 +15,7 @@ jobs:
 
     services:
       elasticsearch:
-        image: elasticsearch:8.18.2
+        image: elasticsearch:8.19.7
         env:
           discovery.type: single-node
           cluster.name: parsedmarc-cluster
