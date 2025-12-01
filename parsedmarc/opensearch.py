@@ -395,7 +395,7 @@ def save_aggregate_report_to_opensearch(
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
-    
+
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
         adkim=aggregate_report["policy_published"]["adkim"],
