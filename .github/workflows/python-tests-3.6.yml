@@ -1,4 +1,5 @@
-name: Python tests
+# Specific file for Python 3.6
+name: Python 3.6 tests
 
 permissions:
   contents: read
@@ -30,23 +31,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Python 3.6 run on a previous Ubuntu
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.6"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: Install Python v3.6
+      run: |
+        sudo apt-get -q update
+        sudo apt-get -qy install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev libgdbm-dev libnss3-dev libedit-dev libc6-dev
+        wget --no-verbose https://www.python.org/ftp/python/3.6.15/Python-3.6.15.tgz
+        tar -xzf Python-3.6.15.tgz
+        cd Python-3.6.15
+        ./configure --enable-optimizations --with-lto --with-pydebug
+        # https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        make -j 4
+        sudo make install
+        python -V
+        sudo update-alternatives --install /usr/bin/python3 python /usr/local/bin/python3.6 1
+        sudo update-alternatives --config python << EOF
+        1
+        EOF
+    - name: Python 3.6 compiled
+      run: python3.6 -V
+    - name: Default python
+      run: python -V
+    - name: Default python3
+      run: python3 -V
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libemail-outlook-message-perl
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install .[build]
+        sudo python -m pip install --upgrade pip
+        sudo pip install .[build]
     - name: Test building documentation
       run: |
         cd docs
@@ -59,7 +77,7 @@ jobs:
         pytest --cov --cov-report=xml tests.py
     - name: Test sample DMARC reports
       run: |
-        pip install -e .
+        sudo pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
         parsedmarc --debug -c ci.ini samples/forensic/*
     - name: Test building packages
