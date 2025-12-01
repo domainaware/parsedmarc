@@ -19,11 +19,11 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "sample.eml",
+      "name": "sample",
       "type": "debugpy",
       "request": "launch",
       "module": "parsedmarc.cli",
-      "args": ["samples/private/sample.eml"]
+      "args": ["samples/private/sample"]
     },
     {
       "name": "sortlists.py",

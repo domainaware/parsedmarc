@@ -721,7 +721,7 @@ def parse_aggregate_report_xml(
         new_report_metadata["begin_date"] = date_range["begin"]
         new_report_metadata["end_date"] = date_range["end"]
         new_report_metadata["timespan_requires_normalization"] = normalize_timespan
-        new_report_metadata["original_span_seconds"] = span_seconds
+        new_report_metadata["original_timespan_seconds"] = span_seconds
         begin_dt = human_timestamp_to_datetime(
             new_report_metadata["begin_date"], to_utc=True
         )
