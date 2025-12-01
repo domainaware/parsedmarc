@@ -15,7 +15,7 @@ jobs:
 
     services:
       elasticsearch:
-        image: elasticsearch:8.18.2
+        image: elasticsearch:8.19.7
         env:
           discovery.type: single-node
           cluster.name: parsedmarc-cluster
@@ -30,18 +30,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        # Python 3.6 run on a previous Ubuntu
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install system dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libemail-outlook-message-perl
+        sudo apt-get -q update
+        sudo apt-get -qy install libemail-outlook-message-perl
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
@@ -65,6 +66,6 @@ jobs:
       run: |
         hatch build
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
           token: ${{ secrets.CODECOV_TOKEN }}

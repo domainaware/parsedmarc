@@ -23,11 +23,10 @@ ProofPoint Email Fraud Defense, and Valimail.
 
 ## Help Wanted
 
-This project is maintained by one developer. Please consider
-reviewing the open
-[issues](https://github.com/domainaware/parsedmarc/issues) to see how
-you can contribute code, documentation, or user support. Assistance on
-the pinned issues would be particularly helpful.
+This project is maintained by one developer. Please consider reviewing the open
+[issues](https://github.com/domainaware/parsedmarc/issues) to see how you can
+contribute code, documentation, or user support. Assistance on the pinned
+issues would be particularly helpful.
 
 Thanks to all
 [contributors](https://github.com/domainaware/parsedmarc/graphs/contributors)!
@@ -42,6 +41,24 @@ Thanks to all
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
-    with premade dashboards
+- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for
+  use with premade dashboards
 - Optionally send reports to Apache Kafka
+
+## Python Compatibility
+
+This project supports the following Python versions, which are either actively maintained or are the default versions
+for RHEL or Debian.
+
+| Version | Supported | Reason                                                     |
+|---------|-----------|------------------------------------------------------------|
+| < 3.6   | ❌         | End of Life (EOL)                                          |
+| 3.6     | ❌         | Not supported by project dependencies                      | 
+| 3.7     | ❌         | End of Life (EOL)                                          | 
+| 3.8     | ❌         | End of Life (EOL)                                          | 
+| 3.9     | ✅         | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) | 
+| 3.10    | ✅         | Actively maintained                                        | 
+| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) | 
+| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    | 
+| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) | 
+| 3.14    | ✅         | Actively maintained                                        | 
