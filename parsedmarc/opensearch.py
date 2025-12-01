@@ -395,7 +395,51 @@ def save_aggregate_report_to_opensearch(
     org_name = metadata["org_name"]
     report_id = metadata["report_id"]
     domain = aggregate_report["policy_published"]["domain"]
+    begin_date = human_timestamp_to_datetime(metadata["begin_date"], to_utc=True)
+    end_date = human_timestamp_to_datetime(metadata["end_date"], to_utc=True)
 
+    if monthly_indexes:
+        index_date = begin_date.strftime("%Y-%m")
+    else:
+        index_date = begin_date.strftime("%Y-%m-%d")
+
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
+    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
+    domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
+    end_date_query = Q(dict(match=dict(date_end=end_date)))
+
+    if index_suffix is not None:
+        search_index = "dmarc_aggregate_{0}*".format(index_suffix)
+    else:
+        search_index = "dmarc_aggregate*"
+    if index_prefix is not None:
+        search_index = "{0}{1}".format(index_prefix, search_index)
+    search = Search(index=search_index)
+    query = org_name_query & report_id_query & domain_query
+    query = query & begin_date_query & end_date_query
+    search.query = query
+
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
+
+        raise OpenSearchError(
+            "Opensearch's search for existing report \
+            error: {}".format(error_.__str__())
+        )
+
+    if len(existing) > 0:
+        raise AlreadySaved(
+            "An aggregate report ID {0} from {1} about {2} "
+            "with a date range of {3} UTC to {4} UTC already "
+            "exists in "
+            "Opensearch".format(
+                report_id, org_name, domain, begin_date_human, end_date_human
+            )
+        )
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
         adkim=aggregate_report["policy_published"]["adkim"],
@@ -409,8 +453,8 @@ def save_aggregate_report_to_opensearch(
     for record in aggregate_report["records"]:
         begin_date = human_timestamp_to_datetime(record["interval_begin"], to_utc=True)
         end_date = human_timestamp_to_datetime(record["interval_end"], to_utc=True)
-        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
-        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
+        normalized_timespan = record["normalized_timespan"]
+
         if monthly_indexes:
             index_date = begin_date.strftime("%Y-%m")
         else:
@@ -418,41 +462,6 @@ def save_aggregate_report_to_opensearch(
         aggregate_report["begin_date"] = begin_date
         aggregate_report["end_date"] = end_date
         date_range = [aggregate_report["begin_date"], aggregate_report["end_date"]]
-
-        org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
-        report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
-        domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-        begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
-        end_date_query = Q(dict(match=dict(date_end=end_date)))
-
-        if index_suffix is not None:
-            search_index = "dmarc_aggregate_{0}*".format(index_suffix)
-        else:
-            search_index = "dmarc_aggregate*"
-        if index_prefix is not None:
-            search_index = "{0}{1}".format(index_prefix, search_index)
-        search = Search(index=search_index)
-        query = org_name_query & report_id_query & domain_query
-        query = query & begin_date_query & end_date_query
-        search.query = query
-
-        try:
-            existing = search.execute()
-        except Exception as error_:
-            raise OpenSearchError(
-                "OpenSearch's search for existing report \
-                error: {}".format(error_.__str__())
-            )
-
-        if len(existing) > 0:
-            raise AlreadySaved(
-                "An aggregate report ID {0} from {1} about {2} "
-                "with a date range of {3} UTC to {4} UTC already "
-                "exists in "
-                "OpenSearch".format(
-                    report_id, org_name, domain, begin_date_human, end_date_human
-                )
-            )
         agg_doc = _AggregateReportDoc(
             xml_schema=aggregate_report["xml_schema"],
             org_name=metadata["org_name"],
@@ -460,8 +469,9 @@ def save_aggregate_report_to_opensearch(
             org_extra_contact_info=metadata["org_extra_contact_info"],
             report_id=metadata["report_id"],
             date_range=date_range,
-            date_begin=aggregate_report["begin_date"],
-            date_end=aggregate_report["end_date"],
+            date_begin=begin_date,
+            date_end=end_date,
+            normalized_timespan=normalized_timespan,
             errors=metadata["errors"],
             published_policy=published_policy,
             source_ip_address=record["source"]["ip_address"],
@@ -784,7 +794,7 @@ def save_smtp_tls_report_to_opensearch(
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
             policy_type=policy["policy_type"],
-            succesful_session_count=policy["successful_session_count"],
+            successful_session_count=policy["successful_session_count"],
             failed_session_count=policy["failed_session_count"],
             policy_string=policy_strings,
             mx_host_patterns=mx_host_patterns,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.1
+
+### Fixes
+
+- Allow multiple `records` for the same aggregate DMARC report in Elasticsearch and Opensearch
+
 ## 9.0.0 (yanked)
 
 - Normalize aggregate DMARC report volumes when a report timespan exceeds 24 hours
@@ -113,7 +119,7 @@ Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
 
 ## 8.15.0
 
-- Fix processing of SMTP-TLS reports ([#549](https://github.com/domainaware/parsedmarc/issues/549)), which broke in commit [410663d ](https://github.com/domainaware/parsedmarc/commit/410663dbcaba019ca3d3744946348b56a635480b)(PR [#530](https://github.com/domainaware/parsedmarc/pull/530))
+- Fix processing of SMTP-TLS reports ([#549](https://github.com/domainaware/parsedmarc/issues/549)), which broke in commit [410663d](https://github.com/domainaware/parsedmarc/commit/410663dbcaba019ca3d3744946348b56a635480b)(PR [#530](https://github.com/domainaware/parsedmarc/pull/530))
   - This PR enforced a stricter check for base64-encoded strings, which SMTP TLS reports from Google did not pass
   - Removing the check introduced its own issue, because some file paths were treated as base64-encoded strings
 - Create a separate `extract_report_from_file_path()` function for processioning reports based on a file path
@@ -131,7 +137,7 @@ Removed improper spaces from  `base_reverse_dns_map.csv` (Closes #612)
 
 - Skip invalid aggregate report rows without calling the whole report invalid
   - Some providers such as GoDaddy will send reports with some rows missing a source IP address, while other rows are fine
-- Fix Dovecot support by using the seperator provided by the IPMAP namespace when possible (PR #552 closes #551)
+- Fix Dovecot support by using the separator provided by the IMAP namespace when possible (PR #552 closes #551)
 - Only download `base_reverse_dns_map.csv` once (fixes #542)
 - Update included `base_reverse_dns_map.csv`
   - Replace University category with Education to be more inclusive
