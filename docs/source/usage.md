@@ -4,47 +4,50 @@
 
 ```text
 usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
-                   [--aggregate-json-filename AGGREGATE_JSON_FILENAME]
-                   [--forensic-json-filename FORENSIC_JSON_FILENAME]
-                   [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
-                   [--forensic-csv-filename FORENSIC_CSV_FILENAME]
-                   [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline]
-                   [-s] [--verbose] [--debug] [--log-file LOG_FILE] [-v]
-                   [file_path ...]
+                  [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                  [--smtp-tls-json-filename SMTP_TLS_JSON_FILENAME] [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
+                  [--forensic-csv-filename FORENSIC_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
+                  [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline] [-s] [-w] [--verbose] [--debug]
+                  [--log-file LOG_FILE] [--no-prettify-json] [-v]
+                  [file_path ...]
 
- Parses DMARC reports
+Parses DMARC reports
 
- positional arguments:
-   file_path             one or more paths to aggregate or forensic report
-                         files, emails, or mbox files'
+positional arguments:
+  file_path             one or more paths to aggregate or forensic report files, emails, or mbox files'
 
- optional arguments:
-   -h, --help            show this help message and exit
-   -c CONFIG_FILE, --config-file CONFIG_FILE
-                         a path to a configuration file (--silent implied)
-   --strip-attachment-payloads
-                         remove attachment payloads from forensic report output
-   -o OUTPUT, --output OUTPUT
-                         write output files to the given directory
-   --aggregate-json-filename AGGREGATE_JSON_FILENAME
-                         filename for the aggregate JSON output file
-   --forensic-json-filename FORENSIC_JSON_FILENAME
-                         filename for the forensic JSON output file
-   --aggregate-csv-filename AGGREGATE_CSV_FILENAME
-                         filename for the aggregate CSV output file
-   --forensic-csv-filename FORENSIC_CSV_FILENAME
-                         filename for the forensic CSV output file
-   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                         nameservers to query
-   -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
-                         number of seconds to wait for an answer from DNS
-                         (default: 2.0)
-   --offline             do not make online queries for geolocation or DNS
-   -s, --silent          only print errors and warnings
-   --verbose             more verbose output
-   --debug               print debugging information
-   --log-file LOG_FILE   output logging to a file
-   -v, --version         show program's version number and exit
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG_FILE, --config-file CONFIG_FILE
+                        a path to a configuration file (--silent implied)
+  --strip-attachment-payloads
+                        remove attachment payloads from forensic report output
+  -o OUTPUT, --output OUTPUT
+                        write output files to the given directory
+  --aggregate-json-filename AGGREGATE_JSON_FILENAME
+                        filename for the aggregate JSON output file
+  --forensic-json-filename FORENSIC_JSON_FILENAME
+                        filename for the forensic JSON output file
+  --smtp-tls-json-filename SMTP_TLS_JSON_FILENAME
+                        filename for the SMTP TLS JSON output file
+  --aggregate-csv-filename AGGREGATE_CSV_FILENAME
+                        filename for the aggregate CSV output file
+  --forensic-csv-filename FORENSIC_CSV_FILENAME
+                        filename for the forensic CSV output file
+  --smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME
+                        filename for the SMTP TLS CSV output file
+  -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
+                        nameservers to query
+  -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+                        number of seconds to wait for an answer from DNS (default: 2.0)
+  --offline             do not make online queries for geolocation or DNS
+  -s, --silent          only print errors
+  -w, --warnings        print warnings in addition to errors
+  --verbose             more verbose output
+  --debug               print debugging information
+  --log-file LOG_FILE   output logging to a file
+  --no-prettify-json    output JSON in a single line without indentation
+  -v, --version         show program's version number and exit
 ```
 
 :::{note}
