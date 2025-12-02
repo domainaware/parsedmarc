@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from typing import Any
+
+from collections import OrderedDict
+
 from urllib.parse import urlparse
 import socket
 import json
@@ -23,7 +31,13 @@ class HECClient(object):
     # http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTinput#services.2Fcollector
 
     def __init__(
-        self, url, access_token, index, source="parsedmarc", verify=True, timeout=60
+        self,
+        url: str,
+        access_token: str,
+        index: str,
+        source: bool = "parsedmarc",
+        verify=True,
+        timeout=60,
     ):
         """
         Initializes the HECClient
@@ -55,7 +69,9 @@ class HECClient(object):
             "Authorization": "Splunk {0}".format(self.access_token),
         }
 
-    def save_aggregate_reports_to_splunk(self, aggregate_reports):
+    def save_aggregate_reports_to_splunk(
+        self, aggregate_reports: list[OrderedDict[str, Any]]
+    ):
         """
         Saves aggregate DMARC reports to Splunk
 
@@ -118,7 +134,9 @@ class HECClient(object):
         if response["code"] != 0:
             raise SplunkError(response["text"])
 
-    def save_forensic_reports_to_splunk(self, forensic_reports):
+    def save_forensic_reports_to_splunk(
+        self, forensic_reports: list[OrderedDict[str, Any]]
+    ):
         """
         Saves forensic DMARC reports to Splunk
 
@@ -152,7 +170,7 @@ class HECClient(object):
         if response["code"] != 0:
             raise SplunkError(response["text"])
 
-    def save_smtp_tls_reports_to_splunk(self, reports):
+    def save_smtp_tls_reports_to_splunk(self, reports: OrderedDict[str, Any]):
         """
         Saves aggregate DMARC reports to Splunk
 

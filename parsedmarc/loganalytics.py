@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from typing import Any
+from collections import OrderedDict
+
 from parsedmarc.log import logger
 from azure.core.exceptions import HttpResponseError
 from azure.identity import ClientSecretCredential
@@ -102,7 +108,12 @@ class LogAnalyticsClient(object):
                 "Invalid configuration. " + "One or more required settings are missing."
             )
 
-    def publish_json(self, results, logs_client: LogsIngestionClient, dcr_stream: str):
+    def publish_json(
+        self,
+        results: OrderedDict[str, OrderedDict[str, Any]],
+        logs_client: LogsIngestionClient,
+        dcr_stream: str,
+    ):
         """
         Background function to publish given
         DMARC report to specific Data Collection Rule.
@@ -121,7 +132,11 @@ class LogAnalyticsClient(object):
             raise LogAnalyticsException("Upload failed: {error}".format(error=e))
 
     def publish_results(
-        self, results, save_aggregate: bool, save_forensic: bool, save_smtp_tls: bool
+        self,
+        results: OrderedDict[str, OrderedDict[str, Any]],
+        save_aggregate: bool,
+        save_forensic: bool,
+        save_smtp_tls: bool,
     ):
         """
         Function to publish DMARC and/or SMTP TLS reports to Log Analytics

@@ -623,7 +623,7 @@ def parse_aggregate_report_xml(
     xml: str,
     *,
     ip_db_path: Optional[bool] = None,
-    always_use_local_files: Optional [bool] = False,
+    always_use_local_files: Optional[bool] = False,
     reverse_dns_map_path: Optional[bool] = None,
     reverse_dns_map_url: Optional[bool] = None,
     offline: Optional[bool] = False,
@@ -949,7 +949,9 @@ def parse_aggregate_report_file(
     )
 
 
-def parsed_aggregate_reports_to_csv_rows(reports: list[OrderedDict[str, Any]]) -> list[dict[str, Any]]:
+def parsed_aggregate_reports_to_csv_rows(
+    reports: list[OrderedDict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Converts one or more parsed aggregate reports to list of dicts in flat CSV
     format
@@ -1747,7 +1749,7 @@ def get_dmarc_reports_from_mailbox(
     test: Optional[bool] = False,
     ip_db_path: Optional[str] = None,
     always_use_local_files: Optional[str] = False,
-    reverse_dns_map_path:Optional[str] = None,
+    reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,

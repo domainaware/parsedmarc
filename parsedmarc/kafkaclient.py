@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+from typing import Any, Optional
+from ssl import SSLContext
+
 import json
 from ssl import create_default_context
 
@@ -18,7 +23,13 @@ class KafkaError(RuntimeError):
 
 class KafkaClient(object):
     def __init__(
-        self, kafka_hosts, ssl=False, username=None, password=None, ssl_context=None
+        self,
+        kafka_hosts: list[str],
+        *,
+        ssl: Optional[bool] = False,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        ssl_context: Optional[SSLContext] = None,
     ):
         """
         Initializes the Kafka client
@@ -28,7 +39,7 @@ class KafkaClient(object):
             ssl (bool): Use a SSL/TLS connection
             username (str): An optional username
             password (str):  An optional password
-            ssl_context: SSL context options
+            ssl_context (SSLContext): SSL context options
 
         Notes:
             ``use_ssl=True`` is implied when a username or password are
@@ -55,7 +66,7 @@ class KafkaClient(object):
             raise KafkaError("No Kafka brokers available")
 
     @staticmethod
-    def strip_metadata(report):
+    def strip_metadata(report: OrderedDict[str, Any]):
         """
         Duplicates org_name, org_email and report_id into JSON root
         and removes report_metadata key to bring it more inline
@@ -69,7 +80,7 @@ class KafkaClient(object):
         return report
 
     @staticmethod
-    def generate_daterange(report):
+    def generate_date_range(report: OrderedDict[str, Any]):
         """
         Creates a date_range timestamp with format YYYY-MM-DD-T-HH:MM:SS
         based on begin and end dates for easier parsing in Kibana.
@@ -86,7 +97,9 @@ class KafkaClient(object):
         logger.debug("date_range is {}".format(date_range))
         return date_range
 
-    def save_aggregate_reports_to_kafka(self, aggregate_reports, aggregate_topic):
+    def save_aggregate_reports_to_kafka(
+        self, aggregate_reports: list[OrderedDict][str, Any], aggregate_topic: str
+    ):
         """
         Saves aggregate DMARC reports to Kafka
 
@@ -105,7 +118,7 @@ class KafkaClient(object):
             return
 
         for report in aggregate_reports:
-            report["date_range"] = self.generate_daterange(report)
+            report["date_range"] = self.generate_date_range(report)
             report = self.strip_metadata(report)
 
             for slice in report["records"]:
@@ -129,7 +142,9 @@ class KafkaClient(object):
                 except Exception as e:
                     raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
-    def save_forensic_reports_to_kafka(self, forensic_reports, forensic_topic):
+    def save_forensic_reports_to_kafka(
+        self, forensic_reports: OrderedDict[str, Any], forensic_topic: str
+    ):
         """
         Saves forensic DMARC reports to Kafka, sends individual
         records (slices) since Kafka requires messages to be <= 1MB
@@ -159,7 +174,9 @@ class KafkaClient(object):
         except Exception as e:
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
-    def save_smtp_tls_reports_to_kafka(self, smtp_tls_reports, smtp_tls_topic):
+    def save_smtp_tls_reports_to_kafka(
+        self, smtp_tls_reports: list[OrderedDict[str, Any]], smtp_tls_topic: str
+    ):
         """
         Saves SMTP TLS reports to Kafka, sends individual
         records (slices) since Kafka requires messages to be <= 1MB

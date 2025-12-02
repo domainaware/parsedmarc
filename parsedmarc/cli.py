@@ -1288,11 +1288,11 @@ def _main():
                     es_smtp_tls_index = "{0}{1}".format(prefix, es_smtp_tls_index)
                 elastic.set_hosts(
                     opts.elasticsearch_hosts,
-                    opts.elasticsearch_ssl,
-                    opts.elasticsearch_ssl_cert_path,
-                    opts.elasticsearch_username,
-                    opts.elasticsearch_password,
-                    opts.elasticsearch_api_key,
+                    use_ssl=opts.elasticsearch_ssl,
+                    ssl_cert_path=opts.elasticsearch_ssl_cert_path,
+                    username=opts.elasticsearch_username,
+                    password=opts.elasticsearch_password,
+                    api_key=opts.elasticsearch_api_key,
                     timeout=opts.elasticsearch_timeout,
                 )
                 elastic.migrate_indexes(
@@ -1320,11 +1320,11 @@ def _main():
                     os_smtp_tls_index = "{0}{1}".format(prefix, os_smtp_tls_index)
                 opensearch.set_hosts(
                     opts.opensearch_hosts,
-                    opts.opensearch_ssl,
-                    opts.opensearch_ssl_cert_path,
-                    opts.opensearch_username,
-                    opts.opensearch_password,
-                    opts.opensearch_api_key,
+                    use_ssl=opts.opensearch_ssl,
+                    ssl_cert_path=opts.opensearch_ssl_cert_path,
+                    username=opts.opensearch_username,
+                    password=opts.opensearch_password,
+                    api_key=opts.opensearch_api_key,
                     timeout=opts.opensearch_timeout,
                 )
                 opensearch.migrate_indexes(
