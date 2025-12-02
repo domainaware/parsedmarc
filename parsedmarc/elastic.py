@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from collections import OrderedDict
 
@@ -304,7 +304,7 @@ def set_hosts(
     connections.create_connection(**conn_params)
 
 
-def create_indexes(names: list[str], settings: Optional[dict[str, any]] = None):
+def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
     """
     Create Elasticsearch indexes
 
@@ -377,7 +377,7 @@ def migrate_indexes(
 
 
 def save_aggregate_report_to_elasticsearch(
-    aggregate_report: OrderedDict[str, any],
+    aggregate_report: OrderedDict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -539,7 +539,7 @@ def save_aggregate_report_to_elasticsearch(
 
 
 def save_forensic_report_to_elasticsearch(
-    forensic_report: OrderedDict[str, any],
+    forensic_report: OrderedDict[str, Any],
     index_suffix: Optional[any] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -706,7 +706,7 @@ def save_forensic_report_to_elasticsearch(
 
 
 def save_smtp_tls_report_to_elasticsearch(
-    report: OrderedDict[str, any],
+    report: OrderedDict[str, Any],
     index_suffix: str = None,
     index_prefix: str = None,
     monthly_indexes: Optional[bool] = False,
