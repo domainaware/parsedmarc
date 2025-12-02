@@ -199,7 +199,7 @@ sudo apt-get install libemail-outlook-message-perl
 [geoipupdate releases page on github]: https://github.com/maxmind/geoipupdate/releases
 [ip to country lite database]: https://db-ip.com/db/download/ip-to-country-lite
 [license keys]: https://www.maxmind.com/en/accounts/current/license-key
-[maxmind geoipupdate page]: https://dev.maxmind.com/geoip/geoipupdate/
+[maxmind geoipupdate page]: https://dev.maxmind.com/geoip/updating-databases/
 [maxmind geolite2 country database]: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
 [registering for a free geolite2 account]: https://www.maxmind.com/en/geolite2/signup
 [to comply with various privacy regulations]: https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/
