@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
 from base64 import urlsafe_b64decode
 from functools import lru_cache
 from pathlib import Path

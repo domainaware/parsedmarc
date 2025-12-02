@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from typing import Optional
+
 from time import sleep
 
 from parsedmarc.log import logger
@@ -9,8 +15,8 @@ import os
 class MaildirConnection(MailboxConnection):
     def __init__(
         self,
-        maildir_path=None,
-        maildir_create=False,
+        maildir_path: Optional[bool] = None,
+        maildir_create: Optional[bool] = False,
     ):
         self._maildir_path = maildir_path
         self._maildir_create = maildir_create
@@ -36,7 +42,7 @@ class MaildirConnection(MailboxConnection):
     def fetch_messages(self, reports_folder: str, **kwargs):
         return self._client.keys()
 
-    def fetch_message(self, message_id):
+    def fetch_message(self, message_id: str):
         return self._client.get(message_id).as_string()
 
     def delete_message(self, message_id: str):

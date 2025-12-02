@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
 from abc import ABC
-from typing import List
 
 
 class MailboxConnection(ABC):
@@ -10,7 +13,7 @@ class MailboxConnection(ABC):
     def create_folder(self, folder_name: str):
         raise NotImplementedError
 
-    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> list[str]:
         raise NotImplementedError
 
     def fetch_message(self, message_id) -> str:

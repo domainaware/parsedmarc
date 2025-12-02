@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path

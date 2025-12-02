@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from typing import Optional
+
 from time import sleep
 
 from imapclient.exceptions import IMAPClientError
@@ -11,14 +17,15 @@ from parsedmarc.mail.mailbox_connection import MailboxConnection
 class IMAPConnection(MailboxConnection):
     def __init__(
         self,
-        host=None,
-        user=None,
-        password=None,
-        port=None,
-        ssl=True,
-        verify=True,
-        timeout=30,
-        max_retries=4,
+        host: Optional[str] = None,
+        *,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        port: Optional[str] = None,
+        ssl: Optional[bool] = True,
+        verify: Optional[bool] = True,
+        timeout: Optional[int] = 30,
+        max_retries: Optional[int] = 4,
     ):
         self._username = user
         self._password = password
@@ -45,13 +52,13 @@ class IMAPConnection(MailboxConnection):
         else:
             return self._client.search()
 
-    def fetch_message(self, message_id):
+    def fetch_message(self, message_id: int):
         return self._client.fetch_message(message_id, parse=False)
 
-    def delete_message(self, message_id: str):
+    def delete_message(self, message_id: int):
         self._client.delete_messages([message_id])
 
-    def move_message(self, message_id: str, folder_name: str):
+    def move_message(self, message_id: int, folder_name: str):
         self._client.move_messages([message_id], folder_name)
 
     def keepalive(self):
