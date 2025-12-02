@@ -279,8 +279,8 @@ def set_hosts(
     Sets the Elasticsearch hosts to use
 
     Args:
-        hosts: A single hostname or URL, or list of hostnames or URLs
-        use_ssl (bool): Use a HTTPS connection to the server
+        hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
+        use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication
         password (str): The password to use for authentication
@@ -328,7 +328,8 @@ def create_indexes(names: list[str], settings: Optional[dict[str, any]] = None):
 
 
 def migrate_indexes(
-    aggregate_indexes: Optional[list[str]] = None, forensic_indexes: Optional[list[str]] = None
+    aggregate_indexes: Optional[list[str]] = None,
+    forensic_indexes: Optional[list[str]] = None,
 ):
     """
     Updates index mappings
@@ -378,10 +379,10 @@ def migrate_indexes(
 def save_aggregate_report_to_elasticsearch(
     aggregate_report: OrderedDict[str, any],
     index_suffix: Optional[str] = None,
-    index_prefix: Optional[str] =None,
+    index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
-    number_of_shards: Optional[int]=1,
-    number_of_replicas: Optional[int]=0,
+    number_of_shards: Optional[int] = 1,
+    number_of_replicas: Optional[int] = 0,
 ):
     """
     Saves a parsed DMARC aggregate report to Elasticsearch
@@ -539,11 +540,11 @@ def save_aggregate_report_to_elasticsearch(
 
 def save_forensic_report_to_elasticsearch(
     forensic_report: OrderedDict[str, any],
-    index_suffix: Optional[any]=None,
-    index_prefix: Optional[str]=None,
-    monthly_indexes: Optional[bool]=False,
-    number_of_shards:int = 1,
-    number_of_replicas:int = 0,
+    index_suffix: Optional[any] = None,
+    index_prefix: Optional[str] = None,
+    monthly_indexes: Optional[bool] = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
 ):
     """
     Saves a parsed DMARC forensic report to Elasticsearch
@@ -706,11 +707,11 @@ def save_forensic_report_to_elasticsearch(
 
 def save_smtp_tls_report_to_elasticsearch(
     report: OrderedDict[str, any],
-    index_suffix:str = None,
-    index_prefix:str = None,
+    index_suffix: str = None,
+    index_prefix: str = None,
     monthly_indexes: Optional[bool] = False,
     number_of_shards: Optional[int] = 1,
-    number_of_replicas: Optional[int]=0,
+    number_of_replicas: Optional[int] = 0,
 ):
     """
     Saves a parsed SMTP TLS report to Elasticsearch
