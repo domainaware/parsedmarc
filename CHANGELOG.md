@@ -1,5 +1,20 @@
 # Changelog
 
+## 9.0.2
+
+## Improvements
+
+- Type hinting is now used properly across the entire library. (#445)
+
+## Fixes
+
+- Decompress report files as needed when passed via the CLI.
+- Fixed incomplete removal of the ability for `parsedmarc.utils.extract_report` to accept a file path directly in `8.15.0`.
+
+## Breaking changes
+
+This version of the library requires consumers to pass certain arguments as keyword-only. Internally, the API uses a bare `*` in the function signature. This is standard per [PEP 3102](https://peps.python.org/pep-3102/)  and as documented in the Python Language Reference.
+
 ## 9.0.1
 
 ### Fixes

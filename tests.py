@@ -74,7 +74,7 @@ class Test(unittest.TestCase):
         print()
         file = "samples/extract_report/nice-input.xml"
         print("Testing {0}: ".format(file), end="")
-        xmlout = parsedmarc.extract_report(file)
+        xmlout = parsedmarc.extract_report_from_file_path(file)
         xmlin_file = open("samples/extract_report/nice-input.xml")
         xmlin = xmlin_file.read()
         xmlin_file.close()

@@ -853,9 +853,7 @@ def extract_report(content: Union[bytes, str, IO[Any]]) -> str:
             try:
                 file_object = BytesIO(b64decode(content))
             except binascii.Error:
-                pass
-            if file_object is None:
-                file_object = open(content, "rb")
+                return content
         elif type(content) is bytes:
             file_object = BytesIO(content)
         else:
@@ -879,10 +877,12 @@ def extract_report(content: Union[bytes, str, IO[Any]]) -> str:
         file_object.close()
 
     except UnicodeDecodeError:
-        file_object.close()
+        if file_object:
+            file_object.close()
         raise ParserError("File objects must be opened in binary (rb) mode")
     except Exception as error:
-        file_object.close()
+        if file_object:
+            file_object.close()
         raise ParserError("Invalid archive file: {0}".format(error.__str__()))
 
     return report
@@ -1612,6 +1612,8 @@ def parse_report_file(
 
     content = file_object.read()
     file_object.close()
+    if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
+        content = extract_report(content)
     try:
         report = parse_aggregate_report_file(
             content,
