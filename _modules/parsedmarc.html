@@ -963,9 +963,7 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">b64decode</span><span class="p">(</span><span class="n">content</span><span class="p">))</span>
             <span class="k">except</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
-                <span class="k">pass</span>
-            <span class="k">if</span> <span class="n">file_object</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">content</span>
         <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bytes</span><span class="p">:</span>
             <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -989,10 +987,12 @@
         <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
-        <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">file_object</span><span class="p">:</span>
+            <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File objects must be opened in binary (rb) mode&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">file_object</span><span class="p">:</span>
+            <span class="n">file_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;Invalid archive file: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">return</span> <span class="n">report</span></div>
