@@ -53,7 +53,7 @@ for RHEL or Debian.
 | Version | Supported | Reason                                                     |
 |---------|-----------|------------------------------------------------------------|
 | < 3.6   | ❌         | End of Life (EOL)                                          |
-| 3.6     | ❌         | Used in RHHEL 8, but not supported by project dependencies | 
+| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies | 
 | 3.7     | ❌         | End of Life (EOL)                                          | 
 | 3.8     | ❌         | End of Life (EOL)                                          | 
 | 3.9     | ✅         | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) | 
