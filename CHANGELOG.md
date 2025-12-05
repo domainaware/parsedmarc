@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.3
+
+### Fixes
+
+- Set `requires-python` to `>=3.9, <3.14` to avoid [this bug](https://github.com/python/cpython/issues/142307)
+
 ## 9.0.2
 
 ## Improvements
