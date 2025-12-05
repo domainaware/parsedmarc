@@ -53,12 +53,12 @@ for RHEL or Debian.
 | Version | Supported | Reason                                                     |
 |---------|-----------|------------------------------------------------------------|
 | < 3.6   | ❌         | End of Life (EOL)                                          |
-| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies | 
-| 3.7     | ❌         | End of Life (EOL)                                          | 
-| 3.8     | ❌         | End of Life (EOL)                                          | 
-| 3.9     | ✅         | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) | 
-| 3.10    | ✅         | Actively maintained                                        | 
-| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) | 
-| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    | 
-| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) | 
-| 3.14    | ✅         | Actively maintained                                        | 
+| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies |
+| 3.7     | ❌         | End of Life (EOL)                                          |
+| 3.8     | ❌         | End of Life (EOL)                                          |
+| 3.9     | ✅         | Supported until August 2026 (Debian 11); May 2032 (RHEL 9) |
+| 3.10    | ✅         | Actively maintained                                        |
+| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
+| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
+| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
+| 3.14    | ❌         | Not currently supported due to [this Python bug](https://github.com/python/cpython/issues/142307)|
