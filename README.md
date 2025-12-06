@@ -61,4 +61,4 @@ for RHEL or Debian.
 | 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
 | 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
 | 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
-| 3.14    | ❌         | Not currently supported due to [this Python bug](https://github.com/python/cpython/issues/142307)|
+| 3.14    | ❌         | Not currently supported due to Not currently supported due to [this imapclient bug](https://github.com/mjs/imapclient/issues/618)|
