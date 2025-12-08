@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.0.4 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=f762ceab"></script>
+      <script src="../_static/documentation_options.js?v=531a4ab2"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -137,6 +137,17 @@
 <span class="n">MAGIC_GZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1f\x8b</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_XML</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3c\x3f\x78\x6d\x6c\x20</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_JSON</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\7</span><span class="s2">b&quot;</span>
+
+<span class="n">EMAIL_SAMPLE_CONTENT_TYPES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;text/rfc822&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;text-rfc-822&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;text/rfc822-headers&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;text/rfc-822-headers&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;message/rfc822&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;message/rfc-822&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;message/rfc822-headers&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;message/rfc-822-headers&quot;</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">IP_ADDRESS_CACHE</span> <span class="o">=</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">14400</span><span class="p">)</span>
 <span class="n">SEEN_AGGREGATE_REPORT_IDS</span> <span class="o">=</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">100000000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
@@ -1562,6 +1573,7 @@
     <span class="n">feedback_report</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">smtp_tls_report</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">sample</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">is_feedback_report</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="s2">&quot;From&quot;</span> <span class="ow">in</span> <span class="n">msg_headers</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parsing mail from </span><span class="si">{0}</span><span class="s2"> on </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_headers</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">],</span> <span class="n">date</span><span class="p">))</span>
     <span class="k">if</span> <span class="s2">&quot;Subject&quot;</span> <span class="ow">in</span> <span class="n">msg_headers</span><span class="p">:</span>
@@ -1577,6 +1589,7 @@
         <span class="k">if</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/html&quot;</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/feedback-report&quot;</span><span class="p">:</span>
+            <span class="n">is_feedback_report</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">if</span> <span class="s2">&quot;Feedback-Type&quot;</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
                     <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
@@ -1587,9 +1600,7 @@
                 <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">):</span>
                 <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
-        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/rfc822-headers&quot;</span> <span class="ow">or</span> <span class="s2">&quot;message/rfc-822&quot;</span><span class="p">:</span>
-            <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
-        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">is_feedback_report</span> <span class="ow">and</span> <span class="n">content_type</span> <span class="ow">in</span> <span class="n">EMAIL_SAMPLE_CONTENT_TYPES</span><span class="p">:</span>
             <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
         <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;application/tlsrpt+json&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">payload</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">):</span>
