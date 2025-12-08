@@ -57,6 +57,17 @@ MAGIC_GZIP = b"\x1f\x8b"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_JSON = b"\7b"
 
+EMAIL_SAMPLE_CONTENT_TYPES = (
+    "text/rfc822",
+    "text-rfc-822",
+    "text/rfc822-headers",
+    "text/rfc-822-headers",
+    "message/rfc822",
+    "message/rfc-822",
+    "message/rfc822-headers"
+    "message-rfc-822-headers"
+)
+
 IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
 SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_len=100000000, max_age_seconds=3600)
 REVERSE_DNS_MAP = dict()
@@ -1428,6 +1439,7 @@ def parse_report_email(
     feedback_report = None
     smtp_tls_report = None
     sample = None
+    is_feedback_report: bool = False
     if "From" in msg_headers:
         logger.info("Parsing mail from {0} on {1}".format(msg_headers["From"], date))
     if "Subject" in msg_headers:
@@ -1443,6 +1455,7 @@ def parse_report_email(
         if content_type == "text/html":
             continue
         elif content_type == "message/feedback-report":
+            is_feedback_report = True
             try:
                 if "Feedback-Type" in payload:
                     feedback_report = payload
@@ -1453,9 +1466,7 @@ def parse_report_email(
                 feedback_report = feedback_report.replace("\\n", "\n")
             except (ValueError, TypeError, binascii.Error):
                 feedback_report = payload
-        elif content_type == "text/rfc822-headers" or "message/rfc-822":
-            sample = payload
-        elif content_type == "message/rfc822":
+        elif is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
             sample = payload
         elif content_type == "application/tlsrpt+json":
             if not payload.strip().startswith("{"):

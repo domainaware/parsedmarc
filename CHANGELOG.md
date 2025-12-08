@@ -1,6 +1,12 @@
 # Changelog
 
-## 9.0.4
+## 9.0.5
+
+## Fixes
+
+- Fix report type detection introduced in `9.0.4`.
+
+## 9.0.4 (Yanked)
 
 ### Fixes
 
