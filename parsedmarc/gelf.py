@@ -53,7 +53,9 @@ class GelfClient(object):
         )
         self.logger.addHandler(self.handler)
 
-    def save_aggregate_report_to_gelf(self, aggregate_reports: OrderedDict[str, Any]):
+    def save_aggregate_report_to_gelf(
+        self, aggregate_reports: list[OrderedDict[str, Any]]
+    ):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             log_context_data.parsedmarc = row
@@ -61,7 +63,9 @@ class GelfClient(object):
 
         log_context_data.parsedmarc = None
 
-    def save_forensic_report_to_gelf(self, forensic_reports: OrderedDict[str, Any]):
+    def save_forensic_report_to_gelf(
+        self, forensic_reports: list[OrderedDict[str, Any]]
+    ):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
             self.logger.info(json.dumps(row))

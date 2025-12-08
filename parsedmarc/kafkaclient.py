@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from ssl import SSLContext
 
 import json
@@ -98,7 +98,9 @@ class KafkaClient(object):
         return date_range
 
     def save_aggregate_reports_to_kafka(
-        self, aggregate_reports: list[OrderedDict][str, Any], aggregate_topic: str
+        self,
+        aggregate_reports: Union[OrderedDict[str, Any], list[OrderedDict[str, Any]]],
+        aggregate_topic: str,
     ):
         """
         Saves aggregate DMARC reports to Kafka
@@ -143,7 +145,9 @@ class KafkaClient(object):
                     raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
     def save_forensic_reports_to_kafka(
-        self, forensic_reports: OrderedDict[str, Any], forensic_topic: str
+        self,
+        forensic_reports: Union[OrderedDict[str, Any], list[OrderedDict[str, Any]]],
+        forensic_topic: str,
     ):
         """
         Saves forensic DMARC reports to Kafka, sends individual
@@ -175,7 +179,9 @@ class KafkaClient(object):
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
     def save_smtp_tls_reports_to_kafka(
-        self, smtp_tls_reports: list[OrderedDict[str, Any]], smtp_tls_topic: str
+        self,
+        smtp_tls_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
+        smtp_tls_topic: str,
     ):
         """
         Saves SMTP TLS reports to Kafka, sends individual

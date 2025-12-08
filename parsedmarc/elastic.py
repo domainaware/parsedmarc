@@ -203,11 +203,11 @@ class _SMTPTLSPolicyDoc(InnerDoc):
 
     def add_failure_details(
         self,
-        result_type: str,
-        ip_address: str,
-        receiving_ip: str,
-        receiving_mx_helo: str,
-        failed_session_count: int,
+        result_type: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        receiving_ip: Optional[str] = None,
+        receiving_mx_helo: Optional[str] = None,
+        failed_session_count: Optional[int] = None,
         sending_mta_ip: Optional[str] = None,
         receiving_mx_hostname: Optional[str] = None,
         additional_information_uri: Optional[str] = None,
@@ -297,7 +297,7 @@ def set_hosts(
             conn_params["ca_certs"] = ssl_cert_path
         else:
             conn_params["verify_certs"] = False
-    if username:
+    if username and password:
         conn_params["http_auth"] = username + ":" + password
     if api_key:
         conn_params["api_key"] = api_key
@@ -540,7 +540,7 @@ def save_aggregate_report_to_elasticsearch(
 
 def save_forensic_report_to_elasticsearch(
     forensic_report: OrderedDict[str, Any],
-    index_suffix: Optional[any] = None,
+    index_suffix: Optional[Any] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
     number_of_shards: int = 1,
@@ -707,8 +707,8 @@ def save_forensic_report_to_elasticsearch(
 
 def save_smtp_tls_report_to_elasticsearch(
     report: OrderedDict[str, Any],
-    index_suffix: str = None,
-    index_prefix: str = None,
+    index_suffix: Optional[str] = None,
+    index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
     number_of_shards: Optional[int] = 1,
     number_of_replicas: Optional[int] = 0,

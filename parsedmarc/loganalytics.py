@@ -110,7 +110,7 @@ class LogAnalyticsClient(object):
 
     def publish_json(
         self,
-        results: OrderedDict[str, OrderedDict[str, Any]],
+        results,
         logs_client: LogsIngestionClient,
         dcr_stream: str,
     ):

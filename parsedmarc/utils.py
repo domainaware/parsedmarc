@@ -67,7 +67,7 @@ class DownloadError(RuntimeError):
     """Raised when an error occurs when downloading a file"""
 
 
-def decode_base64(data: str) -> bytes:
+def decode_base64(data) -> bytes:
     """
     Decodes a base64 string, with padding being optional
 
@@ -416,9 +416,9 @@ def get_ip_address_info(
     ip_db_path: Optional[str] = None,
     reverse_dns_map_path: Optional[str] = None,
     always_use_local_files: Optional[bool] = False,
-    reverse_dns_map_url: Optional[bool] = None,
+    reverse_dns_map_url: Optional[str] = None,
     cache: Optional[ExpiringDict] = None,
-    reverse_dns_map: Optional[bool] = None,
+    reverse_dns_map: Optional[dict] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,

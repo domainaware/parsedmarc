@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Optional, Union
 
-from collections import OrderedDict
-
 import requests
 
 from parsedmarc import logger
@@ -40,19 +38,19 @@ class WebhookClient(object):
             "Content-Type": "application/json",
         }
 
-    def save_forensic_report_to_webhook(self, report: OrderedDict[str, Any]):
+    def save_forensic_report_to_webhook(self, report: str):
         try:
             self._send_to_webhook(self.forensic_url, report)
         except Exception as error_:
             logger.error("Webhook Error: {0}".format(error_.__str__()))
 
-    def save_smtp_tls_report_to_webhook(self, report: OrderedDict[str, Any]):
+    def save_smtp_tls_report_to_webhook(self, report: str):
         try:
             self._send_to_webhook(self.smtp_tls_url, report)
         except Exception as error_:
             logger.error("Webhook Error: {0}".format(error_.__str__()))
 
-    def save_aggregate_report_to_webhook(self, report: OrderedDict[str, Any]):
+    def save_aggregate_report_to_webhook(self, report: str):
         try:
             self._send_to_webhook(self.aggregate_url, report)
         except Exception as error_:

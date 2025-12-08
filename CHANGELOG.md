@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.0.4
+
+### Fixes
+
+- Fix saving reports to OpenSearch ([#637](https://github.com/domainaware/parsedmarc/issues/637))
+- Fix parsing certain DMARC failure/forensic reports
+- Some fixes to type hints (incomplete, but published as-is due to the above bugs)
+
 ## 9.0.3
 
 ### Fixes

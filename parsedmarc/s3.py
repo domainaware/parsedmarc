@@ -53,7 +53,7 @@ class S3Client(object):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
-        self.bucket = self.s3.Bucket(self.bucket_name)
+        self.bucket = self.s3.Bucket(self.bucket_name)  # type: ignore
 
     def save_aggregate_report_to_s3(self, report: OrderedDict[str, Any]):
         self.save_report_to_s3(report, "aggregate")

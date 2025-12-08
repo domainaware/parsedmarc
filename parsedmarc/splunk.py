@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Union
 
 from collections import OrderedDict
 
@@ -35,7 +35,7 @@ class HECClient(object):
         url: str,
         access_token: str,
         index: str,
-        source: bool = "parsedmarc",
+        source: str = "parsedmarc",
         verify=True,
         timeout=60,
     ):
@@ -51,9 +51,9 @@ class HECClient(object):
             timeout (float): Number of seconds to wait for the server to send
                 data before giving up
         """
-        url = urlparse(url)
+        parsed_url = urlparse(url)
         self.url = "{0}://{1}/services/collector/event/1.0".format(
-            url.scheme, url.netloc
+            parsed_url.scheme, parsed_url.netloc
         )
         self.access_token = access_token.lstrip("Splunk ")
         self.index = index
@@ -62,7 +62,9 @@ class HECClient(object):
         self.session = requests.Session()
         self.timeout = timeout
         self.session.verify = verify
-        self._common_data = dict(host=self.host, source=self.source, index=self.index)
+        self._common_data: dict[str, Union[str, int, float, dict]] = dict(
+            host=self.host, source=self.source, index=self.index
+        )
 
         self.session.headers = {
             "User-Agent": USER_AGENT,
@@ -70,7 +72,8 @@ class HECClient(object):
         }
 
     def save_aggregate_reports_to_splunk(
-        self, aggregate_reports: list[OrderedDict[str, Any]]
+        self,
+        aggregate_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
     ):
         """
         Saves aggregate DMARC reports to Splunk
@@ -91,7 +94,7 @@ class HECClient(object):
         json_str = ""
         for report in aggregate_reports:
             for record in report["records"]:
-                new_report = dict()
+                new_report: dict[str, Union[str, int, float, dict]] = dict()
                 for metadata in report["report_metadata"]:
                     new_report[metadata] = report["report_metadata"][metadata]
                 new_report["interval_begin"] = record["interval_begin"]
@@ -135,7 +138,8 @@ class HECClient(object):
             raise SplunkError(response["text"])
 
     def save_forensic_reports_to_splunk(
-        self, forensic_reports: list[OrderedDict[str, Any]]
+        self,
+        forensic_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
     ):
         """
         Saves forensic DMARC reports to Splunk
@@ -170,7 +174,9 @@ class HECClient(object):
         if response["code"] != 0:
             raise SplunkError(response["text"])
 
-    def save_smtp_tls_reports_to_splunk(self, reports: OrderedDict[str, Any]):
+    def save_smtp_tls_reports_to_splunk(
+        self, reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]]
+    ):
         """
         Saves aggregate DMARC reports to Splunk
 

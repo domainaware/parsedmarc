@@ -86,7 +86,7 @@ def _bucket_interval_by_day(
     begin: datetime,
     end: datetime,
     total_count: int,
-) -> List[Dict[Any]]:
+) -> List[Dict[str, Any]]:
     """
     Split the interval [begin, end) into daily buckets and distribute
     `total_count` proportionally across those buckets.
@@ -221,7 +221,7 @@ def _bucket_interval_by_day(
 
 def _append_parsed_record(
     parsed_record: OrderedDict[str, Any],
-    records: OrderedDict[str, Any],
+    records: List[OrderedDict[str, Any]],
     begin_dt: datetime,
     end_dt: datetime,
     normalize: bool,
@@ -267,10 +267,10 @@ def _parse_report_record(
     record: OrderedDict,
     *,
     ip_db_path: Optional[str] = None,
-    always_use_local_files: bool = False,
+    always_use_local_files: Optional[bool] = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
-    offline: bool = False,
+    offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     dns_timeout: Optional[float] = 2.0,
 ) -> OrderedDict[str, Any]:
@@ -463,7 +463,7 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
+def _parse_smtp_tls_report_policy(policy: OrderedDict[str, Any]):
     policy_types = ["tlsa", "sts", "no-policy-found"]
     try:
         policy_domain = policy["policy"]["policy-domain"]
@@ -500,7 +500,7 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def parse_smtp_tls_report_json(report: dict[str, Any]):
+def parse_smtp_tls_report_json(report: str):
     """Parses and validates an SMTP TLS report"""
     required_fields = [
         "organization-name",
@@ -512,22 +512,22 @@ def parse_smtp_tls_report_json(report: dict[str, Any]):
 
     try:
         policies = []
-        report = json.loads(report)
+        report_dict = json.loads(report)
         for required_field in required_fields:
-            if required_field not in report:
+            if required_field not in report_dict:
                 raise Exception(f"Missing required field: {required_field}]")
-        if not isinstance(report["policies"], list):
-            policies_type = type(report["policies"])
+        if not isinstance(report_dict["policies"], list):
+            policies_type = type(report_dict["policies"])
             raise InvalidSMTPTLSReport(f"policies must be a list, not {policies_type}")
-        for policy in report["policies"]:
+        for policy in report_dict["policies"]:
             policies.append(_parse_smtp_tls_report_policy(policy))
 
         new_report = OrderedDict(
-            organization_name=report["organization-name"],
-            begin_date=report["date-range"]["start-datetime"],
-            end_date=report["date-range"]["end-datetime"],
-            contact_info=report["contact-info"],
-            report_id=report["report-id"],
+            organization_name=report_dict["organization-name"],
+            begin_date=report_dict["date-range"]["start-datetime"],
+            end_date=report_dict["date-range"]["end-datetime"],
+            contact_info=report_dict["contact-info"],
+            report_id=report_dict["report-id"],
             policies=policies,
         )
 
@@ -539,7 +539,9 @@ def parse_smtp_tls_report_json(report: dict[str, Any]):
         raise InvalidSMTPTLSReport(str(e))
 
 
-def parsed_smtp_tls_reports_to_csv_rows(reports: OrderedDict[str, Any]):
+def parsed_smtp_tls_reports_to_csv_rows(
+    reports: Union[OrderedDict[str, Any], List[OrderedDict[str, Any]]],
+):
     """Converts one oor more parsed SMTP TLS reports into a list of single
     layer OrderedDict objects suitable for use in a CSV"""
     if type(reports) is OrderedDict:
@@ -622,15 +624,15 @@ def parsed_smtp_tls_reports_to_csv(reports: OrderedDict[str, Any]) -> str:
 def parse_aggregate_report_xml(
     xml: str,
     *,
-    ip_db_path: Optional[bool] = None,
+    ip_db_path: Optional[str] = None,
     always_use_local_files: Optional[bool] = False,
-    reverse_dns_map_path: Optional[bool] = None,
-    reverse_dns_map_url: Optional[bool] = None,
+    reverse_dns_map_path: Optional[str] = None,
+    reverse_dns_map_url: Optional[str] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,
-    keep_alive: Optional[callable] = None,
-    normalize_timespan_threshold_hours: Optional[float] = 24.0,
+    keep_alive: Optional[Callable] = None,
+    normalize_timespan_threshold_hours: float = 24.0,
 ) -> OrderedDict[str, Any]:
     """Parses a DMARC XML report string and returns a consistent OrderedDict
 
@@ -1148,7 +1150,7 @@ def parse_forensic_report(
     *,
     always_use_local_files: Optional[bool] = False,
     reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: str = None,
+    reverse_dns_map_url: Optional[str] = None,
     offline: Optional[bool] = False,
     ip_db_path: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
@@ -1451,7 +1453,7 @@ def parse_report_email(
                 feedback_report = feedback_report.replace("\\n", "\n")
             except (ValueError, TypeError, binascii.Error):
                 feedback_report = payload
-        elif content_type == "text/rfc822-headers":
+        elif content_type == "text/rfc822-headers" or "message/rfc-822":
             sample = payload
         elif content_type == "message/rfc822":
             sample = payload
@@ -1750,14 +1752,14 @@ def get_dmarc_reports_from_mailbox(
     delete: Optional[bool] = False,
     test: Optional[bool] = False,
     ip_db_path: Optional[str] = None,
-    always_use_local_files: Optional[str] = False,
+    always_use_local_files: Optional[bool] = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     dns_timeout: Optional[float] = 6.0,
     strip_attachment_payloads: Optional[bool] = False,
-    results: Optional[OrderedDict[str, any]] = None,
+    results: Optional[OrderedDict[str, Any]] = None,
     batch_size: Optional[int] = 10,
     since: Optional[datetime] = None,
     create_folders: Optional[bool] = True,
