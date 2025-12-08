@@ -64,7 +64,8 @@ EMAIL_SAMPLE_CONTENT_TYPES = (
     "text/rfc-822-headers",
     "message/rfc822",
     "message/rfc-822",
-    "message/rfc822-headersmessage/rfc-822-headers",
+    "message/rfc822-headers",
+    "message/rfc-822-headers",
 )
 
 IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
