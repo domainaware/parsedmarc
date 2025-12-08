@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 9.0.3 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 9.0.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=3ceb5e66"></script>
+      <script src="../../_static/documentation_options.js?v=f762ceab"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -84,7 +84,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
 
@@ -122,7 +122,7 @@
         <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">access_token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">index</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">source</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;parsedmarc&quot;</span><span class="p">,</span>
         <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
     <span class="p">):</span>
@@ -138,9 +138,9 @@
 <span class="sd">            timeout (float): Number of seconds to wait for the server to send</span>
 <span class="sd">                data before giving up</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">://</span><span class="si">{1}</span><span class="s2">/services/collector/event/1.0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">url</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">url</span><span class="o">.</span><span class="n">netloc</span>
+            <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">netloc</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">access_token</span> <span class="o">=</span> <span class="n">access_token</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;Splunk &quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
@@ -149,7 +149,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">verify</span> <span class="o">=</span> <span class="n">verify</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">,</span>
@@ -159,7 +161,8 @@
 <div class="viewcode-block" id="HECClient.save_aggregate_reports_to_splunk">
 <a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">save_aggregate_reports_to_splunk</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">aggregate_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">aggregate_reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves aggregate DMARC reports to Splunk</span>
@@ -180,7 +183,7 @@
         <span class="n">json_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">aggregate_reports</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]:</span>
-                <span class="n">new_report</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+                <span class="n">new_report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
                     <span class="n">new_report</span><span class="p">[</span><span class="n">metadata</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="n">metadata</span><span class="p">]</span>
                 <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span>
@@ -227,7 +230,8 @@
 <div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk">
 <a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">forensic_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">forensic_reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves forensic DMARC reports to Splunk</span>
@@ -265,7 +269,9 @@
 
 <div class="viewcode-block" id="HECClient.save_smtp_tls_reports_to_splunk">
 <a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_smtp_tls_reports_to_splunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reports</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_smtp_tls_reports_to_splunk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves aggregate DMARC reports to Splunk</span>
 

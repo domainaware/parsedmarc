@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.0.3 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.0.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=3ceb5e66"></script>
+      <script src="../_static/documentation_options.js?v=f762ceab"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -182,7 +182,7 @@
     <span class="n">begin</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">total_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split the interval [begin, end) into daily buckets and distribute</span>
 <span class="sd">    `total_count` proportionally across those buckets.</span>
@@ -317,7 +317,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_append_parsed_record</span><span class="p">(</span>
     <span class="n">parsed_record</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">records</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">records</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">begin_dt</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">end_dt</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -363,10 +363,10 @@
     <span class="n">record</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -559,7 +559,7 @@
         <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
     <span class="n">policy_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;tlsa&quot;</span><span class="p">,</span> <span class="s2">&quot;sts&quot;</span><span class="p">,</span> <span class="s2">&quot;no-policy-found&quot;</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">policy_domain</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy&quot;</span><span class="p">][</span><span class="s2">&quot;policy-domain&quot;</span><span class="p">]</span>
@@ -598,7 +598,7 @@
 
 <div class="viewcode-block" id="parse_smtp_tls_report_json">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_smtp_tls_report_json">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses and validates an SMTP TLS report&quot;&quot;&quot;</span>
     <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;organization-name&quot;</span><span class="p">,</span>
@@ -610,22 +610,22 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">policies</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+        <span class="n">report_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">required_field</span> <span class="ow">in</span> <span class="n">required_fields</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">required_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">report</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">required_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">report_dict</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required field: </span><span class="si">{</span><span class="n">required_field</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="n">policies_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">policies_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">])</span>
             <span class="k">raise</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;policies must be a list, not </span><span class="si">{</span><span class="n">policies_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;policies&quot;</span><span class="p">]:</span>
             <span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_smtp_tls_report_policy</span><span class="p">(</span><span class="n">policy</span><span class="p">))</span>
 
         <span class="n">new_report</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
-            <span class="n">organization_name</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;organization-name&quot;</span><span class="p">],</span>
-            <span class="n">begin_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;start-datetime&quot;</span><span class="p">],</span>
-            <span class="n">end_date</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;end-datetime&quot;</span><span class="p">],</span>
-            <span class="n">contact_info</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;contact-info&quot;</span><span class="p">],</span>
-            <span class="n">report_id</span><span class="o">=</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report-id&quot;</span><span class="p">],</span>
+            <span class="n">organization_name</span><span class="o">=</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;organization-name&quot;</span><span class="p">],</span>
+            <span class="n">begin_date</span><span class="o">=</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;start-datetime&quot;</span><span class="p">],</span>
+            <span class="n">end_date</span><span class="o">=</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;date-range&quot;</span><span class="p">][</span><span class="s2">&quot;end-datetime&quot;</span><span class="p">],</span>
+            <span class="n">contact_info</span><span class="o">=</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;contact-info&quot;</span><span class="p">],</span>
+            <span class="n">report_id</span><span class="o">=</span><span class="n">report_dict</span><span class="p">[</span><span class="s2">&quot;report-id&quot;</span><span class="p">],</span>
             <span class="n">policies</span><span class="o">=</span><span class="n">policies</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -640,7 +640,9 @@
 
 <div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts one oor more parsed SMTP TLS reports into a list of single</span>
 <span class="sd">    layer OrderedDict objects suitable for use in a CSV&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="ow">is</span> <span class="n">OrderedDict</span><span class="p">:</span>
@@ -729,15 +731,15 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_xml</span><span class="p">(</span>
     <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent OrderedDict</span>
 
@@ -1273,7 +1275,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1585,7 +1587,7 @@
                 <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">feedback_report</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="n">binascii</span><span class="o">.</span><span class="n">Error</span><span class="p">):</span>
                 <span class="n">feedback_report</span> <span class="o">=</span> <span class="n">payload</span>
-        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/rfc822-headers&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;text/rfc822-headers&quot;</span> <span class="ow">or</span> <span class="s2">&quot;message/rfc-822&quot;</span><span class="p">:</span>
             <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
         <span class="k">elif</span> <span class="n">content_type</span> <span class="o">==</span> <span class="s2">&quot;message/rfc822&quot;</span><span class="p">:</span>
             <span class="n">sample</span> <span class="o">=</span> <span class="n">payload</span>
@@ -1893,14 +1895,14 @@
     <span class="n">delete</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">test</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">since</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">create_folders</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
