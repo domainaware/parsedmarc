@@ -1,4 +1,14 @@
 {
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+
+    // Let Ruff handle lint fixes + import sorting on save
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
     "markdownlint.config": {
         "MD024": false
     },
