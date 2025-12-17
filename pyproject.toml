@@ -2,6 +2,7 @@
 requires = [
     "hatchling>=1.27.0",
 ]
+requires_python = ">=3.9,<3.14"
 build-backend = "hatchling.build"
 
 [project]
