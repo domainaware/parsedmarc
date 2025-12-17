@@ -110,9 +110,7 @@ class KafkaClient(object):
             aggregate_topic (str): The name of the Kafka topic
 
         """
-        if isinstance(aggregate_reports, dict) or isinstance(
-            aggregate_reports
-        ):
+        if isinstance(aggregate_reports, dict):
             aggregate_reports = [aggregate_reports]
 
         if len(aggregate_reports) < 1:
