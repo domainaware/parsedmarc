@@ -1481,7 +1481,7 @@ def _main():
                 pbar.update(counter - pbar.n)
 
     for result in results:
-        if type(result[0]) is ParserError:
+        if isinstance(result[0], ParserError) or result[0] is None:
             logger.error("Failed to parse {0} - {1}".format(result[1], result[0]))
         else:
             if result[0]["report_type"] == "aggregate":

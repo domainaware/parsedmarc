@@ -1510,7 +1510,7 @@ def parse_report_email(
                 if isinstance(payload, bytes):
                     payload = payload.decode("utf-8", errors="replace")
                 if payload.strip().startswith("{"):
-                    smtp_tls_report = parse_smtp_tls_report_json(payload)
+                    result = parse_smtp_tls_report_json(payload)
                     result = OrderedDict(
                         [("report_type", "smtp_tls"), ("report", smtp_tls_report)]
                     )
