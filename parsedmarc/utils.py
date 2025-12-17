@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, TypedDict
+from typing import Optional, Union, TypedDict, Any
 
 import logging
 import os
@@ -342,14 +342,14 @@ def get_ip_address_country(ip_address: str, *, db_path: Optional[str] = None) ->
 
 
 def get_service_from_reverse_dns_base_domain(
-    base_domain,
+    base_domain: str,
     *,
     always_use_local_file: Optional[bool] = False,
-    local_file_path: Optional[bool] = None,
-    url: Optional[bool] = None,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
     offline: Optional[bool] = False,
-    reverse_dns_map: Optional[bool] = None,
-) -> str:
+    reverse_dns_map: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """
     Returns the service name of a given base domain name from reverse DNS.
 
@@ -418,18 +418,18 @@ def get_service_from_reverse_dns_base_domain(
 
 
 def get_ip_address_info(
-    ip_address,
+    ip_address: str,
     *,
     ip_db_path: Optional[str] = None,
     reverse_dns_map_path: Optional[str] = None,
     always_use_local_files: Optional[bool] = False,
     reverse_dns_map_url: Optional[str] = None,
     cache: Optional[ExpiringDict] = None,
-    reverse_dns_map: Optional[dict] = None,
+    reverse_dns_map: Optional[dict[str, Any]] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -558,7 +558,7 @@ def is_mbox(path: str) -> bool:
     return _is_mbox
 
 
-def is_outlook_msg(content) -> bool:
+def is_outlook_msg(content: bytes | Any) -> bool:
     """
     Checks if the given content is an Outlook msg OLE/MSG file
 
@@ -591,13 +591,14 @@ def convert_outlook_msg(msg_bytes: bytes) -> str:
     os.chdir(tmp_dir)
     with open("sample.msg", "wb") as msg_file:
         msg_file.write(msg_bytes)
+    rfc822_bytes: bytes
     try:
         subprocess.check_call(
             ["msgconvert", "sample.msg"], stdout=null_file, stderr=null_file
         )
         eml_path = "sample.eml"
         with open(eml_path, "rb") as eml_file:
-            rfc822 = eml_file.read()
+            rfc822_bytes = eml_file.read()
     except FileNotFoundError:
         raise EmailParserError(
             "Failed to convert Outlook MSG: msgconvert utility not found"
@@ -606,12 +607,12 @@ def convert_outlook_msg(msg_bytes: bytes) -> str:
         os.chdir(orig_dir)
         shutil.rmtree(tmp_dir)
 
-    return rfc822
+    return rfc822_bytes.decode("utf-8", errors="replace")
 
 
 def parse_email(
     data: Union[bytes, str], *, strip_attachment_payloads: Optional[bool] = False
-):
+) -> dict[str, Any]:
     """
     A simplified email parser
 
@@ -626,7 +627,8 @@ def parse_email(
     if isinstance(data, bytes):
         if is_outlook_msg(data):
             data = convert_outlook_msg(data)
-        data = data.decode("utf-8", errors="replace")
+        else:
+            data = data.decode("utf-8", errors="replace")
     parsed_email = mailparser.parse_from_string(data)
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()

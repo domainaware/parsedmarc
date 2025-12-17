@@ -665,7 +665,7 @@ def parse_smtp_tls_report_json(report: str) -> dict[str, Any]:
         return new_report
 
     except KeyError as e:
-        InvalidSMTPTLSReport(f"Missing required field: {e}")
+        raise InvalidSMTPTLSReport(f"Missing required field: {e}")
     except Exception as e:
         raise InvalidSMTPTLSReport(str(e))
 
@@ -980,14 +980,14 @@ def extract_report(content: Union[bytes, str, IO[Any]]) -> str:
         str: The extracted text
 
     """
-    file_object = None
+    file_object: BytesIO | IO[Any]
     try:
         if isinstance(content, str):
             try:
                 file_object = BytesIO(b64decode(content))
             except binascii.Error:
                 return content
-        elif type(content) is bytes:
+        elif isinstance(content, bytes):
             file_object = BytesIO(content)
         else:
             file_object = content
