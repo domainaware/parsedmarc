@@ -10,7 +10,6 @@ from glob import glob
 import logging
 import math
 import yaml
-from collections import OrderedDict
 import json
 from ssl import CERT_NONE, create_default_context
 from multiprocessing import Pipe, Process
@@ -1634,7 +1633,7 @@ def _main():
             logger.exception("Mailbox Error")
             exit(1)
 
-    results = OrderedDict(
+    results = dict(
         [
             ("aggregate_reports", aggregate_reports),
             ("forensic_reports", forensic_reports),

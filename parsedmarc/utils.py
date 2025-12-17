@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, Union, TypedDict
 
 import logging
 import os
 from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
-from collections import OrderedDict
 from expiringdict import ExpiringDict
 import tempfile
 import subprocess
@@ -67,7 +66,15 @@ class DownloadError(RuntimeError):
     """Raised when an error occurs when downloading a file"""
 
 
-def decode_base64(data) -> bytes:
+class EmailAddress(TypedDict):
+    """Parsed email address information"""
+    display_name: str | None
+    address: str
+    local: str | None
+    domain: str | None
+
+
+def decode_base64(data: str) -> bytes:
     """
     Decodes a base64 string, with padding being optional
 
@@ -422,7 +429,7 @@ def get_ip_address_info(
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,
-) -> OrderedDict[str, str]:
+) -> dict[str, str]:
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -440,7 +447,7 @@ def get_ip_address_info(
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
-        OrderedDict: ``ip_address``, ``reverse_dns``, ``country``
+        dict: ``ip_address``, ``reverse_dns``, ``country``
 
     """
     ip_address = ip_address.lower()
@@ -449,7 +456,7 @@ def get_ip_address_info(
         if info:
             logger.debug(f"IP address {ip_address} was found in cache")
             return info
-    info = OrderedDict()
+    info = dict()
     info["ip_address"] = ip_address
     if offline:
         reverse_dns = None
@@ -487,7 +494,7 @@ def get_ip_address_info(
     return info
 
 
-def parse_email_address(original_address: str) -> OrderedDict[str, str]:
+def parse_email_address(original_address: str) -> EmailAddress:
     if original_address[0] == "":
         display_name = None
     else:
@@ -500,14 +507,12 @@ def parse_email_address(original_address: str) -> OrderedDict[str, str]:
         local = address_parts[0].lower()
         domain = address_parts[-1].lower()
 
-    return OrderedDict(
-        [
-            ("display_name", display_name),
-            ("address", address),
-            ("local", local),
-            ("domain", domain),
-        ]
-    )
+    return {
+        "display_name": display_name,
+        "address": address,
+        "local": local,
+        "domain": domain,
+    }
 
 
 def get_filename_safe_string(string: str) -> str:

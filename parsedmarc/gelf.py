@@ -8,7 +8,6 @@ import logging
 import logging.handlers
 import json
 import threading
-from collections import OrderedDict
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
@@ -54,7 +53,7 @@ class GelfClient(object):
         self.logger.addHandler(self.handler)
 
     def save_aggregate_report_to_gelf(
-        self, aggregate_reports: list[OrderedDict[str, Any]]
+        self, aggregate_reports: list[dict[str, Any]]
     ):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
@@ -64,13 +63,13 @@ class GelfClient(object):
         log_context_data.parsedmarc = None
 
     def save_forensic_report_to_gelf(
-        self, forensic_reports: list[OrderedDict[str, Any]]
+        self, forensic_reports: list[dict[str, Any]]
     ):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
-    def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: OrderedDict[str, Any]):
+    def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: dict[str, Any]):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             self.logger.info(json.dumps(row))

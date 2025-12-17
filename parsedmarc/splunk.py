@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Union
 
-from collections import OrderedDict
 
 from urllib.parse import urlparse
 import socket
@@ -73,7 +72,7 @@ class HECClient(object):
 
     def save_aggregate_reports_to_splunk(
         self,
-        aggregate_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
+        aggregate_reports: Union[list[dict[str, Any]], dict[str, Any]],
     ):
         """
         Saves aggregate DMARC reports to Splunk
@@ -139,7 +138,7 @@ class HECClient(object):
 
     def save_forensic_reports_to_splunk(
         self,
-        forensic_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
+        forensic_reports: Union[list[dict[str, Any]], dict[str, Any]],
     ):
         """
         Saves forensic DMARC reports to Splunk
@@ -175,7 +174,7 @@ class HECClient(object):
             raise SplunkError(response["text"])
 
     def save_smtp_tls_reports_to_splunk(
-        self, reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]]
+        self, reports: Union[list[dict[str, Any]], dict[str, Any]]
     ):
         """
         Saves aggregate DMARC reports to Splunk

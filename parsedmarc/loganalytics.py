@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from collections import OrderedDict
 
 from parsedmarc.log import logger
 from azure.core.exceptions import HttpResponseError
@@ -133,7 +132,7 @@ class LogAnalyticsClient(object):
 
     def publish_results(
         self,
-        results: OrderedDict[str, OrderedDict[str, Any]],
+        results: dict[str, dict[str, Any]],
         save_aggregate: bool,
         save_forensic: bool,
         save_smtp_tls: bool,
