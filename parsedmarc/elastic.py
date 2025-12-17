@@ -278,7 +278,7 @@ def set_hosts(
     Sets the Elasticsearch hosts to use
 
     Args:
-        hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
+        hosts (Union[str, list[str]]): A single hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
         username (str): The username to use for authentication

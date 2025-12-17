@@ -68,10 +68,10 @@ class DownloadError(RuntimeError):
 
 class EmailAddress(TypedDict):
     """Parsed email address information"""
-    display_name: str | None
+    display_name: Optional[str]
     address: str
-    local: str | None
-    domain: str | None
+    local: Optional[str]
+    domain: Optional[str]
 
 
 def decode_base64(data: str) -> bytes:
@@ -558,7 +558,7 @@ def is_mbox(path: str) -> bool:
     return _is_mbox
 
 
-def is_outlook_msg(content: bytes | Any) -> bool:
+def is_outlook_msg(content: Union[bytes, Any]) -> bool:
     """
     Checks if the given content is an Outlook msg OLE/MSG file
 

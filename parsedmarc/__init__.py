@@ -103,11 +103,11 @@ class DateIntervalBucket(TypedDict):
 class IPAddressInfo(TypedDict, total=False):
     """Information about an IP address"""
     ip_address: str
-    country: NotRequired[str | None]
-    reverse_dns: NotRequired[str | None]
-    base_domain: NotRequired[str | None]
-    type: NotRequired[str | None]
-    name: NotRequired[str | None]
+    country: NotRequired[Optional[str]]
+    reverse_dns: NotRequired[Optional[str]]
+    base_domain: NotRequired[Optional[str]]
+    type: NotRequired[Optional[str]]
+    name: NotRequired[Optional[str]]
 
 
 class AlignmentInfo(TypedDict):
@@ -148,8 +148,8 @@ class AuthResults(TypedDict):
 class Identifiers(TypedDict):
     """Message identifiers"""
     header_from: str
-    envelope_from: str | None
-    envelope_to: str | None
+    envelope_from: Optional[str]
+    envelope_to: Optional[str]
 
 
 class ParsedReportRecord(TypedDict):
@@ -165,8 +165,8 @@ class ParsedReportRecord(TypedDict):
 class ReportMetadata(TypedDict, total=False):
     """DMARC report metadata"""
     org_name: str
-    org_email: NotRequired[str | None]
-    org_extra_contact_info: NotRequired[str | None]
+    org_email: NotRequired[Optional[str]]
+    org_extra_contact_info: NotRequired[Optional[str]]
     report_id: str
     begin_date: str
     end_date: str
@@ -195,13 +195,13 @@ class ParsedAggregateReport(TypedDict):
 class SMTPTLSFailureDetails(TypedDict):
     """SMTP TLS failure details"""
     result_type: str
-    sending_mta_ip: NotRequired[str | None]
-    receiving_mx_hostname: NotRequired[str | None]
-    receiving_mx_helo: NotRequired[str | None]
-    receiving_ip: NotRequired[str | None]
+    sending_mta_ip: NotRequired[Optional[str]]
+    receiving_mx_hostname: NotRequired[Optional[str]]
+    receiving_mx_helo: NotRequired[Optional[str]]
+    receiving_ip: NotRequired[Optional[str]]
     failed_session_count: int
-    additional_information: NotRequired[str | None]
-    failure_reason_code: NotRequired[str | None]
+    additional_information: NotRequired[Optional[str]]
+    failure_reason_code: NotRequired[Optional[str]]
 
 
 class SMTPTLSPolicy(TypedDict):
@@ -980,7 +980,7 @@ def extract_report(content: Union[bytes, str, IO[Any]]) -> str:
         str: The extracted text
 
     """
-    file_object: BytesIO | IO[Any]
+    file_object: Union[BytesIO, IO[Any]]
     try:
         if isinstance(content, str):
             try:
@@ -1047,7 +1047,7 @@ def parse_aggregate_report_file(
     aggregate DMARC report
 
     Args:
-        _input (str | bytes | IO): A path to a file, a file like object, or bytes
+        _input (Union[str, bytes, IO]): A path to a file, a file like object, or bytes
         offline (bool): Do not query online for geolocation or DNS
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
@@ -1723,7 +1723,7 @@ def parse_report_file(
     file-like object. or bytes
 
     Args:
-        input_ (str | bytes | IO): A path to a file, a file like object, or bytes
+        input_ (Union[str, bytes, IO]): A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
