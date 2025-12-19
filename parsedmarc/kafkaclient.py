@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Optional, Union
+from parsedmarc import AggregateReport, ForensicReport, SMTPTLSReport, ParseResults
 from ssl import SSLContext
 
 import json
@@ -98,7 +99,7 @@ class KafkaClient(object):
 
     def save_aggregate_reports_to_kafka(
         self,
-        aggregate_reports: Union[dict[str, Any], list[dict[str, Any]]],
+        aggregate_reports: Union[AggregateReport, list[AggregateReport]],
         aggregate_topic: str,
     ):
         """
@@ -145,7 +146,7 @@ class KafkaClient(object):
 
     def save_forensic_reports_to_kafka(
         self,
-        forensic_reports: Union[dict[str, Any], list[dict[str, Any]]],
+        forensic_reports: Union[AggregateReport, list[AggregateReport]],
         forensic_topic: str,
     ):
         """
@@ -179,7 +180,7 @@ class KafkaClient(object):
 
     def save_smtp_tls_reports_to_kafka(
         self,
-        smtp_tls_reports: Union[list[dict[str, Any]], dict[str, Any]],
+        smtp_tls_reports: Union[list[SMTPTLSReport], SMTPTLSReport],
         smtp_tls_topic: str,
     ):
         """

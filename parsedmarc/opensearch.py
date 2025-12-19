@@ -24,7 +24,7 @@ from opensearchpy.helpers import reindex
 
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
-from parsedmarc import InvalidForensicReport
+from parsedmarc import InvalidForensicReport, AggregateReport, ForensicReport, SMTPTLSReport
 
 
 class OpenSearchError(Exception):
@@ -376,7 +376,7 @@ def migrate_indexes(
 
 
 def save_aggregate_report_to_opensearch(
-    aggregate_report: dict[str, Any],
+    aggregate_report: AggregateReport,
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -538,7 +538,7 @@ def save_aggregate_report_to_opensearch(
 
 
 def save_forensic_report_to_opensearch(
-    forensic_report: dict[str, Any],
+    forensic_report: ForensicReport,
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,

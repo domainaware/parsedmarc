@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from parsedmarc import AggregateReport, ForensicReport, SMTPTLSReport, ParseResults
 
 from parsedmarc.log import logger
 from azure.core.exceptions import HttpResponseError
@@ -132,7 +133,7 @@ class LogAnalyticsClient(object):
 
     def publish_results(
         self,
-        results: dict[str, dict[str, Any]],
+        results: ParseResults,
         save_aggregate: bool,
         save_forensic: bool,
         save_smtp_tls: bool,

@@ -24,7 +24,7 @@ from elasticsearch.helpers import reindex
 
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
-from parsedmarc import InvalidForensicReport
+from parsedmarc import InvalidForensicReport, AggregateReport, ForensicReport, SMTPTLSReport
 
 
 class ElasticsearchError(Exception):
@@ -376,7 +376,7 @@ def migrate_indexes(
 
 
 def save_aggregate_report_to_elasticsearch(
-    aggregate_report: dict[str, Any],
+    aggregate_report: SMTPTLSReport,
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -538,7 +538,7 @@ def save_aggregate_report_to_elasticsearch(
 
 
 def save_forensic_report_to_elasticsearch(
-    forensic_report: dict[str, Any],
+    forensic_report: SMTPTLSReport,
     index_suffix: Optional[Any] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -705,7 +705,7 @@ def save_forensic_report_to_elasticsearch(
 
 
 def save_smtp_tls_report_to_elasticsearch(
-    report: dict[str, Any],
+    report: SMTPTLSReport,
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,

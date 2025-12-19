@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, Union, TypedDict
 
 import logging
 import os
@@ -44,6 +44,32 @@ from parsedmarc.log import logger
 import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
 from parsedmarc.constants import USER_AGENT
+
+
+# TypedDict definitions for better typing
+class IPAddressInfo(TypedDict, total=False):
+    """Information about an IP address"""
+    ip_address: str
+    country: Optional[str]
+    reverse_dns: Optional[str]
+    base_domain: Optional[str]
+    name: Optional[str]
+    type: Optional[str]
+
+
+class EmailAddress(TypedDict, total=False):
+    """Parsed email address information"""
+    display_name: Optional[str]
+    address: str
+    local: Optional[str]
+    domain: Optional[str]
+
+
+class ReverseDNSService(TypedDict):
+    """Reverse DNS service information"""
+    name: str
+    type: Optional[str]
+
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
@@ -341,7 +367,7 @@ def get_service_from_reverse_dns_base_domain(
     url: Optional[bool] = None,
     offline: Optional[bool] = False,
     reverse_dns_map: Optional[bool] = None,
-) -> str:
+) -> ReverseDNSService:
     """
     Returns the service name of a given base domain name from reverse DNS.
 
@@ -421,7 +447,7 @@ def get_ip_address_info(
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,
-) -> dict[str, str]:
+) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -486,7 +512,7 @@ def get_ip_address_info(
     return info
 
 
-def parse_email_address(original_address: str) -> dict[str, str]:
+def parse_email_address(original_address: str) -> EmailAddress:
     if original_address[0] == "":
         display_name = None
     else:

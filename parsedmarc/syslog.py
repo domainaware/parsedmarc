@@ -7,6 +7,7 @@ import logging
 import logging.handlers
 
 from typing import Any
+from parsedmarc import AggregateReport, ForensicReport, SMTPTLSReport, ParseResults
 
 
 import json
@@ -36,21 +37,21 @@ class SyslogClient(object):
         self.logger.addHandler(log_handler)
 
     def save_aggregate_report_to_syslog(
-        self, aggregate_reports: list[dict[str, Any]]
+        self, aggregate_reports: list[AggregateReport]
     ):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
     def save_forensic_report_to_syslog(
-        self, forensic_reports: list[dict[str, Any]]
+        self, forensic_reports: list[ForensicReport]
     ):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
     def save_smtp_tls_report_to_syslog(
-        self, smtp_tls_reports: list[dict[str, Any]]
+        self, smtp_tls_reports: list[SMTPTLSReport]
     ):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:

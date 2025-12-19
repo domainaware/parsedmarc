@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from parsedmarc import AggregateReport, ForensicReport, SMTPTLSReport, ParseResults
 
 import json
 import boto3
@@ -54,16 +55,16 @@ class S3Client(object):
         )
         self.bucket = self.s3.Bucket(self.bucket_name)  # type: ignore
 
-    def save_aggregate_report_to_s3(self, report: dict[str, Any]):
+    def save_aggregate_report_to_s3(self, report: Union[AggregateReport, ForensicReport, SMTPTLSReport]):
         self.save_report_to_s3(report, "aggregate")
 
-    def save_forensic_report_to_s3(self, report: dict[str, Any]):
+    def save_forensic_report_to_s3(self, report: Union[AggregateReport, ForensicReport, SMTPTLSReport]):
         self.save_report_to_s3(report, "forensic")
 
-    def save_smtp_tls_report_to_s3(self, report: dict[str, Any]):
+    def save_smtp_tls_report_to_s3(self, report: Union[AggregateReport, ForensicReport, SMTPTLSReport]):
         self.save_report_to_s3(report, "smtp_tls")
 
-    def save_report_to_s3(self, report: dict[str, Any], report_type: str):
+    def save_report_to_s3(self, report: Union[AggregateReport, ForensicReport, SMTPTLSReport], report_type: str):
         if report_type == "smtp_tls":
             report_date = report["begin_date"]
             report_id = report["report_id"]
