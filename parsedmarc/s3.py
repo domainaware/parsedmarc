@@ -7,7 +7,6 @@ from typing import Any
 import json
 import boto3
 
-from collections import OrderedDict
 
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
@@ -55,16 +54,16 @@ class S3Client(object):
         )
         self.bucket = self.s3.Bucket(self.bucket_name)  # type: ignore
 
-    def save_aggregate_report_to_s3(self, report: OrderedDict[str, Any]):
+    def save_aggregate_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "aggregate")
 
-    def save_forensic_report_to_s3(self, report: OrderedDict[str, Any]):
+    def save_forensic_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "forensic")
 
-    def save_smtp_tls_report_to_s3(self, report: OrderedDict[str, Any]):
+    def save_smtp_tls_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "smtp_tls")
 
-    def save_report_to_s3(self, report: OrderedDict[str, Any], report_type: str):
+    def save_report_to_s3(self, report: dict[str, Any], report_type: str):
         if report_type == "smtp_tls":
             report_date = report["begin_date"]
             report_id = report["report_id"]

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Optional, Union, Any
 
-from collections import OrderedDict
 
 from opensearchpy import (
     Q,
@@ -377,7 +376,7 @@ def migrate_indexes(
 
 
 def save_aggregate_report_to_opensearch(
-    aggregate_report: OrderedDict[str, Any],
+    aggregate_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -539,7 +538,7 @@ def save_aggregate_report_to_opensearch(
 
 
 def save_forensic_report_to_opensearch(
-    forensic_report: OrderedDict[str, Any],
+    forensic_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -570,7 +569,7 @@ def save_forensic_report_to_opensearch(
         sample_date = forensic_report["parsed_sample"]["date"]
         sample_date = human_timestamp_to_datetime(sample_date)
     original_headers = forensic_report["parsed_sample"]["headers"]
-    headers = OrderedDict()
+    headers = {}
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
@@ -597,7 +596,7 @@ def save_forensic_report_to_opensearch(
         else:
             headers["from"] = " <".join(headers["from"]) + ">"
 
-        from_ = dict()
+        from_ = {}
         from_["sample.headers.from"] = headers["from"]
         from_query = Q(dict(match_phrase=from_))
         q = q & from_query
@@ -609,7 +608,7 @@ def save_forensic_report_to_opensearch(
         else:
             headers["to"] = " <".join(headers["to"]) + ">"
 
-        to_ = dict()
+        to_ = {}
         to_["sample.headers.to"] = headers["to"]
         to_query = Q(dict(match_phrase=to_))
         q = q & to_query
@@ -706,7 +705,7 @@ def save_forensic_report_to_opensearch(
 
 
 def save_smtp_tls_report_to_opensearch(
-    report: OrderedDict[str, Any],
+    report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
