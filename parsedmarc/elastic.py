@@ -2,30 +2,28 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
-from collections import OrderedDict
-
-from elasticsearch_dsl.search import Q
+from elasticsearch.helpers import reindex
 from elasticsearch_dsl import (
-    connections,
-    Object,
+    Boolean,
+    Date,
     Document,
     Index,
-    Nested,
     InnerDoc,
     Integer,
-    Text,
-    Boolean,
     Ip,
-    Date,
+    Nested,
+    Object,
     Search,
+    Text,
+    connections,
 )
-from elasticsearch.helpers import reindex
+from elasticsearch_dsl.search import Q
 
+from parsedmarc import InvalidForensicReport
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
-from parsedmarc import InvalidForensicReport
 
 
 class ElasticsearchError(Exception):
@@ -377,7 +375,7 @@ def migrate_indexes(
 
 
 def save_aggregate_report_to_elasticsearch(
-    aggregate_report: OrderedDict[str, Any],
+    aggregate_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -388,7 +386,7 @@ def save_aggregate_report_to_elasticsearch(
     Saves a parsed DMARC aggregate report to Elasticsearch
 
     Args:
-        aggregate_report (OrderedDict): A parsed forensic report
+        aggregate_report (dict): A parsed forensic report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
@@ -539,7 +537,7 @@ def save_aggregate_report_to_elasticsearch(
 
 
 def save_forensic_report_to_elasticsearch(
-    forensic_report: OrderedDict[str, Any],
+    forensic_report: dict[str, Any],
     index_suffix: Optional[Any] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -550,7 +548,7 @@ def save_forensic_report_to_elasticsearch(
     Saves a parsed DMARC forensic report to Elasticsearch
 
     Args:
-        forensic_report (OrderedDict): A parsed forensic report
+        forensic_report (dict): A parsed forensic report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily
@@ -570,7 +568,7 @@ def save_forensic_report_to_elasticsearch(
         sample_date = forensic_report["parsed_sample"]["date"]
         sample_date = human_timestamp_to_datetime(sample_date)
     original_headers = forensic_report["parsed_sample"]["headers"]
-    headers = OrderedDict()
+    headers: dict[str, Any] = {}
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
@@ -706,7 +704,7 @@ def save_forensic_report_to_elasticsearch(
 
 
 def save_smtp_tls_report_to_elasticsearch(
-    report: OrderedDict[str, Any],
+    report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -717,7 +715,7 @@ def save_smtp_tls_report_to_elasticsearch(
     Saves a parsed SMTP TLS report to Elasticsearch
 
     Args:
-        report (OrderedDict): A parsed SMTP TLS report
+        report (dict): A parsed SMTP TLS report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes

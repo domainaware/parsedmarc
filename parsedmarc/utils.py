@@ -4,26 +4,23 @@
 
 from __future__ import annotations
 
+import base64
+import csv
+import hashlib
+import io
+import json
+import logging
+import mailbox
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 
-import logging
-import os
-from datetime import datetime
-from datetime import timezone
-from datetime import timedelta
-from collections import OrderedDict
-from expiringdict import ExpiringDict
-import tempfile
-import subprocess
-import shutil
 import mailparser
-import json
-import hashlib
-import base64
-import mailbox
-import re
-import csv
-import io
+from expiringdict import ExpiringDict
 
 try:
     from importlib.resources import files
@@ -32,19 +29,19 @@ except ImportError:
     from importlib.resources import files
 
 
-from dateutil.parser import parse as parse_date
-import dns.reversename
-import dns.resolver
 import dns.exception
+import dns.resolver
+import dns.reversename
 import geoip2.database
 import geoip2.errors
 import publicsuffixlist
 import requests
+from dateutil.parser import parse as parse_date
 
-from parsedmarc.log import logger
 import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
 from parsedmarc.constants import USER_AGENT
+from parsedmarc.log import logger
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
@@ -422,7 +419,7 @@ def get_ip_address_info(
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
     timeout: Optional[float] = 2.0,
-) -> OrderedDict[str, str]:
+) -> dict[str, str]:
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -440,7 +437,7 @@ def get_ip_address_info(
         timeout (float): Sets the DNS timeout in seconds
 
     Returns:
-        OrderedDict: ``ip_address``, ``reverse_dns``, ``country``
+        dict: ``ip_address``, ``reverse_dns``, ``country``
 
     """
     ip_address = ip_address.lower()
@@ -449,7 +446,7 @@ def get_ip_address_info(
         if info:
             logger.debug(f"IP address {ip_address} was found in cache")
             return info
-    info = OrderedDict()
+    info: dict[str, str] = {}
     info["ip_address"] = ip_address
     if offline:
         reverse_dns = None
@@ -487,7 +484,7 @@ def get_ip_address_info(
     return info
 
 
-def parse_email_address(original_address: str) -> OrderedDict[str, str]:
+def parse_email_address(original_address: str) -> dict[str, str]:
     if original_address[0] == "":
         display_name = None
     else:
@@ -500,14 +497,12 @@ def parse_email_address(original_address: str) -> OrderedDict[str, str]:
         local = address_parts[0].lower()
         domain = address_parts[-1].lower()
 
-    return OrderedDict(
-        [
-            ("display_name", display_name),
-            ("address", address),
-            ("local", local),
-            ("domain", domain),
-        ]
-    )
+    return {
+        "display_name": display_name,
+        "address": address,
+        "local": local,
+        "domain": domain,
+    }
 
 
 def get_filename_safe_string(string: str) -> str:

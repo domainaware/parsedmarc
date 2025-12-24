@@ -3,54 +3,55 @@
 
 """A CLI for parsing DMARC reports"""
 
-from argparse import Namespace, ArgumentParser
-import os
-from configparser import ConfigParser
-from glob import glob
+import http.client
+import json
 import logging
 import math
-import yaml
-from collections import OrderedDict
-import json
-from ssl import CERT_NONE, create_default_context
-from multiprocessing import Pipe, Process
+import os
 import sys
-import http.client
+from argparse import ArgumentParser, Namespace
+from configparser import ConfigParser
+from glob import glob
+from multiprocessing import Pipe, Process
+from ssl import CERT_NONE, create_default_context
+
+import yaml
 from tqdm import tqdm
 
 from parsedmarc import (
-    get_dmarc_reports_from_mailbox,
-    watch_inbox,
-    parse_report_file,
-    get_dmarc_reports_from_mbox,
-    elastic,
-    opensearch,
-    kafkaclient,
-    splunk,
-    save_output,
-    email_results,
+    SEEN_AGGREGATE_REPORT_IDS,
+    InvalidDMARCReport,
     ParserError,
     __version__,
-    InvalidDMARCReport,
-    s3,
-    syslog,
-    loganalytics,
+    elastic,
+    email_results,
     gelf,
+    get_dmarc_reports_from_mailbox,
+    get_dmarc_reports_from_mbox,
+    kafkaclient,
+    loganalytics,
+    opensearch,
+    parse_report_file,
+    s3,
+    save_output,
+    splunk,
+    syslog,
+    watch_inbox,
     webhook,
 )
+from parsedmarc.log import logger
 from parsedmarc.mail import (
-    IMAPConnection,
-    MSGraphConnection,
     GmailConnection,
+    IMAPConnection,
     MaildirConnection,
+    MSGraphConnection,
 )
 from parsedmarc.mail.graph import AuthMethod
+from parsedmarc.utils import get_base_domain, get_reverse_dns, is_mbox
 
-from parsedmarc.log import logger
-from parsedmarc.utils import is_mbox, get_reverse_dns, get_base_domain
-from parsedmarc import SEEN_AGGREGATE_REPORT_IDS
-
-http.client._MAXHEADERS = 200  # pylint:disable=protected-access
+# Increase the max header limit for very large emails. `_MAXHEADERS` is a
+# private stdlib attribute and may not exist in type stubs.
+setattr(http.client, "_MAXHEADERS", 200)
 
 formatter = logging.Formatter(
     fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
@@ -105,6 +106,7 @@ def _main():
     """Called when the module is executed"""
 
     def get_index_prefix(report):
+        domain = None
         if index_prefix_domain_map is None:
             return None
         if "policy_published" in report:
@@ -1634,13 +1636,11 @@ def _main():
             logger.exception("Mailbox Error")
             exit(1)
 
-    results = OrderedDict(
-        [
-            ("aggregate_reports", aggregate_reports),
-            ("forensic_reports", forensic_reports),
-            ("smtp_tls_reports", smtp_tls_reports),
-        ]
-    )
+    results = {
+        "aggregate_reports": aggregate_reports,
+        "forensic_reports": forensic_reports,
+        "smtp_tls_reports": smtp_tls_reports,
+    }
 
     process_reports(results)
 

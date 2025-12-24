@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
-from ssl import SSLContext
-
 import json
-from ssl import create_default_context
+from ssl import SSLContext, create_default_context
+from typing import Any, Optional, Union
 
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
-from collections import OrderedDict
-from parsedmarc.utils import human_timestamp_to_datetime
 
 from parsedmarc import __version__
 from parsedmarc.log import logger
+from parsedmarc.utils import human_timestamp_to_datetime
 
 
 class KafkaError(RuntimeError):
@@ -66,7 +63,7 @@ class KafkaClient(object):
             raise KafkaError("No Kafka brokers available")
 
     @staticmethod
-    def strip_metadata(report: OrderedDict[str, Any]):
+    def strip_metadata(report: dict[str, Any]):
         """
         Duplicates org_name, org_email and report_id into JSON root
         and removes report_metadata key to bring it more inline
@@ -80,7 +77,7 @@ class KafkaClient(object):
         return report
 
     @staticmethod
-    def generate_date_range(report: OrderedDict[str, Any]):
+    def generate_date_range(report: dict[str, Any]):
         """
         Creates a date_range timestamp with format YYYY-MM-DD-T-HH:MM:SS
         based on begin and end dates for easier parsing in Kibana.
@@ -99,7 +96,7 @@ class KafkaClient(object):
 
     def save_aggregate_reports_to_kafka(
         self,
-        aggregate_reports: Union[OrderedDict[str, Any], list[OrderedDict[str, Any]]],
+        aggregate_reports: Union[dict[str, Any], list[dict[str, Any]]],
         aggregate_topic: str,
     ):
         """
@@ -111,9 +108,7 @@ class KafkaClient(object):
             aggregate_topic (str): The name of the Kafka topic
 
         """
-        if isinstance(aggregate_reports, dict) or isinstance(
-            aggregate_reports, OrderedDict
-        ):
+        if isinstance(aggregate_reports, dict):
             aggregate_reports = [aggregate_reports]
 
         if len(aggregate_reports) < 1:
@@ -146,7 +141,7 @@ class KafkaClient(object):
 
     def save_forensic_reports_to_kafka(
         self,
-        forensic_reports: Union[OrderedDict[str, Any], list[OrderedDict[str, Any]]],
+        forensic_reports: Union[dict[str, Any], list[dict[str, Any]]],
         forensic_topic: str,
     ):
         """
@@ -180,7 +175,7 @@ class KafkaClient(object):
 
     def save_smtp_tls_reports_to_kafka(
         self,
-        smtp_tls_reports: Union[list[OrderedDict[str, Any]], OrderedDict[str, Any]],
+        smtp_tls_reports: Union[list[dict[str, Any]], dict[str, Any]],
         smtp_tls_topic: str,
     ):
         """
