@@ -13,7 +13,6 @@ from configparser import ConfigParser
 from glob import glob
 from multiprocessing import Pipe, Process
 from ssl import CERT_NONE, create_default_context
-from typing import Union, cast
 
 import yaml
 from tqdm import tqdm
