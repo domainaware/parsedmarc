@@ -85,7 +85,7 @@ def decode_base64(data) -> bytes:
     return base64.b64decode(data)
 
 
-def get_base_domain(domain: str) -> str:
+def get_base_domain(domain: str) -> Optional[str]:
     """
     Gets the base domain name for the given domain
 
@@ -114,8 +114,8 @@ def query_dns(
     record_type: str,
     *,
     cache: Optional[ExpiringDict] = None,
-    nameservers: list[str] = None,
-    timeout: int = 2.0,
+    nameservers: Optional[list[str]] = None,
+    timeout: float = 2.0,
 ) -> list[str]:
     """
     Queries DNS
@@ -181,8 +181,8 @@ def get_reverse_dns(
     ip_address,
     *,
     cache: Optional[ExpiringDict] = None,
-    nameservers: list[str] = None,
-    timeout: int = 2.0,
+    nameservers: Optional[list[str]] = None,
+    timeout: float = 2.0,
 ) -> str:
     """
     Resolves an IP address to a hostname using a reverse DNS query
