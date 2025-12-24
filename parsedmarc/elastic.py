@@ -92,17 +92,17 @@ class _AggregateReportDoc(Document):
     spf_results = Nested(_SPFResult)
 
     def add_policy_override(self, type_: str, comment: str):
-        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))
+        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))  # pyright: ignore[reportCallIssue]
 
     def add_dkim_result(self, domain: str, selector: str, result: _DKIMResult):
         self.dkim_results.append(
             _DKIMResult(domain=domain, selector=selector, result=result)
-        )
+        )  # pyright: ignore[reportCallIssue]
 
     def add_spf_result(self, domain: str, scope: str, result: _SPFResult):
-        self.spf_results.append(_SPFResult(domain=domain, scope=scope, result=result))
+        self.spf_results.append(_SPFResult(domain=domain, scope=scope, result=result))  # pyright: ignore[reportCallIssue]
 
-    def save(self, **kwargs):
+    def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
         self.passed_dmarc = self.spf_aligned or self.dkim_aligned
 
@@ -136,25 +136,25 @@ class _ForensicSampleDoc(InnerDoc):
     attachments = Nested(_EmailAttachmentDoc)
 
     def add_to(self, display_name: str, address: str):
-        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))
+        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
 
     def add_reply_to(self, display_name: str, address: str):
         self.reply_to.append(
             _EmailAddressDoc(display_name=display_name, address=address)
-        )
+        )  # pyright: ignore[reportCallIssue]
 
     def add_cc(self, display_name: str, address: str):
-        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))
+        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
 
     def add_bcc(self, display_name: str, address: str):
-        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))
+        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
 
     def add_attachment(self, filename: str, content_type: str, sha256: str):
         self.attachments.append(
             _EmailAttachmentDoc(
                 filename=filename, content_type=content_type, sha256=sha256
             )
-        )
+        )  # pyright: ignore[reportCallIssue]
 
 
 class _ForensicReportDoc(Document):
@@ -222,7 +222,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             additional_information=additional_information_uri,
             failure_reason_code=failure_reason_code,
         )
-        self.failure_details.append(_details)
+        self.failure_details.append(_details)  # pyright: ignore[reportCallIssue]
 
 
 class _SMTPTLSReportDoc(Document):
@@ -256,7 +256,7 @@ class _SMTPTLSReportDoc(Document):
             policy_string=policy_string,
             mx_host_patterns=mx_host_patterns,
             failure_details=failure_details,
-        )
+        )  # pyright: ignore[reportCallIssue]
 
 
 class AlreadySaved(ValueError):
@@ -367,7 +367,7 @@ def migrate_indexes(
             }
             Index(new_index_name).create()
             Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)
+            reindex(connections.get_connection(), aggregate_index_name, new_index_name)  # pyright: ignore[reportArgumentType]
             Index(aggregate_index_name).delete()
 
     for forensic_index in forensic_indexes:
@@ -410,11 +410,11 @@ def save_aggregate_report_to_elasticsearch(
     else:
         index_date = begin_date.strftime("%Y-%m-%d")
 
-    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
-    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
-    domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
-    end_date_query = Q(dict(match=dict(date_end=end_date)))
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))  # type: ignore
+    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))  # pyright: ignore[reportArgumentType]
+    domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))  # pyright: ignore[reportArgumentType]
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))  # pyright: ignore[reportArgumentType]
+    end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
         search_index = "dmarc_aggregate_{0}*".format(index_suffix)
@@ -426,13 +426,12 @@ def save_aggregate_report_to_elasticsearch(
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
+    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
 
     try:
         existing = search.execute()
     except Exception as error_:
-        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
-        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
-
         raise ElasticsearchError(
             "Elasticsearch's search for existing report \
             error: {}".format(error_.__str__())
@@ -528,7 +527,7 @@ def save_aggregate_report_to_elasticsearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         create_indexes([index], index_settings)
-        agg_doc.meta.index = index
+        agg_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
         try:
             agg_doc.save()
@@ -582,7 +581,7 @@ def save_forensic_report_to_elasticsearch(
     if index_prefix is not None:
         search_index = "{0}{1}".format(index_prefix, search_index)
     search = Search(index=search_index)
-    q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))
+    q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))  # pyright: ignore[reportArgumentType]
 
     from_ = None
     to_ = None
@@ -597,7 +596,7 @@ def save_forensic_report_to_elasticsearch(
 
         from_ = dict()
         from_["sample.headers.from"] = headers["from"]
-        from_query = Q(dict(match_phrase=from_))
+        from_query = Q(dict(match_phrase=from_))  # pyright: ignore[reportArgumentType]
         q = q & from_query
     if "to" in headers:
         # We convert the TO header from a string list to a flat string.
@@ -609,12 +608,12 @@ def save_forensic_report_to_elasticsearch(
 
         to_ = dict()
         to_["sample.headers.to"] = headers["to"]
-        to_query = Q(dict(match_phrase=to_))
+        to_query = Q(dict(match_phrase=to_))  # pyright: ignore[reportArgumentType]
         q = q & to_query
     if "subject" in headers:
         subject = headers["subject"]
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
-        q = q & Q(subject_query)
+        q = q & Q(subject_query)  # pyright: ignore[reportArgumentType]
 
     search.query = q
     existing = search.execute()
@@ -692,7 +691,7 @@ def save_forensic_report_to_elasticsearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         create_indexes([index], index_settings)
-        forensic_doc.meta.index = index
+        forensic_doc.meta.index = index  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
         try:
             forensic_doc.save()
         except Exception as e:
@@ -739,10 +738,10 @@ def save_smtp_tls_report_to_elasticsearch(
     report["begin_date"] = begin_date
     report["end_date"] = end_date
 
-    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
-    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
-    end_date_query = Q(dict(match=dict(date_end=end_date)))
+    org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))  # pyright: ignore[reportArgumentType]
+    report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))  # pyright: ignore[reportArgumentType]
+    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))  # pyright: ignore[reportArgumentType]
+    end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
         search_index = "smtp_tls_{0}*".format(index_suffix)
@@ -843,10 +842,10 @@ def save_smtp_tls_report_to_elasticsearch(
                     additional_information_uri=additional_information_uri,
                     failure_reason_code=failure_reason_code,
                 )
-        smtp_tls_doc.policies.append(policy_doc)
+        smtp_tls_doc.policies.append(policy_doc)  # pyright: ignore[reportCallIssue]
 
     create_indexes([index], index_settings)
-    smtp_tls_doc.meta.index = index
+    smtp_tls_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
     try:
         smtp_tls_doc.save()

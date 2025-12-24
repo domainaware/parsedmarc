@@ -102,7 +102,7 @@ class _AggregateReportDoc(Document):
     def add_spf_result(self, domain: str, scope: str, result: _SPFResult):
         self.spf_results.append(_SPFResult(domain=domain, scope=scope, result=result))
 
-    def save(self, **kwargs):
+    def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
         self.passed_dmarc = self.spf_aligned or self.dkim_aligned
 
@@ -426,21 +426,18 @@ def save_aggregate_report_to_opensearch(
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
     search.query = query
+    begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
+    end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
 
     try:
         existing = search.execute()
     except Exception as error_:
-        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
-        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
-
         raise OpenSearchError(
             "OpenSearch's search for existing report \
             error: {}".format(error_.__str__())
         )
 
     if len(existing) > 0:
-        begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
-        end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
         raise AlreadySaved(
             "An aggregate report ID {0} from {1} about {2} "
             "with a date range of {3} UTC to {4} UTC already "
