@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
+import mailbox
+import os
 from time import sleep
+from typing import Dict
 
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
-import mailbox
-import os
 
 
 class MaildirConnection(MailboxConnection):
     def __init__(
         self,
-        maildir_path: Optional[bool] = None,
-        maildir_create: Optional[bool] = False,
+        maildir_path: str,
+        maildir_create: bool = False,
     ):
         self._maildir_path = maildir_path
         self._maildir_create = maildir_create
@@ -33,27 +32,31 @@ class MaildirConnection(MailboxConnection):
                 )
                 raise Exception(ex)
         self._client = mailbox.Maildir(maildir_path, create=maildir_create)
-        self._subfolder_client = {}
+        self._subfolder_client: Dict[str, mailbox.Maildir] = {}
 
     def create_folder(self, folder_name: str):
         self._subfolder_client[folder_name] = self._client.add_folder(folder_name)
-        self._client.add_folder(folder_name)
 
     def fetch_messages(self, reports_folder: str, **kwargs):
         return self._client.keys()
 
-    def fetch_message(self, message_id: str):
-        return self._client.get(message_id).as_string()
+    def fetch_message(self, message_id: str) -> str:
+        msg = self._client.get(message_id)
+        if msg is not None:
+            msg = msg.as_string()
+            if msg is not None:
+                return msg
+        return ""
 
     def delete_message(self, message_id: str):
         self._client.remove(message_id)
 
     def move_message(self, message_id: str, folder_name: str):
         message_data = self._client.get(message_id)
-        if folder_name not in self._subfolder_client.keys():
-            self._subfolder_client = mailbox.Maildir(
-                os.join(self.maildir_path, folder_name), create=self.maildir_create
-            )
+        if message_data is None:
+            return
+        if folder_name not in self._subfolder_client:
+            self._subfolder_client[folder_name] = self._client.add_folder(folder_name)
         self._subfolder_client[folder_name].add(message_data)
         self._client.remove(message_id)
 

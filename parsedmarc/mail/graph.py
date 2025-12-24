@@ -6,7 +6,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
-from typing import List, Optional
+from typing import Any, List, Optional, Union
 
 from azure.identity import (
     UsernamePasswordCredential,
@@ -28,7 +28,7 @@ class AuthMethod(Enum):
 
 
 def _get_cache_args(token_path: Path, allow_unencrypted_storage):
-    cache_args = {
+    cache_args: dict[str, Any] = {
         "cache_persistence_options": TokenCachePersistenceOptions(
             name="parsedmarc", allow_unencrypted_storage=allow_unencrypted_storage
         )
@@ -151,9 +151,9 @@ class MSGraphConnection(MailboxConnection):
         else:
             logger.warning(f"Unknown response {resp.status_code} {resp.json()}")
 
-    def fetch_messages(self, folder_name: str, **kwargs) -> List[str]:
+    def fetch_messages(self, reports_folder: str, **kwargs) -> List[str]:
         """Returns a list of message UIDs in the specified folder"""
-        folder_id = self._find_folder_id_from_folder_path(folder_name)
+        folder_id = self._find_folder_id_from_folder_path(reports_folder)
         url = f"/users/{self.mailbox_name}/mailFolders/{folder_id}/messages"
         since = kwargs.get("since")
         if not since:
@@ -166,7 +166,7 @@ class MSGraphConnection(MailboxConnection):
 
     def _get_all_messages(self, url, batch_size, since):
         messages: list
-        params = {"$select": "id"}
+        params: dict[str, Union[str, int]] = {"$select": "id"}
         if since:
             params["$filter"] = f"receivedDateTime ge {since}"
         if batch_size and batch_size > 0:

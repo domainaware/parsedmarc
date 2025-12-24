@@ -6,7 +6,6 @@
 import http.client
 import json
 import logging
-import math
 import os
 import sys
 from argparse import ArgumentParser, Namespace
@@ -14,6 +13,7 @@ from configparser import ConfigParser
 from glob import glob
 from multiprocessing import Pipe, Process
 from ssl import CERT_NONE, create_default_context
+from typing import Union, cast
 
 import yaml
 from tqdm import tqdm
@@ -140,7 +140,7 @@ def _main():
             print(output_str)
         if opts.output:
             save_output(
-                results,
+                reports_,
                 output_directory=opts.output,
                 aggregate_json_filename=opts.aggregate_json_filename,
                 forensic_json_filename=opts.forensic_json_filename,
@@ -709,6 +709,8 @@ def _main():
                 opts.smtp_tls_csv_filename = general_config["smtp_tls_csv_filename"]
             if "dns_timeout" in general_config:
                 opts.dns_timeout = general_config.getfloat("dns_timeout")
+                if opts.dns_timeout is None:
+                    opts.dns_timeout = 2
             if "dns_test_address" in general_config:
                 opts.dns_test_address = general_config["dns_test_address"]
             if "nameservers" in general_config:
@@ -800,7 +802,7 @@ def _main():
             if "port" in imap_config:
                 opts.imap_port = imap_config.getint("port")
             if "timeout" in imap_config:
-                opts.imap_timeout = imap_config.getfloat("timeout")
+                opts.imap_timeout = imap_config.getint("timeout")
             if "max_retries" in imap_config:
                 opts.imap_max_retries = imap_config.getint("max_retries")
             if "ssl" in imap_config:
@@ -1193,7 +1195,9 @@ def _main():
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
             opts.maildir_path = maildir_api_config.get("maildir_path")
-            opts.maildir_create = maildir_api_config.get("maildir_create")
+            opts.maildir_create = maildir_api_config.getboolean(
+                "maildir_create", fallback=False
+            )
 
         if "log_analytics" in config.sections():
             log_analytics_config = config["log_analytics"]
@@ -1436,16 +1440,19 @@ def _main():
 
     results = []
 
+    pbar = None
     if sys.stdout.isatty():
         pbar = tqdm(total=len(file_paths))
 
-    for batch_index in range(math.ceil(len(file_paths) / opts.n_procs)):
+    n_procs = int(opts.n_procs or 1)
+    if n_procs < 1:
+        n_procs = 1
+
+    for batch_index in range((len(file_paths) + n_procs - 1) // n_procs):
         processes = []
         connections = []
 
-        for proc_index in range(
-            opts.n_procs * batch_index, opts.n_procs * (batch_index + 1)
-        ):
+        for proc_index in range(n_procs * batch_index, n_procs * (batch_index + 1)):
             if proc_index >= len(file_paths):
                 break
 
@@ -1478,9 +1485,12 @@ def _main():
 
         for proc in processes:
             proc.join()
-            if sys.stdout.isatty():
+            if pbar is not None:
                 counter += 1
-                pbar.update(counter - pbar.n)
+                pbar.update(1)
+
+    if pbar is not None:
+        pbar.close()
 
     for result in results:
         if isinstance(result[0], ParserError) or result[0] is None:
@@ -1537,13 +1547,19 @@ def _main():
             if not opts.imap_ssl:
                 ssl = False
 
+            imap_timeout = (
+                int(opts.imap_timeout) if opts.imap_timeout is not None else 30
+            )
+            imap_max_retries = (
+                int(opts.imap_max_retries) if opts.imap_max_retries is not None else 4
+            )
             mailbox_connection = IMAPConnection(
                 host=opts.imap_host,
                 port=opts.imap_port,
                 ssl=ssl,
                 verify=verify,
-                timeout=opts.imap_timeout,
-                max_retries=opts.imap_max_retries,
+                timeout=imap_timeout,
+                max_retries=imap_max_retries,
                 user=opts.imap_user,
                 password=opts.imap_password,
             )
@@ -1564,7 +1580,7 @@ def _main():
                 username=opts.graph_user,
                 password=opts.graph_password,
                 token_file=opts.graph_token_file,
-                allow_unencrypted_storage=opts.graph_allow_unencrypted_storage,
+                allow_unencrypted_storage=bool(opts.graph_allow_unencrypted_storage),
                 graph_url=opts.graph_url,
             )
 

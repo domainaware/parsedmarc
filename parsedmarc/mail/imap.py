@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import cast
 
 from time import sleep
 
@@ -17,15 +17,14 @@ from parsedmarc.mail.mailbox_connection import MailboxConnection
 class IMAPConnection(MailboxConnection):
     def __init__(
         self,
-        host: Optional[str] = None,
-        *,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        port: Optional[str] = None,
-        ssl: Optional[bool] = True,
-        verify: Optional[bool] = True,
-        timeout: Optional[int] = 30,
-        max_retries: Optional[int] = 4,
+        host: str,
+        user: str,
+        password: str,
+        port: int = 993,
+        ssl: bool = True,
+        verify: bool = True,
+        timeout: int = 30,
+        max_retries: int = 4,
     ):
         self._username = user
         self._password = password
@@ -47,13 +46,13 @@ class IMAPConnection(MailboxConnection):
     def fetch_messages(self, reports_folder: str, **kwargs):
         self._client.select_folder(reports_folder)
         since = kwargs.get("since")
-        if since:
-            return self._client.search(["SINCE", since])
+        if since is not None:
+            return self._client.search(f"SINCE {since}")
         else:
             return self._client.search()
 
     def fetch_message(self, message_id: int):
-        return self._client.fetch_message(message_id, parse=False)
+        return cast(str, self._client.fetch_message(message_id, parse=False))
 
     def delete_message(self, message_id: int):
         self._client.delete_messages([message_id])
