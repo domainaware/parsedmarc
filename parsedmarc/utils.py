@@ -238,7 +238,7 @@ def timestamp_to_human(timestamp: int) -> str:
 
 
 def human_timestamp_to_datetime(
-    human_timestamp: str, *, to_utc: Optional[bool] = False
+    human_timestamp: str, *, to_utc: bool = False
 ) -> datetime:
     """
     Converts a human-readable timestamp into a Python ``datetime`` object
@@ -339,10 +339,10 @@ def get_ip_address_country(
 def get_service_from_reverse_dns_base_domain(
     base_domain,
     *,
-    always_use_local_file: Optional[bool] = False,
+    always_use_local_file: bool = False,
     local_file_path: Optional[str] = None,
     url: Optional[str] = None,
-    offline: Optional[bool] = False,
+    offline: bool = False,
     reverse_dns_map: Optional[ReverseDNSMap] = None,
 ) -> ReverseDNSService:
     """
@@ -425,11 +425,11 @@ def get_ip_address_info(
     *,
     ip_db_path: Optional[str] = None,
     reverse_dns_map_path: Optional[str] = None,
-    always_use_local_files: Optional[bool] = False,
+    always_use_local_files: bool = False,
     reverse_dns_map_url: Optional[str] = None,
     cache: Optional[ExpiringDict] = None,
     reverse_dns_map: Optional[ReverseDNSMap] = None,
-    offline: Optional[bool] = False,
+    offline: bool = False,
     nameservers: Optional[list[str]] = None,
     timeout: float = 2.0,
 ) -> IPAddressInfo:
@@ -620,8 +620,8 @@ def convert_outlook_msg(msg_bytes: bytes) -> bytes:
 
 
 def parse_email(
-    data: Union[bytes, str], *, strip_attachment_payloads: Optional[bool] = False
-):
+    data: Union[bytes, str], *, strip_attachment_payloads: bool = False
+) -> dict:
     """
     A simplified email parser
 

@@ -378,9 +378,9 @@ def save_aggregate_report_to_opensearch(
     aggregate_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
-    monthly_indexes: Optional[bool] = False,
-    number_of_shards: Optional[int] = 1,
-    number_of_replicas: Optional[int] = 0,
+    monthly_indexes: bool = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
 ):
     """
     Saves a parsed DMARC aggregate report to OpenSearch
@@ -539,7 +539,7 @@ def save_forensic_report_to_opensearch(
     forensic_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
-    monthly_indexes: Optional[bool] = False,
+    monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
 ):
@@ -706,9 +706,9 @@ def save_smtp_tls_report_to_opensearch(
     report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
-    monthly_indexes: Optional[bool] = False,
-    number_of_shards: Optional[int] = 1,
-    number_of_replicas: Optional[int] = 0,
+    monthly_indexes: bool = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
 ):
     """
     Saves a parsed SMTP TLS report to OpenSearch

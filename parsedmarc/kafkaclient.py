@@ -46,7 +46,7 @@ class KafkaClient(object):
             ``$ConnectionString``, and the password is the
             Azure Event Hub connection string.
         """
-        config = dict(
+        config: dict[str, Any] = dict(
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             bootstrap_servers=kafka_hosts,
             client_id="parsedmarc-{0}".format(__version__),

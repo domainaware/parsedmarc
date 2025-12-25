@@ -266,12 +266,12 @@ class AlreadySaved(ValueError):
 def set_hosts(
     hosts: Union[str, list[str]],
     *,
-    use_ssl: Optional[bool] = False,
+    use_ssl: bool = False,
     ssl_cert_path: Optional[str] = None,
     username: Optional[str] = None,
     password: Optional[str] = None,
     api_key: Optional[str] = None,
-    timeout: Optional[float] = 60.0,
+    timeout: float = 60.0,
 ):
     """
     Sets the Elasticsearch hosts to use
@@ -379,8 +379,8 @@ def save_aggregate_report_to_elasticsearch(
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
-    number_of_shards: Optional[int] = 1,
-    number_of_replicas: Optional[int] = 0,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
 ):
     """
     Saves a parsed DMARC aggregate report to Elasticsearch
@@ -706,9 +706,9 @@ def save_smtp_tls_report_to_elasticsearch(
     report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
-    monthly_indexes: Optional[bool] = False,
-    number_of_shards: Optional[int] = 1,
-    number_of_replicas: Optional[int] = 0,
+    monthly_indexes: bool = False,
+    number_of_shards: int = 1,
+    number_of_replicas: int = 0,
 ):
     """
     Saves a parsed SMTP TLS report to Elasticsearch

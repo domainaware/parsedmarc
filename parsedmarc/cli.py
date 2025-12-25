@@ -1278,7 +1278,6 @@ def _main():
         exit(1)
 
     logger.info("Starting parsedmarc")
-    
 
     if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
         try:
@@ -1296,6 +1295,11 @@ def _main():
                     es_aggregate_index = "{0}{1}".format(prefix, es_aggregate_index)
                     es_forensic_index = "{0}{1}".format(prefix, es_forensic_index)
                     es_smtp_tls_index = "{0}{1}".format(prefix, es_smtp_tls_index)
+                elastic_timeout_value = (
+                    float(opts.elasticsearch_timeout)
+                    if opts.elasticsearch_timeout is not None
+                    else 60.0
+                )
                 elastic.set_hosts(
                     opts.elasticsearch_hosts,
                     use_ssl=opts.elasticsearch_ssl,
@@ -1303,7 +1307,7 @@ def _main():
                     username=opts.elasticsearch_username,
                     password=opts.elasticsearch_password,
                     api_key=opts.elasticsearch_api_key,
-                    timeout=opts.elasticsearch_timeout,
+                    timeout=elastic_timeout_value,
                 )
                 elastic.migrate_indexes(
                     aggregate_indexes=[es_aggregate_index],
@@ -1328,6 +1332,11 @@ def _main():
                     os_aggregate_index = "{0}{1}".format(prefix, os_aggregate_index)
                     os_forensic_index = "{0}{1}".format(prefix, os_forensic_index)
                     os_smtp_tls_index = "{0}{1}".format(prefix, os_smtp_tls_index)
+                opensearch_timeout_value = (
+                    float(opts.opensearch_timeout)
+                    if opts.opensearch_timeout is not None
+                    else 60.0
+                )
                 opensearch.set_hosts(
                     opts.opensearch_hosts,
                     use_ssl=opts.opensearch_ssl,
@@ -1335,7 +1344,7 @@ def _main():
                     username=opts.opensearch_username,
                     password=opts.opensearch_password,
                     api_key=opts.opensearch_api_key,
-                    timeout=opts.opensearch_timeout,
+                    timeout=opensearch_timeout_value,
                 )
                 opensearch.migrate_indexes(
                     aggregate_indexes=[os_aggregate_index],
@@ -1717,7 +1726,6 @@ def _main():
     if mailbox_connection and opts.mailbox_watch:
         logger.info("Watching for email - Quit with ctrl-c")
 
-        
         try:
             watch_inbox(
                 mailbox_connection=mailbox_connection,
