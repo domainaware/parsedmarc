@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 9.0.5 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 9.0.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=531a4ab2"></script>
+      <script src="../../_static/documentation_options.js?v=64e2c0d8"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -84,30 +84,28 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch_dsl.search</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch_dsl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">connections</span><span class="p">,</span>
-    <span class="n">Object</span><span class="p">,</span>
+    <span class="n">Boolean</span><span class="p">,</span>
+    <span class="n">Date</span><span class="p">,</span>
     <span class="n">Document</span><span class="p">,</span>
     <span class="n">Index</span><span class="p">,</span>
-    <span class="n">Nested</span><span class="p">,</span>
     <span class="n">InnerDoc</span><span class="p">,</span>
     <span class="n">Integer</span><span class="p">,</span>
-    <span class="n">Text</span><span class="p">,</span>
-    <span class="n">Boolean</span><span class="p">,</span>
     <span class="n">Ip</span><span class="p">,</span>
-    <span class="n">Date</span><span class="p">,</span>
+    <span class="n">Nested</span><span class="p">,</span>
+    <span class="n">Object</span><span class="p">,</span>
     <span class="n">Search</span><span class="p">,</span>
+    <span class="n">Text</span><span class="p">,</span>
+    <span class="n">connections</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch_dsl.search</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidForensicReport</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">human_timestamp_to_datetime</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidForensicReport</span>
 
 
 <div class="viewcode-block" id="ElasticsearchError">
@@ -179,17 +177,17 @@
     <span class="n">spf_results</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SPFResult</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_policy_override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">comment</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">policy_overrides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_PolicyOverride</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">type_</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policy_overrides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_PolicyOverride</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">type_</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_dkim_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">_DKIMResult</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_DKIMResult</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="n">selector</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_spf_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">_SPFResult</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SPFResult</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SPFResult</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportIncompatibleMethodOverride]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">passed_dmarc</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">passed_dmarc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spf_aligned</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">dkim_aligned</span>
 
@@ -223,25 +221,25 @@
     <span class="n">attachments</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_EmailAttachmentDoc</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_reply_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reply_to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_cc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_bcc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bcc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bcc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sha256</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_EmailAttachmentDoc</span><span class="p">(</span>
                 <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">,</span> <span class="n">sha256</span><span class="o">=</span><span class="n">sha256</span>
             <span class="p">)</span>
-        <span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_ForensicReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
@@ -309,7 +307,7 @@
             <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
             <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_SMTPTLSReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
@@ -343,7 +341,7 @@
             <span class="n">policy_string</span><span class="o">=</span><span class="n">policy_string</span><span class="p">,</span>
             <span class="n">mx_host_patterns</span><span class="o">=</span><span class="n">mx_host_patterns</span><span class="p">,</span>
             <span class="n">failure_details</span><span class="o">=</span><span class="n">failure_details</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
 
 <div class="viewcode-block" id="AlreadySaved">
@@ -358,12 +356,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">set_hosts</span><span class="p">(</span>
     <span class="n">hosts</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">use_ssl</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">use_ssl</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ssl_cert_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">password</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sets the Elasticsearch hosts to use</span>
@@ -465,7 +463,7 @@
             <span class="p">}</span>
             <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
             <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">put_mapping</span><span class="p">(</span><span class="n">doc_type</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
-            <span class="n">reindex</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(),</span> <span class="n">aggregate_index_name</span><span class="p">,</span> <span class="n">new_index_name</span><span class="p">)</span>
+            <span class="n">reindex</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(),</span> <span class="n">aggregate_index_name</span><span class="p">,</span> <span class="n">new_index_name</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
             <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">forensic_index</span> <span class="ow">in</span> <span class="n">forensic_indexes</span><span class="p">:</span>
@@ -476,18 +474,18 @@
 <div class="viewcode-block" id="save_aggregate_report_to_elasticsearch">
 <a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_aggregate_report_to_elasticsearch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_aggregate_report_to_elasticsearch</span><span class="p">(</span>
-    <span class="n">aggregate_report</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">aggregate_report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">index_suffix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">monthly_indexes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">number_of_shards</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">number_of_replicas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">number_of_shards</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">number_of_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves a parsed DMARC aggregate report to Elasticsearch</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        aggregate_report (OrderedDict): A parsed forensic report</span>
+<span class="sd">        aggregate_report (dict): A parsed forensic report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
 <span class="sd">        index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
@@ -511,11 +509,11 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">index_date</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
-    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
-    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;published_policy.domain&quot;</span><span class="p">:</span> <span class="n">domain</span><span class="p">}))</span>
-    <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_begin</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
-    <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
+    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>  <span class="c1"># type: ignore</span>
+    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">domain_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;published_policy.domain&quot;</span><span class="p">:</span> <span class="n">domain</span><span class="p">}))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_begin</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
@@ -527,13 +525,12 @@
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
+    <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
+    <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
-        <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
-        <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
-
         <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
             <span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
 <span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
@@ -629,7 +626,7 @@
             <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
         <span class="p">)</span>
         <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
-        <span class="n">agg_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="n">agg_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>  <span class="c1"># pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
@@ -641,7 +638,7 @@
 <div class="viewcode-block" id="save_forensic_report_to_elasticsearch">
 <a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_forensic_report_to_elasticsearch</span><span class="p">(</span>
-    <span class="n">forensic_report</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">forensic_report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">index_suffix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">monthly_indexes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -652,7 +649,7 @@
 <span class="sd">    Saves a parsed DMARC forensic report to Elasticsearch</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        forensic_report (OrderedDict): A parsed forensic report</span>
+<span class="sd">        forensic_report (dict): A parsed forensic report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
 <span class="sd">        index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily</span>
@@ -672,7 +669,7 @@
         <span class="n">sample_date</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;date&quot;</span><span class="p">]</span>
         <span class="n">sample_date</span> <span class="o">=</span> <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">sample_date</span><span class="p">)</span>
     <span class="n">original_headers</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">][</span><span class="s2">&quot;headers&quot;</span><span class="p">]</span>
-    <span class="n">headers</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">original_header</span> <span class="ow">in</span> <span class="n">original_headers</span><span class="p">:</span>
         <span class="n">headers</span><span class="p">[</span><span class="n">original_header</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">original_headers</span><span class="p">[</span><span class="n">original_header</span><span class="p">]</span>
 
@@ -686,7 +683,7 @@
     <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrival_date</span><span class="o">=</span><span class="n">arrival_date_epoch_milliseconds</span><span class="p">)))</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrival_date</span><span class="o">=</span><span class="n">arrival_date_epoch_milliseconds</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="n">from_</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">to_</span> <span class="o">=</span> <span class="kc">None</span>
@@ -701,7 +698,7 @@
 
         <span class="n">from_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">from_</span><span class="p">[</span><span class="s2">&quot;sample.headers.from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span>
-        <span class="n">from_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="n">from_</span><span class="p">))</span>
+        <span class="n">from_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="n">from_</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">from_query</span>
     <span class="k">if</span> <span class="s2">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="c1"># We convert the TO header from a string list to a flat string.</span>
@@ -713,12 +710,12 @@
 
         <span class="n">to_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">to_</span><span class="p">[</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]</span>
-        <span class="n">to_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="n">to_</span><span class="p">))</span>
+        <span class="n">to_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="n">to_</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">to_query</span>
     <span class="k">if</span> <span class="s2">&quot;subject&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span>
         <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>
     <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
@@ -796,7 +793,7 @@
             <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
         <span class="p">)</span>
         <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
-        <span class="n">forensic_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="n">forensic_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>  <span class="c1"># pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">forensic_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -811,18 +808,18 @@
 <div class="viewcode-block" id="save_smtp_tls_report_to_elasticsearch">
 <a class="viewcode-back" href="../../api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_smtp_tls_report_to_elasticsearch</span><span class="p">(</span>
-    <span class="n">report</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">index_suffix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">index_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">monthly_indexes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">number_of_shards</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">number_of_replicas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">monthly_indexes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">number_of_shards</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">number_of_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Saves a parsed SMTP TLS report to Elasticsearch</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        report (OrderedDict): A parsed SMTP TLS report</span>
+<span class="sd">        report (dict): A parsed SMTP TLS report</span>
 <span class="sd">        index_suffix (str): The suffix of the name of the index to save to</span>
 <span class="sd">        index_prefix (str): The prefix of the name of the index to save to</span>
 <span class="sd">        monthly_indexes (bool): Use monthly indexes instead of daily indexes</span>
@@ -846,10 +843,10 @@
     <span class="n">report</span><span class="p">[</span><span class="s2">&quot;begin_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">begin_date</span>
     <span class="n">report</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_date</span>
 
-    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>
-    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>
-    <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_begin</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>
-    <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>
+    <span class="n">org_name_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">org_name</span><span class="o">=</span><span class="n">org_name</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">report_id_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">report_id</span><span class="o">=</span><span class="n">report_id</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">begin_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_begin</span><span class="o">=</span><span class="n">begin_date</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+    <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
@@ -950,10 +947,10 @@
                     <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
                     <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
                 <span class="p">)</span>
-        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
+        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
-    <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+    <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>  <span class="c1"># pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
