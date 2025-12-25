@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union
+from typing import Optional, TypedDict, Union, cast
 
 import mailparser
 from expiringdict import ExpiringDict
@@ -64,7 +64,24 @@ class DownloadError(RuntimeError):
     """Raised when an error occurs when downloading a file"""
 
 
-def decode_base64(data) -> bytes:
+class ReverseDNSService(TypedDict):
+    name: str
+    type: Optional[str]
+
+
+ReverseDNSMap = dict[str, ReverseDNSService]
+
+
+class IPAddressInfo(TypedDict):
+    ip_address: str
+    reverse_dns: Optional[str]
+    country: Optional[str]
+    base_domain: Optional[str]
+    name: Optional[str]
+    type: Optional[str]
+
+
+def decode_base64(data: str) -> bytes:
     """
     Decodes a base64 string, with padding being optional
 
@@ -75,11 +92,11 @@ def decode_base64(data) -> bytes:
         bytes: The decoded bytes
 
     """
-    data = bytes(data, encoding="ascii")
-    missing_padding = len(data) % 4
+    data_bytes = bytes(data, encoding="ascii")
+    missing_padding = len(data_bytes) % 4
     if missing_padding != 0:
-        data += b"=" * (4 - missing_padding)
-    return base64.b64decode(data)
+        data_bytes += b"=" * (4 - missing_padding)
+    return base64.b64decode(data_bytes)
 
 
 def get_base_domain(domain: str) -> Optional[str]:
@@ -132,9 +149,9 @@ def query_dns(
     record_type = record_type.upper()
     cache_key = "{0}_{1}".format(domain, record_type)
     if cache:
-        records = cache.get(cache_key, None)
-        if records:
-            return records
+        cached_records = cache.get(cache_key, None)
+        if isinstance(cached_records, list):
+            return cast(list[str], cached_records)
 
     resolver = dns.resolver.Resolver()
     timeout = float(timeout)
@@ -148,26 +165,12 @@ def query_dns(
     resolver.nameservers = nameservers
     resolver.timeout = timeout
     resolver.lifetime = timeout
-    if record_type == "TXT":
-        resource_records = list(
-            map(
-                lambda r: r.strings,
-                resolver.resolve(domain, record_type, lifetime=timeout),
-            )
+    records = list(
+        map(
+            lambda r: r.to_text().replace('"', "").rstrip("."),
+            resolver.resolve(domain, record_type, lifetime=timeout),
         )
-        _resource_record = [
-            resource_record[0][:0].join(resource_record)
-            for resource_record in resource_records
-            if resource_record
-        ]
-        records = [r.decode() for r in _resource_record]
-    else:
-        records = list(
-            map(
-                lambda r: r.to_text().replace('"', "").rstrip("."),
-                resolver.resolve(domain, record_type, lifetime=timeout),
-            )
-        )
+    )
     if cache:
         cache[cache_key] = records
 
@@ -180,7 +183,7 @@ def get_reverse_dns(
     cache: Optional[ExpiringDict] = None,
     nameservers: Optional[list[str]] = None,
     timeout: float = 2.0,
-) -> str:
+) -> Optional[str]:
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
@@ -198,7 +201,7 @@ def get_reverse_dns(
     try:
         address = dns.reversename.from_address(ip_address)
         hostname = query_dns(
-            address, "PTR", cache=cache, nameservers=nameservers, timeout=timeout
+            str(address), "PTR", cache=cache, nameservers=nameservers, timeout=timeout
         )[0]
 
     except dns.exception.DNSException as e:
@@ -266,10 +269,12 @@ def human_timestamp_to_unix_timestamp(human_timestamp: str) -> int:
         float: The converted timestamp
     """
     human_timestamp = human_timestamp.replace("T", " ")
-    return human_timestamp_to_datetime(human_timestamp).timestamp()
+    return int(human_timestamp_to_datetime(human_timestamp).timestamp())
 
 
-def get_ip_address_country(ip_address: str, *, db_path: Optional[str] = None) -> str:
+def get_ip_address_country(
+    ip_address: str, *, db_path: Optional[str] = None
+) -> Optional[str]:
     """
     Returns the ISO code for the country associated
     with the given IPv4 or IPv6 address
@@ -335,11 +340,11 @@ def get_service_from_reverse_dns_base_domain(
     base_domain,
     *,
     always_use_local_file: Optional[bool] = False,
-    local_file_path: Optional[bool] = None,
-    url: Optional[bool] = None,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
     offline: Optional[bool] = False,
-    reverse_dns_map: Optional[bool] = None,
-) -> str:
+    reverse_dns_map: Optional[ReverseDNSMap] = None,
+) -> ReverseDNSService:
     """
     Returns the service name of a given base domain name from reverse DNS.
 
@@ -356,12 +361,6 @@ def get_service_from_reverse_dns_base_domain(
         the supplied reverse_dns_base_domain and the type will be None
     """
 
-    def load_csv(_csv_file):
-        reader = csv.DictReader(_csv_file)
-        for row in reader:
-            key = row["base_reverse_dns"].lower().strip()
-            reverse_dns_map[key] = dict(name=row["name"], type=row["type"])
-
     base_domain = base_domain.lower().strip()
     if url is None:
         url = (
@@ -369,11 +368,24 @@ def get_service_from_reverse_dns_base_domain(
             "/parsedmarc/master/parsedmarc/"
             "resources/maps/base_reverse_dns_map.csv"
         )
+    reverse_dns_map_value: ReverseDNSMap
     if reverse_dns_map is None:
-        reverse_dns_map = dict()
+        reverse_dns_map_value = {}
+    else:
+        reverse_dns_map_value = reverse_dns_map
+
+    def load_csv(_csv_file):
+        reader = csv.DictReader(_csv_file)
+        for row in reader:
+            key = row["base_reverse_dns"].lower().strip()
+            reverse_dns_map_value[key] = {
+                "name": row["name"],
+                "type": row["type"],
+            }
+
     csv_file = io.StringIO()
 
-    if not (offline or always_use_local_file) and len(reverse_dns_map) == 0:
+    if not (offline or always_use_local_file) and len(reverse_dns_map_value) == 0:
         try:
             logger.debug(f"Trying to fetch reverse DNS map from {url}...")
             headers = {"User-Agent": USER_AGENT}
@@ -390,7 +402,7 @@ def get_service_from_reverse_dns_base_domain(
             logging.debug("Response body:")
             logger.debug(csv_file.read())
 
-    if len(reverse_dns_map) == 0:
+    if len(reverse_dns_map_value) == 0:
         logger.info("Loading included reverse DNS map...")
         path = str(
             files(parsedmarc.resources.maps).joinpath("base_reverse_dns_map.csv")
@@ -399,10 +411,11 @@ def get_service_from_reverse_dns_base_domain(
             path = local_file_path
         with open(path) as csv_file:
             load_csv(csv_file)
+    service: ReverseDNSService
     try:
-        service = reverse_dns_map[base_domain]
+        service = reverse_dns_map_value[base_domain]
     except KeyError:
-        service = dict(name=base_domain, type=None)
+        service = {"name": base_domain, "type": None}
 
     return service
 
@@ -415,11 +428,11 @@ def get_ip_address_info(
     always_use_local_files: Optional[bool] = False,
     reverse_dns_map_url: Optional[str] = None,
     cache: Optional[ExpiringDict] = None,
-    reverse_dns_map: Optional[dict] = None,
+    reverse_dns_map: Optional[ReverseDNSMap] = None,
     offline: Optional[bool] = False,
     nameservers: Optional[list[str]] = None,
-    timeout: Optional[float] = 2.0,
-) -> dict[str, str]:
+    timeout: float = 2.0,
+) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
 
@@ -442,12 +455,22 @@ def get_ip_address_info(
     """
     ip_address = ip_address.lower()
     if cache is not None:
-        info = cache.get(ip_address, None)
-        if info:
+        cached_info = cache.get(ip_address, None)
+        if (
+            cached_info
+            and isinstance(cached_info, dict)
+            and "ip_address" in cached_info
+        ):
             logger.debug(f"IP address {ip_address} was found in cache")
-            return info
-    info: dict[str, str] = {}
-    info["ip_address"] = ip_address
+            return cast(IPAddressInfo, cached_info)
+    info: IPAddressInfo = {
+        "ip_address": ip_address,
+        "reverse_dns": None,
+        "country": None,
+        "base_domain": None,
+        "name": None,
+        "type": None,
+    }
     if offline:
         reverse_dns = None
     else:
@@ -457,9 +480,6 @@ def get_ip_address_info(
     country = get_ip_address_country(ip_address, db_path=ip_db_path)
     info["country"] = country
     info["reverse_dns"] = reverse_dns
-    info["base_domain"] = None
-    info["name"] = None
-    info["type"] = None
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
         if base_domain is not None:
@@ -484,7 +504,7 @@ def get_ip_address_info(
     return info
 
 
-def parse_email_address(original_address: str) -> dict[str, str]:
+def parse_email_address(original_address: str) -> dict[str, Optional[str]]:
     if original_address[0] == "":
         display_name = None
     else:
@@ -563,7 +583,7 @@ def is_outlook_msg(content) -> bool:
     )
 
 
-def convert_outlook_msg(msg_bytes: bytes) -> str:
+def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     """
     Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
     standard RFC 822 format
@@ -572,7 +592,7 @@ def convert_outlook_msg(msg_bytes: bytes) -> str:
         msg_bytes (bytes): the content of the .msg file
 
     Returns:
-        A RFC 822 string
+        A RFC 822 bytes payload
     """
     if not is_outlook_msg(msg_bytes):
         raise ValueError("The supplied bytes are not an Outlook MSG file")

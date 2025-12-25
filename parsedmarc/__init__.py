@@ -18,20 +18,17 @@ import zipfile
 import zlib
 from base64 import b64decode
 from csv import DictWriter
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
 from typing import (
-    IO,
     Any,
     BinaryIO,
     Callable,
     Dict,
     List,
     Optional,
-    Protocol,
     Union,
     cast,
-    runtime_checkable,
 )
 
 import lxml.etree as etree
@@ -864,14 +861,7 @@ def parse_aggregate_report_xml(
         raise InvalidAggregateReport("Unexpected error: {0}".format(error.__str__()))
 
 
-@runtime_checkable
-class _ReadableSeekable(Protocol):
-    def read(self, n: int = -1) -> bytes: ...
-    def seek(self, offset: int, whence: int = 0) -> int: ...
-    def tell(self) -> int: ...
-
-
-def extract_report(content: Union[bytes, bytearray, memoryview, str, BinaryIO]) -> str:
+def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
     """
     Extracts text from a zip or gzip file, as a base64-encoded string,
     file-like object, or bytes.
@@ -884,31 +874,59 @@ def extract_report(content: Union[bytes, bytearray, memoryview, str, BinaryIO]) 
         str: The extracted text
 
     """
-    file_object: Optional[_ReadableSeekable] = None
+    file_object: Optional[BinaryIO] = None
+    header: bytes
     try:
         if isinstance(content, str):
             try:
                 file_object = BytesIO(b64decode(content))
             except binascii.Error:
                 return content
-        elif isinstance(content, (bytes, bytearray, memoryview)):
+            header = file_object.read(6)
+            file_object.seek(0)
+        elif isinstance(content, (bytes)):
             file_object = BytesIO(bytes(content))
+            header = file_object.read(6)
+            file_object.seek(0)
         else:
-            file_object = cast(_ReadableSeekable, content)
+            stream = cast(BinaryIO, content)
+            seekable = getattr(stream, "seekable", None)
+            can_seek = False
+            if callable(seekable):
+                try:
+                    can_seek = bool(seekable())
+                except Exception:
+                    can_seek = False
 
-        header = file_object.read(6)
-        if isinstance(header, str):
-            raise ParserError("File objects must be opened in binary (rb) mode")
+            if can_seek:
+                header_raw = stream.read(6)
+                if isinstance(header_raw, str):
+                    raise ParserError("File objects must be opened in binary (rb) mode")
+                header = bytes(header_raw)
+                stream.seek(0)
+                file_object = stream
+            else:
+                header_raw = stream.read(6)
+                if isinstance(header_raw, str):
+                    raise ParserError("File objects must be opened in binary (rb) mode")
+                header = bytes(header_raw)
+                remainder = stream.read()
+                file_object = BytesIO(header + bytes(remainder))
 
-        file_object.seek(0)
-        if header.startswith(MAGIC_ZIP):
+        if file_object is None:
+            raise ParserError("Invalid report content")
+
+        if header[: len(MAGIC_ZIP)] == MAGIC_ZIP:
             _zip = zipfile.ZipFile(file_object)
             report = _zip.open(_zip.namelist()[0]).read().decode(errors="ignore")
-        elif header.startswith(MAGIC_GZIP):
+        elif header[: len(MAGIC_GZIP)] == MAGIC_GZIP:
             report = zlib.decompress(file_object.read(), zlib.MAX_WBITS | 16).decode(
                 errors="ignore"
             )
-        elif header.startswith(MAGIC_XML) or header.startswith(MAGIC_JSON):
+        elif (
+            header[: len(MAGIC_XML)] == MAGIC_XML
+            or header[: len(MAGIC_JSON)] == MAGIC_JSON
+        ):
             report = file_object.read().decode(errors="ignore")
         else:
             raise ParserError("Not a valid zip, gzip, json, or xml file")
@@ -918,7 +936,7 @@ def extract_report(content: Union[bytes, bytearray, memoryview, str, BinaryIO]) 
     except Exception as error:
         raise ParserError("Invalid archive file: {0}".format(error.__str__()))
     finally:
-        if file_object and hasattr(file_object, "close"):
+        if file_object:
             try:
                 file_object.close()
             except Exception:
@@ -937,17 +955,17 @@ def extract_report_from_file_path(file_path: str):
 
 
 def parse_aggregate_report_file(
-    _input: Union[str, bytes, IO[Any]],
+    _input: Union[str, bytes, BinaryIO],
     *,
-    offline: Optional[bool] = False,
-    always_use_local_files: Optional[bool] = None,
+    offline: bool = False,
+    always_use_local_files: bool = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
     ip_db_path: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: Optional[float] = 2.0,
+    dns_timeout: float = 2.0,
     keep_alive: Optional[Callable] = None,
-    normalize_timespan_threshold_hours: Optional[float] = 24.0,
+    normalize_timespan_threshold_hours: float = 24.0,
 ) -> dict[str, Any]:
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
@@ -1187,14 +1205,14 @@ def parse_forensic_report(
     sample: str,
     msg_date: datetime,
     *,
-    always_use_local_files: Optional[bool] = False,
+    always_use_local_files: bool = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
-    offline: Optional[bool] = False,
+    offline: bool = False,
     ip_db_path: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: Optional[float] = 2.0,
-    strip_attachment_payloads: Optional[bool] = False,
+    dns_timeout: float = 2.0,
+    strip_attachment_payloads: bool = False,
 ) -> dict[str, Any]:
     """
     Converts a DMARC forensic report and sample to a dict
@@ -1449,20 +1467,32 @@ def parse_report_email(
         * ``report_type``: ``aggregate`` or ``forensic``
         * ``report``: The parsed report
     """
-    result = None
+    result: Optional[dict[str, Any]] = None
     msg_date: datetime = datetime.now(timezone.utc)
 
     try:
-        if isinstance(input_, bytes) and is_outlook_msg(input_):
-            input_ = convert_outlook_msg(input_)
-        if isinstance(input_, bytes):
-            input_ = input_.decode(encoding="utf8", errors="replace")
-        msg = mailparser.parse_from_string(input_)
+        input_data: Union[str, bytes, bytearray, memoryview] = input_
+        if isinstance(input_data, (bytes, bytearray, memoryview)):
+            input_bytes = bytes(input_data)
+            if is_outlook_msg(input_bytes):
+                converted = convert_outlook_msg(input_bytes)
+                if isinstance(converted, str):
+                    input_str = converted
+                else:
+                    input_str = bytes(converted).decode(
+                        encoding="utf8", errors="replace"
+                    )
+            else:
+                input_str = input_bytes.decode(encoding="utf8", errors="replace")
+        else:
+            input_str = input_data
+
+        msg = mailparser.parse_from_string(input_str)
         msg_headers = json.loads(msg.headers_json)
         if "Date" in msg_headers:
             msg_date = human_timestamp_to_datetime(msg_headers["Date"])
         date = email.utils.format_datetime(msg_date)
-        msg = email.message_from_string(input_)
+        msg = email.message_from_string(input_str)
 
     except Exception as e:
         raise ParserError(e.__str__())
@@ -1477,10 +1507,10 @@ def parse_report_email(
         subject = msg_headers["Subject"]
     for part in msg.walk():
         content_type = part.get_content_type().lower()
-        payload = part.get_payload()
-        if not isinstance(payload, list):
-            payload = [payload]
-        payload = payload[0].__str__()
+        payload_obj = part.get_payload()
+        if not isinstance(payload_obj, list):
+            payload_obj = [payload_obj]
+        payload = str(payload_obj[0])
         if content_type.startswith("multipart/"):
             continue
         if content_type == "text/html":
@@ -1501,7 +1531,7 @@ def parse_report_email(
             sample = payload
         elif content_type == "application/tlsrpt+json":
             if not payload.strip().startswith("{"):
-                payload = str(b64decode(payload))
+                payload = b64decode(payload).decode("utf-8", errors="replace")
             smtp_tls_report = parse_smtp_tls_report_json(payload)
             return {"report_type": "smtp_tls", "report": smtp_tls_report}
         elif content_type == "application/tlsrpt+gzip":
@@ -1531,18 +1561,21 @@ def parse_report_email(
                 logger.debug(sample)
         else:
             try:
-                payload = b64decode(payload)
-                if payload.startswith(MAGIC_ZIP) or payload.startswith(MAGIC_GZIP):
-                    payload = extract_report(payload)
-                if isinstance(payload, bytes):
-                    payload = payload.decode("utf-8", errors="replace")
-                if payload.strip().startswith("{"):
-                    smtp_tls_report = parse_smtp_tls_report_json(payload)
+                payload_bytes = b64decode(payload)
+                if payload_bytes.startswith(MAGIC_ZIP) or payload_bytes.startswith(
+                    MAGIC_GZIP
+                ):
+                    payload_text = extract_report(payload_bytes)
+                else:
+                    payload_text = payload_bytes.decode("utf-8", errors="replace")
+
+                if payload_text.strip().startswith("{"):
+                    smtp_tls_report = parse_smtp_tls_report_json(payload_text)
                     result = {"report_type": "smtp_tls", "report": smtp_tls_report}
                     return result
-                elif payload.strip().startswith("<"):
+                elif payload_text.strip().startswith("<"):
                     aggregate_report = parse_aggregate_report_xml(
-                        payload,
+                        payload_text,
                         ip_db_path=ip_db_path,
                         always_use_local_files=always_use_local_files,
                         reverse_dns_map_path=reverse_dns_map_path,
@@ -1604,26 +1637,28 @@ def parse_report_email(
         error = 'Message with subject "{0}" is not a valid report'.format(subject)
         raise InvalidDMARCReport(error)
 
+    return result
+
 
 def parse_report_file(
-    input_: Union[bytes, str, IO[Any]],
+    input_: Union[bytes, str, BinaryIO],
     *,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: Optional[float] = 2.0,
-    strip_attachment_payloads: Optional[bool] = False,
+    dns_timeout: float = 2.0,
+    strip_attachment_payloads: bool = False,
     ip_db_path: Optional[str] = None,
-    always_use_local_files: Optional[bool] = False,
+    always_use_local_files: bool = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
-    offline: Optional[bool] = False,
+    offline: bool = False,
     keep_alive: Optional[Callable] = None,
-    normalize_timespan_threshold_hours: Optional[float] = 24,
+    normalize_timespan_threshold_hours: float = 24,
 ) -> dict[str, Any]:
     """Parses a DMARC aggregate or forensic file at the given path, a
     file-like object. or bytes
 
     Args:
-        input_ (str | bytes | IO): A path to a file, a file like object, or bytes
+        input_ (str | bytes | BinaryIO): A path to a file, a file like object, or bytes
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -1639,11 +1674,12 @@ def parse_report_file(
     Returns:
         dict: The parsed DMARC report
     """
-    if type(input_) is str:
+    file_object: BinaryIO
+    if isinstance(input_, str):
         logger.debug("Parsing {0}".format(input_))
         file_object = open(input_, "rb")
-    elif type(input_) is bytes:
-        file_object = BytesIO(input_)
+    elif isinstance(input_, (bytes, bytearray, memoryview)):
+        file_object = BytesIO(bytes(input_))
     else:
         file_object = input_
 
@@ -1653,6 +1689,7 @@ def parse_report_file(
         content = extract_report(content)
 
     results: Optional[dict[str, Any]] = None
+
     try:
         report = parse_aggregate_report_file(
             content,
@@ -1673,7 +1710,6 @@ def parse_report_file(
             results = {"report_type": "smtp_tls", "report": report}
         except InvalidSMTPTLSReport:
             try:
-                sa = strip_attachment_payloads
                 results = parse_report_email(
                     content,
                     ip_db_path=ip_db_path,
@@ -1683,7 +1719,7 @@ def parse_report_file(
                     offline=offline,
                     nameservers=nameservers,
                     dns_timeout=dns_timeout,
-                    strip_attachment_payloads=sa,
+                    strip_attachment_payloads=strip_attachment_payloads,
                     keep_alive=keep_alive,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
@@ -1799,7 +1835,7 @@ def get_dmarc_reports_from_mailbox(
     strip_attachment_payloads: bool = False,
     results: Optional[dict[str, Any]] = None,
     batch_size: int = 10,
-    since: Optional[Union[datetime, str]] = None,
+    since: Optional[Union[datetime, date, str]] = None,
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24,
 ) -> dict[str, list[dict[str, Any]]]:
@@ -1840,7 +1876,7 @@ def get_dmarc_reports_from_mailbox(
         raise ValueError("Must supply a connection")
 
     # current_time useful to fetch_messages later in the program
-    current_time = None
+    current_time: Optional[Union[datetime, date, str]] = None
 
     aggregate_reports = []
     forensic_reports = []
@@ -1865,7 +1901,7 @@ def get_dmarc_reports_from_mailbox(
         connection.create_folder(smtp_tls_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
-    if since:
+    if since and isinstance(since, str):
         _since = 1440  # default one day
         if re.match(r"\d+[mhdw]$", since):
             s = re.split(r"(\d+)", since)
@@ -1926,13 +1962,16 @@ def get_dmarc_reports_from_mailbox(
                 i + 1, message_limit, msg_uid
             )
         )
-        if isinstance(mailbox, MSGraphConnection):
-            if test:
-                msg_content = connection.fetch_message(msg_uid, mark_read=False)
-            else:
-                msg_content = connection.fetch_message(msg_uid, mark_read=True)
+        message_id: Union[int, str]
+        if isinstance(connection, IMAPConnection):
+            message_id = int(msg_uid)
+            msg_content = connection.fetch_message(message_id)
+        elif isinstance(connection, MSGraphConnection):
+            message_id = str(msg_uid)
+            msg_content = connection.fetch_message(message_id, mark_read=not test)
         else:
-            msg_content = connection.fetch_message(msg_uid)
+            message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
+            msg_content = connection.fetch_message(message_id)
         try:
             sa = strip_attachment_payloads
             parsed_email = parse_report_email(
@@ -1959,26 +1998,32 @@ def get_dmarc_reports_from_mailbox(
                     logger.debug(
                         f"Skipping duplicate aggregate report with ID: {report_id}"
                     )
-                aggregate_report_msg_uids.append(msg_uid)
+                aggregate_report_msg_uids.append(message_id)
             elif parsed_email["report_type"] == "forensic":
                 forensic_reports.append(parsed_email["report"])
-                forensic_report_msg_uids.append(msg_uid)
+                forensic_report_msg_uids.append(message_id)
             elif parsed_email["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(parsed_email["report"])
-                smtp_tls_msg_uids.append(msg_uid)
+                smtp_tls_msg_uids.append(message_id)
         except ParserError as error:
             logger.warning(error.__str__())
             if not test:
                 if delete:
                     logger.debug("Deleting message UID {0}".format(msg_uid))
-                    connection.delete_message(msg_uid)
+                    if isinstance(connection, IMAPConnection):
+                        connection.delete_message(int(message_id))
+                    else:
+                        connection.delete_message(str(message_id))
                 else:
                     logger.debug(
                         "Moving message UID {0} to {1}".format(
                             msg_uid, invalid_reports_folder
                         )
                     )
-                    connection.move_message(msg_uid, invalid_reports_folder)
+                    if isinstance(connection, IMAPConnection):
+                        connection.move_message(int(message_id), invalid_reports_folder)
+                    else:
+                        connection.move_message(str(message_id), invalid_reports_folder)
 
     if not test:
         if delete:
@@ -2106,21 +2151,21 @@ def watch_inbox(
     mailbox_connection: MailboxConnection,
     callback: Callable,
     *,
-    reports_folder: Optional[str] = "INBOX",
-    archive_folder: Optional[str] = "Archive",
-    delete: Optional[bool] = False,
-    test: Optional[bool] = False,
-    check_timeout: Optional[int] = 30,
+    reports_folder: str = "INBOX",
+    archive_folder: str = "Archive",
+    delete: bool = False,
+    test: bool = False,
+    check_timeout: int = 30,
     ip_db_path: Optional[str] = None,
-    always_use_local_files: Optional[bool] = False,
+    always_use_local_files: bool = False,
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
-    offline: Optional[bool] = False,
+    offline: bool = False,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: Optional[float] = 6.0,
-    strip_attachment_payloads: Optional[bool] = False,
-    batch_size: Optional[int] = None,
-    normalize_timespan_threshold_hours: Optional[float] = 24,
+    dns_timeout: float = 6.0,
+    strip_attachment_payloads: bool = False,
+    batch_size: int = 10,
+    normalize_timespan_threshold_hours: float = 24,
 ):
     """
     Watches the mailbox for new messages and
@@ -2150,7 +2195,6 @@ def watch_inbox(
     """
 
     def check_callback(connection):
-        sa = strip_attachment_payloads
         res = get_dmarc_reports_from_mailbox(
             connection=connection,
             reports_folder=reports_folder,
@@ -2164,7 +2208,7 @@ def watch_inbox(
             offline=offline,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
-            strip_attachment_payloads=sa,
+            strip_attachment_payloads=strip_attachment_payloads,
             batch_size=batch_size,
             create_folders=False,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
@@ -2212,13 +2256,13 @@ def append_csv(filename, csv):
 def save_output(
     results: dict[str, Any],
     *,
-    output_directory: Optional[str] = "output",
-    aggregate_json_filename: Optional[str] = "aggregate.json",
-    forensic_json_filename: Optional[str] = "forensic.json",
-    smtp_tls_json_filename: Optional[str] = "smtp_tls.json",
-    aggregate_csv_filename: Optional[str] = "aggregate.csv",
-    forensic_csv_filename: Optional[str] = "forensic.csv",
-    smtp_tls_csv_filename: Optional[str] = "smtp_tls.csv",
+    output_directory: str = "output",
+    aggregate_json_filename: str = "aggregate.json",
+    forensic_json_filename: str = "forensic.json",
+    smtp_tls_json_filename: str = "smtp_tls.json",
+    aggregate_csv_filename: str = "aggregate.csv",
+    forensic_csv_filename: str = "forensic.csv",
+    smtp_tls_csv_filename: str = "smtp_tls.csv",
 ):
     """
     Save report data in the given directory
@@ -2322,7 +2366,7 @@ def get_report_zip(results: dict[str, Any]) -> bytes:
     storage = BytesIO()
     tmp_dir = tempfile.mkdtemp()
     try:
-        save_output(results, tmp_dir)
+        save_output(results, output_directory=tmp_dir)
         with zipfile.ZipFile(storage, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for root, dirs, files in os.walk(tmp_dir):
                 for file in files:
@@ -2345,10 +2389,10 @@ def email_results(
     results: dict[str, Any],
     host: str,
     mail_from: str,
-    mail_to: str,
+    mail_to: Optional[list[str]],
     *,
-    mail_cc: Optional[list] = None,
-    mail_bcc: Optional[list] = None,
+    mail_cc: Optional[list[str]] = None,
+    mail_bcc: Optional[list[str]] = None,
     port: int = 0,
     require_encryption: bool = False,
     verify: bool = True,
@@ -2377,7 +2421,7 @@ def email_results(
         attachment_filename (str): Override the default attachment filename
         message (str): Override the default plain text body
     """
-    logger.debug("Emailing report to: {0}".format(",".join(mail_to)))
+    logger.debug("Emailing report")
     date_string = datetime.now().strftime("%Y-%m-%d")
     if attachment_filename:
         if not attachment_filename.lower().endswith(".zip"):

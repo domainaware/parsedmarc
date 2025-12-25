@@ -678,7 +678,7 @@ def _main():
         if "general" in config.sections():
             general_config = config["general"]
             if "silent" in general_config:
-                opts.silent = general_config.getboolean("silent")
+                opts.silent = bool(general_config.getboolean("silent"))
             if "normalize_timespan_threshold_hours" in general_config:
                 opts.normalize_timespan_threshold_hours = general_config.getfloat(
                     "normalize_timespan_threshold_hours"
@@ -687,10 +687,10 @@ def _main():
                 with open(general_config["index_prefix_domain_map"]) as f:
                     index_prefix_domain_map = yaml.safe_load(f)
             if "offline" in general_config:
-                opts.offline = general_config.getboolean("offline")
+                opts.offline = bool(general_config.getboolean("offline"))
             if "strip_attachment_payloads" in general_config:
-                opts.strip_attachment_payloads = general_config.getboolean(
-                    "strip_attachment_payloads"
+                opts.strip_attachment_payloads = bool(
+                    general_config.getboolean("strip_attachment_payloads")
                 )
             if "output" in general_config:
                 opts.output = general_config["output"]
@@ -732,19 +732,19 @@ def _main():
                     )
                     exit(-1)
             if "save_aggregate" in general_config:
-                opts.save_aggregate = general_config.getboolean("save_aggregate")
+                opts.save_aggregate = bool(general_config.getboolean("save_aggregate"))
             if "save_forensic" in general_config:
-                opts.save_forensic = general_config.getboolean("save_forensic")
+                opts.save_forensic = bool(general_config.getboolean("save_forensic"))
             if "save_smtp_tls" in general_config:
-                opts.save_smtp_tls = general_config.getboolean("save_smtp_tls")
+                opts.save_smtp_tls = bool(general_config.getboolean("save_smtp_tls"))
             if "debug" in general_config:
-                opts.debug = general_config.getboolean("debug")
+                opts.debug = bool(general_config.getboolean("debug"))
             if "verbose" in general_config:
-                opts.verbose = general_config.getboolean("verbose")
+                opts.verbose = bool(general_config.getboolean("verbose"))
             if "silent" in general_config:
-                opts.silent = general_config.getboolean("silent")
+                opts.silent = bool(general_config.getboolean("silent"))
             if "warnings" in general_config:
-                opts.warnings = general_config.getboolean("warnings")
+                opts.warnings = bool(general_config.getboolean("warnings"))
             if "log_file" in general_config:
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
@@ -754,15 +754,15 @@ def _main():
             else:
                 opts.ip_db_path = None
             if "always_use_local_files" in general_config:
-                opts.always_use_local_files = general_config.getboolean(
-                    "always_use_local_files"
+                opts.always_use_local_files = bool(
+                    general_config.getboolean("always_use_local_files")
                 )
             if "reverse_dns_map_path" in general_config:
                 opts.reverse_dns_map_path = general_config["reverse_dns_path"]
             if "reverse_dns_map_url" in general_config:
                 opts.reverse_dns_map_url = general_config["reverse_dns_url"]
             if "prettify_json" in general_config:
-                opts.prettify_json = general_config.getboolean("prettify_json")
+                opts.prettify_json = bool(general_config.getboolean("prettify_json"))
 
         if "mailbox" in config.sections():
             mailbox_config = config["mailbox"]
@@ -773,11 +773,11 @@ def _main():
             if "archive_folder" in mailbox_config:
                 opts.mailbox_archive_folder = mailbox_config["archive_folder"]
             if "watch" in mailbox_config:
-                opts.mailbox_watch = mailbox_config.getboolean("watch")
+                opts.mailbox_watch = bool(mailbox_config.getboolean("watch"))
             if "delete" in mailbox_config:
-                opts.mailbox_delete = mailbox_config.getboolean("delete")
+                opts.mailbox_delete = bool(mailbox_config.getboolean("delete"))
             if "test" in mailbox_config:
-                opts.mailbox_test = mailbox_config.getboolean("test")
+                opts.mailbox_test = bool(mailbox_config.getboolean("test"))
             if "batch_size" in mailbox_config:
                 opts.mailbox_batch_size = mailbox_config.getint("batch_size")
             if "check_timeout" in mailbox_config:
@@ -805,10 +805,10 @@ def _main():
             if "max_retries" in imap_config:
                 opts.imap_max_retries = imap_config.getint("max_retries")
             if "ssl" in imap_config:
-                opts.imap_ssl = imap_config.getboolean("ssl")
+                opts.imap_ssl = bool(imap_config.getboolean("ssl"))
             if "skip_certificate_verification" in imap_config:
-                opts.imap_skip_certificate_verification = imap_config.getboolean(
-                    "skip_certificate_verification"
+                opts.imap_skip_certificate_verification = bool(
+                    imap_config.getboolean("skip_certificate_verification")
                 )
             if "user" in imap_config:
                 opts.imap_user = imap_config["user"]
@@ -837,7 +837,7 @@ def _main():
                     "section instead."
                 )
             if "watch" in imap_config:
-                opts.mailbox_watch = imap_config.getboolean("watch")
+                opts.mailbox_watch = bool(imap_config.getboolean("watch"))
                 logger.warning(
                     "Use of the watch option in the imap "
                     "configuration section has been deprecated. "
@@ -852,7 +852,7 @@ def _main():
                     "section instead."
                 )
             if "test" in imap_config:
-                opts.mailbox_test = imap_config.getboolean("test")
+                opts.mailbox_test = bool(imap_config.getboolean("test"))
                 logger.warning(
                     "Use of the test option in the imap "
                     "configuration section has been deprecated. "
@@ -946,8 +946,8 @@ def _main():
                 opts.graph_url = graph_config["graph_url"]
 
             if "allow_unencrypted_storage" in graph_config:
-                opts.graph_allow_unencrypted_storage = graph_config.getboolean(
-                    "allow_unencrypted_storage"
+                opts.graph_allow_unencrypted_storage = bool(
+                    graph_config.getboolean("allow_unencrypted_storage")
                 )
 
         if "elasticsearch" in config:
@@ -975,10 +975,10 @@ def _main():
             if "index_prefix" in elasticsearch_config:
                 opts.elasticsearch_index_prefix = elasticsearch_config["index_prefix"]
             if "monthly_indexes" in elasticsearch_config:
-                monthly = elasticsearch_config.getboolean("monthly_indexes")
+                monthly = bool(elasticsearch_config.getboolean("monthly_indexes"))
                 opts.elasticsearch_monthly_indexes = monthly
             if "ssl" in elasticsearch_config:
-                opts.elasticsearch_ssl = elasticsearch_config.getboolean("ssl")
+                opts.elasticsearch_ssl = bool(elasticsearch_config.getboolean("ssl"))
             if "cert_path" in elasticsearch_config:
                 opts.elasticsearch_ssl_cert_path = elasticsearch_config["cert_path"]
             if "user" in elasticsearch_config:
@@ -1015,10 +1015,10 @@ def _main():
             if "index_prefix" in opensearch_config:
                 opts.opensearch_index_prefix = opensearch_config["index_prefix"]
             if "monthly_indexes" in opensearch_config:
-                monthly = opensearch_config.getboolean("monthly_indexes")
+                monthly = bool(opensearch_config.getboolean("monthly_indexes"))
                 opts.opensearch_monthly_indexes = monthly
             if "ssl" in opensearch_config:
-                opts.opensearch_ssl = opensearch_config.getboolean("ssl")
+                opts.opensearch_ssl = bool(opensearch_config.getboolean("ssl"))
             if "cert_path" in opensearch_config:
                 opts.opensearch_ssl_cert_path = opensearch_config["cert_path"]
             if "user" in opensearch_config:
@@ -1072,9 +1072,11 @@ def _main():
             if "password" in kafka_config:
                 opts.kafka_password = kafka_config["password"]
             if "ssl" in kafka_config:
-                opts.kafka_ssl = kafka_config.getboolean("ssl")
+                opts.kafka_ssl = bool(kafka_config.getboolean("ssl"))
             if "skip_certificate_verification" in kafka_config:
-                kafka_verify = kafka_config.getboolean("skip_certificate_verification")
+                kafka_verify = bool(
+                    kafka_config.getboolean("skip_certificate_verification")
+                )
                 opts.kafka_skip_certificate_verification = kafka_verify
             if "aggregate_topic" in kafka_config:
                 opts.kafka_aggregate_topic = kafka_config["aggregate_topic"]
@@ -1106,9 +1108,11 @@ def _main():
             if "port" in smtp_config:
                 opts.smtp_port = smtp_config.getint("port")
             if "ssl" in smtp_config:
-                opts.smtp_ssl = smtp_config.getboolean("ssl")
+                opts.smtp_ssl = bool(smtp_config.getboolean("ssl"))
             if "skip_certificate_verification" in smtp_config:
-                smtp_verify = smtp_config.getboolean("skip_certificate_verification")
+                smtp_verify = bool(
+                    smtp_config.getboolean("skip_certificate_verification")
+                )
                 opts.smtp_skip_certificate_verification = smtp_verify
             if "user" in smtp_config:
                 opts.smtp_user = smtp_config["user"]
@@ -1176,11 +1180,11 @@ def _main():
             gmail_api_config = config["gmail_api"]
             opts.gmail_api_credentials_file = gmail_api_config.get("credentials_file")
             opts.gmail_api_token_file = gmail_api_config.get("token_file", ".token")
-            opts.gmail_api_include_spam_trash = gmail_api_config.getboolean(
-                "include_spam_trash", False
+            opts.gmail_api_include_spam_trash = bool(
+                gmail_api_config.getboolean("include_spam_trash", False)
             )
-            opts.gmail_api_paginate_messages = gmail_api_config.getboolean(
-                "paginate_messages", True
+            opts.gmail_api_paginate_messages = bool(
+                gmail_api_config.getboolean("paginate_messages", True)
             )
             opts.gmail_api_scopes = gmail_api_config.get(
                 "scopes", default_gmail_api_scope
@@ -1194,8 +1198,8 @@ def _main():
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
             opts.maildir_path = maildir_api_config.get("maildir_path")
-            opts.maildir_create = maildir_api_config.getboolean(
-                "maildir_create", fallback=False
+            opts.maildir_create = bool(
+                maildir_api_config.getboolean("maildir_create", fallback=False)
             )
 
         if "log_analytics" in config.sections():
@@ -1274,6 +1278,7 @@ def _main():
         exit(1)
 
     logger.info("Starting parsedmarc")
+    
 
     if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
         try:
@@ -1513,6 +1518,11 @@ def _main():
                 smtp_tls_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
+        normalize_timespan_threshold_hours_value = (
+            float(opts.normalize_timespan_threshold_hours)
+            if opts.normalize_timespan_threshold_hours is not None
+            else 24.0
+        )
         strip = opts.strip_attachment_payloads
         reports = get_dmarc_reports_from_mbox(
             mbox_path,
@@ -1524,13 +1534,17 @@ def _main():
             reverse_dns_map_path=opts.reverse_dns_map_path,
             reverse_dns_map_url=opts.reverse_dns_map_url,
             offline=opts.offline,
-            normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
+            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
         )
         aggregate_reports += reports["aggregate_reports"]
         forensic_reports += reports["forensic_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
 
     mailbox_connection = None
+    mailbox_batch_size_value = 10
+    mailbox_check_timeout_value = 30
+    normalize_timespan_threshold_hours_value = 24.0
+
     if opts.imap_host:
         try:
             if opts.imap_user is None or opts.imap_password is None:
@@ -1552,9 +1566,10 @@ def _main():
             imap_max_retries = (
                 int(opts.imap_max_retries) if opts.imap_max_retries is not None else 4
             )
+            imap_port_value = int(opts.imap_port) if opts.imap_port is not None else 993
             mailbox_connection = IMAPConnection(
                 host=opts.imap_host,
-                port=opts.imap_port,
+                port=imap_port_value,
                 ssl=ssl,
                 verify=verify,
                 timeout=imap_timeout,
@@ -1624,11 +1639,24 @@ def _main():
             exit(1)
 
     if mailbox_connection:
+        mailbox_batch_size_value = (
+            int(opts.mailbox_batch_size) if opts.mailbox_batch_size is not None else 10
+        )
+        mailbox_check_timeout_value = (
+            int(opts.mailbox_check_timeout)
+            if opts.mailbox_check_timeout is not None
+            else 30
+        )
+        normalize_timespan_threshold_hours_value = (
+            float(opts.normalize_timespan_threshold_hours)
+            if opts.normalize_timespan_threshold_hours is not None
+            else 24.0
+        )
         try:
             reports = get_dmarc_reports_from_mailbox(
                 connection=mailbox_connection,
                 delete=opts.mailbox_delete,
-                batch_size=opts.mailbox_batch_size,
+                batch_size=mailbox_batch_size_value,
                 reports_folder=opts.mailbox_reports_folder,
                 archive_folder=opts.mailbox_archive_folder,
                 ip_db_path=opts.ip_db_path,
@@ -1640,7 +1668,7 @@ def _main():
                 test=opts.mailbox_test,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 since=opts.mailbox_since,
-                normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
+                normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -1664,12 +1692,18 @@ def _main():
             verify = True
             if opts.smtp_skip_certificate_verification:
                 verify = False
+            smtp_port_value = int(opts.smtp_port) if opts.smtp_port is not None else 25
+            smtp_to_value = (
+                list(opts.smtp_to)
+                if isinstance(opts.smtp_to, list)
+                else _str_to_list(str(opts.smtp_to))
+            )
             email_results(
                 results,
                 opts.smtp_host,
                 opts.smtp_from,
-                opts.smtp_to,
-                port=opts.smtp_port,
+                smtp_to_value,
+                port=smtp_port_value,
                 verify=verify,
                 username=opts.smtp_user,
                 password=opts.smtp_password,
@@ -1683,6 +1717,7 @@ def _main():
     if mailbox_connection and opts.mailbox_watch:
         logger.info("Watching for email - Quit with ctrl-c")
 
+        
         try:
             watch_inbox(
                 mailbox_connection=mailbox_connection,
@@ -1691,17 +1726,17 @@ def _main():
                 archive_folder=opts.mailbox_archive_folder,
                 delete=opts.mailbox_delete,
                 test=opts.mailbox_test,
-                check_timeout=opts.mailbox_check_timeout,
+                check_timeout=mailbox_check_timeout_value,
                 nameservers=opts.nameservers,
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
-                batch_size=opts.mailbox_batch_size,
+                batch_size=mailbox_batch_size_value,
                 ip_db_path=opts.ip_db_path,
                 always_use_local_files=opts.always_use_local_files,
                 reverse_dns_map_path=opts.reverse_dns_map_path,
                 reverse_dns_map_url=opts.reverse_dns_map_url,
                 offline=opts.offline,
-                normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
+                normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
             )
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
