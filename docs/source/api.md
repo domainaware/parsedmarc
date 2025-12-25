@@ -28,6 +28,13 @@
    :members:
 ```
 
+## parsedmarc.types
+
+```{eval-rst}
+.. automodule:: parsedmarc.types
+   :members:
+```
+
 ## parsedmarc.utils
 
 ```{eval-rst}
