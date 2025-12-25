@@ -1,5 +1,22 @@
 # Changelog
 
+## 9.0.6
+
+### Fixes
+
+- Fix #638.
+- Fix/clarify report extraction and parsing behavior for multiple input types (bytes, base64 strings, and file-like objects).
+- Fix type mismatches that could cause runtime issues in SMTP emailing and CLI option handling.
+
+### Improvements
+
+- Improve type hints across the library (Pylance/Pyright friendliness) and reduce false-positive linter errors.
+
+### Compatibility / Dependencies
+
+- Set Python requirement to `>=3.9,<3.14`.
+- Bump `mailsuite` requirement to `>=1.11.0`.
+
 ## 9.0.5
 
 ## Fixes
