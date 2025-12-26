@@ -62,9 +62,11 @@ class GelfClient(object):
     def save_forensic_report_to_gelf(self, forensic_reports: list[dict[str, Any]]):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
-            self.logger.info(json.dumps(row))
+            log_context_data.parsedmarc = row
+            self.logger.info("parsedmarc forensic report")
 
     def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: dict[str, Any]):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
-            self.logger.info(json.dumps(row))
+            log_context_data.parsedmarc = row
+            self.logger.info("parsedmarc smtptls report")
