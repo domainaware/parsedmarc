@@ -595,8 +595,17 @@ def parsed_smtp_tls_reports_to_csv_rows(
             if "mx_host_patterns" in policy:
                 record["mx_host_patterns"] = "|".join(policy["mx_host_patterns"])
             successful_record = record.copy()
+            successful_record["policy_domain"] = policy[
+                "policy_domain"
+            ]
+            successful_record["policy_type"] = policy[
+                "policy_type"
+            ]
             successful_record["successful_session_count"] = policy[
                 "successful_session_count"
+            ]
+            successful_record["failed_session_count"] = policy[
+                "failed_session_count"
             ]
             rows.append(successful_record)
             if "failure_details" in policy:
