@@ -1,5 +1,12 @@
 # Changelog
 
+## 9.0.8
+
+### Fixes
+
+- Fix logging configuration not propagating to child parser processes (#646).
+- Update `mailsuite` dependency to `?=1.11.1` to solve issues with iCloud IMAP (#493).
+
 ## 9.0.7
 
 ## Fixes
