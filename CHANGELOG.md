@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.7
+
+## Fixes
+
+- Fix IMAP `since` option (#PR 645 closes issues #581 and #643).
+
 ## 9.0.6
 
 ### Fixes
