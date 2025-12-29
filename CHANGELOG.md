@@ -11,7 +11,7 @@
 ### Improvements
 
 - Improve type hints across the library (Pylance/Pyright friendliness) and reduce false-positive linter errors.
-- Emails in Microsoft 365 are now marked read as they are read. This provides constancy with other mailbox types, and gives you a indication of when emails are being read as they are processed in batches.
+- Emails in Microsoft 365 are now marked read as they are read. This provides constancy with other mailbox types, and gives you a indication of when emails are being read as they are processed in batches. (Close #625)
 
 ### Compatibility / Dependencies
 
