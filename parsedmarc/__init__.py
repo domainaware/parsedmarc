@@ -1948,8 +1948,8 @@ def get_dmarc_reports_from_mailbox(
                 "Only days and weeks values in 'since' option are \
                          considered for IMAP connections. Examples: 2d or 1w"
             )
-            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).date()
-            current_time = datetime.now(timezone.utc).date()
+            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime("%d-%b-%Y")
+            current_time = datetime.now(timezone.utc).strftime("%d-%b-%Y")
         elif isinstance(connection, MSGraphConnection):
             since = (
                 datetime.now(timezone.utc) - timedelta(minutes=_since)
