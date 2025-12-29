@@ -67,6 +67,51 @@ def _str_to_list(s):
     return list(map(lambda i: i.lstrip(), _list))
 
 
+def _configure_logging(log_level, log_file=None):
+    """
+    Configure logging for the current process.
+    This is needed for child processes to properly log messages.
+    
+    Args:
+        log_level: The logging level (e.g., logging.DEBUG, logging.WARNING)
+        log_file: Optional path to log file
+    """
+    # Get the logger
+    from parsedmarc.log import logger
+    
+    # Set the log level
+    logger.setLevel(log_level)
+    
+    # Add StreamHandler with formatter if not already present
+    # Check if we already have a StreamHandler to avoid duplicates
+    # Use exact type check to distinguish from FileHandler subclass
+    has_stream_handler = any(
+        type(h) is logging.StreamHandler
+        for h in logger.handlers
+    )
+    
+    if not has_stream_handler:
+        formatter = logging.Formatter(
+            fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
+            datefmt="%Y-%m-%d:%H:%M:%S",
+        )
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    
+    # Add FileHandler if log_file is specified
+    if log_file:
+        try:
+            fh = logging.FileHandler(log_file, "a")
+            formatter = logging.Formatter(
+                "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+            )
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+        except (IOError, OSError, PermissionError) as error:
+            logger.warning("Unable to write to log file: {}".format(error))
+
+
 def cli_parse(
     file_path,
     sa,
@@ -79,8 +124,29 @@ def cli_parse(
     reverse_dns_map_url,
     normalize_timespan_threshold_hours,
     conn,
+    log_level=logging.ERROR,
+    log_file=None,
 ):
-    """Separated this function for multiprocessing"""
+    """Separated this function for multiprocessing
+    
+    Args:
+        file_path: Path to the report file
+        sa: Strip attachment payloads flag
+        nameservers: List of nameservers
+        dns_timeout: DNS timeout
+        ip_db_path: Path to IP database
+        offline: Offline mode flag
+        always_use_local_files: Always use local files flag
+        reverse_dns_map_path: Path to reverse DNS map
+        reverse_dns_map_url: URL to reverse DNS map
+        normalize_timespan_threshold_hours: Timespan threshold
+        conn: Pipe connection for IPC
+        log_level: Logging level for this process
+        log_file: Optional path to log file
+    """
+    # Configure logging in this child process
+    _configure_logging(log_level, log_file)
+    
     try:
         file_results = parse_report_file(
             file_path,
@@ -1461,6 +1527,10 @@ def _main():
     if n_procs < 1:
         n_procs = 1
 
+    # Capture the current log level to pass to child processes
+    current_log_level = logger.level
+    current_log_file = opts.log_file
+
     for batch_index in range((len(file_paths) + n_procs - 1) // n_procs):
         processes = []
         connections = []
@@ -1486,6 +1556,8 @@ def _main():
                     opts.reverse_dns_map_url,
                     opts.normalize_timespan_threshold_hours,
                     child_conn,
+                    current_log_level,
+                    current_log_file,
                 ),
             )
             processes.append(process)
