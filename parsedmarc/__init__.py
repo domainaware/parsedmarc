@@ -595,18 +595,12 @@ def parsed_smtp_tls_reports_to_csv_rows(
             if "mx_host_patterns" in policy:
                 record["mx_host_patterns"] = "|".join(policy["mx_host_patterns"])
             successful_record = record.copy()
-            successful_record["policy_domain"] = policy[
-                "policy_domain"
-            ]
-            successful_record["policy_type"] = policy[
-                "policy_type"
-            ]
+            successful_record["policy_domain"] = policy["policy_domain"]
+            successful_record["policy_type"] = policy["policy_type"]
             successful_record["successful_session_count"] = policy[
                 "successful_session_count"
             ]
-            successful_record["failed_session_count"] = policy[
-                "failed_session_count"
-            ]
+            successful_record["failed_session_count"] = policy["failed_session_count"]
             rows.append(successful_record)
             if "failure_details" in policy:
                 for failure_details in policy["failure_details"]:
@@ -1948,7 +1942,9 @@ def get_dmarc_reports_from_mailbox(
                 "Only days and weeks values in 'since' option are \
                          considered for IMAP connections. Examples: 2d or 1w"
             )
-            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime("%d-%b-%Y")
+            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime(
+                "%d-%b-%Y"
+            )
             current_time = datetime.now(timezone.utc).strftime("%d-%b-%Y")
         elif isinstance(connection, MSGraphConnection):
             since = (
