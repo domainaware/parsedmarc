@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.0.6 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.0.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=64e2c0d8"></script>
+      <script src="../_static/documentation_options.js?v=c09a44c1"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -696,9 +696,12 @@
             <span class="k">if</span> <span class="s2">&quot;mx_host_patterns&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
                 <span class="n">record</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">])</span>
             <span class="n">successful_record</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">successful_record</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">]</span>
+            <span class="n">successful_record</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">]</span>
             <span class="n">successful_record</span><span class="p">[</span><span class="s2">&quot;successful_session_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span>
                 <span class="s2">&quot;successful_session_count&quot;</span>
             <span class="p">]</span>
+            <span class="n">successful_record</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failed_session_count&quot;</span><span class="p">]</span>
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">successful_record</span><span class="p">)</span>
             <span class="k">if</span> <span class="s2">&quot;failure_details&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">failure_details</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;failure_details&quot;</span><span class="p">]:</span>
@@ -2082,8 +2085,10 @@
                 <span class="s2">&quot;Only days and weeks values in &#39;since&#39; option are </span><span class="se">\</span>
 <span class="s2">                         considered for IMAP connections. Examples: 2d or 1w&quot;</span>
             <span class="p">)</span>
-            <span class="n">since</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-            <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="n">since</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">))</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">-%b-%Y&quot;</span>
+            <span class="p">)</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">-%b-%Y&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">MSGraphConnection</span><span class="p">):</span>
             <span class="n">since</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">_since</span><span class="p">)</span>
