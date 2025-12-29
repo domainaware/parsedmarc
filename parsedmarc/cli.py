@@ -84,8 +84,9 @@ def _configure_logging(log_level, log_file=None):
     
     # Add StreamHandler with formatter if not already present
     # Check if we already have a StreamHandler to avoid duplicates
+    # Use exact type check to distinguish from FileHandler subclass
     has_stream_handler = any(
-        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        type(h) is logging.StreamHandler
         for h in logger.handlers
     )
     
@@ -107,7 +108,7 @@ def _configure_logging(log_level, log_file=None):
             )
             fh.setFormatter(formatter)
             logger.addHandler(fh)
-        except Exception as error:
+        except (IOError, OSError, PermissionError) as error:
             logger.warning("Unable to write to log file: {}".format(error))
 
 
