@@ -156,6 +156,28 @@ class Test(unittest.TestCase):
             parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
             print("Passed!")
 
+    def testMSGraphWellKnownFolders(self):
+        """Test MSGraph well-known folder name mapping"""
+        from parsedmarc.mail.graph import WELL_KNOWN_FOLDER_MAP
+        
+        # Test English folder names
+        assert WELL_KNOWN_FOLDER_MAP.get("inbox") == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("sent items") == "sentitems"
+        assert WELL_KNOWN_FOLDER_MAP.get("deleted items") == "deleteditems"
+        assert WELL_KNOWN_FOLDER_MAP.get("archive") == "archive"
+        
+        # Test case insensitivity (the map uses lowercase keys)
+        assert WELL_KNOWN_FOLDER_MAP.get("inbox") == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("INBOX".lower()) == "inbox"
+        
+        # Test German folder names
+        assert WELL_KNOWN_FOLDER_MAP.get("posteingang") == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("archiv") == "archive"
+        
+        # Test that custom folders don't match
+        assert WELL_KNOWN_FOLDER_MAP.get("custom_folder") is None
+        assert WELL_KNOWN_FOLDER_MAP.get("my_reports") is None
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
