@@ -20,6 +20,59 @@ from msgraph.core import GraphClient
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
+# Mapping of common folder names to Microsoft Graph well-known folder names
+# This avoids the "Default folder Root not found" error on uninitialized mailboxes
+WELL_KNOWN_FOLDER_MAP = {
+    # English names
+    "inbox": "inbox",
+    "sent items": "sentitems",
+    "sent": "sentitems",
+    "sentitems": "sentitems",
+    "deleted items": "deleteditems",
+    "deleted": "deleteditems",
+    "deleteditems": "deleteditems",
+    "trash": "deleteditems",
+    "drafts": "drafts",
+    "junk email": "junkemail",
+    "junk": "junkemail",
+    "junkemail": "junkemail",
+    "spam": "junkemail",
+    "archive": "archive",
+    "outbox": "outbox",
+    "conversation history": "conversationhistory",
+    "conversationhistory": "conversationhistory",
+    # German names
+    "posteingang": "inbox",
+    "gesendete elemente": "sentitems",
+    "gesendet": "sentitems",
+    "gelöschte elemente": "deleteditems",
+    "gelöscht": "deleteditems",
+    "entwürfe": "drafts",
+    "junk-e-mail": "junkemail",
+    "archiv": "archive",
+    "postausgang": "outbox",
+    # French names
+    "boîte de réception": "inbox",
+    "éléments envoyés": "sentitems",
+    "envoyés": "sentitems",
+    "éléments supprimés": "deleteditems",
+    "supprimés": "deleteditems",
+    "brouillons": "drafts",
+    "courrier indésirable": "junkemail",
+    "archives": "archive",
+    "boîte d'envoi": "outbox",
+    # Spanish names
+    "bandeja de entrada": "inbox",
+    "elementos enviados": "sentitems",
+    "enviados": "sentitems",
+    "elementos eliminados": "deleteditems",
+    "eliminados": "deleteditems",
+    "borradores": "drafts",
+    "correo no deseado": "junkemail",
+    "archivar": "archive",
+    "bandeja de salida": "outbox",
+}
+
 
 class AuthMethod(Enum):
     DeviceCode = 1
@@ -130,6 +183,13 @@ class MSGraphConnection(MailboxConnection):
         self.mailbox_name = mailbox
 
     def create_folder(self, folder_name: str):
+        # Check if this is a well-known folder - they already exist and cannot be created
+        if "/" not in folder_name:
+            well_known_name = WELL_KNOWN_FOLDER_MAP.get(folder_name.lower())
+            if well_known_name:
+                logger.debug(f"Folder '{folder_name}' is a well-known folder, skipping creation")
+                return
+        
         sub_url = ""
         path_parts = folder_name.split("/")
         if len(path_parts) > 1:  # Folder is a subFolder
@@ -246,6 +306,12 @@ class MSGraphConnection(MailboxConnection):
                 parent_folder_id = folder_id
             return self._find_folder_id_with_parent(path_parts[-1], parent_folder_id)
         else:
+            # Check if this is a well-known folder name (case-insensitive)
+            well_known_name = WELL_KNOWN_FOLDER_MAP.get(folder_name.lower())
+            if well_known_name:
+                # Use well-known folder name directly to avoid querying uninitialized mailboxes
+                logger.debug(f"Using well-known folder name '{well_known_name}' for '{folder_name}'")
+                return well_known_name
             return self._find_folder_id_with_parent(folder_name, None)
 
     def _find_folder_id_with_parent(
