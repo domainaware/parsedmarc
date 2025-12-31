@@ -229,6 +229,18 @@ The full set of configuration options are:
     username, you must grant the app `Mail.ReadWrite.Shared`.
     :::
 
+    :::{tip}
+    When configuring folder names (e.g., `reports_folder`, `archive_folder`),
+    you can use standard folder names like `Inbox`, `Archive`, `Sent Items`, etc.
+    These will be automatically mapped to Microsoft Graph's well-known folder names,
+    which works reliably across different mailbox locales and avoids issues with
+    uninitialized or shared mailboxes. Supported folder names include:
+    - English: Inbox, Sent Items, Deleted Items, Drafts, Junk Email, Archive, Outbox
+    - German: Posteingang, Gesendete Elemente, Gelöschte Elemente, Entwürfe, Junk-E-Mail, Archiv
+    - French: Boîte de réception, Éléments envoyés, Éléments supprimés, Brouillons, Courrier indésirable, Archives
+    - Spanish: Bandeja de entrada, Elementos enviados, Elementos eliminados, Borradores, Correo no deseado
+    :::
+
     :::{warning}
     If you are using the `ClientSecret` auth method, you need to
     grant the `Mail.ReadWrite` (application) permission to the
