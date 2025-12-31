@@ -166,12 +166,16 @@ class Test(unittest.TestCase):
         assert WELL_KNOWN_FOLDER_MAP.get("deleted items") == "deleteditems"
         assert WELL_KNOWN_FOLDER_MAP.get("archive") == "archive"
         
-        # Test case insensitivity (the map uses lowercase keys)
+        # Test case insensitivity - simulating how the code actually uses it
+        # This is what happens when user config has "reports_folder = Inbox"
         assert WELL_KNOWN_FOLDER_MAP.get("inbox") == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("Inbox".lower()) == "inbox"  # User's exact config
         assert WELL_KNOWN_FOLDER_MAP.get("INBOX".lower()) == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("Archive".lower()) == "archive"
         
         # Test German folder names
         assert WELL_KNOWN_FOLDER_MAP.get("posteingang") == "inbox"
+        assert WELL_KNOWN_FOLDER_MAP.get("Posteingang".lower()) == "inbox"  # Capitalized
         assert WELL_KNOWN_FOLDER_MAP.get("archiv") == "archive"
         
         # Test that custom folders don't match
