@@ -892,7 +892,7 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
     try:
         if isinstance(content, str):
             try:
-                file_object = BytesIO(b64decode(content))
+                file_object = BytesIO(b64decode(content, validate=True))
             except binascii.Error:
                 return content
             header = file_object.read(6)
