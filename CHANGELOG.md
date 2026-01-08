@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.9
+
+### Fixes
+
+- Validate that a string is base64-encoded before trying to base64 decode it. (PRs #648 and #649)
+
 ## 9.0.8
 
 ### Fixes
