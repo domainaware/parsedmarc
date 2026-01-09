@@ -280,6 +280,40 @@ class Test(unittest.TestCase):
         
         print("Passed!")
 
+    def testGoogleSecOpsSmtpTlsReport(self):
+        """Test Google SecOps SMTP TLS report conversion"""
+        print()
+        from parsedmarc.google_secops import GoogleSecOpsClient
+        
+        client = GoogleSecOpsClient()
+        sample_path = "samples/smtp_tls/rfc8460.json"
+        print("Testing Google SecOps SMTP TLS conversion for {0}: ".format(sample_path), end="")
+        
+        parsed_file = parsedmarc.parse_report_file(sample_path)
+        parsed_report = parsed_file["report"]
+        
+        events = client.save_smtp_tls_report_to_google_secops(parsed_report)
+        
+        # Verify we got events
+        assert len(events) > 0, "Expected at least one event"
+        
+        # Verify each event is valid JSON
+        for event in events:
+            event_dict = json.loads(event)
+            assert "event_type" in event_dict
+            assert event_dict["event_type"] == "SMTP_TLS_REPORT"
+            assert "metadata" in event_dict
+            assert "target" in event_dict
+            assert "security_result" in event_dict
+            assert "additional" in event_dict
+            
+            # Verify failed_session_count is an integer not a string
+            for field in event_dict["additional"]["fields"]:
+                if field["key"] == "failed_session_count":
+                    assert isinstance(field["value"], int), "failed_session_count should be an integer"
+        
+        print("Passed!")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

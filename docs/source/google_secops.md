@@ -207,7 +207,7 @@ rule dmarc_aggregate_failures {
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_AGGREGATE"
     $e.security_result.detection_fields.key = "dmarc_pass"
-    $e.security_result.detection_fields.value = "false"
+    $e.security_result.detection_fields.value = false
     
   condition:
     $e
@@ -244,7 +244,7 @@ rule repeated_dmarc_failures {
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_AGGREGATE"
     $e.security_result.detection_fields.key = "dmarc_pass"
-    $e.security_result.detection_fields.value = "false"
+    $e.security_result.detection_fields.value = false
     $e.principal.ip = $source_ip
     
   match:
