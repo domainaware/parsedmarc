@@ -27,6 +27,7 @@ from parsedmarc import (
     gelf,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
+    google_secops,
     kafkaclient,
     loganalytics,
     opensearch,
@@ -285,6 +286,14 @@ def _main():
                     logger.error("GELF Error: {0}".format(error_.__str__()))
 
                 try:
+                    if opts.google_secops:
+                        events = google_secops_client.save_aggregate_report_to_google_secops(report)
+                        for event in events:
+                            print(event)
+                except Exception as error_:
+                    logger.error("Google SecOps Error: {0}".format(error_.__str__()))
+
+                try:
                     if opts.webhook_aggregate_url:
                         indent_value = 2 if opts.prettify_json else None
                         webhook_client.save_aggregate_report_to_webhook(
@@ -370,6 +379,14 @@ def _main():
                     logger.error("GELF Error: {0}".format(error_.__str__()))
 
                 try:
+                    if opts.google_secops:
+                        events = google_secops_client.save_forensic_report_to_google_secops(report)
+                        for event in events:
+                            print(event)
+                except Exception as error_:
+                    logger.error("Google SecOps Error: {0}".format(error_.__str__()))
+
+                try:
                     if opts.webhook_forensic_url:
                         indent_value = 2 if opts.prettify_json else None
                         webhook_client.save_forensic_report_to_webhook(
@@ -453,6 +470,14 @@ def _main():
                         gelf_client.save_smtp_tls_report_to_gelf(report)
                 except Exception as error_:
                     logger.error("GELF Error: {0}".format(error_.__str__()))
+
+                try:
+                    if opts.google_secops:
+                        events = google_secops_client.save_smtp_tls_report_to_google_secops(report)
+                        for event in events:
+                            print(event)
+                except Exception as error_:
+                    logger.error("Google SecOps Error: {0}".format(error_.__str__()))
 
                 try:
                     if opts.webhook_smtp_tls_url:
@@ -722,6 +747,12 @@ def _main():
         gelf_host=None,
         gelf_port=None,
         gelf_mode=None,
+        google_secops=False,
+        google_secops_include_ruf_payload=False,
+        google_secops_ruf_payload_max_bytes=4096,
+        google_secops_static_observer_name=None,
+        google_secops_static_observer_vendor="parsedmarc",
+        google_secops_static_environment=None,
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
@@ -1301,6 +1332,30 @@ def _main():
                 logger.critical("mode setting missing from the gelf config section")
                 exit(-1)
 
+        if "google_secops" in config.sections():
+            google_secops_config = config["google_secops"]
+            opts.google_secops = True
+            if "include_ruf_payload" in google_secops_config:
+                opts.google_secops_include_ruf_payload = bool(
+                    google_secops_config.getboolean("include_ruf_payload")
+                )
+            if "ruf_payload_max_bytes" in google_secops_config:
+                opts.google_secops_ruf_payload_max_bytes = google_secops_config.getint(
+                    "ruf_payload_max_bytes"
+                )
+            if "static_observer_name" in google_secops_config:
+                opts.google_secops_static_observer_name = google_secops_config[
+                    "static_observer_name"
+                ]
+            if "static_observer_vendor" in google_secops_config:
+                opts.google_secops_static_observer_vendor = google_secops_config[
+                    "static_observer_vendor"
+                ]
+            if "static_environment" in google_secops_config:
+                opts.google_secops_static_environment = google_secops_config[
+                    "static_environment"
+                ]
+
         if "webhook" in config.sections():
             webhook_config = config["webhook"]
             if "aggregate_url" in webhook_config:
@@ -1478,6 +1533,18 @@ def _main():
             )
         except Exception as error_:
             logger.error("GELF Error: {0}".format(error_.__str__()))
+
+    if opts.google_secops:
+        try:
+            google_secops_client = google_secops.GoogleSecOpsClient(
+                include_ruf_payload=opts.google_secops_include_ruf_payload,
+                ruf_payload_max_bytes=opts.google_secops_ruf_payload_max_bytes,
+                static_observer_name=opts.google_secops_static_observer_name,
+                static_observer_vendor=opts.google_secops_static_observer_vendor,
+                static_environment=opts.google_secops_static_environment,
+            )
+        except Exception as error_:
+            logger.error("Google SecOps Error: {0}".format(error_.__str__()))
 
     if (
         opts.webhook_aggregate_url
