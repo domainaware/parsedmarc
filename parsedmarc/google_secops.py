@@ -445,7 +445,7 @@ class GoogleSecOpsClient:
             end_date = smtp_tls_report["end_date"]
             
             for policy in smtp_tls_report.get("policies", []):
-                policy_domain = policy["policy"]["policy_domain"]
+                policy_domain = policy["policy_domain"]
                 
                 for failure in policy.get("failure_details", []):
                     # Build UDM event for each failure
