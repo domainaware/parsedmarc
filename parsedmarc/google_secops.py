@@ -320,9 +320,8 @@ class GoogleSecOpsClient:
             auth_failure = forensic_report.get("auth_failure", [])
             
             # Determine severity - forensic reports indicate failures
+            # Default to MEDIUM for authentication failures
             severity = "MEDIUM"
-            if "dmarc" in auth_failure:
-                severity = "MEDIUM"
             
             # Build description
             auth_failure_str = ", ".join(auth_failure) if auth_failure else "unknown"

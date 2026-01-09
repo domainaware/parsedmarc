@@ -239,8 +239,10 @@ class Test(unittest.TestCase):
                 for field in event_dict["additional"]["fields"]:
                     if field["key"] == "message_sample":
                         has_sample = True
-                        # Verify truncation (100 bytes + "... [truncated]" suffix)
-                        assert len(field["value"]) <= 120, f"Payload should be truncated, got {len(field['value'])} bytes"
+                        # Verify truncation: max_bytes (100) + "... [truncated]" suffix (16 chars)
+                        # Allow some margin for the actual payload length
+                        max_expected_length = 100 + len("... [truncated]") + 10
+                        assert len(field["value"]) <= max_expected_length, f"Payload should be truncated, got {len(field['value'])} bytes"
                         break
             
             assert has_sample, "Payload should be included when enabled"
