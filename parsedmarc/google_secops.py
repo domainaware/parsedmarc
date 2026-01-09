@@ -206,9 +206,9 @@ class GoogleSecOpsClient:
                             "detection_fields": [
                                 {"key": "dmarc_disposition", "value": disposition},
                                 {"key": "dmarc_policy", "value": policy_published["p"]},
-                                {"key": "dmarc_pass", "value": str(dmarc_pass).lower()},
-                                {"key": "spf_aligned", "value": str(spf_aligned).lower()},
-                                {"key": "dkim_aligned", "value": str(dkim_aligned).lower()},
+                                {"key": "dmarc_pass", "value": dmarc_pass},
+                                {"key": "spf_aligned", "value": spf_aligned},
+                                {"key": "dkim_aligned", "value": dkim_aligned},
                             ],
                         }
                     ],
@@ -218,7 +218,7 @@ class GoogleSecOpsClient:
                             {"key": "report_id", "value": report_metadata["report_id"]},
                             {"key": "report_begin", "value": report_metadata["begin_date"]},
                             {"key": "report_end", "value": report_metadata["end_date"]},
-                            {"key": "message_count", "value": str(count)},
+                            {"key": "message_count", "value": count},
                             {"key": "interval_begin", "value": interval_begin},
                             {"key": "interval_end", "value": interval_end},
                             {"key": "envelope_from", "value": envelope_from},
@@ -474,7 +474,7 @@ class GoogleSecOpsClient:
                                 {"key": "report_begin", "value": begin_date},
                                 {"key": "report_end", "value": end_date},
                                 {"key": "result_type", "value": failure.get("result_type", "")},
-                                {"key": "failed_session_count", "value": str(failure.get("failed_session_count", 0))},
+                                {"key": "failed_session_count", "value": failure.get("failed_session_count", 0)},
                             ]
                         },
                     }

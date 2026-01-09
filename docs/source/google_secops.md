@@ -82,9 +82,9 @@ Each event includes:
     "detection_fields": [
       {"key": "dmarc_disposition", "value": "none"},
       {"key": "dmarc_policy", "value": "none"},
-      {"key": "dmarc_pass", "value": "false"},
-      {"key": "spf_aligned", "value": "false"},
-      {"key": "dkim_aligned", "value": "false"}
+      {"key": "dmarc_pass", "value": false},
+      {"key": "spf_aligned", "value": false},
+      {"key": "dkim_aligned", "value": false}
     ]
   }],
   "additional": {
@@ -93,7 +93,7 @@ Each event includes:
       {"key": "report_id", "value": "b043f0e264cf4ea995e93765242f6dfb"},
       {"key": "report_begin", "value": "2018-06-19 00:00:00"},
       {"key": "report_end", "value": "2018-06-19 23:59:59"},
-      {"key": "message_count", "value": "1"},
+      {"key": "message_count", "value": 1},
       {"key": "interval_begin", "value": "2018-06-19 00:00:00"},
       {"key": "interval_end", "value": "2018-06-19 23:59:59"},
       {"key": "envelope_from", "value": "example.com"}
@@ -164,7 +164,7 @@ Each event includes:
       {"key": "report_begin", "value": "2016-04-01T00:00:00Z"},
       {"key": "report_end", "value": "2016-04-01T23:59:59Z"},
       {"key": "result_type", "value": "certificate-expired"},
-      {"key": "failed_session_count", "value": "100"}
+      {"key": "failed_session_count", "value": 100}
     ]
   },
   "principal": {
