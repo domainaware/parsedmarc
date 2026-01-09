@@ -305,12 +305,15 @@ class Test(unittest.TestCase):
             assert "metadata" in event_dict
             assert "target" in event_dict
             assert "security_result" in event_dict
-            assert "additional" in event_dict
             
-            # Verify failed_session_count is an integer not a string
-            for field in event_dict["additional"]["fields"]:
-                if field["key"] == "failed_session_count":
+            # Verify failed_session_count is in detection_fields as an integer
+            found_count = False
+            for field in event_dict["security_result"][0]["detection_fields"]:
+                if field["key"] == "smtp_tls.failed_session_count":
                     assert isinstance(field["value"], int), "failed_session_count should be an integer"
+                    found_count = True
+                    break
+            assert found_count, "failed_session_count should be in detection_fields"
         
         print("Passed!")
 

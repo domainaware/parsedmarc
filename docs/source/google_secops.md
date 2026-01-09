@@ -47,8 +47,12 @@ Each event includes:
 - **metadata**: Event timestamp, type, product name, and vendor
 - **principal**: Source IP address, location (country), and hostname (reverse DNS)
 - **target**: Domain name (from DMARC policy)
-- **security_result**: Severity level, description, and detection fields
-- **additional.fields**: Extended metadata including report details, counts, and authentication results
+- **security_result**: Severity level, description, and detection fields for dashboarding
+  - **detection_fields**: Key DMARC dimensions for filtering and grouping (e.g., `dmarc.disposition`, `dmarc.pass`, `dmarc.header_from`, `dmarc.report_org`)
+  - All dashboard-relevant fields use `dmarc.*` or `smtp_tls.*` prefixes for easy identification
+- **additional.fields** (optional): Low-value context fields (e.g., detailed auth results) not typically used for dashboarding
+
+**Design Rationale**: DMARC dimensions are placed in `security_result[].detection_fields` rather than `additional.fields` because Chronicle dashboards, stats searches, and aggregations work best with UDM label arrays. The `additional.fields` is a protobuf Struct intended for opaque context and is not reliably queryable for dashboard operations.
 
 ### Severity Heuristics
 
@@ -78,25 +82,30 @@ Each event includes:
   },
   "security_result": [{
     "severity": "LOW",
-    "description": "DMARC fail; disposition=none",
+    "description": "DMARC fail; SPF=pass; DKIM=pass; SPF not aligned; DKIM not aligned; disposition=none",
     "detection_fields": [
-      {"key": "dmarc_disposition", "value": "none"},
-      {"key": "dmarc_policy", "value": "none"},
-      {"key": "dmarc_pass", "value": false},
-      {"key": "spf_aligned", "value": false},
-      {"key": "dkim_aligned", "value": false}
+      {"key": "dmarc.disposition", "value": "none"},
+      {"key": "dmarc.policy", "value": "none"},
+      {"key": "dmarc.pass", "value": false},
+      {"key": "dmarc.spf_aligned", "value": false},
+      {"key": "dmarc.dkim_aligned", "value": false},
+      {"key": "dmarc.header_from", "value": "example.com"},
+      {"key": "dmarc.envelope_from", "value": "example.com"},
+      {"key": "dmarc.report_org", "value": "example.net"},
+      {"key": "dmarc.report_id", "value": "b043f0e264cf4ea995e93765242f6dfb"},
+      {"key": "dmarc.report_begin", "value": "2018-06-19 00:00:00"},
+      {"key": "dmarc.report_end", "value": "2018-06-19 23:59:59"},
+      {"key": "dmarc.row_count", "value": 1},
+      {"key": "dmarc.spf_result", "value": "pass"},
+      {"key": "dmarc.dkim_result", "value": "pass"}
     ]
   }],
   "additional": {
     "fields": [
-      {"key": "report_org", "value": "example.net"},
-      {"key": "report_id", "value": "b043f0e264cf4ea995e93765242f6dfb"},
-      {"key": "report_begin", "value": "2018-06-19 00:00:00"},
-      {"key": "report_end", "value": "2018-06-19 23:59:59"},
-      {"key": "message_count", "value": 1},
-      {"key": "interval_begin", "value": "2018-06-19 00:00:00"},
-      {"key": "interval_end", "value": "2018-06-19 23:59:59"},
-      {"key": "envelope_from", "value": "example.com"}
+      {"key": "spf_0_domain", "value": "example.com"},
+      {"key": "spf_0_result", "value": "pass"},
+      {"key": "dkim_0_domain", "value": "example.com"},
+      {"key": "dkim_0_result", "value": "pass"}
     ]
   }
 }
@@ -123,12 +132,12 @@ Each event includes:
     "severity": "MEDIUM",
     "description": "DMARC forensic report: authentication failure (dmarc)",
     "detection_fields": [
-      {"key": "auth_failure", "value": "dmarc"}
+      {"key": "dmarc.auth_failure", "value": "dmarc"},
+      {"key": "dmarc.reported_domain", "value": "example.com"}
     ]
   }],
   "additional": {
     "fields": [
-      {"key": "arrival_date", "value": "2019-04-30 02:09:00"},
       {"key": "feedback_type", "value": "auth-failure"},
       {"key": "message_id", "value": "<01010101010101010101010101010101@ABAB01MS0016.someserver.loc>"},
       {"key": "authentication_results", "value": "dmarc=fail (p=none; dis=none) header.from=example.com"},
@@ -156,17 +165,16 @@ Each event includes:
   },
   "security_result": [{
     "severity": "LOW",
-    "description": "SMTP TLS failure: certificate-expired"
-  }],
-  "additional": {
-    "fields": [
-      {"key": "organization_name", "value": "Company-X"},
-      {"key": "report_begin", "value": "2016-04-01T00:00:00Z"},
-      {"key": "report_end", "value": "2016-04-01T23:59:59Z"},
-      {"key": "result_type", "value": "certificate-expired"},
-      {"key": "failed_session_count", "value": 100}
+    "description": "SMTP TLS failure: certificate-expired",
+    "detection_fields": [
+      {"key": "smtp_tls.policy_domain", "value": "company-y.example"},
+      {"key": "smtp_tls.result_type", "value": "certificate-expired"},
+      {"key": "smtp_tls.failed_session_count", "value": 100},
+      {"key": "smtp_tls.report_org", "value": "Company-X"},
+      {"key": "smtp_tls.report_begin", "value": "2016-04-01T00:00:00Z"},
+      {"key": "smtp_tls.report_end", "value": "2016-04-01T23:59:59Z"}
     ]
-  },
+  }],
   "principal": {
     "ip": ["2001:db8:abcd:0012::1"]
   }
@@ -206,7 +214,7 @@ rule dmarc_aggregate_failures {
   events:
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_AGGREGATE"
-    $e.security_result.detection_fields.key = "dmarc_pass"
+    $e.security_result.detection_fields.key = "dmarc.pass"
     $e.security_result.detection_fields.value = false
     
   condition:
@@ -243,7 +251,7 @@ rule repeated_dmarc_failures {
   events:
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_AGGREGATE"
-    $e.security_result.detection_fields.key = "dmarc_pass"
+    $e.security_result.detection_fields.key = "dmarc.pass"
     $e.security_result.detection_fields.value = false
     $e.principal.ip = $source_ip
     
@@ -266,8 +274,7 @@ rule dmarc_forensic_failures {
   events:
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_FORENSIC"
-    $e.additional.fields.key = "auth_failure"
-    $e.additional.fields.value = "dmarc"
+    $e.security_result.detection_fields.key = "dmarc.auth_failure"
     
   condition:
     $e

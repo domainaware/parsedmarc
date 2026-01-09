@@ -164,7 +164,6 @@ class GoogleSecOpsClient:
                 
                 count = record["count"]
                 interval_begin = record["interval_begin"]
-                interval_end = record["interval_end"]
                 
                 # Get auth results
                 spf_results = record["auth_results"].get("spf", [])
@@ -204,72 +203,84 @@ class GoogleSecOpsClient:
                                 disposition,
                             ),
                             "detection_fields": [
-                                {"key": "dmarc_disposition", "value": disposition},
-                                {"key": "dmarc_policy", "value": policy_published["p"]},
-                                {"key": "dmarc_pass", "value": dmarc_pass},
-                                {"key": "spf_aligned", "value": spf_aligned},
-                                {"key": "dkim_aligned", "value": dkim_aligned},
+                                {"key": "dmarc.disposition", "value": disposition},
+                                {"key": "dmarc.policy", "value": policy_published["p"]},
+                                {"key": "dmarc.pass", "value": dmarc_pass},
+                                {"key": "dmarc.spf_aligned", "value": spf_aligned},
+                                {"key": "dmarc.dkim_aligned", "value": dkim_aligned},
+                                {"key": "dmarc.header_from", "value": header_from},
+                                {"key": "dmarc.envelope_from", "value": envelope_from},
+                                {"key": "dmarc.report_org", "value": report_metadata["org_name"]},
+                                {"key": "dmarc.report_id", "value": report_metadata["report_id"]},
+                                {"key": "dmarc.report_begin", "value": report_metadata["begin_date"]},
+                                {"key": "dmarc.report_end", "value": report_metadata["end_date"]},
+                                {"key": "dmarc.row_count", "value": count},
                             ],
                         }
                     ],
-                    "additional": {
-                        "fields": [
-                            {"key": "report_org", "value": report_metadata["org_name"]},
-                            {"key": "report_id", "value": report_metadata["report_id"]},
-                            {"key": "report_begin", "value": report_metadata["begin_date"]},
-                            {"key": "report_end", "value": report_metadata["end_date"]},
-                            {"key": "message_count", "value": count},
-                            {"key": "interval_begin", "value": interval_begin},
-                            {"key": "interval_end", "value": interval_end},
-                            {"key": "envelope_from", "value": envelope_from},
-                        ]
-                    },
                 }
                 
-                # Add optional fields
+                # Add optional fields to detection_fields
+                if spf_result:
+                    event["security_result"][0]["detection_fields"].append(
+                        {"key": "dmarc.spf_result", "value": spf_result}
+                    )
+                if dkim_result:
+                    event["security_result"][0]["detection_fields"].append(
+                        {"key": "dmarc.dkim_result", "value": dkim_result}
+                    )
+                
+                # Add optional context fields (low-value, not for dashboarding)
+                additional_context = []
+                
+                if source_base_domain:
+                    additional_context.append(
+                        {"key": "source_base_domain", "value": source_base_domain}
+                    )
+                
+                if source_name:
+                    additional_context.append(
+                        {"key": "source_name", "value": source_name}
+                    )
+                
+                if self.static_environment:
+                    additional_context.append(
+                        {"key": "environment", "value": self.static_environment}
+                    )
+                
+                # Add SPF auth results to context
+                if spf_results:
+                    for idx, spf in enumerate(spf_results):
+                        additional_context.append(
+                            {"key": f"spf_{idx}_domain", "value": spf.get("domain", "")}
+                        )
+                        additional_context.append(
+                            {"key": f"spf_{idx}_result", "value": spf.get("result", "")}
+                        )
+                
+                # Add DKIM auth results to context
+                if dkim_results:
+                    for idx, dkim in enumerate(dkim_results):
+                        additional_context.append(
+                            {"key": f"dkim_{idx}_domain", "value": dkim.get("domain", "")}
+                        )
+                        additional_context.append(
+                            {"key": f"dkim_{idx}_result", "value": dkim.get("result", "")}
+                        )
+                
+                # Only add additional section if there's context to include
+                if additional_context:
+                    event["additional"] = {"fields": additional_context}
+                
+                # Add optional UDM fields
                 if source_country:
                     event["principal"]["location"] = {"country_or_region": source_country}
                 
                 if source_reverse_dns:
                     event["principal"]["hostname"] = source_reverse_dns
                 
-                if source_base_domain:
-                    event["additional"]["fields"].append(
-                        {"key": "source_base_domain", "value": source_base_domain}
-                    )
-                
-                if source_name:
-                    event["additional"]["fields"].append(
-                        {"key": "source_name", "value": source_name}
-                    )
-                
                 if self.static_observer_name:
                     event["metadata"]["product_deployment_id"] = self.static_observer_name
-                
-                if self.static_environment:
-                    event["additional"]["fields"].append(
-                        {"key": "environment", "value": self.static_environment}
-                    )
-                
-                # Add SPF results
-                if spf_results:
-                    for idx, spf in enumerate(spf_results):
-                        event["additional"]["fields"].append(
-                            {"key": f"spf_{idx}_domain", "value": spf.get("domain", "")}
-                        )
-                        event["additional"]["fields"].append(
-                            {"key": f"spf_{idx}_result", "value": spf.get("result", "")}
-                        )
-                
-                # Add DKIM results
-                if dkim_results:
-                    for idx, dkim in enumerate(dkim_results):
-                        event["additional"]["fields"].append(
-                            {"key": f"dkim_{idx}_domain", "value": dkim.get("domain", "")}
-                        )
-                        event["additional"]["fields"].append(
-                            {"key": f"dkim_{idx}_result", "value": dkim.get("result", "")}
-                        )
                 
                 events.append(json.dumps(event, ensure_ascii=False))
         
@@ -349,45 +360,38 @@ class GoogleSecOpsClient:
                         "severity": severity,
                         "description": description,
                         "detection_fields": [
-                            {"key": "auth_failure", "value": auth_failure_str},
+                            {"key": "dmarc.auth_failure", "value": auth_failure_str},
+                            {"key": "dmarc.reported_domain", "value": reported_domain},
                         ],
                     }
                 ],
-                "additional": {
-                    "fields": [
-                        {"key": "arrival_date", "value": arrival_date},
-                        {"key": "feedback_type", "value": forensic_report.get("feedback_type", "")},
-                    ]
-                },
             }
             
-            # Add optional fields
-            if source_country:
-                event["principal"]["location"] = {"country_or_region": source_country}
+            # Add optional context fields (low-value, not for dashboarding)
+            additional_context = []
             
-            if source_reverse_dns:
-                event["principal"]["hostname"] = source_reverse_dns
+            if forensic_report.get("feedback_type"):
+                additional_context.append(
+                    {"key": "feedback_type", "value": forensic_report["feedback_type"]}
+                )
             
             if forensic_report.get("message_id"):
-                event["additional"]["fields"].append(
+                additional_context.append(
                     {"key": "message_id", "value": forensic_report["message_id"]}
                 )
             
             if forensic_report.get("authentication_results"):
-                event["additional"]["fields"].append(
+                additional_context.append(
                     {"key": "authentication_results", "value": forensic_report["authentication_results"]}
                 )
             
             if forensic_report.get("delivery_result"):
-                event["additional"]["fields"].append(
+                additional_context.append(
                     {"key": "delivery_result", "value": forensic_report["delivery_result"]}
                 )
             
-            if self.static_observer_name:
-                event["metadata"]["product_deployment_id"] = self.static_observer_name
-            
             if self.static_environment:
-                event["additional"]["fields"].append(
+                additional_context.append(
                     {"key": "environment", "value": self.static_environment}
                 )
             
@@ -396,9 +400,23 @@ class GoogleSecOpsClient:
                 sample = forensic_report["sample"]
                 if len(sample) > self.ruf_payload_max_bytes:
                     sample = sample[:self.ruf_payload_max_bytes] + "... [truncated]"
-                event["additional"]["fields"].append(
+                additional_context.append(
                     {"key": "message_sample", "value": sample}
                 )
+            
+            # Only add additional section if there's context to include
+            if additional_context:
+                event["additional"] = {"fields": additional_context}
+            
+            # Add optional UDM fields
+            if source_country:
+                event["principal"]["location"] = {"country_or_region": source_country}
+            
+            if source_reverse_dns:
+                event["principal"]["hostname"] = source_reverse_dns
+            
+            if self.static_observer_name:
+                event["metadata"]["product_deployment_id"] = self.static_observer_name
             
             events.append(json.dumps(event, ensure_ascii=False))
         
@@ -466,29 +484,36 @@ class GoogleSecOpsClient:
                             {
                                 "severity": "LOW",
                                 "description": f"SMTP TLS failure: {failure.get('result_type', 'unknown')}",
+                                "detection_fields": [
+                                    {"key": "smtp_tls.policy_domain", "value": policy_domain},
+                                    {"key": "smtp_tls.result_type", "value": failure.get("result_type", "")},
+                                    {"key": "smtp_tls.failed_session_count", "value": failure.get("failed_session_count", 0)},
+                                    {"key": "smtp_tls.report_org", "value": organization_name},
+                                    {"key": "smtp_tls.report_begin", "value": begin_date},
+                                    {"key": "smtp_tls.report_end", "value": end_date},
+                                ],
                             }
                         ],
-                        "additional": {
-                            "fields": [
-                                {"key": "organization_name", "value": organization_name},
-                                {"key": "report_begin", "value": begin_date},
-                                {"key": "report_end", "value": end_date},
-                                {"key": "result_type", "value": failure.get("result_type", "")},
-                                {"key": "failed_session_count", "value": failure.get("failed_session_count", 0)},
-                            ]
-                        },
                     }
                     
+                    # Add optional context fields (low-value, not for dashboarding)
+                    additional_context = []
+                    
+                    if self.static_environment:
+                        additional_context.append(
+                            {"key": "environment", "value": self.static_environment}
+                        )
+                    
+                    # Only add additional section if there's context to include
+                    if additional_context:
+                        event["additional"] = {"fields": additional_context}
+                    
+                    # Add optional UDM fields
                     if failure.get("sending_mta_ip"):
                         event["principal"] = {"ip": [failure["sending_mta_ip"]]}
                     
                     if self.static_observer_name:
                         event["metadata"]["product_deployment_id"] = self.static_observer_name
-                    
-                    if self.static_environment:
-                        event["additional"]["fields"].append(
-                            {"key": "environment", "value": self.static_environment}
-                        )
                     
                     events.append(json.dumps(event, ensure_ascii=False))
         
