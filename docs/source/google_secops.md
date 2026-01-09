@@ -91,7 +91,12 @@ Each event includes:
     "fields": [
       {"key": "report_org", "value": "example.net"},
       {"key": "report_id", "value": "b043f0e264cf4ea995e93765242f6dfb"},
-      {"key": "message_count", "value": "1"}
+      {"key": "report_begin", "value": "2018-06-19 00:00:00"},
+      {"key": "report_end", "value": "2018-06-19 23:59:59"},
+      {"key": "message_count", "value": "1"},
+      {"key": "interval_begin", "value": "2018-06-19 00:00:00"},
+      {"key": "interval_end", "value": "2018-06-19 23:59:59"},
+      {"key": "envelope_from", "value": "example.com"}
     ]
   }
 }
@@ -125,7 +130,9 @@ Each event includes:
     "fields": [
       {"key": "arrival_date", "value": "2019-04-30 02:09:00"},
       {"key": "feedback_type", "value": "auth-failure"},
-      {"key": "message_id", "value": "<01010101010101010101010101010101@ABAB01MS0016.someserver.loc>"}
+      {"key": "message_id", "value": "<01010101010101010101010101010101@ABAB01MS0016.someserver.loc>"},
+      {"key": "authentication_results", "value": "dmarc=fail (p=none; dis=none) header.from=example.com"},
+      {"key": "delivery_result", "value": "delivered"}
     ]
   }
 }
@@ -135,20 +142,19 @@ Each event includes:
 
 Here are some example YARA-L rules you can use in Google SecOps to hunt for DMARC issues:
 
-### Find all DMARC failures
+### Find all DMARC aggregate report failures
 
 ```yara-l
-rule dmarc_failures {
+rule dmarc_aggregate_failures {
   meta:
     author = "parsedmarc"
-    description = "Detect DMARC authentication failures"
+    description = "Detect DMARC authentication failures in aggregate reports"
     
   events:
-    $e.metadata.event_type = "GENERIC_EVENT"
     $e.metadata.product_name = "parsedmarc"
-    $e.principal.ip != ""
-    $e.additional.fields.key = "dmarc_pass"
-    $e.additional.fields.value = "false"
+    $e.event_type = "DMARC_AGGREGATE"
+    $e.security_result.detection_fields.key = "dmarc_pass"
+    $e.security_result.detection_fields.value = "false"
     
   condition:
     $e
@@ -161,11 +167,11 @@ rule dmarc_failures {
 rule high_severity_dmarc_events {
   meta:
     author = "parsedmarc"
-    description = "Detect high severity DMARC events (rejected mail)"
+    description = "Detect high severity DMARC aggregate events (rejected mail)"
     
   events:
-    $e.metadata.event_type = "GENERIC_EVENT"
     $e.metadata.product_name = "parsedmarc"
+    $e.event_type = "DMARC_AGGREGATE"
     $e.security_result.severity = "HIGH"
     
   condition:
@@ -173,7 +179,7 @@ rule high_severity_dmarc_events {
 }
 ```
 
-### Find repeated DMARC failures from same source
+### Find repeated DMARC failures from same source IP
 
 ```yara-l
 rule repeated_dmarc_failures {
@@ -182,10 +188,10 @@ rule repeated_dmarc_failures {
     description = "Detect repeated DMARC failures from the same source IP"
     
   events:
-    $e.metadata.event_type = "GENERIC_EVENT"
     $e.metadata.product_name = "parsedmarc"
-    $e.additional.fields.key = "dmarc_pass"
-    $e.additional.fields.value = "false"
+    $e.event_type = "DMARC_AGGREGATE"
+    $e.security_result.detection_fields.key = "dmarc_pass"
+    $e.security_result.detection_fields.value = "false"
     $e.principal.ip = $source_ip
     
   match:
@@ -196,19 +202,36 @@ rule repeated_dmarc_failures {
 }
 ```
 
-### Find forensic reports with specific authentication failures
+### Find DMARC forensic reports with authentication failures
 
 ```yara-l
-rule forensic_auth_failures {
+rule dmarc_forensic_failures {
   meta:
     author = "parsedmarc"
-    description = "Detect forensic reports with DMARC authentication failures"
+    description = "Detect DMARC forensic reports with authentication failures"
     
   events:
-    $e.metadata.event_type = "GENERIC_EVENT"
     $e.metadata.product_name = "parsedmarc"
+    $e.event_type = "DMARC_FORENSIC"
     $e.additional.fields.key = "auth_failure"
     $e.additional.fields.value = "dmarc"
+    
+  condition:
+    $e
+}
+```
+
+### Find SMTP TLS failures
+
+```yara-l
+rule smtp_tls_failures {
+  meta:
+    author = "parsedmarc"
+    description = "Detect SMTP TLS failures"
+    
+  events:
+    $e.metadata.product_name = "parsedmarc"
+    $e.event_type = "SMTP_TLS_REPORT"
     
   condition:
     $e
