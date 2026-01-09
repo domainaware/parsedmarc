@@ -138,6 +138,59 @@ Each event includes:
 }
 ```
 
+### SMTP TLS Report Event
+
+```json
+{
+  "event_type": "SMTP_TLS_REPORT",
+  "metadata": {
+    "event_timestamp": "2016-04-01T00:00:00+00:00",
+    "event_type": "GENERIC_EVENT",
+    "product_name": "parsedmarc",
+    "vendor_name": "parsedmarc"
+  },
+  "target": {
+    "domain": {
+      "name": "company-y.example"
+    }
+  },
+  "security_result": [{
+    "severity": "LOW",
+    "description": "SMTP TLS failure: certificate-expired"
+  }],
+  "additional": {
+    "fields": [
+      {"key": "organization_name", "value": "Company-X"},
+      {"key": "report_begin", "value": "2016-04-01T00:00:00Z"},
+      {"key": "report_end", "value": "2016-04-01T23:59:59Z"},
+      {"key": "result_type", "value": "certificate-expired"},
+      {"key": "failed_session_count", "value": "100"}
+    ]
+  },
+  "principal": {
+    "ip": ["2001:db8:abcd:0012::1"]
+  }
+}
+```
+
+### Parse Error Event
+
+```json
+{
+  "event_type": "DMARC_PARSE_ERROR",
+  "metadata": {
+    "event_timestamp": "2026-01-09T16:22:10.933751+00:00",
+    "event_type": "GENERIC_EVENT",
+    "product_name": "parsedmarc",
+    "vendor_name": "parsedmarc"
+  },
+  "security_result": [{
+    "severity": "ERROR",
+    "description": "Failed to parse DMARC report: Invalid XML structure"
+  }]
+}
+```
+
 ## Google SecOps Searches
 
 Here are some example YARA-L rules you can use in Google SecOps to hunt for DMARC issues:
