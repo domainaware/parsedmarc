@@ -250,7 +250,11 @@ By default, forensic report message bodies are **excluded** from the output to p
 
 ## Usage
 
-To output DMARC reports to Google SecOps, redirect stdout or use the output in your ingestion pipeline:
+The Google SecOps output works with all parsedmarc input methods, including file processing and mailbox monitoring.
+
+### Processing Files
+
+To output DMARC reports from files to Google SecOps, redirect stdout or use the output in your ingestion pipeline:
 
 ```bash
 # Output to stdout
@@ -261,6 +265,37 @@ parsedmarc -c config.ini samples/aggregate/*.xml >> /var/log/dmarc/events.ndjson
 
 # Use with a log shipper (e.g., Fluentd, Logstash)
 parsedmarc -c config.ini samples/aggregate/*.xml | your-log-shipper
+```
+
+### Monitoring Mailboxes
+
+The Google SecOps output automatically works when monitoring mailboxes via IMAP, Microsoft Graph, or Gmail API. Configure your mailbox connection and enable watching:
+
+```ini
+[general]
+save_aggregate = True
+save_forensic = True
+
+[mailbox]
+watch = True
+delete = False
+batch_size = 10
+
+[imap]
+host = imap.example.com
+user = dmarc@example.com
+password = yourpassword
+
+[google_secops]
+include_ruf_payload = False
+static_observer_name = mailbox-monitor
+static_environment = prod
+```
+
+When watching a mailbox, parsedmarc will continuously output UDM events to stdout as new reports arrive. Pipe this to your log shipper for real-time ingestion:
+
+```bash
+parsedmarc -c config.ini | fluentd
 ```
 
 The output is in newline-delimited JSON format, with one UDM event per line, ready for ingestion into Google SecOps.
