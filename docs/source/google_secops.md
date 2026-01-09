@@ -133,42 +133,86 @@ Each event includes:
 
 ## Google SecOps Searches
 
-Here are some example searches you can use in Google SecOps to hunt for DMARC issues:
+Here are some example YARA-L rules you can use in Google SecOps to hunt for DMARC issues:
 
 ### Find all DMARC failures
 
-```
-metadata.event_type = "GENERIC_EVENT"
-metadata.product_name = "parsedmarc"
-principal.ip != ""
-additional.fields.key = "dmarc_pass"
-additional.fields.value = "false"
+```yara-l
+rule dmarc_failures {
+  meta:
+    author = "parsedmarc"
+    description = "Detect DMARC authentication failures"
+    
+  events:
+    $e.metadata.event_type = "GENERIC_EVENT"
+    $e.metadata.product_name = "parsedmarc"
+    $e.principal.ip != ""
+    $e.additional.fields.key = "dmarc_pass"
+    $e.additional.fields.value = "false"
+    
+  condition:
+    $e
+}
 ```
 
 ### Find high severity DMARC events (rejected mail)
 
-```
-metadata.event_type = "GENERIC_EVENT"
-metadata.product_name = "parsedmarc"
-security_result.severity = "HIGH"
+```yara-l
+rule high_severity_dmarc_events {
+  meta:
+    author = "parsedmarc"
+    description = "Detect high severity DMARC events (rejected mail)"
+    
+  events:
+    $e.metadata.event_type = "GENERIC_EVENT"
+    $e.metadata.product_name = "parsedmarc"
+    $e.security_result.severity = "HIGH"
+    
+  condition:
+    $e
+}
 ```
 
-### Aggregate by source IP and target domain
+### Find repeated DMARC failures from same source
 
-```
-metadata.event_type = "GENERIC_EVENT"
-metadata.product_name = "parsedmarc"
-| stats count() as event_count by principal.ip, target.domain.name
-| sort event_count desc
+```yara-l
+rule repeated_dmarc_failures {
+  meta:
+    author = "parsedmarc"
+    description = "Detect repeated DMARC failures from the same source IP"
+    
+  events:
+    $e.metadata.event_type = "GENERIC_EVENT"
+    $e.metadata.product_name = "parsedmarc"
+    $e.additional.fields.key = "dmarc_pass"
+    $e.additional.fields.value = "false"
+    $e.principal.ip = $source_ip
+    
+  match:
+    $source_ip over 1h
+    
+  condition:
+    #e > 5
+}
 ```
 
 ### Find forensic reports with specific authentication failures
 
-```
-metadata.event_type = "GENERIC_EVENT"
-metadata.product_name = "parsedmarc"
-additional.fields.key = "auth_failure"
-additional.fields.value = "dmarc"
+```yara-l
+rule forensic_auth_failures {
+  meta:
+    author = "parsedmarc"
+    description = "Detect forensic reports with DMARC authentication failures"
+    
+  events:
+    $e.metadata.event_type = "GENERIC_EVENT"
+    $e.metadata.product_name = "parsedmarc"
+    $e.additional.fields.key = "auth_failure"
+    $e.additional.fields.value = "dmarc"
+    
+  condition:
+    $e
+}
 ```
 
 ## Privacy Considerations
