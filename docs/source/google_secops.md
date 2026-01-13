@@ -6,12 +6,29 @@
 
 To enable Google SecOps output, add a `[google_secops]` section to your configuration file:
 
+### Primary Method: Chronicle Ingestion API
+
+The recommended approach is to send events directly to Chronicle via the Ingestion API:
+
 ```ini
 [general]
 save_aggregate = True
 save_forensic = True
 
 [google_secops]
+# Required: Path to Google service account JSON credentials file
+api_credentials_file = /path/to/service-account-credentials.json
+
+# Required: Chronicle customer ID
+api_customer_id = your-customer-id-here
+
+# Optional: Chronicle region (default: us)
+# Options: us, europe, asia-southeast1, me-central2, australia-southeast1
+api_region = us
+
+# Optional: Log type for Chronicle ingestion (default: DMARC)
+api_log_type = DMARC
+
 # Optional: Include forensic report message payload (default: False)
 # For privacy, message bodies are excluded by default
 include_ruf_payload = False
@@ -26,6 +43,23 @@ static_observer_name = my-parsedmarc-instance
 static_observer_vendor = parsedmarc
 
 # Optional: Static environment label (e.g., prod, dev)
+static_environment = prod
+```
+
+### Alternative Method: stdout Output
+
+If you prefer to use an external log shipper (Fluentd, Logstash, Chronicle forwarder), set `use_stdout = True`:
+
+```ini
+[google_secops]
+# Output to stdout instead of Chronicle API
+use_stdout = True
+
+# Other optional configuration options (as above)
+include_ruf_payload = False
+ruf_payload_max_bytes = 4096
+static_observer_name = my-instance
+static_observer_vendor = parsedmarc
 static_environment = prod
 ```
 
@@ -338,9 +372,25 @@ By default, forensic report message bodies are **excluded** from the output to p
 
 The Google SecOps output works with all parsedmarc input methods, including file processing and mailbox monitoring.
 
-### Processing Files
+### Primary Method: Direct API Ingestion
 
-To output DMARC reports from files to Google SecOps, redirect stdout or use the output in your ingestion pipeline:
+With Chronicle Ingestion API configured, events are sent directly to Chronicle:
+
+```bash
+# Process files - events are sent to Chronicle API automatically
+parsedmarc -c config.ini samples/aggregate/*.xml
+
+# Monitor mailbox - events are sent to Chronicle API in real-time
+parsedmarc -c config.ini
+```
+
+No additional log shippers or pipelines are needed. The Google SecOps client handles authentication and batching automatically.
+
+### Alternative Method: stdout Output with Log Shipper
+
+If using `use_stdout = True` in your configuration, output DMARC reports to an external log shipper:
+
+#### Processing Files
 
 ```bash
 # Output to stdout
@@ -349,11 +399,11 @@ parsedmarc -c config.ini samples/aggregate/*.xml > dmarc_events.ndjson
 # Stream to file
 parsedmarc -c config.ini samples/aggregate/*.xml >> /var/log/dmarc/events.ndjson
 
-# Use with a log shipper (e.g., Fluentd, Logstash)
-parsedmarc -c config.ini samples/aggregate/*.xml | your-log-shipper
+# Pipe to log shipper (e.g., Fluentd, Logstash, Chronicle forwarder)
+parsedmarc -c config.ini samples/aggregate/*.xml | fluentd
 ```
 
-### Monitoring Mailboxes
+#### Monitoring Mailboxes
 
 The Google SecOps output automatically works when monitoring mailboxes via IMAP, Microsoft Graph, or Gmail API. Configure your mailbox connection and enable watching:
 
@@ -373,15 +423,17 @@ user = dmarc@example.com
 password = yourpassword
 
 [google_secops]
+# Use stdout mode for log shipper integration
+use_stdout = True
 include_ruf_payload = False
 static_observer_name = mailbox-monitor
 static_environment = prod
 ```
 
-When watching a mailbox, parsedmarc will continuously output UDM events to stdout as new reports arrive. Pipe this to your log shipper for real-time ingestion:
+When watching a mailbox with stdout mode, parsedmarc continuously outputs UDM events as new reports arrive:
 
 ```bash
 parsedmarc -c config.ini | fluentd
 ```
 
-The output is in newline-delimited JSON format, with one UDM event per line, ready for ingestion into Google SecOps.
+The output is in newline-delimited JSON format, with one UDM event per line, ready for collection by your log shipper.

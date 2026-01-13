@@ -753,6 +753,11 @@ def _main():
         google_secops_static_observer_name=None,
         google_secops_static_observer_vendor="parsedmarc",
         google_secops_static_environment=None,
+        google_secops_api_credentials_file=None,
+        google_secops_api_customer_id=None,
+        google_secops_api_region="us",
+        google_secops_api_log_type="DMARC",
+        google_secops_use_stdout=False,
         webhook_aggregate_url=None,
         webhook_forensic_url=None,
         webhook_smtp_tls_url=None,
@@ -1355,6 +1360,26 @@ def _main():
                 opts.google_secops_static_environment = google_secops_config[
                     "static_environment"
                 ]
+            if "api_credentials_file" in google_secops_config:
+                opts.google_secops_api_credentials_file = google_secops_config[
+                    "api_credentials_file"
+                ]
+            if "api_customer_id" in google_secops_config:
+                opts.google_secops_api_customer_id = google_secops_config[
+                    "api_customer_id"
+                ]
+            if "api_region" in google_secops_config:
+                opts.google_secops_api_region = google_secops_config[
+                    "api_region"
+                ]
+            if "api_log_type" in google_secops_config:
+                opts.google_secops_api_log_type = google_secops_config[
+                    "api_log_type"
+                ]
+            if "use_stdout" in google_secops_config:
+                opts.google_secops_use_stdout = google_secops_config.getboolean(
+                    "use_stdout"
+                )
 
         if "webhook" in config.sections():
             webhook_config = config["webhook"]
@@ -1542,6 +1567,11 @@ def _main():
                 static_observer_name=opts.google_secops_static_observer_name,
                 static_observer_vendor=opts.google_secops_static_observer_vendor,
                 static_environment=opts.google_secops_static_environment,
+                api_credentials_file=opts.google_secops_api_credentials_file,
+                api_customer_id=opts.google_secops_api_customer_id,
+                api_region=opts.google_secops_api_region,
+                api_log_type=opts.google_secops_api_log_type,
+                use_stdout=opts.google_secops_use_stdout,
             )
         except Exception as error_:
             logger.error("Google SecOps Error: {0}".format(error_.__str__()))

@@ -8,8 +8,17 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import requests
+from google.auth.transport.requests import Request
+from google.oauth2 import service_account
+
+from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
+
+
+class GoogleSecOpsError(RuntimeError):
+    """Raised when a Google SecOps API error occurs"""
 
 
 class GoogleSecOpsClient:
@@ -22,6 +31,11 @@ class GoogleSecOpsClient:
         static_observer_name: Optional[str] = None,
         static_observer_vendor: str = "parsedmarc",
         static_environment: Optional[str] = None,
+        api_credentials_file: Optional[str] = None,
+        api_customer_id: Optional[str] = None,
+        api_region: str = "us",
+        api_log_type: str = "DMARC",
+        use_stdout: bool = False,
     ):
         """
         Initializes the GoogleSecOpsClient
@@ -32,12 +46,124 @@ class GoogleSecOpsClient:
             static_observer_name: Static observer name for telemetry
             static_observer_vendor: Static observer vendor (default: parsedmarc)
             static_environment: Static environment (prod/dev/custom string)
+            api_credentials_file: Path to Google service account JSON credentials
+            api_customer_id: Chronicle customer ID (required for API)
+            api_region: Chronicle region (us, europe, asia-southeast1, etc.)
+            api_log_type: Log type for Chronicle ingestion (default: DMARC)
+            use_stdout: Output to stdout instead of API (default: False)
         """
         self.include_ruf_payload = include_ruf_payload
         self.ruf_payload_max_bytes = ruf_payload_max_bytes
         self.static_observer_name = static_observer_name
         self.static_observer_vendor = static_observer_vendor
         self.static_environment = static_environment
+        self.use_stdout = use_stdout
+        
+        # API configuration
+        self.api_credentials_file = api_credentials_file
+        self.api_customer_id = api_customer_id
+        self.api_region = api_region
+        self.api_log_type = api_log_type
+        self.credentials = None
+        self.session = None
+        
+        # Initialize API client if not using stdout
+        if not self.use_stdout:
+            if not self.api_credentials_file or not self.api_customer_id:
+                raise GoogleSecOpsError(
+                    "api_credentials_file and api_customer_id are required when not using stdout. "
+                    "Set use_stdout=True to output to stdout instead."
+                )
+            self._initialize_api_client()
+    
+    def _initialize_api_client(self):
+        """Initialize the Chronicle API client with authentication"""
+        try:
+            logger.debug("Initializing Chronicle API client")
+            
+            # Load service account credentials
+            self.credentials = service_account.Credentials.from_service_account_file(
+                self.api_credentials_file,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            
+            # Create session with authentication
+            self.session = requests.Session()
+            self.session.headers.update({"User-Agent": USER_AGENT})
+            
+            logger.info("Chronicle API client initialized successfully")
+        except Exception as e:
+            raise GoogleSecOpsError(f"Failed to initialize Chronicle API client: {e}")
+    
+    def _get_api_endpoint(self) -> str:
+        """Get the Chronicle Ingestion API endpoint based on region"""
+        return f"https://{self.api_region}-chronicle.googleapis.com/v1alpha/projects/{self.api_customer_id}/locations/{self.api_region}/instances/default/logTypes/{self.api_log_type}/logs:import"
+    
+    def _send_events_to_api(self, events: list[str]) -> None:
+        """
+        Send UDM events to Chronicle Ingestion API
+        
+        Args:
+            events: List of NDJSON event strings
+        """
+        if not events:
+            return
+        
+        try:
+            # Refresh credentials if needed
+            if not self.credentials.valid:
+                self.credentials.refresh(Request())
+            
+            # Prepare request
+            endpoint = self._get_api_endpoint()
+            headers = {
+                "Authorization": f"Bearer {self.credentials.token}",
+                "Content-Type": "application/json",
+            }
+            
+            # Chronicle expects events in inline_source format
+            # Each event should be a separate log entry
+            payload = {
+                "inline_source": {
+                    "logs": [json.loads(event) for event in events]
+                }
+            }
+            
+            logger.debug(f"Sending {len(events)} events to Chronicle API")
+            
+            response = self.session.post(
+                endpoint,
+                headers=headers,
+                json=payload,
+                timeout=60,
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully sent {len(events)} events to Chronicle")
+            else:
+                error_msg = f"Chronicle API error: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                raise GoogleSecOpsError(error_msg)
+        
+        except GoogleSecOpsError:
+            raise
+        except Exception as e:
+            raise GoogleSecOpsError(f"Failed to send events to Chronicle API: {e}")
+    
+    def _output_events(self, events: list[str]) -> None:
+        """
+        Output events either to stdout or Chronicle API
+        
+        Args:
+            events: List of NDJSON event strings
+        """
+        if self.use_stdout:
+            # Output to stdout for collection by external log shippers
+            for event in events:
+                print(event)
+        else:
+            # Send directly to Chronicle API
+            self._send_events_to_api(events)
 
     def _get_severity(self, disposition: str, spf_aligned: bool, dkim_aligned: bool) -> str:
         """
@@ -131,13 +257,16 @@ class GoogleSecOpsClient:
         self, aggregate_report: dict[str, Any]
     ) -> list[str]:
         """
-        Convert aggregate DMARC report to Google SecOps UDM format (NDJSON)
+        Convert aggregate DMARC report to Google SecOps UDM format and send to Chronicle
+        
+        When use_stdout=False: Events are sent to Chronicle API, returns empty list
+        When use_stdout=True: Returns list of NDJSON event strings for stdout
 
         Args:
             aggregate_report: Aggregate report dictionary from parsedmarc
 
         Returns:
-            List of NDJSON event strings
+            List of NDJSON event strings (empty if sent to API)
         """
         logger.debug("Converting aggregate report to Google SecOps UDM format")
         events = []
@@ -308,19 +437,26 @@ class GoogleSecOpsClient:
             }
             events.append(json.dumps(error_event, ensure_ascii=False))
         
-        return events
+        # Output events (to stdout or API)
+        self._output_events(events)
+        
+        # Return events only if using stdout (for CLI to print)
+        return events if self.use_stdout else []
 
     def save_forensic_report_to_google_secops(
         self, forensic_report: dict[str, Any]
     ) -> list[str]:
         """
-        Convert forensic DMARC report to Google SecOps UDM format (NDJSON)
+        Convert forensic DMARC report to Google SecOps UDM format and send to Chronicle
+        
+        When use_stdout=False: Events are sent to Chronicle API, returns empty list
+        When use_stdout=True: Returns list of NDJSON event strings for stdout
 
         Args:
             forensic_report: Forensic report dictionary from parsedmarc
 
         Returns:
-            List of NDJSON event strings
+            List of NDJSON event strings (empty if sent to API)
         """
         logger.debug("Converting forensic report to Google SecOps UDM format")
         events = []
@@ -456,19 +592,26 @@ class GoogleSecOpsClient:
             }
             events.append(json.dumps(error_event, ensure_ascii=False))
         
-        return events
+        # Output events (to stdout or API)
+        self._output_events(events)
+        
+        # Return events only if using stdout (for CLI to print)
+        return events if self.use_stdout else []
 
     def save_smtp_tls_report_to_google_secops(
         self, smtp_tls_report: dict[str, Any]
     ) -> list[str]:
         """
-        Convert SMTP TLS report to Google SecOps UDM format (NDJSON)
+        Convert SMTP TLS report to Google SecOps UDM format and send to Chronicle
+        
+        When use_stdout=False: Events are sent to Chronicle API, returns empty list
+        When use_stdout=True: Returns list of NDJSON event strings for stdout
 
         Args:
             smtp_tls_report: SMTP TLS report dictionary from parsedmarc
 
         Returns:
-            List of NDJSON event strings
+            List of NDJSON event strings (empty if sent to API)
         """
         logger.debug("Converting SMTP TLS report to Google SecOps UDM format")
         events = []
@@ -553,4 +696,8 @@ class GoogleSecOpsClient:
             }
             events.append(json.dumps(error_event, ensure_ascii=False))
         
-        return events
+        # Output events (to stdout or API)
+        self._output_events(events)
+        
+        # Return events only if using stdout (for CLI to print)
+        return events if self.use_stdout else []
