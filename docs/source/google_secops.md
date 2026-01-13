@@ -48,8 +48,9 @@ Each event includes:
 - **principal**: Source IP address, location (country), and hostname (reverse DNS)
 - **target**: Domain name (from DMARC policy)
 - **security_result**: Severity level, description, and detection fields for dashboarding
-  - **detection_fields**: Key DMARC dimensions for filtering and grouping (e.g., `dmarc.disposition`, `dmarc.pass`, `dmarc.header_from`, `dmarc.report_org`)
+  - **detection_fields**: Key DMARC dimensions for filtering and grouping (e.g., `dmarc.disposition`, `dmarc.pass`, `dmarc.header_from`, `dmarc.report_org`, `dmarc.source_service_name`, `dmarc.source_service_type`)
   - All dashboard-relevant fields use `dmarc.*` or `smtp_tls.*` prefixes for easy identification
+  - Includes IP enrichment data (service name and type from reverse DNS mapping) for enhanced filtering
 - **additional.fields** (optional): Low-value context fields (e.g., detailed auth results) not typically used for dashboarding
 
 **Design Rationale**: DMARC dimensions are placed in `security_result[].detection_fields` rather than `additional.fields` because Chronicle dashboards, stats searches, and aggregations work best with UDM label arrays. The `additional.fields` is a protobuf Struct intended for opaque context and is not reliably queryable for dashboard operations.
@@ -97,7 +98,9 @@ Each event includes:
       {"key": "dmarc.report_end", "value": "2018-06-19 23:59:59"},
       {"key": "dmarc.row_count", "value": 1},
       {"key": "dmarc.spf_result", "value": "pass"},
-      {"key": "dmarc.dkim_result", "value": "pass"}
+      {"key": "dmarc.dkim_result", "value": "pass"},
+      {"key": "dmarc.source_service_name", "value": "Example Mail Service"},
+      {"key": "dmarc.source_service_type", "value": "email"}
     ]
   }],
   "additional": {
@@ -133,7 +136,9 @@ Each event includes:
     "description": "DMARC forensic report: authentication failure (dmarc)",
     "detection_fields": [
       {"key": "dmarc.auth_failure", "value": "dmarc"},
-      {"key": "dmarc.reported_domain", "value": "example.com"}
+      {"key": "dmarc.reported_domain", "value": "example.com"},
+      {"key": "dmarc.source_service_name", "value": "Example Mail Provider"},
+      {"key": "dmarc.source_service_type", "value": "email"}
     ]
   }],
   "additional": {
@@ -275,6 +280,27 @@ rule dmarc_forensic_failures {
     $e.metadata.product_name = "parsedmarc"
     $e.event_type = "DMARC_FORENSIC"
     $e.security_result.detection_fields.key = "dmarc.auth_failure"
+    
+  condition:
+    $e
+}
+```
+
+### Find DMARC failures from specific mail service types
+
+```yara-l
+rule dmarc_failures_by_service_type {
+  meta:
+    author = "parsedmarc"
+    description = "Detect DMARC failures from specific mail service types"
+    
+  events:
+    $e.metadata.product_name = "parsedmarc"
+    $e.event_type = "DMARC_AGGREGATE"
+    $e.security_result.detection_fields.key = "dmarc.pass"
+    $e.security_result.detection_fields.value = false
+    $e.security_result.detection_fields.key = "dmarc.source_service_type"
+    $e.security_result.detection_fields.value = "email"
     
   condition:
     $e

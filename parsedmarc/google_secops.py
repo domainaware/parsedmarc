@@ -153,6 +153,7 @@ class GoogleSecOpsClient:
                 source_reverse_dns = record["source"].get("reverse_dns")
                 source_base_domain = record["source"].get("base_domain")
                 source_name = record["source"].get("name")
+                source_type = record["source"].get("type")
                 
                 header_from = record["identifiers"]["header_from"]
                 envelope_from = record["identifiers"]["envelope_from"]
@@ -229,6 +230,14 @@ class GoogleSecOpsClient:
                     event["security_result"][0]["detection_fields"].append(
                         {"key": "dmarc.dkim_result", "value": dkim_result}
                     )
+                if source_name:
+                    event["security_result"][0]["detection_fields"].append(
+                        {"key": "dmarc.source_service_name", "value": source_name}
+                    )
+                if source_type:
+                    event["security_result"][0]["detection_fields"].append(
+                        {"key": "dmarc.source_service_type", "value": source_type}
+                    )
                 
                 # Add optional context fields (low-value, not for dashboarding)
                 additional_context = []
@@ -236,11 +245,6 @@ class GoogleSecOpsClient:
                 if source_base_domain:
                     additional_context.append(
                         {"key": "source_base_domain", "value": source_base_domain}
-                    )
-                
-                if source_name:
-                    additional_context.append(
-                        {"key": "source_name", "value": source_name}
                     )
                 
                 if self.static_environment:
@@ -325,6 +329,8 @@ class GoogleSecOpsClient:
             source_ip = forensic_report["source"]["ip_address"]
             source_country = forensic_report["source"].get("country")
             source_reverse_dns = forensic_report["source"].get("reverse_dns")
+            source_name = forensic_report["source"].get("name")
+            source_type = forensic_report["source"].get("type")
             
             reported_domain = forensic_report["reported_domain"]
             arrival_date = forensic_report["arrival_date_utc"]
@@ -366,6 +372,16 @@ class GoogleSecOpsClient:
                     }
                 ],
             }
+            
+            # Add optional fields to detection_fields
+            if source_name:
+                event["security_result"][0]["detection_fields"].append(
+                    {"key": "dmarc.source_service_name", "value": source_name}
+                )
+            if source_type:
+                event["security_result"][0]["detection_fields"].append(
+                    {"key": "dmarc.source_service_type", "value": source_type}
+                )
             
             # Add optional context fields (low-value, not for dashboarding)
             additional_context = []
