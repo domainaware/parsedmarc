@@ -162,7 +162,7 @@ class Test(unittest.TestCase):
         print()
         from parsedmarc.google_secops import GoogleSecOpsClient
         
-        client = GoogleSecOpsClient()
+        client = GoogleSecOpsClient(use_stdout=True)
         sample_path = "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
         print("Testing Google SecOps aggregate conversion for {0}: ".format(sample_path), end="")
         
@@ -192,7 +192,7 @@ class Test(unittest.TestCase):
         from parsedmarc.google_secops import GoogleSecOpsClient
         
         # Test without payload
-        client = GoogleSecOpsClient(include_ruf_payload=False)
+        client = GoogleSecOpsClient(include_ruf_payload=False, use_stdout=True)
         sample_path = "samples/forensic/dmarc_ruf_report_linkedin.eml"
         print("Testing Google SecOps forensic conversion (no payload) for {0}: ".format(sample_path), end="")
         
@@ -220,7 +220,8 @@ class Test(unittest.TestCase):
         # Test with payload
         client_with_payload = GoogleSecOpsClient(
             include_ruf_payload=True,
-            ruf_payload_max_bytes=100
+            ruf_payload_max_bytes=100,
+            use_stdout=True
         )
         print("Testing Google SecOps forensic conversion (with payload) for {0}: ".format(sample_path), end="")
         
@@ -256,13 +257,14 @@ class Test(unittest.TestCase):
         
         print("Testing Google SecOps client configuration: ", end="")
         
-        # Test default configuration
-        client1 = GoogleSecOpsClient()
+        # Test stdout configuration
+        client1 = GoogleSecOpsClient(use_stdout=True)
         assert client1.include_ruf_payload is False
         assert client1.ruf_payload_max_bytes == 4096
         assert client1.static_observer_vendor == "parsedmarc"
         assert client1.static_observer_name is None
         assert client1.static_environment is None
+        assert client1.use_stdout is True
         
         # Test custom configuration
         client2 = GoogleSecOpsClient(
@@ -270,7 +272,8 @@ class Test(unittest.TestCase):
             ruf_payload_max_bytes=8192,
             static_observer_name="test-observer",
             static_observer_vendor="test-vendor",
-            static_environment="prod"
+            static_environment="prod",
+            use_stdout=True
         )
         assert client2.include_ruf_payload is True
         assert client2.ruf_payload_max_bytes == 8192
@@ -285,7 +288,7 @@ class Test(unittest.TestCase):
         print()
         from parsedmarc.google_secops import GoogleSecOpsClient
         
-        client = GoogleSecOpsClient()
+        client = GoogleSecOpsClient(use_stdout=True)
         sample_path = "samples/smtp_tls/rfc8460.json"
         print("Testing Google SecOps SMTP TLS conversion for {0}: ".format(sample_path), end="")
         
