@@ -79,15 +79,68 @@ The Google SecOps output produces newline-delimited JSON (NDJSON) in Chronicle U
 Each event includes:
 
 - **metadata**: Event timestamp, type, product name, and vendor
+  - `event_timestamp`: RFC 3339 formatted timestamp
+  - `event_type`: Always "GENERIC_EVENT" for UDM
+  - `product_name`: Always "parsedmarc"
+  - `vendor_name`: Configurable via `static_observer_vendor` (default: "parsedmarc")
+  - `product_deployment_id` (optional): Set via `static_observer_name` config
+
 - **principal**: Source IP address, location (country), and hostname (reverse DNS)
+  - `ip`: Array containing source IP address (always present)
+  - `location.country_or_region` (optional): ISO country code from IP geolocation
+  - `hostname` (optional): Reverse DNS hostname for source IP
+
 - **target**: Domain name (from DMARC policy)
+  - `domain.name`: The domain being protected by DMARC
+
 - **security_result**: Severity level, description, and detection fields for dashboarding
-  - **detection_fields**: Key DMARC dimensions for filtering and grouping (e.g., `dmarc.disposition`, `dmarc.pass`, `dmarc.header_from`, `dmarc.report_org`, `dmarc.source_service_name`, `dmarc.source_service_type`)
-  - All dashboard-relevant fields use `dmarc.*` or `smtp_tls.*` prefixes for easy identification
-  - Includes IP enrichment data (service name and type from reverse DNS mapping) for enhanced filtering
-- **additional.fields** (optional): Low-value context fields (e.g., detailed auth results) not typically used for dashboarding
+  - `severity`: Derived severity level (HIGH/MEDIUM/LOW/ERROR)
+  - `description`: Human-readable event description
+  - **detection_fields**: Key DMARC dimensions for filtering and grouping
+    - All dashboard-relevant fields use `dmarc.*` or `smtp_tls.*` prefixes for easy identification
+    - Includes IP enrichment data (service name and type from reverse DNS mapping) for enhanced filtering
+    - See "Detection Fields" section below for complete field listings
+
+- **additional.fields** (optional): Low-value context fields not typically used for dashboarding
+  - SPF/DKIM authentication details (e.g., `spf_0_domain`, `spf_0_result`)
+  - Forensic report metadata (e.g., `feedback_type`, `message_id`, `authentication_results`)
+  - Base domain, environment tags, optional message samples
 
 **Design Rationale**: DMARC dimensions are placed in `security_result[].detection_fields` rather than `additional.fields` because Chronicle dashboards, stats searches, and aggregations work best with UDM label arrays. The `additional.fields` is a protobuf Struct intended for opaque context and is not reliably queryable for dashboard operations.
+
+### Detection Fields
+
+**Aggregate Report Fields** (`DMARC_AGGREGATE` events):
+- `dmarc.disposition`: DMARC policy action (none, quarantine, reject)
+- `dmarc.policy`: Published DMARC policy (none, quarantine, reject)
+- `dmarc.pass`: Boolean - overall DMARC authentication result
+- `dmarc.spf_aligned`: Boolean - SPF alignment status
+- `dmarc.dkim_aligned`: Boolean - DKIM alignment status
+- `dmarc.header_from`: Header From domain
+- `dmarc.envelope_from`: Envelope From domain (MAIL FROM)
+- `dmarc.report_org`: Reporting organization name
+- `dmarc.report_id`: Unique report identifier
+- `dmarc.report_begin`: Report period start timestamp
+- `dmarc.report_end`: Report period end timestamp
+- `dmarc.row_count`: Number of messages represented by this record
+- `dmarc.spf_result` (optional): SPF authentication result (pass, fail, etc.)
+- `dmarc.dkim_result` (optional): DKIM authentication result (pass, fail, etc.)
+- `dmarc.source_service_name` (optional): Enriched service name from reverse DNS mapping
+- `dmarc.source_service_type` (optional): Enriched service type (e.g., "Email Provider", "Webmail", "Marketing")
+
+**Forensic Report Fields** (`DMARC_FORENSIC` events):
+- `dmarc.auth_failure`: Authentication failure type(s) (dmarc, spf, dkim)
+- `dmarc.reported_domain`: Domain that failed DMARC authentication
+- `dmarc.source_service_name` (optional): Enriched service name from reverse DNS mapping
+- `dmarc.source_service_type` (optional): Enriched service type (e.g., "Email Provider", "Webmail", "Marketing")
+
+**SMTP TLS Report Fields** (`SMTP_TLS_REPORT` events):
+- `smtp_tls.policy_domain`: Domain being monitored for TLS policy
+- `smtp_tls.result_type`: Type of TLS failure (certificate-expired, validation-failure, etc.)
+- `smtp_tls.failed_session_count`: Number of failed sessions
+- `smtp_tls.report_org`: Reporting organization name
+- `smtp_tls.report_begin`: Report period start timestamp
+- `smtp_tls.report_end`: Report period end timestamp
 
 ### Severity Heuristics
 
@@ -134,7 +187,7 @@ Each event includes:
       {"key": "dmarc.spf_result", "value": "pass"},
       {"key": "dmarc.dkim_result", "value": "pass"},
       {"key": "dmarc.source_service_name", "value": "Example Mail Service"},
-      {"key": "dmarc.source_service_type", "value": "email"}
+      {"key": "dmarc.source_service_type", "value": "Email Provider"}
     ]
   }],
   "additional": {
@@ -160,7 +213,9 @@ Each event includes:
     "vendor_name": "parsedmarc"
   },
   "principal": {
-    "ip": ["10.10.10.10"]
+    "ip": ["10.10.10.10"],
+    "location": {"country_or_region": "US"},
+    "hostname": "mail.example-sender.com"
   },
   "target": {
     "domain": {"name": "example.com"}
@@ -172,7 +227,7 @@ Each event includes:
       {"key": "dmarc.auth_failure", "value": "dmarc"},
       {"key": "dmarc.reported_domain", "value": "example.com"},
       {"key": "dmarc.source_service_name", "value": "Example Mail Provider"},
-      {"key": "dmarc.source_service_type", "value": "email"}
+      {"key": "dmarc.source_service_type", "value": "Email Provider"}
     ]
   }],
   "additional": {
@@ -334,7 +389,7 @@ rule dmarc_failures_by_service_type {
     $e.security_result.detection_fields.key = "dmarc.pass"
     $e.security_result.detection_fields.value = false
     $e.security_result.detection_fields.key = "dmarc.source_service_type"
-    $e.security_result.detection_fields.value = "email"
+    $e.security_result.detection_fields.value = "Email Provider"
     
   condition:
     $e
