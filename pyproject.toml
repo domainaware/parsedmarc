@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3"
 ]
-requires-python = ">=3.9, <3.14"
+requires-python = ">=3.9"
 dependencies = [
     "azure-identity>=1.8.0",
     "azure-monitor-ingestion>=1.0.0",
@@ -48,7 +48,7 @@ dependencies = [
     "imapclient>=2.1.0",
     "kafka-python-ng>=2.2.2",
     "lxml>=4.4.0",
-    "mailsuite>=1.11.1",
+    "mailsuite>=1.11.2",
     "msgraph-core==0.2.2",
     "opensearch-py>=2.4.2,<=3.0.0",
     "publicsuffixlist>=0.10.0",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 9.0.10
+
+- Support Python 3.14+
+
 ## 9.0.9
 
 ### Fixes
