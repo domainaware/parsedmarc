@@ -751,8 +751,8 @@ def parse_aggregate_report_xml(
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
 
-        begin_ts = int(date_range["begin"])
-        end_ts = int(date_range["end"])
+        begin_ts = int(date_range["begin"].split(".")[0])
+        end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
 
         normalize_timespan = span_seconds > normalize_timespan_threshold_hours * 3600
