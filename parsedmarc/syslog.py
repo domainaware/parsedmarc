@@ -108,8 +108,11 @@ class SyslogClient(object):
                         return handler
                     else:
                         # TLS protocol
-                        # Create SSL context
+                        # Create SSL context with secure defaults
                         ssl_context = ssl.create_default_context()
+
+                        # Explicitly set minimum TLS version to 1.2 for security
+                        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
 
                         # Configure server certificate verification
                         if cafile_path:
