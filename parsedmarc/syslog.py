@@ -52,10 +52,10 @@ class SyslogClient(object):
         self.timeout = timeout
         self.retry_attempts = retry_attempts
         self.retry_delay = retry_delay
-        
+
         self.logger = logging.getLogger("parsedmarc_syslog")
         self.logger.setLevel(logging.INFO)
-        
+
         # Create the appropriate syslog handler based on protocol
         log_handler = self._create_syslog_handler(
             server_name,
@@ -68,7 +68,7 @@ class SyslogClient(object):
             retry_attempts,
             retry_delay,
         )
-        
+
         self.logger.addHandler(log_handler)
 
     def _create_syslog_handler(
@@ -110,24 +110,31 @@ class SyslogClient(object):
                         # TLS protocol
                         # Create SSL context
                         ssl_context = ssl.create_default_context()
-                        
+
                         # Configure server certificate verification
                         if cafile_path:
                             ssl_context.load_verify_locations(cafile=cafile_path)
-                        
+
                         # Configure client certificate authentication
                         if certfile_path and keyfile_path:
                             ssl_context.load_cert_chain(
                                 certfile=certfile_path,
                                 keyfile=keyfile_path,
                             )
-                        
+                        elif certfile_path or keyfile_path:
+                            # Warn if only one of the two required parameters is provided
+                            self.logger.warning(
+                                "Both certfile_path and keyfile_path are required for "
+                                "client certificate authentication. Client authentication "
+                                "will not be used."
+                            )
+
                         # Create TCP handler first
                         handler = logging.handlers.SysLogHandler(
                             address=(server_name, server_port),
                             socktype=socket.SOCK_STREAM,
                         )
-                        
+
                         # Wrap socket with TLS
                         if hasattr(handler, "socket") and handler.socket:
                             handler.socket = ssl_context.wrap_socket(
@@ -135,9 +142,9 @@ class SyslogClient(object):
                                 server_hostname=server_name,
                             )
                             handler.socket.settimeout(timeout)
-                        
+
                         return handler
-                        
+
                 except Exception as e:
                     if attempt < retry_attempts:
                         self.logger.warning(
