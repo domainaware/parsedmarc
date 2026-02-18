@@ -697,6 +697,13 @@ def _main():
         s3_secret_access_key=None,
         syslog_server=None,
         syslog_port=None,
+        syslog_protocol=None,
+        syslog_cafile_path=None,
+        syslog_certfile_path=None,
+        syslog_keyfile_path=None,
+        syslog_timeout=None,
+        syslog_retry_attempts=None,
+        syslog_retry_delay=None,
         gmail_api_credentials_file=None,
         gmail_api_token_file=None,
         gmail_api_include_spam_trash=False,
@@ -1239,6 +1246,28 @@ def _main():
                 opts.syslog_port = syslog_config["port"]
             else:
                 opts.syslog_port = 514
+            if "protocol" in syslog_config:
+                opts.syslog_protocol = syslog_config["protocol"]
+            else:
+                opts.syslog_protocol = "udp"
+            if "cafile_path" in syslog_config:
+                opts.syslog_cafile_path = syslog_config["cafile_path"]
+            if "certfile_path" in syslog_config:
+                opts.syslog_certfile_path = syslog_config["certfile_path"]
+            if "keyfile_path" in syslog_config:
+                opts.syslog_keyfile_path = syslog_config["keyfile_path"]
+            if "timeout" in syslog_config:
+                opts.syslog_timeout = float(syslog_config["timeout"])
+            else:
+                opts.syslog_timeout = 5.0
+            if "retry_attempts" in syslog_config:
+                opts.syslog_retry_attempts = int(syslog_config["retry_attempts"])
+            else:
+                opts.syslog_retry_attempts = 3
+            if "retry_delay" in syslog_config:
+                opts.syslog_retry_delay = int(syslog_config["retry_delay"])
+            else:
+                opts.syslog_retry_delay = 5
 
         if "gmail_api" in config.sections():
             gmail_api_config = config["gmail_api"]
@@ -1436,6 +1465,13 @@ def _main():
             syslog_client = syslog.SyslogClient(
                 server_name=opts.syslog_server,
                 server_port=int(opts.syslog_port),
+                protocol=opts.syslog_protocol or "udp",
+                cafile_path=opts.syslog_cafile_path,
+                certfile_path=opts.syslog_certfile_path,
+                keyfile_path=opts.syslog_keyfile_path,
+                timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
+                retry_attempts=opts.syslog_retry_attempts if opts.syslog_retry_attempts is not None else 3,
+                retry_delay=opts.syslog_retry_delay if opts.syslog_retry_delay is not None else 5,
             )
         except Exception as error_:
             logger.error("Syslog Error: {0}".format(error_.__str__()))
