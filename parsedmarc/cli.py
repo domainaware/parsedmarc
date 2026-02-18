@@ -585,45 +585,6 @@ def _main():
         dest="prettify_json",
         help="output JSON in a single line without indentation",
     )
-    arg_parser.add_argument(
-        "--syslog-protocol",
-        choices=["udp", "tcp", "tls"],
-        default=None,
-        help="syslog protocol: udp, tcp, or tls (Default: udp)",
-    )
-    arg_parser.add_argument(
-        "--syslog-cafile-path",
-        default=None,
-        help="path to CA certificate file for TLS server verification",
-    )
-    arg_parser.add_argument(
-        "--syslog-certfile-path",
-        default=None,
-        help="path to client certificate file for TLS authentication",
-    )
-    arg_parser.add_argument(
-        "--syslog-keyfile-path",
-        default=None,
-        help="path to client private key file for TLS authentication",
-    )
-    arg_parser.add_argument(
-        "--syslog-timeout",
-        type=float,
-        default=None,
-        help="connection timeout in seconds for TCP/TLS (Default: 5.0)",
-    )
-    arg_parser.add_argument(
-        "--syslog-retry-attempts",
-        type=int,
-        default=None,
-        help="number of retry attempts for failed connections (Default: 3)",
-    )
-    arg_parser.add_argument(
-        "--syslog-retry-delay",
-        type=int,
-        default=None,
-        help="delay in seconds between retry attempts (Default: 5)",
-    )
     arg_parser.add_argument("-v", "--version", action="version", version=__version__)
 
     aggregate_reports = []
@@ -736,13 +697,13 @@ def _main():
         s3_secret_access_key=None,
         syslog_server=None,
         syslog_port=None,
-        syslog_protocol=args.syslog_protocol,
-        syslog_cafile_path=args.syslog_cafile_path,
-        syslog_certfile_path=args.syslog_certfile_path,
-        syslog_keyfile_path=args.syslog_keyfile_path,
-        syslog_timeout=args.syslog_timeout,
-        syslog_retry_attempts=args.syslog_retry_attempts,
-        syslog_retry_delay=args.syslog_retry_delay,
+        syslog_protocol=None,
+        syslog_cafile_path=None,
+        syslog_certfile_path=None,
+        syslog_keyfile_path=None,
+        syslog_timeout=None,
+        syslog_retry_attempts=None,
+        syslog_retry_delay=None,
         gmail_api_credentials_file=None,
         gmail_api_token_file=None,
         gmail_api_include_spam_trash=False,
