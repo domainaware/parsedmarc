@@ -336,7 +336,59 @@ The full set of configuration options are:
   - `secret_access_key` - str: The secret access key (Optional)
 - `syslog`
   - `server` - str: The Syslog server name or IP address
-  - `port` - int: The UDP port to use (Default: `514`)
+  - `port` - int: The port to use (Default: `514`)
+  - `protocol` - str: The protocol to use: `udp`, `tcp`, or `tls` (Default: `udp`)
+  - `cafile_path` - str: Path to CA certificate file for TLS server verification (Optional)
+  - `certfile_path` - str: Path to client certificate file for TLS authentication (Optional)
+  - `keyfile_path` - str: Path to client private key file for TLS authentication (Optional)
+  - `timeout` - float: Connection timeout in seconds for TCP/TLS (Default: `5.0`)
+  - `retry_attempts` - int: Number of retry attempts for failed connections (Default: `3`)
+  - `retry_delay` - int: Delay in seconds between retry attempts (Default: `5`)
+  
+  **Example UDP configuration (default):**
+  
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 514
+  ```
+  
+  **Example TCP configuration:**
+  
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tcp
+  timeout = 10.0
+  retry_attempts = 5
+  ```
+  
+  **Example TLS configuration with server verification:**
+  
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tls
+  cafile_path = /path/to/ca-cert.pem
+  timeout = 10.0
+  ```
+  
+  **Example TLS configuration with mutual authentication:**
+  
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tls
+  cafile_path = /path/to/ca-cert.pem
+  certfile_path = /path/to/client-cert.pem
+  keyfile_path = /path/to/client-key.pem
+  timeout = 10.0
+  retry_attempts = 3
+  retry_delay = 5
+  ```
 - `gmail_api`
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)

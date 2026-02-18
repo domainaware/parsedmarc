@@ -585,6 +585,45 @@ def _main():
         dest="prettify_json",
         help="output JSON in a single line without indentation",
     )
+    arg_parser.add_argument(
+        "--syslog-protocol",
+        choices=["udp", "tcp", "tls"],
+        default=None,
+        help="syslog protocol: udp, tcp, or tls (Default: udp)",
+    )
+    arg_parser.add_argument(
+        "--syslog-cafile-path",
+        default=None,
+        help="path to CA certificate file for TLS server verification",
+    )
+    arg_parser.add_argument(
+        "--syslog-certfile-path",
+        default=None,
+        help="path to client certificate file for TLS authentication",
+    )
+    arg_parser.add_argument(
+        "--syslog-keyfile-path",
+        default=None,
+        help="path to client private key file for TLS authentication",
+    )
+    arg_parser.add_argument(
+        "--syslog-timeout",
+        type=float,
+        default=None,
+        help="connection timeout in seconds for TCP/TLS (Default: 5.0)",
+    )
+    arg_parser.add_argument(
+        "--syslog-retry-attempts",
+        type=int,
+        default=None,
+        help="number of retry attempts for failed connections (Default: 3)",
+    )
+    arg_parser.add_argument(
+        "--syslog-retry-delay",
+        type=int,
+        default=None,
+        help="delay in seconds between retry attempts (Default: 5)",
+    )
     arg_parser.add_argument("-v", "--version", action="version", version=__version__)
 
     aggregate_reports = []
@@ -697,6 +736,13 @@ def _main():
         s3_secret_access_key=None,
         syslog_server=None,
         syslog_port=None,
+        syslog_protocol=args.syslog_protocol,
+        syslog_cafile_path=args.syslog_cafile_path,
+        syslog_certfile_path=args.syslog_certfile_path,
+        syslog_keyfile_path=args.syslog_keyfile_path,
+        syslog_timeout=args.syslog_timeout,
+        syslog_retry_attempts=args.syslog_retry_attempts,
+        syslog_retry_delay=args.syslog_retry_delay,
         gmail_api_credentials_file=None,
         gmail_api_token_file=None,
         gmail_api_include_spam_trash=False,
@@ -1239,6 +1285,28 @@ def _main():
                 opts.syslog_port = syslog_config["port"]
             else:
                 opts.syslog_port = 514
+            if "protocol" in syslog_config:
+                opts.syslog_protocol = syslog_config["protocol"]
+            else:
+                opts.syslog_protocol = "udp"
+            if "cafile_path" in syslog_config:
+                opts.syslog_cafile_path = syslog_config["cafile_path"]
+            if "certfile_path" in syslog_config:
+                opts.syslog_certfile_path = syslog_config["certfile_path"]
+            if "keyfile_path" in syslog_config:
+                opts.syslog_keyfile_path = syslog_config["keyfile_path"]
+            if "timeout" in syslog_config:
+                opts.syslog_timeout = float(syslog_config["timeout"])
+            else:
+                opts.syslog_timeout = 5.0
+            if "retry_attempts" in syslog_config:
+                opts.syslog_retry_attempts = int(syslog_config["retry_attempts"])
+            else:
+                opts.syslog_retry_attempts = 3
+            if "retry_delay" in syslog_config:
+                opts.syslog_retry_delay = int(syslog_config["retry_delay"])
+            else:
+                opts.syslog_retry_delay = 5
 
         if "gmail_api" in config.sections():
             gmail_api_config = config["gmail_api"]
@@ -1436,6 +1504,13 @@ def _main():
             syslog_client = syslog.SyslogClient(
                 server_name=opts.syslog_server,
                 server_port=int(opts.syslog_port),
+                protocol=opts.syslog_protocol or "udp",
+                cafile_path=opts.syslog_cafile_path,
+                certfile_path=opts.syslog_certfile_path,
+                keyfile_path=opts.syslog_keyfile_path,
+                timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
+                retry_attempts=opts.syslog_retry_attempts if opts.syslog_retry_attempts is not None else 3,
+                retry_delay=opts.syslog_retry_delay if opts.syslog_retry_delay is not None else 5,
             )
         except Exception as error_:
             logger.error("Syslog Error: {0}".format(error_.__str__()))
