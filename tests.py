@@ -12,6 +12,9 @@ from lxml import etree
 import parsedmarc
 import parsedmarc.utils
 
+# Detect if running in GitHub Actions to skip DNS lookups
+OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
+
 
 def minify_xml(xml_string):
     parser = etree.XMLParser(remove_blank_text=True)
@@ -121,7 +124,7 @@ class Test(unittest.TestCase):
                 continue
             print("Testing {0}: ".format(sample_path), end="")
             parsed_report = parsedmarc.parse_report_file(
-                sample_path, always_use_local_files=True
+                sample_path, always_use_local_files=True, offline=OFFLINE_MODE
             )["report"]
             parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
             print("Passed!")
@@ -129,7 +132,7 @@ class Test(unittest.TestCase):
     def testEmptySample(self):
         """Test empty/unparasable report"""
         with self.assertRaises(parsedmarc.ParserError):
-            parsedmarc.parse_report_file("samples/empty.xml")
+            parsedmarc.parse_report_file("samples/empty.xml", offline=OFFLINE_MODE)
 
     def testForensicSamples(self):
         """Test sample forensic/ruf/failure DMARC reports"""
@@ -139,8 +142,12 @@ class Test(unittest.TestCase):
             print("Testing {0}: ".format(sample_path), end="")
             with open(sample_path) as sample_file:
                 sample_content = sample_file.read()
-                parsed_report = parsedmarc.parse_report_email(sample_content)["report"]
-            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
+                parsed_report = parsedmarc.parse_report_email(
+                    sample_content, offline=OFFLINE_MODE
+                )["report"]
+            parsed_report = parsedmarc.parse_report_file(
+                sample_path, offline=OFFLINE_MODE
+            )["report"]
             parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
             print("Passed!")
 
@@ -152,7 +159,9 @@ class Test(unittest.TestCase):
             if os.path.isdir(sample_path):
                 continue
             print("Testing {0}: ".format(sample_path), end="")
-            parsed_report = parsedmarc.parse_report_file(sample_path)["report"]
+            parsed_report = parsedmarc.parse_report_file(
+                sample_path, offline=OFFLINE_MODE
+            )["report"]
             parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
             print("Passed!")
 
