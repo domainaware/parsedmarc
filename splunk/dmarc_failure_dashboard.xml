@@ -2,7 +2,7 @@
   <label>Failure DMARC Data</label>
   <search id="base_search">
     <query>
-      index="email" sourcetype="dmarc:failure" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$
+      index="email" (sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic") parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$
       | table *
     </query>
     <earliest>$time_range.earliest$</earliest>
