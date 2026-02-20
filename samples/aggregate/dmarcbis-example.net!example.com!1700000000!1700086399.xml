@@ -17,9 +17,8 @@
     <p>reject</p>
     <sp>quarantine</sp>
     <np>reject</np>
-    <psd>n</psd>
-    <t>y</t>
-    <pct>100</pct>
+    <testing>y</testing>
+    <discovery_method>treewalk</discovery_method>
     <fo>1</fo>
   </policy_published>
   <record>
