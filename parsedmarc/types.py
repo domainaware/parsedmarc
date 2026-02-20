@@ -21,6 +21,7 @@ class AggregateReportMetadata(TypedDict):
     timespan_requires_normalization: bool
     original_timespan_seconds: int
     errors: List[str]
+    generator: Optional[str]
 
 
 class AggregatePolicyPublished(TypedDict):
@@ -32,8 +33,8 @@ class AggregatePolicyPublished(TypedDict):
     pct: str
     fo: str
     np: Optional[str]
-    psd: Optional[str]
-    t: Optional[str]
+    testing: Optional[str]
+    discovery_method: Optional[str]
 
 
 class IPSourceInfo(TypedDict):
@@ -66,12 +67,14 @@ class AggregateAuthResultDKIM(TypedDict):
     domain: str
     result: str
     selector: str
+    human_result: Optional[str]
 
 
 class AggregateAuthResultSPF(TypedDict):
     domain: str
     result: str
     scope: str
+    human_result: Optional[str]
 
 
 class AggregateAuthResults(TypedDict):
