@@ -1,8 +1,8 @@
 <form theme="dark" version="1.1">
-  <label>Forensic DMARC Data</label>
+  <label>Failure DMARC Data</label>
   <search id="base_search">
     <query>
-      index="email" sourcetype="dmarc:forensic" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$
+      index="email" sourcetype="dmarc:failure" parsed_sample.headers.From=$header_from$ parsed_sample.headers.To=$header_to$ parsed_sample.headers.Subject=$header_subject$ source.ip_address=$source_ip_address$ source.reverse_dns=$source_reverse_dns$ source.country=$source_country$
       | table *
     </query>
     <earliest>$time_range.earliest$</earliest>
@@ -43,7 +43,7 @@
   </fieldset>
   <row>
     <panel>
-      <title>Forensic samples</title>
+      <title>Failure samples</title>
       <table>
         <search base="base_search">
           <query>| table arrival_date_utc authentication_results parsed_sample.headers.From,parsed_sample.headers.To,parsed_sample.headers.Subject | sort -arrival_date_utc</query>
@@ -59,7 +59,7 @@
   </row>
   <row>
     <panel>
-      <title>Forensic samples by country</title>
+      <title>Failure samples by country</title>
       <map>
         <search base="base_search">
           <query>| iplocation source.ip_address| stats count by Country | geom geo_countries featureIdField="Country"</query>
@@ -72,7 +72,7 @@
   </row>
   <row>
     <panel>
-      <title>Forensic samples by IP address</title>
+      <title>Failure samples by IP address</title>
       <table>
         <search base="base_search">
           <query>| iplocation source.ip_address | stats count by source.ip_address,source.reverse_dns | sort -count</query>
@@ -85,7 +85,7 @@
       </table>
     </panel>
     <panel>
-      <title>Forensic samples by country ISO code</title>
+      <title>Failure samples by country ISO code</title>
       <table>
         <search base="base_search">
           <query>| stats count by source.country | sort - count</query>
