@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.0.10 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 9.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=164cc7e6"></script>
-      <script src="_static/doctools.js?v=fd6eb6e6"></script>
-      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/documentation_options.js?v=7ac69e55"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -333,7 +333,7 @@ Use the <code class="docutils literal notranslate"><span class="pre">New-Applica
 Exchange PowerShell module. If you need to scope the policy to
 shared mailboxes, you can add them to a mail enabled security
 group and use that as the group id.</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span> 
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">New-ApplicationAccessPolicy</span> <span class="n">-AccessRight</span> <span class="n">RestrictAccess</span>
 <span class="n">-AppId</span> <span class="s2">&quot;&lt;CLIENT_ID&gt;&quot;</span> <span class="n">-PolicyScopeGroupId</span> <span class="s2">&quot;&lt;MAILBOX&gt;&quot;</span>
 <span class="n">-Description</span> <span class="s2">&quot;Restrict access to dmarc reports mailbox.&quot;</span>
 </pre></div>
@@ -454,8 +454,52 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">syslog</span></code></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">server</span></code> - str: The Syslog server name or IP address</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The UDP port to use (Default: <code class="docutils literal notranslate"><span class="pre">514</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The port to use (Default: <code class="docutils literal notranslate"><span class="pre">514</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">protocol</span></code> - str: The protocol to use: <code class="docutils literal notranslate"><span class="pre">udp</span></code>, <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, or <code class="docutils literal notranslate"><span class="pre">tls</span></code> (Default: <code class="docutils literal notranslate"><span class="pre">udp</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cafile_path</span></code> - str: Path to CA certificate file for TLS server verification (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">certfile_path</span></code> - str: Path to client certificate file for TLS authentication (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">keyfile_path</span></code> - str: Path to client private key file for TLS authentication (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Connection timeout in seconds for TCP/TLS (Default: <code class="docutils literal notranslate"><span class="pre">5.0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">retry_attempts</span></code> - int: Number of retry attempts for failed connections (Default: <code class="docutils literal notranslate"><span class="pre">3</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">retry_delay</span></code> - int: Delay in seconds between retry attempts (Default: <code class="docutils literal notranslate"><span class="pre">5</span></code>)</p></li>
 </ul>
+<p><strong>Example UDP configuration (default):</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">syslog.example.com</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">514</span>
+</pre></div>
+</div>
+<p><strong>Example TCP configuration:</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">syslog.example.com</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">6514</span>
+<span class="na">protocol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tcp</span>
+<span class="na">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">10.0</span>
+<span class="na">retry_attempts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">5</span>
+</pre></div>
+</div>
+<p><strong>Example TLS configuration with server verification:</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">syslog.example.com</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">6514</span>
+<span class="na">protocol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tls</span>
+<span class="na">cafile_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/ca-cert.pem</span>
+<span class="na">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">10.0</span>
+</pre></div>
+</div>
+<p><strong>Example TLS configuration with mutual authentication:</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[syslog]</span>
+<span class="na">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">syslog.example.com</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">6514</span>
+<span class="na">protocol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tls</span>
+<span class="na">cafile_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/ca-cert.pem</span>
+<span class="na">certfile_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/client-cert.pem</span>
+<span class="na">keyfile_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/client-key.pem</span>
+<span class="na">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">10.0</span>
+<span class="na">retry_attempts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">3</span>
+<span class="na">retry_delay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">5</span>
+</pre></div>
+</div>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p>
 <ul>
@@ -569,7 +613,7 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PUT _cluster/settings
 {
   &quot;persistent&quot; : {
-    &quot;cluster.max_shards_per_node&quot; : 2000 
+    &quot;cluster.max_shards_per_node&quot; : 2000
   }
 }
 </pre></div>

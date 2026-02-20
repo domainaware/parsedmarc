@@ -171,8 +171,8 @@ The full set of configuration options are:
   - `check_timeout` - int: Number of seconds to wait for a IMAP
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
-  - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`) 
-      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}. 
+  - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`)
+      Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
       Defaults to `1d` if incorrect value is provided.
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
@@ -240,7 +240,7 @@ The full set of configuration options are:
     group and use that as the group id.
 
     ```powershell
-    New-ApplicationAccessPolicy -AccessRight RestrictAccess 
+    New-ApplicationAccessPolicy -AccessRight RestrictAccess
     -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>"
     -Description "Restrict access to dmarc reports mailbox."
     ```
@@ -336,13 +336,65 @@ The full set of configuration options are:
   - `secret_access_key` - str: The secret access key (Optional)
 - `syslog`
   - `server` - str: The Syslog server name or IP address
-  - `port` - int: The UDP port to use (Default: `514`)
+  - `port` - int: The port to use (Default: `514`)
+  - `protocol` - str: The protocol to use: `udp`, `tcp`, or `tls` (Default: `udp`)
+  - `cafile_path` - str: Path to CA certificate file for TLS server verification (Optional)
+  - `certfile_path` - str: Path to client certificate file for TLS authentication (Optional)
+  - `keyfile_path` - str: Path to client private key file for TLS authentication (Optional)
+  - `timeout` - float: Connection timeout in seconds for TCP/TLS (Default: `5.0`)
+  - `retry_attempts` - int: Number of retry attempts for failed connections (Default: `3`)
+  - `retry_delay` - int: Delay in seconds between retry attempts (Default: `5`)
+
+  **Example UDP configuration (default):**
+
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 514
+  ```
+
+  **Example TCP configuration:**
+
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tcp
+  timeout = 10.0
+  retry_attempts = 5
+  ```
+
+  **Example TLS configuration with server verification:**
+
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tls
+  cafile_path = /path/to/ca-cert.pem
+  timeout = 10.0
+  ```
+
+  **Example TLS configuration with mutual authentication:**
+
+  ```ini
+  [syslog]
+  server = syslog.example.com
+  port = 6514
+  protocol = tls
+  cafile_path = /path/to/ca-cert.pem
+  certfile_path = /path/to/client-cert.pem
+  keyfile_path = /path/to/client-key.pem
+  timeout = 10.0
+  retry_attempts = 3
+  retry_delay = 5
+  ```
 - `gmail_api`
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
-      
+
     :::{note}
     credentials_file and token_file can be got with [quickstart](https://developers.google.com/gmail/api/quickstart/python).Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
     :::
@@ -442,7 +494,7 @@ Update the limit to 2k per example:
 PUT _cluster/settings
 {
   "persistent" : {
-    "cluster.max_shards_per_node" : 2000 
+    "cluster.max_shards_per_node" : 2000
   }
 }
 ```
