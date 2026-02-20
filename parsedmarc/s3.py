@@ -56,8 +56,8 @@ class S3Client(object):
     def save_aggregate_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "aggregate")
 
-    def save_forensic_report_to_s3(self, report: dict[str, Any]):
-        self.save_report_to_s3(report, "forensic")
+    def save_failure_report_to_s3(self, report: dict[str, Any]):
+        self.save_report_to_s3(report, "failure")
 
     def save_smtp_tls_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "smtp_tls")
@@ -101,3 +101,7 @@ class S3Client(object):
                 self.s3.meta.client.close()
         except Exception:
             pass
+
+
+# Backward-compatible aliases
+S3Client.save_forensic_report_to_s3 = S3Client.save_failure_report_to_s3
