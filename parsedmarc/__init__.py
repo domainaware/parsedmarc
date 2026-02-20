@@ -354,8 +354,6 @@ def _parse_report_record(
     }
     if "disposition" in policy_evaluated:
         new_policy_evaluated["disposition"] = policy_evaluated["disposition"]
-        if new_policy_evaluated["disposition"].strip().lower() == "pass":
-            new_policy_evaluated["disposition"] = "none"
     if "dkim" in policy_evaluated:
         new_policy_evaluated["dkim"] = policy_evaluated["dkim"]
     if "spf" in policy_evaluated:
@@ -826,16 +824,30 @@ def parse_aggregate_report_xml(
         if "np" in policy_published:
             if policy_published["np"] is not None:
                 np_ = policy_published["np"]
+                if np_ not in ("none", "quarantine", "reject"):
+                    logger.warning(
+                        "Invalid np value: {0}".format(np_)
+                    )
         new_policy_published["np"] = np_
         testing = None
         if "testing" in policy_published:
             if policy_published["testing"] is not None:
                 testing = policy_published["testing"]
+                if testing not in ("n", "y"):
+                    logger.warning(
+                        "Invalid testing value: {0}".format(testing)
+                    )
         new_policy_published["testing"] = testing
         discovery_method = None
         if "discovery_method" in policy_published:
             if policy_published["discovery_method"] is not None:
                 discovery_method = policy_published["discovery_method"]
+                if discovery_method not in ("psl", "treewalk"):
+                    logger.warning(
+                        "Invalid discovery_method value: {0}".format(
+                            discovery_method
+                        )
+                    )
         new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
 
