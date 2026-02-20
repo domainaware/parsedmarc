@@ -612,11 +612,16 @@ def save_failure_report_to_elasticsearch(
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_failure_{0}*".format(index_suffix)
+        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(
+            index_suffix
+        )
     else:
-        search_index = "dmarc_failure*"
+        search_index = "dmarc_failure*,dmarc_forensic*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = ",".join(
+            "{0}{1}".format(index_prefix, part)
+            for part in search_index.split(",")
+        )
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))  # pyright: ignore[reportArgumentType]
 
