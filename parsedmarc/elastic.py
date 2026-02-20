@@ -44,18 +44,23 @@ class _PublishedPolicy(InnerDoc):
     sp = Text()
     pct = Integer()
     fo = Text()
+    np = Keyword()
+    testing = Keyword()
+    discovery_method = Keyword()
 
 
 class _DKIMResult(InnerDoc):
     domain = Text()
     selector = Text()
     result = Text()
+    human_result = Text()
 
 
 class _SPFResult(InnerDoc):
     domain = Text()
     scope = Text()
     results = Text()
+    human_result = Text()
 
 
 class _AggregateReportDoc(Document):
@@ -99,13 +104,27 @@ class _AggregateReportDoc(Document):
     def add_policy_override(self, type_: str, comment: str):
         self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))  # pyright: ignore[reportCallIssue]
 
-    def add_dkim_result(self, domain: str, selector: str, result: _DKIMResult):
+    def add_dkim_result(
+        self, domain: str, selector: str, result: _DKIMResult,
+        human_result: str = None,
+    ):
         self.dkim_results.append(
-            _DKIMResult(domain=domain, selector=selector, result=result)
+            _DKIMResult(
+                domain=domain, selector=selector, result=result,
+                human_result=human_result,
+            )
         )  # pyright: ignore[reportCallIssue]
 
-    def add_spf_result(self, domain: str, scope: str, result: _SPFResult):
-        self.spf_results.append(_SPFResult(domain=domain, scope=scope, result=result))  # pyright: ignore[reportCallIssue]
+    def add_spf_result(
+        self, domain: str, scope: str, result: _SPFResult,
+        human_result: str = None,
+    ):
+        self.spf_results.append(
+            _SPFResult(
+                domain=domain, scope=scope, result=result,
+                human_result=human_result,
+            )
+        )  # pyright: ignore[reportCallIssue]
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
@@ -459,6 +478,11 @@ def save_aggregate_report_to_elasticsearch(
         sp=aggregate_report["policy_published"]["sp"],
         pct=aggregate_report["policy_published"]["pct"],
         fo=aggregate_report["policy_published"]["fo"],
+        np=aggregate_report["policy_published"].get("np"),
+        testing=aggregate_report["policy_published"].get("testing"),
+        discovery_method=aggregate_report["policy_published"].get(
+            "discovery_method"
+        ),
     )
 
     for record in aggregate_report["records"]:
@@ -500,6 +524,12 @@ def save_aggregate_report_to_elasticsearch(
             header_from=record["identifiers"]["header_from"],
             envelope_from=record["identifiers"]["envelope_from"],
             envelope_to=record["identifiers"]["envelope_to"],
+            np=aggregate_report["policy_published"].get("np"),
+            testing=aggregate_report["policy_published"].get("testing"),
+            discovery_method=aggregate_report["policy_published"].get(
+                "discovery_method"
+            ),
+            generator=metadata.get("generator"),
         )
 
         for override in record["policy_evaluated"]["policy_override_reasons"]:
@@ -512,6 +542,7 @@ def save_aggregate_report_to_elasticsearch(
                 domain=dkim_result["domain"],
                 selector=dkim_result["selector"],
                 result=dkim_result["result"],
+                human_result=dkim_result.get("human_result"),
             )
 
         for spf_result in record["auth_results"]["spf"]:
@@ -519,6 +550,7 @@ def save_aggregate_report_to_elasticsearch(
                 domain=spf_result["domain"],
                 scope=spf_result["scope"],
                 result=spf_result["result"],
+                human_result=spf_result.get("human_result"),
             )
 
         index = "dmarc_aggregate"
