@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.11
+
+## Fixes
+
+- Remove microseconds from DMARC aggregate report time ranges before parsing them.
+
 ## 9.0.10
 
 - Support Python 3.14+
