@@ -2315,10 +2315,10 @@ def save_output(
     *,
     output_directory: str = "output",
     aggregate_json_filename: str = "aggregate.json",
-    failure_json_filename: str = "forensic.json",
+    failure_json_filename: str = "failure.json",
     smtp_tls_json_filename: str = "smtp_tls.json",
     aggregate_csv_filename: str = "aggregate.csv",
-    failure_csv_filename: str = "forensic.csv",
+    failure_csv_filename: str = "failure.csv",
     smtp_tls_csv_filename: str = "smtp_tls.csv",
 ):
     """
