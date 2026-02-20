@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 #   For optional keys, use total=False TypedDicts.
 
 
-ReportType = Literal["aggregate", "forensic", "smtp_tls"]
+ReportType = Literal["aggregate", "failure", "smtp_tls"]
 
 
 class AggregateReportMetadata(TypedDict):
@@ -31,6 +31,9 @@ class AggregatePolicyPublished(TypedDict):
     sp: str
     pct: str
     fo: str
+    np: Optional[str]
+    psd: Optional[str]
+    t: Optional[str]
 
 
 class IPSourceInfo(TypedDict):
@@ -119,7 +122,7 @@ ParsedEmail = TypedDict(
     "ParsedEmail",
     {
         # This is a lightly-specified version of mailsuite/mailparser JSON.
-        # It focuses on the fields parsedmarc uses in forensic handling.
+        # It focuses on the fields parsedmarc uses in failure report handling.
         "headers": Dict[str, Any],
         "subject": Optional[str],
         "filename_safe_subject": Optional[str],
@@ -138,7 +141,7 @@ ParsedEmail = TypedDict(
 )
 
 
-class ForensicReport(TypedDict):
+class FailureReport(TypedDict):
     feedback_type: Optional[str]
     user_agent: Optional[str]
     version: Optional[str]
@@ -157,6 +160,10 @@ class ForensicReport(TypedDict):
     source: IPSourceInfo
     sample: str
     parsed_sample: ParsedEmail
+
+
+# Backward-compatible alias
+ForensicReport = FailureReport
 
 
 class SMTPTLSFailureDetails(TypedDict):
@@ -201,9 +208,13 @@ class AggregateParsedReport(TypedDict):
     report: AggregateReport
 
 
-class ForensicParsedReport(TypedDict):
-    report_type: Literal["forensic"]
-    report: ForensicReport
+class FailureParsedReport(TypedDict):
+    report_type: Literal["failure"]
+    report: FailureReport
+
+
+# Backward-compatible alias
+ForensicParsedReport = FailureParsedReport
 
 
 class SMTPTLSParsedReport(TypedDict):
@@ -211,10 +222,10 @@ class SMTPTLSParsedReport(TypedDict):
     report: SMTPTLSReport
 
 
-ParsedReport = Union[AggregateParsedReport, ForensicParsedReport, SMTPTLSParsedReport]
+ParsedReport = Union[AggregateParsedReport, FailureParsedReport, SMTPTLSParsedReport]
 
 
 class ParsingResults(TypedDict):
     aggregate_reports: List[AggregateReport]
-    forensic_reports: List[ForensicReport]
+    failure_reports: List[FailureReport]
     smtp_tls_reports: List[SMTPTLSReport]
