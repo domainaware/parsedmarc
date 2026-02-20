@@ -1470,8 +1470,12 @@ def _main():
                 certfile_path=opts.syslog_certfile_path,
                 keyfile_path=opts.syslog_keyfile_path,
                 timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
-                retry_attempts=opts.syslog_retry_attempts if opts.syslog_retry_attempts is not None else 3,
-                retry_delay=opts.syslog_retry_delay if opts.syslog_retry_delay is not None else 5,
+                retry_attempts=opts.syslog_retry_attempts
+                if opts.syslog_retry_attempts is not None
+                else 3,
+                retry_delay=opts.syslog_retry_delay
+                if opts.syslog_retry_delay is not None
+                else 5,
             )
         except Exception as error_:
             logger.error("Syslog Error: {0}".format(error_.__str__()))

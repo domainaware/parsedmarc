@@ -1,9 +1,11 @@
 # Changelog
 
-## 9.0.11
+## 9.1.0
 
-## Fixes
+## Enhancements
 
+- Add TCP and TLS support for syslog output. (#656)
+- Skip DNS lookups in GitHub Actions to prevent DNS timeouts during tests timeouts. (#657)
 - Remove microseconds from DMARC aggregate report time ranges before parsing them.
 
 ## 9.0.10
