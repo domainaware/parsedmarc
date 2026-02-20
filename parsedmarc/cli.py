@@ -31,6 +31,7 @@ from parsedmarc import (
     loganalytics,
     opensearch,
     parse_report_file,
+    postgres,
     s3,
     save_output,
     splunk,
@@ -273,6 +274,14 @@ def _main():
                     logger.error("S3 Error: {0}".format(error_.__str__()))
 
                 try:
+                    if opts.postgresql_host or opts.postgresql_connection_string:
+                        pg_client.save_aggregate_report_to_postgresql(report)
+                except postgres.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except postgres.PostgreSQLError as error_:
+                    logger.error("PostgreSQL Error: {0}".format(error_.__str__()))
+
+                try:
                     if opts.syslog_server:
                         syslog_client.save_aggregate_report_to_syslog(report)
                 except Exception as error_:
@@ -358,6 +367,12 @@ def _main():
                     logger.error("S3 Error: {0}".format(error_.__str__()))
 
                 try:
+                    if opts.postgresql_host or opts.postgresql_connection_string:
+                        pg_client.save_forensic_report_to_postgresql(report)
+                except postgres.PostgreSQLError as error_:
+                    logger.error("PostgreSQL Error: {0}".format(error_.__str__()))
+
+                try:
                     if opts.syslog_server:
                         syslog_client.save_forensic_report_to_syslog(report)
                 except Exception as error_:
@@ -441,6 +456,14 @@ def _main():
                         s3_client.save_smtp_tls_report_to_s3(report)
                 except Exception as error_:
                     logger.error("S3 Error: {0}".format(error_.__str__()))
+
+                try:
+                    if opts.postgresql_host or opts.postgresql_connection_string:
+                        pg_client.save_smtp_tls_report_to_postgresql(report)
+                except postgres.AlreadySaved as warning:
+                    logger.warning(warning.__str__())
+                except postgres.PostgreSQLError as error_:
+                    logger.error("PostgreSQL Error: {0}".format(error_.__str__()))
 
                 try:
                     if opts.syslog_server:
@@ -734,6 +757,12 @@ def _main():
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
         normalize_timespan_threshold_hours=24.0,
+        postgresql_host=None,
+        postgresql_port=5432,
+        postgresql_user=None,
+        postgresql_password=None,
+        postgresql_database=None,
+        postgresql_connection_string=None,
     )
     args = arg_parser.parse_args()
 
@@ -1235,6 +1264,28 @@ def _main():
             if "secret_access_key" in s3_config:
                 opts.s3_secret_access_key = s3_config["secret_access_key"]
 
+        if "postgresql" in config.sections():
+            pg_config = config["postgresql"]
+            if "connection_string" in pg_config:
+                opts.postgresql_connection_string = pg_config["connection_string"]
+            else:
+                if "host" in pg_config:
+                    opts.postgresql_host = pg_config["host"]
+                else:
+                    logger.critical(
+                        "host (or connection_string) setting missing "
+                        "from the postgresql config section"
+                    )
+                    exit(-1)
+                if "port" in pg_config:
+                    opts.postgresql_port = pg_config.getint("port")
+                if "user" in pg_config:
+                    opts.postgresql_user = pg_config["user"]
+                if "password" in pg_config:
+                    opts.postgresql_password = pg_config["password"]
+                if "database" in pg_config:
+                    opts.postgresql_database = pg_config["database"]
+
         if "syslog" in config.sections():
             syslog_config = config["syslog"]
             if "server" in syslog_config:
@@ -1459,6 +1510,21 @@ def _main():
             )
         except Exception as error_:
             logger.error("S3 Error: {0}".format(error_.__str__()))
+
+    if opts.postgresql_host or opts.postgresql_connection_string:
+        try:
+            pg_client = postgres.PostgreSQLClient(
+                connection_string=opts.postgresql_connection_string,
+                host=opts.postgresql_host,
+                port=int(opts.postgresql_port or 5432),
+                user=opts.postgresql_user,
+                password=opts.postgresql_password,
+                database=opts.postgresql_database,
+            )
+            pg_client.create_tables()
+        except postgres.PostgreSQLError as error_:
+            logger.error("PostgreSQL Error: {0}".format(error_.__str__()))
+            exit(1)
 
     if opts.syslog_server:
         try:
