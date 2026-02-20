@@ -139,31 +139,31 @@ class KafkaClient(object):
                 except Exception as e:
                     raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
-    def save_forensic_reports_to_kafka(
+    def save_failure_reports_to_kafka(
         self,
-        forensic_reports: Union[dict[str, Any], list[dict[str, Any]]],
-        forensic_topic: str,
+        failure_reports: Union[dict[str, Any], list[dict[str, Any]]],
+        failure_topic: str,
     ):
         """
-        Saves forensic DMARC reports to Kafka, sends individual
+        Saves failure DMARC reports to Kafka, sends individual
         records (slices) since Kafka requires messages to be <= 1MB
         by default.
 
         Args:
-            forensic_reports (list):  A list of forensic report dicts
+            failure_reports (list):  A list of failure report dicts
             to save to Kafka
-            forensic_topic (str): The name of the Kafka topic
+            failure_topic (str): The name of the Kafka topic
 
         """
-        if isinstance(forensic_reports, dict):
-            forensic_reports = [forensic_reports]
+        if isinstance(failure_reports, dict):
+            failure_reports = [failure_reports]
 
-        if len(forensic_reports) < 1:
+        if len(failure_reports) < 1:
             return
 
         try:
-            logger.debug("Saving forensic reports to Kafka")
-            self.producer.send(forensic_topic, forensic_reports)
+            logger.debug("Saving failure reports to Kafka")
+            self.producer.send(failure_topic, failure_reports)
         except UnknownTopicOrPartitionError:
             raise KafkaError("Kafka error: Unknown topic or partition on broker")
         except Exception as e:
@@ -184,7 +184,7 @@ class KafkaClient(object):
         by default.
 
         Args:
-            smtp_tls_reports (list):  A list of forensic report dicts
+            smtp_tls_reports (list):  A list of SMTP TLS report dicts
             to save to Kafka
             smtp_tls_topic (str): The name of the Kafka topic
 
@@ -196,7 +196,7 @@ class KafkaClient(object):
             return
 
         try:
-            logger.debug("Saving forensic reports to Kafka")
+            logger.debug("Saving SMTP TLS reports to Kafka")
             self.producer.send(smtp_tls_topic, smtp_tls_reports)
         except UnknownTopicOrPartitionError:
             raise KafkaError("Kafka error: Unknown topic or partition on broker")
@@ -206,3 +206,7 @@ class KafkaClient(object):
             self.producer.flush()
         except Exception as e:
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
+
+
+# Backward-compatible aliases
+KafkaClient.save_forensic_reports_to_kafka = KafkaClient.save_failure_reports_to_kafka

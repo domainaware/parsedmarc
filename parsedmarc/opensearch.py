@@ -12,6 +12,7 @@ from opensearchpy import (
     InnerDoc,
     Integer,
     Ip,
+    Keyword,
     Nested,
     Object,
     Q,
@@ -21,7 +22,7 @@ from opensearchpy import (
 )
 from opensearchpy.helpers import reindex
 
-from parsedmarc import InvalidForensicReport
+from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 
@@ -90,6 +91,10 @@ class _AggregateReportDoc(Document):
     envelope_to = Text()
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
+    np = Keyword()
+    testing = Keyword()
+    discovery_method = Keyword()
+    generator = Text()
 
     def add_policy_override(self, type_: str, comment: str):
         self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))
@@ -120,7 +125,7 @@ class _EmailAttachmentDoc(Document):
     sha256 = Text()
 
 
-class _ForensicSampleDoc(InnerDoc):
+class _FailureSampleDoc(InnerDoc):
     raw = Text()
     headers = Object()
     headers_only = Boolean()
@@ -157,9 +162,9 @@ class _ForensicSampleDoc(InnerDoc):
         )
 
 
-class _ForensicReportDoc(Document):
+class _FailureReportDoc(Document):
     class Index:
-        name = "dmarc_forensic"
+        name = "dmarc_failure"
 
     feedback_type = Text()
     user_agent = Text()
@@ -177,7 +182,7 @@ class _ForensicReportDoc(Document):
     source_auth_failures = Text()
     dkim_domain = Text()
     original_rcpt_to = Text()
-    sample = Object(_ForensicSampleDoc)
+    sample = Object(_FailureSampleDoc)
 
 
 class _SMTPTLSFailureDetailsDoc(InnerDoc):
@@ -327,20 +332,20 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
 
 def migrate_indexes(
     aggregate_indexes: Optional[list[str]] = None,
-    forensic_indexes: Optional[list[str]] = None,
+    failure_indexes: Optional[list[str]] = None,
 ):
     """
     Updates index mappings
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
-        forensic_indexes (list): A list of forensic index names
+        failure_indexes (list): A list of failure index names
     """
     version = 2
     if aggregate_indexes is None:
         aggregate_indexes = []
-    if forensic_indexes is None:
-        forensic_indexes = []
+    if failure_indexes is None:
+        failure_indexes = []
     for aggregate_index_name in aggregate_indexes:
         if not Index(aggregate_index_name).exists():
             continue
@@ -370,7 +375,7 @@ def migrate_indexes(
             reindex(connections.get_connection(), aggregate_index_name, new_index_name)
             Index(aggregate_index_name).delete()
 
-    for forensic_index in forensic_indexes:
+    for failure_index in failure_indexes:
         pass
 
 
@@ -386,7 +391,7 @@ def save_aggregate_report_to_opensearch(
     Saves a parsed DMARC aggregate report to OpenSearch
 
     Args:
-        aggregate_report (dict): A parsed forensic report
+        aggregate_report (dict): A parsed aggregate report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
@@ -535,8 +540,8 @@ def save_aggregate_report_to_opensearch(
             raise OpenSearchError("OpenSearch error: {0}".format(e.__str__()))
 
 
-def save_forensic_report_to_opensearch(
-    forensic_report: dict[str, Any],
+def save_failure_report_to_opensearch(
+    failure_report: dict[str, Any],
     index_suffix: Optional[str] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: bool = False,
@@ -544,10 +549,10 @@ def save_forensic_report_to_opensearch(
     number_of_replicas: int = 0,
 ):
     """
-    Saves a parsed DMARC forensic report to OpenSearch
+    Saves a parsed DMARC failure report to OpenSearch
 
     Args:
-        forensic_report (dict): A parsed forensic report
+        failure_report (dict): A parsed failure report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily
@@ -560,24 +565,24 @@ def save_forensic_report_to_opensearch(
         AlreadySaved
 
     """
-    logger.info("Saving forensic report to OpenSearch")
-    forensic_report = forensic_report.copy()
+    logger.info("Saving failure report to OpenSearch")
+    failure_report = failure_report.copy()
     sample_date = None
-    if forensic_report["parsed_sample"]["date"] is not None:
-        sample_date = forensic_report["parsed_sample"]["date"]
+    if failure_report["parsed_sample"]["date"] is not None:
+        sample_date = failure_report["parsed_sample"]["date"]
         sample_date = human_timestamp_to_datetime(sample_date)
-    original_headers = forensic_report["parsed_sample"]["headers"]
+    original_headers = failure_report["parsed_sample"]["headers"]
     headers: dict[str, Any] = {}
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
-    arrival_date = human_timestamp_to_datetime(forensic_report["arrival_date_utc"])
+    arrival_date = human_timestamp_to_datetime(failure_report["arrival_date_utc"])
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_forensic_{0}*".format(index_suffix)
+        search_index = "dmarc_failure_{0}*".format(index_suffix)
     else:
-        search_index = "dmarc_forensic*"
+        search_index = "dmarc_failure*"
     if index_prefix is not None:
         search_index = "{0}{1}".format(index_prefix, search_index)
     search = Search(index=search_index)
@@ -620,64 +625,64 @@ def save_forensic_report_to_opensearch(
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "A forensic sample to {0} from {1} "
+            "A failure sample to {0} from {1} "
             "with a subject of {2} and arrival date of {3} "
             "already exists in "
             "OpenSearch".format(
-                to_, from_, subject, forensic_report["arrival_date_utc"]
+                to_, from_, subject, failure_report["arrival_date_utc"]
             )
         )
 
-    parsed_sample = forensic_report["parsed_sample"]
-    sample = _ForensicSampleDoc(
-        raw=forensic_report["sample"],
+    parsed_sample = failure_report["parsed_sample"]
+    sample = _FailureSampleDoc(
+        raw=failure_report["sample"],
         headers=headers,
-        headers_only=forensic_report["sample_headers_only"],
+        headers_only=failure_report["sample_headers_only"],
         date=sample_date,
-        subject=forensic_report["parsed_sample"]["subject"],
+        subject=failure_report["parsed_sample"]["subject"],
         filename_safe_subject=parsed_sample["filename_safe_subject"],
-        body=forensic_report["parsed_sample"]["body"],
+        body=failure_report["parsed_sample"]["body"],
     )
 
-    for address in forensic_report["parsed_sample"]["to"]:
+    for address in failure_report["parsed_sample"]["to"]:
         sample.add_to(display_name=address["display_name"], address=address["address"])
-    for address in forensic_report["parsed_sample"]["reply_to"]:
+    for address in failure_report["parsed_sample"]["reply_to"]:
         sample.add_reply_to(
             display_name=address["display_name"], address=address["address"]
         )
-    for address in forensic_report["parsed_sample"]["cc"]:
+    for address in failure_report["parsed_sample"]["cc"]:
         sample.add_cc(display_name=address["display_name"], address=address["address"])
-    for address in forensic_report["parsed_sample"]["bcc"]:
+    for address in failure_report["parsed_sample"]["bcc"]:
         sample.add_bcc(display_name=address["display_name"], address=address["address"])
-    for attachment in forensic_report["parsed_sample"]["attachments"]:
+    for attachment in failure_report["parsed_sample"]["attachments"]:
         sample.add_attachment(
             filename=attachment["filename"],
             content_type=attachment["mail_content_type"],
             sha256=attachment["sha256"],
         )
     try:
-        forensic_doc = _ForensicReportDoc(
-            feedback_type=forensic_report["feedback_type"],
-            user_agent=forensic_report["user_agent"],
-            version=forensic_report["version"],
-            original_mail_from=forensic_report["original_mail_from"],
+        failure_doc = _FailureReportDoc(
+            feedback_type=failure_report["feedback_type"],
+            user_agent=failure_report["user_agent"],
+            version=failure_report["version"],
+            original_mail_from=failure_report["original_mail_from"],
             arrival_date=arrival_date_epoch_milliseconds,
-            domain=forensic_report["reported_domain"],
-            original_envelope_id=forensic_report["original_envelope_id"],
-            authentication_results=forensic_report["authentication_results"],
-            delivery_results=forensic_report["delivery_result"],
-            source_ip_address=forensic_report["source"]["ip_address"],
-            source_country=forensic_report["source"]["country"],
-            source_reverse_dns=forensic_report["source"]["reverse_dns"],
-            source_base_domain=forensic_report["source"]["base_domain"],
-            authentication_mechanisms=forensic_report["authentication_mechanisms"],
-            auth_failure=forensic_report["auth_failure"],
-            dkim_domain=forensic_report["dkim_domain"],
-            original_rcpt_to=forensic_report["original_rcpt_to"],
+            domain=failure_report["reported_domain"],
+            original_envelope_id=failure_report["original_envelope_id"],
+            authentication_results=failure_report["authentication_results"],
+            delivery_results=failure_report["delivery_result"],
+            source_ip_address=failure_report["source"]["ip_address"],
+            source_country=failure_report["source"]["country"],
+            source_reverse_dns=failure_report["source"]["reverse_dns"],
+            source_base_domain=failure_report["source"]["base_domain"],
+            authentication_mechanisms=failure_report["authentication_mechanisms"],
+            auth_failure=failure_report["auth_failure"],
+            dkim_domain=failure_report["dkim_domain"],
+            original_rcpt_to=failure_report["original_rcpt_to"],
             sample=sample,
         )
 
-        index = "dmarc_forensic"
+        index = "dmarc_failure"
         if index_suffix:
             index = "{0}_{1}".format(index, index_suffix)
         if index_prefix:
@@ -691,14 +696,14 @@ def save_forensic_report_to_opensearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         create_indexes([index], index_settings)
-        forensic_doc.meta.index = index
+        failure_doc.meta.index = index
         try:
-            forensic_doc.save()
+            failure_doc.save()
         except Exception as e:
             raise OpenSearchError("OpenSearch error: {0}".format(e.__str__()))
     except KeyError as e:
-        raise InvalidForensicReport(
-            "Forensic report missing required field: {0}".format(e.__str__())
+        raise InvalidFailureReport(
+            "Failure report missing required field: {0}".format(e.__str__())
         )
 
 
@@ -851,3 +856,9 @@ def save_smtp_tls_report_to_opensearch(
         smtp_tls_doc.save()
     except Exception as e:
         raise OpenSearchError("OpenSearch error: {0}".format(e.__str__()))
+
+
+# Backward-compatible aliases
+_ForensicSampleDoc = _FailureSampleDoc
+_ForensicReportDoc = _FailureReportDoc
+save_forensic_report_to_opensearch = save_failure_report_to_opensearch

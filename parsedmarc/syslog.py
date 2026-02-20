@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
-    parsed_forensic_reports_to_csv_rows,
+    parsed_failure_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
 
@@ -170,8 +170,8 @@ class SyslogClient(object):
         for row in rows:
             self.logger.info(json.dumps(row))
 
-    def save_forensic_report_to_syslog(self, forensic_reports: list[dict[str, Any]]):
-        rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
+    def save_failure_report_to_syslog(self, failure_reports: list[dict[str, Any]]):
+        rows = parsed_failure_reports_to_csv_rows(failure_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
@@ -179,3 +179,7 @@ class SyslogClient(object):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
+
+
+# Backward-compatible aliases
+SyslogClient.save_forensic_report_to_syslog = SyslogClient.save_failure_report_to_syslog
