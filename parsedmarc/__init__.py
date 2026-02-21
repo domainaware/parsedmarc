@@ -49,7 +49,7 @@ from parsedmarc.mail import (
 from parsedmarc.types import (
     AggregateReport,
     FailureReport,
-    ForensicReport,
+    ForensicReport as ForensicReport,
     ParsedReport,
     ParsingResults,
     SMTPTLSReport,
