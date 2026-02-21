@@ -31,7 +31,7 @@ Forensic reports have been renamed to failure reports throughout the project to 
 
 - Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
 - CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
-- RFC 7489 reports parse with `None` for DMARCbis-only fields; `pct`/`fo` still default to `100`/`0`
+- RFC 7489 reports parse with `None` for DMARCbis-only fields
 - **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
   - **Kibana**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
   - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
