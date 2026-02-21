@@ -1126,9 +1126,9 @@ def parsed_aggregate_reports_to_csv_rows(
             aspf=aspf,
             p=p,
             sp=sp,
+            np=np_
             pct=pct,
             fo=fo,
-            np=np_,
             testing=testing,
             discovery_method=discovery_method,
         )
