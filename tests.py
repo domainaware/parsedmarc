@@ -213,11 +213,12 @@ class Test(unittest.TestCase):
         self.assertEqual(pp["np"], "none")
         self.assertEqual(pp["testing"], "n")
         self.assertEqual(pp["discovery_method"], "treewalk")
-        # adkim/aspf/pct/fo default when not in XML
+        # adkim/aspf default when not in XML
         self.assertEqual(pp["adkim"], "r")
         self.assertEqual(pp["aspf"], "r")
-        self.assertEqual(pp["pct"], "100")
-        self.assertEqual(pp["fo"], "0")
+        # pct/fo are None on DMARCbis reports (not used)
+        self.assertIsNone(pp["pct"])
+        self.assertIsNone(pp["fo"])
 
         # Verify record
         self.assertEqual(len(report["records"]), 1)
