@@ -30,8 +30,8 @@ class AggregatePolicyPublished(TypedDict):
     aspf: str
     p: str
     sp: str
-    pct: str
-    fo: str
+    pct: Optional[str]
+    fo: Optional[str]
     np: Optional[str]
     testing: Optional[str]
     discovery_method: Optional[str]
