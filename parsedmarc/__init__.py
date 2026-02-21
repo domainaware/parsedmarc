@@ -810,12 +810,12 @@ def parse_aggregate_report_xml(
             if policy_published["sp"] is not None:
                 sp = policy_published["sp"]
         new_policy_published["sp"] = sp
-        pct = "100"
+        pct = None
         if "pct" in policy_published:
             if policy_published["pct"] is not None:
                 pct = policy_published["pct"]
         new_policy_published["pct"] = pct
-        fo = "0"
+        fo = None
         if "fo" in policy_published:
             if policy_published["fo"] is not None:
                 fo = policy_published["fo"]
