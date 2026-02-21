@@ -44,6 +44,7 @@ Thanks to all
 - Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for
   use with premade dashboards
 - Optionally send reports to Apache Kafka
+- Optionally send reports to Google SecOps (Chronicle) in UDM format via API or stdout
 
 ## Python Compatibility
 
