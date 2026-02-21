@@ -14,7 +14,7 @@ New fields from the XSD schema, added to types, parsing, CSV output, and Elastic
 - `generator` — report generator software identifier (metadata)
 - `human_result` — optional descriptive text on DKIM/SPF auth results
 
-Backwards compatibility to RFC7489 compatibility is maintained.
+Backwards compatibility to RFC7489 is maintained.
 
 ### Breaking changes
 
