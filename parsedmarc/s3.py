@@ -56,8 +56,8 @@ class S3Client(object):
     def save_aggregate_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "aggregate")
 
-    def save_forensic_report_to_s3(self, report: dict[str, Any]):
-        self.save_report_to_s3(report, "forensic")
+    def save_failure_report_to_s3(self, report: dict[str, Any]):
+        self.save_report_to_s3(report, "failure")
 
     def save_smtp_tls_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "smtp_tls")
@@ -93,3 +93,7 @@ class S3Client(object):
         self.bucket.put_object(
             Body=json.dumps(report), Key=object_path, Metadata=object_metadata
         )
+
+
+# Backward-compatible aliases
+S3Client.save_forensic_report_to_s3 = S3Client.save_failure_report_to_s3

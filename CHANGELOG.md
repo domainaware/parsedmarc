@@ -1,5 +1,42 @@
 # Changelog
 
+## 10.0.0
+
+### Enhancements
+
+#### Support for DMARCbis reports
+
+New fields from the XSD schema, added to types, parsing, CSV output, and Elasticsearch/OpenSearch mappings:
+
+- `np` — non-existent subdomain policy (`none`/`quarantine`/`reject`)
+- `testing` — testing mode flag (`n`/`y`), replaces RFC7489 `pct`
+- `discovery_method` — policy discovery method (`psl`/`treewalk`)
+- `generator` — report generator software identifier (metadata)
+- `human_result` — optional descriptive text on DKIM/SPF auth results
+
+Backwards compatibility to RFC7489 is maintained.
+
+### Breaking changes
+
+#### Forensic reports have been renamed to failure reports
+
+Forensic reports have been renamed to failure reports throughout the project to reflect the proper naming of the reports since RFC7489.
+
+- **Core**: `types.py`, `__init__.py` — `ForensicReport`→`FailureReport`, `parse_forensic_report`→`parse_failure_report`, report type `"failure"`
+- **Output modules**: `elastic.py`, `opensearch.py`, `splunk.py`, `kafkaclient.py`, `syslog.py`, `gelf.py`, `webhook.py`, `loganalytics.py`, `s3.py`
+- **CLI**: `cli.py` — args, config keys, index names (`dmarc_failure`)
+- **Docs & dashboards**: all markdown, Grafana JSON, Kibana NDJSON, Splunk XML
+
+##### Backward compatibility
+
+- Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
+- CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
+- RFC 7489 reports parse with `None` for DMARCbis-only fields
+- **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
+  - **Kibana**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
+  - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
+  - **Elasticsearch/OpenSearch**: Duplicate-check searches query across both `dmarc_failure*` and `dmarc_forensic*` index patterns
+
 ## 9.1.0
 
 ## Enhancements

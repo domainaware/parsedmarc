@@ -96,12 +96,12 @@ draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391
 
 ```
 
-## Sample forensic report output
+## Sample failure report output
 
 Thanks to GitHub user [xennn](https://github.com/xennn) for the anonymized
-[forensic report email sample](<https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>).
+[failure report email sample](<https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>).
 
-### JSON forensic report
+### JSON failure report
 
 ```json
 {
@@ -190,7 +190,7 @@ Thanks to GitHub user [xennn](https://github.com/xennn) for the anonymized
    }
 ```
 
-### CSV forensic report
+### CSV failure report
 
 ```text
 feedback_type,user_agent,version,original_envelope_id,original_mail_from,original_rcpt_to,arrival_date,arrival_date_utc,subject,message_id,authentication_results,dkim_domain,source_ip_address,source_country,source_reverse_dns,source_base_domain,delivery_result,auth_failure,reported_domain,authentication_mechanisms,sample_headers_only

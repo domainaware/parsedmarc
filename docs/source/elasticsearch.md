@@ -214,7 +214,7 @@ Kibana index patterns with versions that match the upgraded indexes:
 
 1. Login in to Kibana, and click on Management
 2. Under Kibana, click on Saved Objects
-3. Check the checkboxes for the `dmarc_aggregate` and `dmarc_forensic`
+3. Check the checkboxes for the `dmarc_aggregate` and `dmarc_failure`
    index patterns
 4. Click Delete
 5. Click Delete on the conformation message

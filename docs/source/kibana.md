@@ -74,14 +74,14 @@ the DMARC Summary dashboard. To view failures only, use the pie chart.
 Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.
 
-## DMARC Forensic Samples
+## DMARC Failure Samples
 
-The DMARC Forensic Samples dashboard contains information on DMARC forensic
-reports (also known as failure reports or ruf reports). These reports contain
+The DMARC Failure Samples dashboard contains information on DMARC failure
+reports (also known as ruf reports). These reports contain
 samples of emails that have failed to pass DMARC.
 
 :::{note}
-Most recipients do not send forensic/failure/ruf reports at all to avoid
+Most recipients do not send failure/ruf reports at all to avoid
 privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.
 :::

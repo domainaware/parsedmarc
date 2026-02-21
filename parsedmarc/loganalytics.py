@@ -38,9 +38,9 @@ class LogAnalyticsConfig:
             The Stream name where
             the Aggregate DMARC reports
             need to be pushed.
-        dcr_forensic_stream (str):
+        dcr_failure_stream (str):
             The Stream name where
-            the Forensic DMARC reports
+            the Failure DMARC reports
             need to be pushed.
         dcr_smtp_tls_stream (str):
             The Stream name where
@@ -56,7 +56,7 @@ class LogAnalyticsConfig:
         dce: str,
         dcr_immutable_id: str,
         dcr_aggregate_stream: str,
-        dcr_forensic_stream: str,
+        dcr_failure_stream: str,
         dcr_smtp_tls_stream: str,
     ):
         self.client_id = client_id
@@ -65,7 +65,7 @@ class LogAnalyticsConfig:
         self.dce = dce
         self.dcr_immutable_id = dcr_immutable_id
         self.dcr_aggregate_stream = dcr_aggregate_stream
-        self.dcr_forensic_stream = dcr_forensic_stream
+        self.dcr_failure_stream = dcr_failure_stream
         self.dcr_smtp_tls_stream = dcr_smtp_tls_stream
 
 
@@ -84,7 +84,7 @@ class LogAnalyticsClient(object):
         dce: str,
         dcr_immutable_id: str,
         dcr_aggregate_stream: str,
-        dcr_forensic_stream: str,
+        dcr_failure_stream: str,
         dcr_smtp_tls_stream: str,
     ):
         self.conf = LogAnalyticsConfig(
@@ -94,7 +94,7 @@ class LogAnalyticsClient(object):
             dce=dce,
             dcr_immutable_id=dcr_immutable_id,
             dcr_aggregate_stream=dcr_aggregate_stream,
-            dcr_forensic_stream=dcr_forensic_stream,
+            dcr_failure_stream=dcr_failure_stream,
             dcr_smtp_tls_stream=dcr_smtp_tls_stream,
         )
         if (
@@ -135,7 +135,7 @@ class LogAnalyticsClient(object):
         self,
         results: dict[str, Any],
         save_aggregate: bool,
-        save_forensic: bool,
+        save_failure: bool,
         save_smtp_tls: bool,
     ):
         """
@@ -146,13 +146,13 @@ class LogAnalyticsClient(object):
 
         Args:
             results (list):
-                The DMARC reports (Aggregate & Forensic)
+                The DMARC reports (Aggregate & Failure)
             save_aggregate (bool):
                 Whether Aggregate reports can be saved into Log Analytics
-            save_forensic (bool):
-                Whether Forensic reports can be saved into Log Analytics
+            save_failure (bool):
+                Whether Failure reports can be saved into Log Analytics
             save_smtp_tls (bool):
-                Whether Forensic reports can be saved into Log Analytics
+                Whether Failure reports can be saved into Log Analytics
         """
         conf = self.conf
         credential = ClientSecretCredential(
@@ -173,16 +173,16 @@ class LogAnalyticsClient(object):
             )
             logger.info("Successfully pushed aggregate reports.")
         if (
-            results["forensic_reports"]
-            and conf.dcr_forensic_stream
-            and len(results["forensic_reports"]) > 0
-            and save_forensic
+            results["failure_reports"]
+            and conf.dcr_failure_stream
+            and len(results["failure_reports"]) > 0
+            and save_failure
         ):
-            logger.info("Publishing forensic reports.")
+            logger.info("Publishing failure reports.")
             self.publish_json(
-                results["forensic_reports"], logs_client, conf.dcr_forensic_stream
+                results["failure_reports"], logs_client, conf.dcr_failure_stream
             )
-            logger.info("Successfully pushed forensic reports.")
+            logger.info("Successfully pushed failure reports.")
         if (
             results["smtp_tls_reports"]
             and conf.dcr_smtp_tls_stream
