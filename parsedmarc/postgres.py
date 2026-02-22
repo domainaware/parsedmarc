@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import psycopg
+from psycopg import types as psycopg_types
 
 from parsedmarc.log import logger
 
@@ -505,13 +506,13 @@ class PostgreSQLClient:
                             sample.get("subject"),
                             sample.get("body"),
                             sample.get("has_defects"),
-                            psycopg.types.json.Jsonb(sample.get("headers"))
+                            psycopg_types.json.Jsonb(sample.get("headers"))
                             if sample.get("headers")
                             else None,
-                            psycopg.types.json.Jsonb(sample.get("from"))
+                            psycopg_types.json.Jsonb(sample.get("from"))
                             if sample.get("from")
                             else None,
-                            psycopg.types.json.Jsonb(sample.get("to"))
+                            psycopg_types.json.Jsonb(sample.get("to"))
                             if sample.get("to")
                             else None,
                         ),
