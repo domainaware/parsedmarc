@@ -162,10 +162,10 @@ sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
 ```
 
 CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems
-explicitly tell `virtualenv` to use `python3.9` instead
+explicitly tell `virtualenv` to use `python3.10` instead
 
 ```bash
-sudo -u parsedmarc virtualenv -p python3.9  /opt/parsedmarc/venv
+sudo -u parsedmarc virtualenv -p python3.10  /opt/parsedmarc/venv
 ```
 
 Activate the virtualenv
