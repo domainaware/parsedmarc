@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
-# NOTE: This module is intentionally Python 3.9 compatible.
+# NOTE: This module is intentionally Python 3.10 compatible.
 # - No PEP 604 unions (A | B)
 # - No typing.NotRequired / Required (3.11+) to avoid an extra dependency.
 #   For optional keys, use total=False TypedDicts.
