@@ -56,7 +56,7 @@ for RHEL or Debian.
 | 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies |
 | 3.7     | ❌         | End of Life (EOL)                                          |
 | 3.8     | ❌         | End of Life (EOL)                                          |
-| 3.9     | ❌         | End of Life (EOL)                                          |
+| 3.9     | ❌         | Used in Debian 11 and RHEL 9, but not supported by project dependencies |
 | 3.10    | ✅         | Actively maintained                                        |
 | 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
 | 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
