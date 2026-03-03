@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.1.1
+
+## Fixes
+
+- Fix the use of Elasticsearch and OpenSearch API keys (PR #660 fixes issue #653)
+
+## Changes
+
+- Drop support for Python 3.9 (PR #661)
+
 ## 9.1.0
 
 ## Enhancements
