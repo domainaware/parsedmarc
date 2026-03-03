@@ -1058,10 +1058,10 @@ def _main():
                 opts.elasticsearch_password = elasticsearch_config["password"]
             # Until 8.20
             if "apiKey" in elasticsearch_config:
-                opts.elasticsearch_apiKey = elasticsearch_config["apiKey"]
+                opts.elasticsearch_api_key = elasticsearch_config["apiKey"]
             # Since 8.20
             if "api_key" in elasticsearch_config:
-                opts.elasticsearch_apiKey = elasticsearch_config["api_key"]
+                opts.elasticsearch_api_key = elasticsearch_config["api_key"]
 
         if "opensearch" in config:
             opensearch_config = config["opensearch"]
@@ -1098,10 +1098,10 @@ def _main():
                 opts.opensearch_password = opensearch_config["password"]
             # Until 8.20
             if "apiKey" in opensearch_config:
-                opts.opensearch_apiKey = opensearch_config["apiKey"]
+                opts.opensearch_api_key = opensearch_config["apiKey"]
             # Since 8.20
             if "api_key" in opensearch_config:
-                opts.opensearch_apiKey = opensearch_config["api_key"]
+                opts.opensearch_api_key = opensearch_config["api_key"]
 
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
