@@ -2,7 +2,7 @@
 requires = [
     "hatchling>=1.27.0",
 ]
-requires_python = ">=3.9,<3.14"
+requires_python = ">=3.10,<3.14"
 build-backend = "hatchling.build"
 
 [project]
@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "azure-identity>=1.8.0",
     "azure-monitor-ingestion>=1.0.0",

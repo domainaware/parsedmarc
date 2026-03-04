@@ -36,6 +36,15 @@ Forensic reports have been renamed to failure reports throughout the project to 
   - **Kibana**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
   - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
   - **Elasticsearch/OpenSearch**: Duplicate-check searches query across both `dmarc_failure*` and `dmarc_forensic*` index patterns
+## 9.1.1
+
+### Fixes
+
+- Fix the use of Elasticsearch and OpenSearch API keys (PR #660 fixes issue #653)
+
+### Changes
+
+- Drop support for Python 3.9 (PR #661)
 
 ## 9.1.0
 
