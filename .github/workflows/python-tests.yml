@@ -10,7 +10,36 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  lint-docs-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.13"
+    - name: Install system dependencies
+      run: |
+        sudo apt-get -q update
+        sudo apt-get -qy install libemail-outlook-message-perl
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[build]
+    - name: Check code style
+      run: |
+        ruff check .
+    - name: Test building documentation
+      run: |
+        cd docs
+        make html
+    - name: Test building packages
+      run: |
+        hatch build
+
+  test:
+    needs: lint-docs-build
     runs-on: ubuntu-latest
 
     services:
@@ -46,13 +75,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .[build]
-    - name: Test building documentation
-      run: |
-        cd docs
-        make html
-    - name: Check code style
-      run: |
-        ruff check .
     - name: Run unit tests
       run: |
         pytest --cov --cov-report=xml tests.py
@@ -61,9 +83,6 @@ jobs:
         pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
         parsedmarc --debug -c ci.ini samples/forensic/*
-    - name: Test building packages
-      run: |
-        hatch build
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
