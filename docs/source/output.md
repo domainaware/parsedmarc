@@ -99,7 +99,7 @@ draft,acme.com,noreply-dmarc-support@acme.com,http://acme.com/dmarc/support,9391
 ## Sample failure report output
 
 Thanks to GitHub user [xennn](https://github.com/xennn) for the anonymized
-[failure report email sample](<https://github.com/domainaware/parsedmarc/raw/master/samples/forensic/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>).
+[failure report email sample](<https://github.com/domainaware/parsedmarc/raw/master/samples/failure/DMARC%20Failure%20Report%20for%20domain.de%20(mail-from%3Dsharepoint%40domain.de%2C%20ip%3D10.10.10.10).eml>).
 
 ### JSON failure report
 

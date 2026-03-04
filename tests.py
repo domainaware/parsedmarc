@@ -3701,7 +3701,7 @@ watch = true
     def testFailureReportCsvRoundtrip(self):
         """Failure report CSV generation works on sample reports"""
         print()
-        sample_paths = glob("samples/forensic/*.eml")
+        sample_paths = glob("samples/failure/*.eml")
         for sample_path in sample_paths:
             print("Testing CSV for {0}: ".format(sample_path), end="")
             with self.subTest(sample=sample_path):

@@ -24,7 +24,7 @@ ruff format .
 
 # Test CLI with sample reports
 parsedmarc --debug -c ci.ini samples/aggregate/*
-parsedmarc --debug -c ci.ini samples/forensic/*  # failure/forensic samples
+parsedmarc --debug -c ci.ini samples/failure/*
 
 # Build docs
 cd docs && make html
@@ -54,7 +54,7 @@ To skip DNS lookups during testing, set `GITHUB_ACTIONS=true`.
 
 ### DMARCbis support
 
-Aggregate reports support both RFC 7489 and DMARCbis (DMARC 2.0) formats. DMARCbis adds fields: `np` (non-existent subdomain policy), `testing` (replaces `pct`), `discovery_method` (`psl`/`treewalk`), `generator` (report metadata), and `human_result` (DKIM/SPF auth results). `pct` and `fo` default to `None` when absent (DMARCbis drops these). XML with namespace `urn:ietf:params:xml:ns:dmarc-2.0` is handled automatically.
+Aggregate reports support both RFC 7489 and DMARCbis formats. DMARCbis adds fields: `np` (non-existent subdomain policy), `testing` (replaces `pct`), `discovery_method` (`psl`/`treewalk`), `generator` (report metadata), and `human_result` (DKIM/SPF auth results). `pct` and `fo` default to `None` when absent (DMARCbis drops these). Namespaced XML is handled automatically.
 
 ### Caching
 
