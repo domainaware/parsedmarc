@@ -61,4 +61,4 @@ for RHEL or Debian.
 | 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
 | 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
 | 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
-| 3.14    | ✅         | Actively maintained                                        |
+| 3.14    | ✅         | Supported (requires `imapclient>=3.1.0`)                  |
