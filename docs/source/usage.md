@@ -4,9 +4,9 @@
 
 ```text
 usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
-                  [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                  [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--failure-json-filename FAILURE_JSON_FILENAME]
                   [--smtp-tls-json-filename SMTP_TLS_JSON_FILENAME] [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
-                  [--forensic-csv-filename FORENSIC_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
+                  [--failure-csv-filename FAILURE_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
                   [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline] [-s] [-w] [--verbose] [--debug]
                   [--log-file LOG_FILE] [--no-prettify-json] [-v]
                   [file_path ...]
@@ -14,26 +14,26 @@ usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT
 Parses DMARC reports
 
 positional arguments:
-  file_path             one or more paths to aggregate or forensic report files, emails, or mbox files'
+  file_path             one or more paths to aggregate or failure report files, emails, or mbox files'
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG_FILE, --config-file CONFIG_FILE
                         a path to a configuration file (--silent implied)
   --strip-attachment-payloads
-                        remove attachment payloads from forensic report output
+                        remove attachment payloads from failure report output
   -o OUTPUT, --output OUTPUT
                         write output files to the given directory
   --aggregate-json-filename AGGREGATE_JSON_FILENAME
                         filename for the aggregate JSON output file
-  --forensic-json-filename FORENSIC_JSON_FILENAME
-                        filename for the forensic JSON output file
+  --failure-json-filename FAILURE_JSON_FILENAME
+                        filename for the failure JSON output file
   --smtp-tls-json-filename SMTP_TLS_JSON_FILENAME
                         filename for the SMTP TLS JSON output file
   --aggregate-csv-filename AGGREGATE_CSV_FILENAME
                         filename for the aggregate CSV output file
-  --forensic-csv-filename FORENSIC_CSV_FILENAME
-                        filename for the forensic CSV output file
+  --failure-csv-filename FAILURE_CSV_FILENAME
+                        filename for the failure CSV output file
   --smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME
                         filename for the SMTP TLS CSV output file
   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
@@ -70,7 +70,7 @@ For example
 
 [general]
 save_aggregate = True
-save_forensic = True
+save_failure = True
 
 [imap]
 host = imap.example.com
@@ -109,7 +109,7 @@ mode = tcp
 
 [webhook]
 aggregate_url = https://aggregate_url.example.com
-forensic_url = https://forensic_url.example.com
+failure_url = https://failure_url.example.com
 smtp_tls_url = https://smtp_tls_url.example.com
 timeout = 60
 ```
@@ -119,7 +119,7 @@ The full set of configuration options are:
 - `general`
   - `save_aggregate` - bool: Save aggregate report data to
       Elasticsearch, Splunk and/or S3
-  - `save_forensic` - bool: Save forensic report data to
+  - `save_failure` - bool: Save failure report data to
       Elasticsearch, Splunk and/or S3
   - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
@@ -130,7 +130,7 @@ The full set of configuration options are:
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
-  - `forensic_json_filename` - str: filename for the forensic
+  - `failure_json_filename` - str: filename for the failure
       JSON output file
   - `ip_db_path` - str: An optional custom path to a MMDB file
       from MaxMind or DBIP
@@ -306,7 +306,7 @@ The full set of configuration options are:
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
-  - `forensic_topic` - str: The Kafka topic for forensic reports
+  - `failure_topic` - str: The Kafka topic for failure reports
 - `smtp`
   - `host` - str: The SMTP hostname
   - `port` - int: The SMTP port (Default: `25`)
@@ -414,7 +414,7 @@ The full set of configuration options are:
   - `dce` - str: The Data Collection Endpoint (DCE). Example: `https://{DCE-NAME}.{REGION}.ingest.monitor.azure.com`.
   - `dcr_immutable_id` - str: The immutable ID of the Data Collection Rule (DCR)
   - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
-  - `dcr_forensic_stream` - str: The stream name for the forensic reports in the DCR
+  - `dcr_failure_stream` - str: The stream name for the failure reports in the DCR
   - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
 
   :::{note}
@@ -431,7 +431,7 @@ The full set of configuration options are:
 
 - `webhook` - Post the individual reports to a webhook url with the report as the JSON body
   - `aggregate_url` - str: URL of the webhook which should receive the aggregate reports
-  - `forensic_url` - str: URL of the webhook which should receive the forensic reports
+  - `failure_url` - str: URL of the webhook which should receive the failure reports
   - `smtp_tls_url` - str: URL of the webhook which should receive the smtp_tls reports
   - `timeout` - int: Interval in which the webhook call should timeout
 
@@ -446,26 +446,26 @@ blocks DNS requests to outside resolvers.
 :::
 
 :::{note}
-`save_aggregate` and `save_forensic` are separate options
-because you may not want to save forensic reports
-(also known as failure reports) to your Elasticsearch instance,
+`save_aggregate` and `save_failure` are separate options
+because you may not want to save failure reports
+(formerly known as forensic reports) to your Elasticsearch instance,
 particularly if you are in a highly-regulated industry that
 handles sensitive data, such as healthcare or finance. If your
 legitimate outgoing email fails DMARC, it is possible
-that email may appear later in a forensic report.
+that email may appear later in a failure report.
 
-Forensic reports contain the original headers of an email that
+Failure reports contain the original headers of an email that
 failed a DMARC check, and sometimes may also include the
 full message body, depending on the policy of the reporting
 organization.
 
-Most reporting organizations do not send forensic reports of any
+Most reporting organizations do not send failure reports of any
 kind for privacy reasons. While aggregate DMARC reports are sent
-at least daily, it is normal to receive very few forensic reports.
+at least daily, it is normal to receive very few failure reports.
 
-An alternative approach is to still collect forensic/failure/ruf
+An alternative approach is to still collect failure/ruf
 reports in your DMARC inbox, but run `parsedmarc` with
-```save_forensic = True``` manually on a separate IMAP folder (using
+```save_failure = True``` manually on a separate IMAP folder (using
 the ```reports_folder``` option), after you have manually moved
 known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).

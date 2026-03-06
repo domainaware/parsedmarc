@@ -11,7 +11,7 @@ from pygelf import GelfTcpHandler, GelfTlsHandler, GelfUdpHandler
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
-    parsed_forensic_reports_to_csv_rows,
+    parsed_failure_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
 
@@ -58,14 +58,18 @@ class GelfClient(object):
 
         log_context_data.parsedmarc = None
 
-    def save_forensic_report_to_gelf(self, forensic_reports: list[dict[str, Any]]):
-        rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
+    def save_failure_report_to_gelf(self, failure_reports: list[dict[str, Any]]):
+        rows = parsed_failure_reports_to_csv_rows(failure_reports)
         for row in rows:
             log_context_data.parsedmarc = row
-            self.logger.info("parsedmarc forensic report")
+            self.logger.info("parsedmarc failure report")
 
     def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: dict[str, Any]):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             log_context_data.parsedmarc = row
             self.logger.info("parsedmarc smtptls report")
+
+
+# Backward-compatible aliases
+GelfClient.save_forensic_report_to_gelf = GelfClient.save_failure_report_to_gelf
