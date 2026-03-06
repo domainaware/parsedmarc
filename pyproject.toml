@@ -31,11 +31,11 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "azure-identity>=1.8.0",
-    "azure-monitor-ingestion>=1.0.0",
-    "boto3>=1.16.63",
-    "dateparser>=1.1.1",
-    "dnspython>=2.0.0",
+    "azure-identity>=1.8.0,<2.0.0",
+    "azure-monitor-ingestion>=1.0.0,<2.0.0",
+    "boto3>=1.16.63,<2.0.0",
+    "dateparser>=1.1.1,<2.0.0",
+    "dnspython>=2.0.0,<3.0.0",
     "elasticsearch-dsl==7.4.0",
     "elasticsearch<7.14.0",
     "expiringdict>=1.1.4",
@@ -51,13 +51,13 @@ dependencies = [
     "mailsuite>=1.11.2",
     "msgraph-core==0.2.2",
     "opensearch-py>=2.4.2,<=3.0.0",
-    "publicsuffixlist>=0.10.0",
-    "pygelf>=0.4.2",
-    "requests>=2.22.0",
-    "tqdm>=4.31.1",
-    "urllib3>=1.25.7",
-    "xmltodict>=0.12.0",
-    "PyYAML>=6.0.3"
+    "publicsuffixlist>=0.10.0,<2.0.0",
+    "pygelf>=0.4.2,<1.0.0",
+    "requests>=2.32.3,<3.0.0",
+    "tqdm>=4.31.1,<5.0.0",
+    "urllib3>=2.6.0,<3.0.0",
+    "xmltodict>=0.12.0,<1.0.0",
+    "PyYAML>=6.0.3,<7.0.0"
 ]
 
 [project.optional-dependencies]
