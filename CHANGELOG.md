@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.1.2
+
+### Fixes
+
+- Fix duplicate detection for normalized aggregate reports in Elasticsearch/OpenSearch (PR #666 fixes issue #665)
+
 ## 9.1.1
 
 ### Fixes
