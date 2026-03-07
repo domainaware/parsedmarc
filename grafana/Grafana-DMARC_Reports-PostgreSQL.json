@@ -737,7 +737,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.source_base_domain, 'unknown') AS \"Source Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_base_domain\nORDER BY \"Messages\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  COALESCE(r.source_base_domain, 'unknown') AS \"Source Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_base_domain\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
@@ -799,7 +799,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  COALESCE(rpt.org_extra_contact_info, '') AS \"Contact\",\n  COUNT(DISTINCT rpt.id) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\nGROUP BY rpt.org_name, rpt.org_extra_contact_info\nORDER BY \"Reports\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  COALESCE(rpt.org_extra_contact_info, '') AS \"Contact\",\n  COUNT(DISTINCT rpt.id) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\n  AND EXISTS (\n    SELECT 1 FROM dmarc_aggregate_record r\n    WHERE r.report_id = rpt.id\n      AND r.header_from IN ($fromdomain)\n  )\nGROUP BY rpt.org_name, rpt.org_extra_contact_info\nORDER BY \"Reports\" DESC",
           "refId": "A"
         }
       ]
@@ -861,7 +861,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
@@ -923,7 +923,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.source_country, 'unknown') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_country\nORDER BY \"Messages\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  COALESCE(r.source_country, 'unknown') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_country\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
@@ -1021,7 +1021,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  r.source_ip_address::TEXT AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_ip_address, r.source_reverse_dns, r.source_base_domain, r.source_country\nORDER BY \"Messages\" DESC\nLIMIT 200",
+          "rawSql": "SELECT\n  COALESCE(r.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_ip_address, r.source_reverse_dns, r.source_base_domain, r.source_country\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
@@ -1119,7 +1119,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  r.source_ip_address::TEXT AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.disposition, '') AS \"Disposition\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS \"DMARC Passed\",\n  (\n    SELECT string_agg(DISTINCT dkim.result, ', ')\n    FROM dmarc_aggregate_record_dkim dkim\n    WHERE dkim.record_id = r.id\n  ) AS \"DKIM Result\",\n  (\n    SELECT string_agg(DISTINCT spf.result, ', ')\n    FROM dmarc_aggregate_record_spf spf\n    WHERE spf.record_id = r.id\n  ) AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC\nLIMIT 500",
+          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  COALESCE(r.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.disposition, '') AS \"Disposition\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS \"DMARC Passed\",\n  (\n    SELECT string_agg(DISTINCT dkim.result, ', ')\n    FROM dmarc_aggregate_record_dkim dkim\n    WHERE dkim.record_id = r.id\n  ) AS \"DKIM Result\",\n  (\n    SELECT string_agg(DISTINCT spf.result, ', ')\n    FROM dmarc_aggregate_record_spf spf\n    WHERE spf.record_id = r.id\n  ) AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
           "refId": "A"
         }
       ]
@@ -1181,7 +1181,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  rpt.domain AS \"Domain\",\n  COALESCE(rpt.policy, '') AS \"Policy (p)\",\n  COALESCE(rpt.subdomain_policy, '') AS \"Subdomain Policy (sp)\",\n  COALESCE(rpt.adkim, '') AS \"DKIM Alignment (adkim)\",\n  COALESCE(rpt.aspf, '') AS \"SPF Alignment (aspf)\",\n  COALESCE(rpt.pct, '') AS \"Percentage (pct)\",\n  COALESCE(rpt.fo, '') AS \"Failure Options (fo)\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\nGROUP BY rpt.domain, rpt.policy, rpt.subdomain_policy, rpt.adkim, rpt.aspf, rpt.pct, rpt.fo\nORDER BY \"Reports\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  rpt.domain AS \"Domain\",\n  COALESCE(rpt.policy, '') AS \"Policy (p)\",\n  COALESCE(rpt.subdomain_policy, '') AS \"Subdomain Policy (sp)\",\n  COALESCE(rpt.adkim, '') AS \"DKIM Alignment (adkim)\",\n  COALESCE(rpt.aspf, '') AS \"SPF Alignment (aspf)\",\n  COALESCE(rpt.pct, '') AS \"Percentage (pct)\",\n  COALESCE(rpt.fo, '') AS \"Failure Options (fo)\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\n  AND EXISTS (\n    SELECT 1 FROM dmarc_aggregate_record r\n    WHERE r.report_id = rpt.id\n      AND r.header_from IN ($fromdomain)\n  )\nGROUP BY rpt.domain, rpt.policy, rpt.subdomain_policy, rpt.adkim, rpt.aspf, rpt.pct, rpt.fo\nORDER BY \"Reports\" DESC",
           "refId": "A"
         }
       ]
@@ -1251,7 +1251,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  COALESCE(spf.domain, '') AS \"SPF Domain\",\n  COALESCE(spf.scope, '') AS \"SPF Scope\",\n  COALESCE(spf.result, '') AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC\nLIMIT 500",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  COALESCE(spf.domain, '') AS \"SPF Domain\",\n  COALESCE(spf.scope, '') AS \"SPF Scope\",\n  COALESCE(spf.result, '') AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
           "refId": "A"
         }
       ]
@@ -1321,7 +1321,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  COALESCE(dkim.domain, '') AS \"DKIM Domain\",\n  COALESCE(dkim.selector, '') AS \"DKIM Selector\",\n  COALESCE(dkim.result, '') AS \"DKIM Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC\nLIMIT 500",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  COALESCE(dkim.domain, '') AS \"DKIM Domain\",\n  COALESCE(dkim.selector, '') AS \"DKIM Selector\",\n  COALESCE(dkim.result, '') AS \"DKIM Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
           "refId": "A"
         }
       ]
@@ -1391,7 +1391,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  f.arrival_date_utc AS \"Arrival Date\",\n  COALESCE(f.feedback_type, '') AS \"Feedback Type\",\n  COALESCE(f.reported_domain, '') AS \"Reported Domain\",\n  f.source_ip_address::TEXT AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(f.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  COALESCE(array_to_string(f.auth_failure, ', '), '') AS \"Auth Failure\",\n  COALESCE(f.authentication_results, '') AS \"Auth Results\",\n  COALESCE(f.delivery_result, '') AS \"Delivery Result\",\n  COALESCE(f.dkim_domain, '') AS \"DKIM Domain\",\n  COALESCE(f.sample_subject, '') AS \"Subject\",\n  COALESCE(f.original_mail_from, '') AS \"Mail From\",\n  COALESCE(f.original_rcpt_to, '') AS \"Rcpt To\"\nFROM dmarc_forensic_report f\nORDER BY f.id DESC\nLIMIT 500",
+          "rawSql": "SELECT\n  f.arrival_date_utc AS \"Arrival Date\",\n  COALESCE(f.feedback_type, '') AS \"Feedback Type\",\n  COALESCE(f.reported_domain, '') AS \"Reported Domain\",\n  COALESCE(f.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(f.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  COALESCE(array_to_string(f.auth_failure, ', '), '') AS \"Auth Failure\",\n  COALESCE(f.authentication_results, '') AS \"Auth Results\",\n  COALESCE(f.delivery_result, '') AS \"Delivery Result\",\n  COALESCE(f.dkim_domain, '') AS \"DKIM Domain\",\n  COALESCE(f.sample_subject, '') AS \"Subject\",\n  COALESCE(f.original_mail_from, '') AS \"Mail From\",\n  COALESCE(f.original_rcpt_to, '') AS \"Rcpt To\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nORDER BY f.id DESC",
           "refId": "A"
         }
       ]
@@ -1453,7 +1453,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(f.source_country, 'unknown') AS \"Country\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nGROUP BY f.source_country\nORDER BY \"Reports\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  COALESCE(f.source_country, 'unknown') AS \"Country\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nGROUP BY f.source_country\nORDER BY \"Reports\" DESC",
           "refId": "A"
         }
       ]
@@ -1515,7 +1515,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(f.source_base_domain, 'unknown') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  f.source_ip_address::TEXT AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nGROUP BY f.source_base_domain, f.source_country, f.source_ip_address, f.source_reverse_dns\nORDER BY \"Reports\" DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  COALESCE(f.source_base_domain, 'unknown') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  COALESCE(f.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nGROUP BY f.source_base_domain, f.source_country, f.source_ip_address, f.source_reverse_dns\nORDER BY \"Reports\" DESC",
           "refId": "A"
         }
       ]
@@ -1745,7 +1745,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  tr.begin_date AS \"Begin\",\n  tr.end_date AS \"End\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(array_to_string(p.policy_strings, ', '), '') AS \"Policy Strings\",\n  COALESCE(p.successful_session_count, 0) AS \"Successful Sessions\",\n  COALESCE(p.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY p.failed_session_count DESC NULLS LAST\nLIMIT 500",
+          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  tr.begin_date AS \"Begin\",\n  tr.end_date AS \"End\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(array_to_string(p.policy_strings, ', '), '') AS \"Policy Strings\",\n  COALESCE(p.successful_session_count, 0) AS \"Successful Sessions\",\n  COALESCE(p.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY p.failed_session_count DESC NULLS LAST",
           "refId": "A"
         }
       ]
@@ -1807,7 +1807,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(fd.result_type, '') AS \"Result Type\",\n  fd.sending_mta_ip::TEXT AS \"Sending MTA IP\",\n  fd.receiving_ip::TEXT AS \"Receiving IP\",\n  COALESCE(fd.receiving_mx_hostname, '') AS \"Receiving MX\",\n  COALESCE(fd.failure_reason_code, '') AS \"Failure Reason\",\n  COALESCE(fd.additional_info_uri, '') AS \"Additional Info\",\n  COALESCE(fd.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_failure_detail fd\nJOIN smtp_tls_policy p ON p.id = fd.policy_id\nJOIN smtp_tls_report tr ON tr.id = p.report_id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY fd.failed_session_count DESC NULLS LAST\nLIMIT 500",
+          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(fd.result_type, '') AS \"Result Type\",\n  COALESCE(fd.sending_mta_ip::TEXT, '') AS \"Sending MTA IP\",\n  COALESCE(fd.receiving_ip::TEXT, '') AS \"Receiving IP\",\n  COALESCE(fd.receiving_mx_hostname, '') AS \"Receiving MX\",\n  COALESCE(fd.failure_reason_code, '') AS \"Failure Reason\",\n  COALESCE(fd.additional_info_uri, '') AS \"Additional Info\",\n  COALESCE(fd.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_failure_detail fd\nJOIN smtp_tls_policy p ON p.id = fd.policy_id\nJOIN smtp_tls_report tr ON tr.id = p.report_id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY fd.failed_session_count DESC NULLS LAST",
           "refId": "A"
         }
       ]
