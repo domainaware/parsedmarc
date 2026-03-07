@@ -44,6 +44,7 @@ and Valimail.
 - Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
     with premade dashboards
 - Optionally send reports to Apache Kafka
+- Optionally send reports to Google SecOps (Chronicle) in UDM format
 
 ## Python Compatibility
 
@@ -74,6 +75,7 @@ elasticsearch
 opensearch
 kibana
 splunk
+google_secops
 davmail
 dmarc
 contributing
