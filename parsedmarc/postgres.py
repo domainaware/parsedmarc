@@ -2,26 +2,82 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Union
 
 import psycopg
 from psycopg import types as psycopg_types
 
 from parsedmarc.log import logger
-
+from parsedmarc.utils import human_timestamp_to_datetime
 
 
 def _ensure_utc_suffix(value: Optional[str]) -> Optional[str]:
     """Append ``+00`` to a timestamp string if it lacks timezone info.
 
-    The forensic-report parser produces ``arrival_date_utc`` in
-    ``YYYY-MM-DD HH:MM:SS`` format (UTC) without an explicit offset.
-    PostgreSQL ``TIMESTAMPTZ`` columns need the offset to avoid
-    interpreting the value in the session timezone.
+    Several parsers produce ``YYYY-MM-DD HH:MM:SS`` format strings that
+    are known to be UTC but lack an explicit offset.  PostgreSQL
+    ``TIMESTAMPTZ`` columns need the offset to avoid interpreting the
+    value in the session timezone.
     """
-    if value and "+" not in value and "Z" not in value:
+    if value and "+" not in value and "-" not in value[10:] and "Z" not in value:
         return value + "+00"
     return value
+
+
+def _naive_local_to_timestamptz(value: Optional[str]) -> Optional[str]:
+    """Convert a naive local-time string to an ISO 8601 string with offset.
+
+    ``timestamp_to_human()`` produces ``YYYY-MM-DD HH:MM:SS`` in
+    **local** time (via ``datetime.fromtimestamp()``).  Inserting such
+    a string into a ``TIMESTAMPTZ`` column would cause PostgreSQL to
+    interpret it using the *session* timezone, which may differ from
+    the machine's local timezone.
+
+    This helper re-parses the string, attaches the local timezone
+    offset, and returns an ISO 8601 representation that PostgreSQL
+    will interpret unambiguously.
+    """
+    if not value:
+        return value
+    naive = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    aware = naive.astimezone()  # attaches the local system timezone
+    return aware.isoformat()
+
+
+def _normalize_arrival_date(value: Optional[str]) -> Optional[str]:
+    """Normalize a forensic ``arrival_date`` for safe TIMESTAMPTZ insert.
+
+    The arrival date may be an RFC 2822 string (e.g.
+    ``Fri, 28 Oct 2022 00:34:24 +0800``) or an ISO 8601 string.
+    ``human_timestamp_to_datetime`` (backed by *dateutil*) can parse
+    both.  We convert to UTC and return an ISO 8601 string with offset
+    so PostgreSQL interprets it unambiguously.
+    """
+    if not value:
+        return value
+    try:
+        dt = human_timestamp_to_datetime(value, to_utc=True)
+        return dt.strftime("%Y-%m-%d %H:%M:%S") + "+00"
+    except Exception:
+        # If parsing fails, return as-is and let PostgreSQL try.
+        return value
+
+
+def _contact_info_to_text(
+    value: Union[str, list, None],
+) -> Optional[str]:
+    """Ensure ``contact_info`` is a plain string.
+
+    The TLS-RPT ``contact-info`` field is normally a single string, but
+    the TypedDict allows ``Union[str, List[str]]``.  If a list is
+    encountered, join the entries so they fit into a ``TEXT`` column.
+    """
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    return str(value)
 
 
 class PostgreSQLError(RuntimeError):
@@ -135,8 +191,8 @@ class PostgreSQLClient:
                 org_email               TEXT,
                 org_extra_contact_info  TEXT,
                 report_id               TEXT NOT NULL,
-                begin_date              TEXT NOT NULL,
-                end_date                TEXT NOT NULL,
+                begin_date              TIMESTAMPTZ NOT NULL,
+                end_date                TIMESTAMPTZ NOT NULL,
                 errors                  TEXT[],
                 domain                  TEXT NOT NULL,
                 adkim                   TEXT,
@@ -154,8 +210,8 @@ class PostgreSQLClient:
                 report_id           BIGINT NOT NULL
                                         REFERENCES dmarc_aggregate_report(id)
                                         ON DELETE CASCADE,
-                interval_begin      TEXT,
-                interval_end        TEXT,
+                interval_begin      TIMESTAMPTZ,
+                interval_end        TIMESTAMPTZ,
                 source_ip_address   INET,
                 source_country      TEXT,
                 source_reverse_dns  TEXT,
@@ -261,8 +317,8 @@ class PostgreSQLClient:
             CREATE TABLE IF NOT EXISTS smtp_tls_report (
                 id                BIGSERIAL PRIMARY KEY,
                 organization_name TEXT NOT NULL,
-                begin_date        TEXT NOT NULL,
-                end_date          TEXT NOT NULL,
+                begin_date        TIMESTAMPTZ NOT NULL,
+                end_date          TIMESTAMPTZ NOT NULL,
                 contact_info      TEXT,
                 report_id         TEXT NOT NULL,
                 UNIQUE (organization_name, report_id, begin_date, end_date)
@@ -377,8 +433,12 @@ class PostgreSQLClient:
                             meta.get("org_email"),
                             meta.get("org_extra_contact_info"),
                             meta.get("report_id"),
-                            meta.get("begin_date"),
-                            meta.get("end_date"),
+                            _naive_local_to_timestamptz(
+                                meta.get("begin_date")
+                            ),
+                            _naive_local_to_timestamptz(
+                                meta.get("end_date")
+                            ),
                             meta.get("errors") or [],
                             pub.get("domain"),
                             pub.get("adkim"),
@@ -427,8 +487,12 @@ class PostgreSQLClient:
                             """,
                             (
                                 report_db_id,
-                                record.get("interval_begin"),
-                                record.get("interval_end"),
+                                _ensure_utc_suffix(
+                                    record.get("interval_begin")
+                                ),
+                                _ensure_utc_suffix(
+                                    record.get("interval_end")
+                                ),
                                 src.get("ip_address"),
                                 src.get("country"),
                                 src.get("reverse_dns"),
@@ -553,7 +617,9 @@ class PostgreSQLClient:
                             report.get("original_envelope_id"),
                             report.get("original_mail_from"),
                             report.get("original_rcpt_to"),
-                            report.get("arrival_date"),
+                            _normalize_arrival_date(
+                                report.get("arrival_date")
+                            ),
                             _ensure_utc_suffix(
                                 report.get("arrival_date_utc")
                             ),
@@ -639,9 +705,15 @@ class PostgreSQLClient:
                         """,
                         (
                             report.get("organization_name"),
-                            report.get("begin_date"),
-                            report.get("end_date"),
-                            report.get("contact_info"),
+                            _ensure_utc_suffix(
+                                report.get("begin_date")
+                            ),
+                            _ensure_utc_suffix(
+                                report.get("end_date")
+                            ),
+                            _contact_info_to_text(
+                                report.get("contact_info")
+                            ),
                             report.get("report_id"),
                         ),
                     )
