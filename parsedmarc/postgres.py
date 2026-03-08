@@ -439,7 +439,7 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If a database error occurs.
         """
-        sample = report.get("sample", {}) or {}
+        sample = report.get("parsed_sample", {}) or {}
         src = report.get("source", {}) or {}
 
         try:
