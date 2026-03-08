@@ -65,26 +65,54 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If the connection attempt fails.
         """
+        # Store parameters so we can reconnect later if needed.
+        self._connection_string = connection_string
+        self._host = host
+        self._port = port
+        self._user = user
+        self._password = password
+        self._database = database
+
+        self._conn: Optional[psycopg.Connection] = None
+        self._connect()
+
+    def _connect(self) -> None:
+        """Open a new database connection using stored parameters.
+
+        Raises:
+            PostgreSQLError: If the connection attempt fails.
+        """
         logger.debug("Connecting to PostgreSQL")
         try:
-            if connection_string:
-                # Use the provided libpq connection string or URI directly.
-                self._conn: psycopg.Connection = psycopg.connect(
-                    connection_string
-                )
+            if self._connection_string:
+                self._conn = psycopg.connect(self._connection_string)
             else:
-                # Pass individual parameters as keyword arguments to avoid
-                # manual conninfo construction and escaping issues.
                 self._conn = psycopg.connect(
-                    host=host,
-                    port=port,
-                    user=user,
-                    password=password,
-                    dbname=database,
+                    host=self._host,
+                    port=self._port,
+                    user=self._user,
+                    password=self._password,
+                    dbname=self._database,
                 )
             self._conn.autocommit = False
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc
+
+    def _ensure_connected(self) -> None:
+        """Check the connection health and reconnect if necessary.
+
+        When *parsedmarc* runs in watch mode the process can stay alive
+        for days or weeks.  PostgreSQL may drop idle connections (e.g.
+        server restart, ``idle_in_transaction_session_timeout``, TCP
+        keep-alive expiry).  This method detects a closed connection
+        and transparently re-establishes it so that subsequent
+        ``save_*`` calls succeed without manual intervention.
+        """
+        if self._conn is None or self._conn.closed:
+            logger.warning(
+                "PostgreSQL connection lost — attempting to reconnect"
+            )
+            self._connect()
 
     def create_tables(self) -> None:
         """Creates all required tables if they do not already exist.
@@ -94,6 +122,7 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If table creation fails.
         """
+        self._ensure_connected()
         ddl_statements = [
             # ----------------------------------------------------------------
             # Aggregate reports
@@ -316,6 +345,7 @@ class PostgreSQLClient:
             AlreadySaved: If an identical report is already present.
             PostgreSQLError: If a database error occurs.
         """
+        self._ensure_connected()
         meta = report.get("report_metadata", {})
         pub = report.get("policy_published", {})
 
@@ -478,6 +508,7 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If a database error occurs.
         """
+        self._ensure_connected()
         sample = report.get("parsed_sample", {}) or {}
         src = report.get("source", {}) or {}
 
@@ -591,6 +622,7 @@ class PostgreSQLClient:
             AlreadySaved: If an identical report is already present.
             PostgreSQLError: If a database error occurs.
         """
+        self._ensure_connected()
         try:
             with self._conn.transaction():
                 with self._conn.cursor() as cur:
