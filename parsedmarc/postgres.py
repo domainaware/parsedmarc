@@ -254,8 +254,7 @@ class PostgreSQLClient:
                 receiving_mx_hostname   TEXT,
                 receiving_mx_helo       TEXT,
                 additional_info_uri     TEXT,
-                failure_reason_code     TEXT,
-                ip_address              INET
+                failure_reason_code     TEXT
             )
             """,
         ]
@@ -616,10 +615,9 @@ class PostgreSQLClient:
                                     failed_session_count,
                                     sending_mta_ip, receiving_ip,
                                     receiving_mx_hostname, receiving_mx_helo,
-                                    additional_info_uri, failure_reason_code,
-                                    ip_address
+                                    additional_info_uri, failure_reason_code
                                 ) VALUES (
-                                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                                    %s, %s, %s, %s, %s, %s, %s, %s, %s
                                 )
                                 """,
                                 (
@@ -632,7 +630,6 @@ class PostgreSQLClient:
                                     detail.get("receiving_mx_helo"),
                                     detail.get("additional_info_uri"),
                                     detail.get("failure_reason_code"),
-                                    detail.get("ip_address"),
                                 ),
                             )
 
