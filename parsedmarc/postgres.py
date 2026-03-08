@@ -10,6 +10,20 @@ from psycopg import types as psycopg_types
 from parsedmarc.log import logger
 
 
+
+def _ensure_utc_suffix(value: Optional[str]) -> Optional[str]:
+    """Append ``+00`` to a timestamp string if it lacks timezone info.
+
+    The forensic-report parser produces ``arrival_date_utc`` in
+    ``YYYY-MM-DD HH:MM:SS`` format (UTC) without an explicit offset.
+    PostgreSQL ``TIMESTAMPTZ`` columns need the offset to avoid
+    interpreting the value in the session timezone.
+    """
+    if value and "+" not in value and "Z" not in value:
+        return value + "+00"
+    return value
+
+
 class PostgreSQLError(RuntimeError):
     """Raised when a PostgreSQL-level error occurs"""
 
@@ -175,8 +189,8 @@ class PostgreSQLClient:
                 original_envelope_id        TEXT,
                 original_mail_from          TEXT,
                 original_rcpt_to            TEXT,
-                arrival_date                TEXT,
-                arrival_date_utc            TEXT,
+                arrival_date                TIMESTAMPTZ,
+                arrival_date_utc            TIMESTAMPTZ,
                 authentication_results      TEXT,
                 delivery_result             TEXT,
                 auth_failure                TEXT[],
@@ -509,7 +523,9 @@ class PostgreSQLClient:
                             report.get("original_mail_from"),
                             report.get("original_rcpt_to"),
                             report.get("arrival_date"),
-                            report.get("arrival_date_utc"),
+                            _ensure_utc_suffix(
+                                report.get("arrival_date_utc")
+                            ),
                             report.get("authentication_results"),
                             report.get("delivery_result"),
                             report.get("auth_failure") or [],
