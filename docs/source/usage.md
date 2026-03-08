@@ -360,6 +360,12 @@ The full set of configuration options are:
   connection_string = postgresql://parsedmarc:secret@localhost/parsedmarc
   ```
 
+  Saving parsed data to PostgreSQL is controlled by the `[general]`
+  options `save_aggregate`, `save_forensic`, and `save_smtp_tls`.
+  These flags must be set to `True` for the corresponding report types
+  (aggregate DMARC, forensic DMARC, and SMTP TLS reports) or no data
+  will be written to PostgreSQL, even if this section is configured.
+
 - `s3`
   - `bucket` - str: The S3 bucket name
   - `path` - str: The path to upload reports to (Default: `/`)
