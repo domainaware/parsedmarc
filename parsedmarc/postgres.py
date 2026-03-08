@@ -14,7 +14,7 @@ class PostgreSQLError(RuntimeError):
     """Raised when a PostgreSQL-level error occurs"""
 
 
-class AlreadySaved(Exception):
+class AlreadySaved(ValueError):
     """Raised when an identical report already exists in the database"""
 
 
