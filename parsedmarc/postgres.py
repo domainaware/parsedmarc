@@ -51,25 +51,23 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If the connection attempt fails.
         """
-        if connection_string:
-            conninfo = connection_string
-        else:
-            parts: list[str] = []
-            if host:
-                parts.append(f"host={host}")
-            if port:
-                parts.append(f"port={port}")
-            if user:
-                parts.append(f"user={user}")
-            if password:
-                parts.append(f"password={password}")
-            if database:
-                parts.append(f"dbname={database}")
-            conninfo = " ".join(parts)
-
         logger.debug("Connecting to PostgreSQL")
         try:
-            self._conn: psycopg.Connection = psycopg.connect(conninfo)
+            if connection_string:
+                # Use the provided libpq connection string or URI directly.
+                self._conn: psycopg.Connection = psycopg.connect(
+                    connection_string
+                )
+            else:
+                # Pass individual parameters as keyword arguments to avoid
+                # manual conninfo construction and escaping issues.
+                self._conn = psycopg.connect(
+                    host=host,
+                    port=port,
+                    user=user,
+                    password=password,
+                    dbname=database,
+                )
             self._conn.autocommit = False
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc
