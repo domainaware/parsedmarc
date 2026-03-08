@@ -358,8 +358,8 @@ class PostgreSQLClient:
                             """,
                             (
                                 report_db_id,
-                                record.get("begin_date"),
-                                record.get("end_date"),
+                                record.get("interval_begin"),
+                                record.get("interval_end"),
                                 src.get("ip_address"),
                                 src.get("country"),
                                 src.get("reverse_dns"),
