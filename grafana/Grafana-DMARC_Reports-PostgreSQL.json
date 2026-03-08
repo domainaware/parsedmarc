@@ -1813,7 +1813,7 @@
       ]
     }
   ],
-  "refresh": "10s",
+  "refresh": "1m",
   "schemaVersion": 39,
   "tags": ["DKIM", "SPF", "DMARC", "Email", "PostgreSQL", "parsedmarc"],
   "templating": {
