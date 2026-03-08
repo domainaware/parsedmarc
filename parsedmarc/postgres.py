@@ -255,6 +255,31 @@ class PostgreSQLClient:
                 failure_reason_code     TEXT
             )
             """,
+            # ----- indexes for Grafana dashboard query performance -----
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_report_begin_date
+                ON dmarc_aggregate_report (begin_date)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_record_report_id
+                ON dmarc_aggregate_record (report_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_record_header_from
+                ON dmarc_aggregate_record (header_from)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_forensic_report_arrival_date
+                ON dmarc_forensic_report (arrival_date_utc)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_smtp_tls_report_begin_date
+                ON smtp_tls_report (begin_date)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_smtp_tls_policy_report_id
+                ON smtp_tls_policy (report_id)
+            """,
         ]
 
         try:
