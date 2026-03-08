@@ -92,8 +92,8 @@ class PostgreSQLClient:
                 org_email               TEXT,
                 org_extra_contact_info  TEXT,
                 report_id               TEXT NOT NULL,
-                begin_date              TIMESTAMPTZ NOT NULL,
-                end_date                TIMESTAMPTZ NOT NULL,
+                begin_date              TEXT NOT NULL,
+                end_date                TEXT NOT NULL,
                 errors                  TEXT[],
                 domain                  TEXT NOT NULL,
                 adkim                   TEXT,
@@ -111,8 +111,8 @@ class PostgreSQLClient:
                 report_id           BIGINT NOT NULL
                                         REFERENCES dmarc_aggregate_report(id)
                                         ON DELETE CASCADE,
-                interval_begin      TIMESTAMPTZ,
-                interval_end        TIMESTAMPTZ,
+                interval_begin      TEXT,
+                interval_end        TEXT,
                 source_ip_address   INET,
                 source_country      TEXT,
                 source_reverse_dns  TEXT,
@@ -218,8 +218,8 @@ class PostgreSQLClient:
             CREATE TABLE IF NOT EXISTS smtp_tls_report (
                 id                BIGSERIAL PRIMARY KEY,
                 organization_name TEXT NOT NULL,
-                begin_date        TIMESTAMPTZ NOT NULL,
-                end_date          TIMESTAMPTZ NOT NULL,
+                begin_date        TEXT NOT NULL,
+                end_date          TEXT NOT NULL,
                 contact_info      TEXT,
                 report_id         TEXT NOT NULL,
                 UNIQUE (organization_name, report_id, begin_date, end_date)
