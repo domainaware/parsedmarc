@@ -598,16 +598,12 @@ class PostgreSQLClient:
                             """,
                             (
                                 report_db_id,
-                                policy.get("domain"),
-                                policy.get("policy", {}).get("policy_type"),
-                                policy.get("policy", {}).get("policy_string") or [],
-                                policy.get("policy", {}).get("mx_host") or [],
-                                policy.get("summary", {}).get(
-                                    "total_successful_session_count"
-                                ),
-                                policy.get("summary", {}).get(
-                                    "total_failure_session_count"
-                                ),
+                                policy.get("policy_domain"),
+                                policy.get("policy_type"),
+                                policy.get("policy_strings") or [],
+                                policy.get("mx_host_patterns") or [],
+                                policy.get("successful_session_count"),
+                                policy.get("failed_session_count"),
                             ),
                         )
                         policy_db_id: int = cur.fetchone()[0]
