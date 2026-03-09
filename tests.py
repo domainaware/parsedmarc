@@ -278,8 +278,6 @@ aws_service = aoss
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("auth_type"), "awssigv4")
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_region"), "eu-west-1")
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_service"), "aoss")
-
-
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
@@ -880,5 +878,26 @@ scopes = https://www.googleapis.com/auth/gmail.modify
             mock_gmail_connection.call_args.kwargs.get("service_account_user"),
             "delegated@example.com",
         )
+
+
+class TestImapFallbacks(unittest.TestCase):
+    def testDeleteFallbackUsesFlagsAndExpunge(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.delete_messages.side_effect = IMAPClientError("uid expunge")
+        connection.delete_message(42)
+        connection._client.add_flags.assert_called_once_with(
+            [42], [r"\Deleted"], silent=True
+        )
+        connection._client.expunge.assert_called_once_with()
+
+    def testMoveFallbackCopiesThenDeletes(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.move_messages.side_effect = IMAPClientError("move failed")
+        with patch.object(connection, "delete_message") as delete_mock:
+            connection.move_message(99, "Archive")
+        connection._client.copy.assert_called_once_with([99], "Archive")
+        delete_mock.assert_called_once_with(99)
 if __name__ == "__main__":
     unittest.main(verbosity=2)
