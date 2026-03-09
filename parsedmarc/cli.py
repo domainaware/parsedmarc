@@ -1325,9 +1325,7 @@ def _main():
             opts.la_dcr_aggregate_stream = log_analytics_config.get(
                 "dcr_aggregate_stream"
             )
-            opts.la_dcr_failure_stream = log_analytics_config.get(
-                "dcr_failure_stream"
-            )
+            opts.la_dcr_failure_stream = log_analytics_config.get("dcr_failure_stream")
             if opts.la_dcr_failure_stream is None:
                 opts.la_dcr_failure_stream = log_analytics_config.get(
                     "dcr_forensic_stream"

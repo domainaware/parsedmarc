@@ -66,4 +66,6 @@ class WebhookClient(object):
 
 
 # Backward-compatible aliases
-WebhookClient.save_forensic_report_to_webhook = WebhookClient.save_failure_report_to_webhook
+WebhookClient.save_forensic_report_to_webhook = (
+    WebhookClient.save_failure_report_to_webhook
+)

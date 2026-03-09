@@ -105,23 +105,33 @@ class _AggregateReportDoc(Document):
         self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))
 
     def add_dkim_result(
-        self, domain: str, selector: str, result: _DKIMResult,
+        self,
+        domain: str,
+        selector: str,
+        result: _DKIMResult,
         human_result: str = None,
     ):
         self.dkim_results.append(
             _DKIMResult(
-                domain=domain, selector=selector, result=result,
+                domain=domain,
+                selector=selector,
+                result=result,
                 human_result=human_result,
             )
         )
 
     def add_spf_result(
-        self, domain: str, scope: str, result: _SPFResult,
+        self,
+        domain: str,
+        scope: str,
+        result: _SPFResult,
         human_result: str = None,
     ):
         self.spf_results.append(
             _SPFResult(
-                domain=domain, scope=scope, result=result,
+                domain=domain,
+                scope=scope,
+                result=result,
                 human_result=human_result,
             )
         )
@@ -480,9 +490,7 @@ def save_aggregate_report_to_opensearch(
         fo=aggregate_report["policy_published"]["fo"],
         np=aggregate_report["policy_published"].get("np"),
         testing=aggregate_report["policy_published"].get("testing"),
-        discovery_method=aggregate_report["policy_published"].get(
-            "discovery_method"
-        ),
+        discovery_method=aggregate_report["policy_published"].get("discovery_method"),
     )
 
     for record in aggregate_report["records"]:
@@ -612,15 +620,12 @@ def save_failure_report_to_opensearch(
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(
-            index_suffix
-        )
+        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(index_suffix)
     else:
         search_index = "dmarc_failure*,dmarc_forensic*"
     if index_prefix is not None:
         search_index = ",".join(
-            "{0}{1}".format(index_prefix, part)
-            for part in search_index.split(",")
+            "{0}{1}".format(index_prefix, part) for part in search_index.split(",")
         )
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))
@@ -665,9 +670,7 @@ def save_failure_report_to_opensearch(
             "A failure sample to {0} from {1} "
             "with a subject of {2} and arrival date of {3} "
             "already exists in "
-            "OpenSearch".format(
-                to_, from_, subject, failure_report["arrival_date_utc"]
-            )
+            "OpenSearch".format(to_, from_, subject, failure_report["arrival_date_utc"])
         )
 
     parsed_sample = failure_report["parsed_sample"]
