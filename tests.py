@@ -628,6 +628,31 @@ class TestGraphConnection(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             connection._get_all_messages("/url", batch_size=0, since=None)
 
+    def testGetAllMessagesRetriesTransientRequestErrors(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection._client = MagicMock()
+        connection._client.get.side_effect = [
+            graph_module.RequestException("connection reset"),
+            _FakeGraphResponse(200, {"value": [{"id": "1"}]}),
+        ]
+        with patch.object(graph_module, "sleep") as mocked_sleep:
+            messages = connection._get_all_messages("/url", batch_size=0, since=None)
+        self.assertEqual([msg["id"] for msg in messages], ["1"])
+        mocked_sleep.assert_called_once_with(graph_module.GRAPH_REQUEST_RETRY_DELAY_SECONDS)
+
+    def testGetAllMessagesRaisesAfterRetryExhaustion(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection._client = MagicMock()
+        connection._client.get.side_effect = graph_module.RequestException(
+            "connection reset"
+        )
+        with patch.object(graph_module, "sleep") as mocked_sleep:
+            with self.assertRaises(graph_module.RequestException):
+                connection._get_all_messages("/url", batch_size=0, since=None)
+        self.assertEqual(
+            mocked_sleep.call_count, graph_module.GRAPH_REQUEST_RETRY_ATTEMPTS - 1
+        )
+
     def testGetAllMessagesNextPageFailure(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
         first_response = _FakeGraphResponse(
