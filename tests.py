@@ -109,6 +109,14 @@ class Test(unittest.TestCase):
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
 
+    def testExtractReportXMLFromPathObject(self):
+        """Test extract report function for pathlib.Path input"""
+        file = Path("samples/extract_report/nice-input.xml")
+        xmlout = parsedmarc.extract_report_from_file_path(file)
+        with open("samples/extract_report/nice-input.xml") as xmlin_file:
+            xmlin = xmlin_file.read()
+        self.assertTrue(compare_xml(xmlout, xmlin))
+
     def testExtractReportGZip(self):
         """Test extract report function for gzip input"""
         print()
@@ -136,6 +144,24 @@ class Test(unittest.TestCase):
         xmlin_file.close()
         self.assertFalse(compare_xml(xmlout, xmlin))
         print("Passed!")
+
+    def testParseReportFileAcceptsPathObjectForXml(self):
+        result = parsedmarc.parse_report_file(
+            Path("samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml"),
+            offline=True,
+        )
+        self.assertEqual(result["report_type"], "aggregate")
+        self.assertEqual(result["report"]["report_metadata"]["org_name"], "outlook.com")
+
+    def testParseReportFileAcceptsPathObjectForEmail(self):
+        result = parsedmarc.parse_report_file(
+            Path(
+                "samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml"
+            ),
+            offline=True,
+        )
+        self.assertEqual(result["report_type"], "aggregate")
+        self.assertEqual(result["report"]["report_metadata"]["org_name"], "google.com")
 
     def testAggregateSamples(self):
         """Test sample aggregate/rua DMARC reports"""
