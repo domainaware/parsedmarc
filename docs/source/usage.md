@@ -518,6 +518,33 @@ PUT _cluster/settings
 Increasing this value increases resource usage.
 :::
 
+## Performance tuning
+
+For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
+of memory, especially when it runs on the same host as Elasticsearch or
+OpenSearch. The following settings can reduce peak memory usage and make long
+imports more predictable:
+
+- Reduce `mailbox.batch_size` to smaller values such as `100-500` instead of
+  processing a very large message set at once. Smaller batches trade throughput
+  for lower peak memory use and less sink pressure.
+- Keep `n_procs` low for mailbox-heavy runs. In practice, `1-2` workers is often
+  a safer starting point for large backfills than aggressive parallelism.
+- Use `mailbox.since` to process reports in smaller time windows such as `1d`,
+  `7d`, or another interval that fits the backlog. This makes it easier to catch
+  up incrementally instead of loading an entire mailbox history in one run.
+- Set `strip_attachment_payloads = True` when forensic reports contain large
+  attachments and you do not need to retain the raw payloads in the parsed
+  output.
+- Prefer running parsedmarc separately from Elasticsearch or OpenSearch, or
+  reserve enough RAM for both services if they must share a host.
+- For very large imports, prefer incremental supervised runs, such as a
+  scheduler or systemd service, over infrequent massive backfills.
+
+These are operational tuning recommendations rather than hard requirements, but
+they are often enough to avoid memory pressure and reduce failures during
+high-volume mailbox processing.
+
 ## Multi-tenant support
 
 Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
