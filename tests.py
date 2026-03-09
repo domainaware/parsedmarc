@@ -308,6 +308,31 @@ class TestGmailConnection(unittest.TestCase):
         self.assertEqual(returned, new_creds)
         flow.run_local_server.assert_called_once()
 
+    def testGetCredsRefreshesExpiredToken(self):
+        expired_creds = MagicMock()
+        expired_creds.valid = False
+        expired_creds.expired = True
+        expired_creds.refresh_token = "rt"
+        expired_creds.to_json.return_value = '{"token":"refreshed"}'
+
+        with NamedTemporaryFile("w", delete=False) as token_file:
+            token_file.write("{}")
+            token_path = token_file.name
+        try:
+            with patch.object(
+                gmail_module.Credentials,
+                "from_authorized_user_file",
+                return_value=expired_creds,
+            ):
+                returned = _get_creds(
+                    token_path, "credentials.json", ["scope"], 8080
+                )
+        finally:
+            os.remove(token_path)
+
+        self.assertEqual(returned, expired_creds)
+        expired_creds.refresh.assert_called_once()
+
     def testCreateFolderConflictIgnored(self):
         connection = self._build_connection()
         labels_api = connection.service.users.return_value.labels.return_value
@@ -341,6 +366,53 @@ class TestGraphConnection(unittest.TestCase):
         connection._client.get.side_effect = [first_response, second_response]
         messages = connection._get_all_messages("/url", batch_size=0, since=None)
         self.assertEqual([msg["id"] for msg in messages], ["1", "2"])
+
+    def testGetAllMessagesInitialRequestFailure(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection._client = MagicMock()
+        connection._client.get.return_value = _FakeGraphResponse(500, text="boom")
+        with self.assertRaises(RuntimeError):
+            connection._get_all_messages("/url", batch_size=0, since=None)
+
+    def testGetAllMessagesNextPageFailure(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        first_response = _FakeGraphResponse(
+            200, {"value": [{"id": "1"}], "@odata.nextLink": "next-url"}
+        )
+        second_response = _FakeGraphResponse(500, text="page-fail")
+        connection._client = MagicMock()
+        connection._client.get.side_effect = [first_response, second_response]
+        with self.assertRaises(RuntimeError):
+            connection._get_all_messages("/url", batch_size=0, since=None)
+
+    def testGetAllMessagesHonorsBatchSizeLimit(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        first_response = _FakeGraphResponse(
+            200,
+            {
+                "value": [{"id": "1"}, {"id": "2"}],
+                "@odata.nextLink": "next-url",
+            },
+        )
+        connection._client = MagicMock()
+        connection._client.get.return_value = first_response
+        messages = connection._get_all_messages("/url", batch_size=2, since=None)
+        self.assertEqual([msg["id"] for msg in messages], ["1", "2"])
+        connection._client.get.assert_called_once()
+
+    def testFetchMessagesPassesSinceAndBatchSize(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "mailbox@example.com"
+        connection._find_folder_id_from_folder_path = MagicMock(return_value="folder-id")
+        connection._get_all_messages = MagicMock(return_value=[{"id": "1"}])
+        self.assertEqual(
+            connection.fetch_messages("Inbox", since="2026-03-01", batch_size=5), ["1"]
+        )
+        connection._get_all_messages.assert_called_once_with(
+            "/users/mailbox@example.com/mailFolders/folder-id/messages",
+            5,
+            "2026-03-01",
+        )
 
     def testFetchMessageMarksRead(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
