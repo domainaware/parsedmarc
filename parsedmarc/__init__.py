@@ -825,18 +825,14 @@ def parse_aggregate_report_xml(
             if policy_published["np"] is not None:
                 np_ = policy_published["np"]
                 if np_ not in ("none", "quarantine", "reject"):
-                    logger.warning(
-                        "Invalid np value: {0}".format(np_)
-                    )
+                    logger.warning("Invalid np value: {0}".format(np_))
         new_policy_published["np"] = np_
         testing = None
         if "testing" in policy_published:
             if policy_published["testing"] is not None:
                 testing = policy_published["testing"]
                 if testing not in ("n", "y"):
-                    logger.warning(
-                        "Invalid testing value: {0}".format(testing)
-                    )
+                    logger.warning("Invalid testing value: {0}".format(testing))
         new_policy_published["testing"] = testing
         discovery_method = None
         if "discovery_method" in policy_published:
@@ -844,9 +840,7 @@ def parse_aggregate_report_xml(
                 discovery_method = policy_published["discovery_method"]
                 if discovery_method not in ("psl", "treewalk"):
                     logger.warning(
-                        "Invalid discovery_method value: {0}".format(
-                            discovery_method
-                        )
+                        "Invalid discovery_method value: {0}".format(discovery_method)
                     )
         new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
@@ -1109,9 +1103,7 @@ def parsed_aggregate_reports_to_csv_rows(
         fo = report["policy_published"]["fo"]
         np_ = report["policy_published"].get("np", None)
         testing = report["policy_published"].get("testing", None)
-        discovery_method = report["policy_published"].get(
-            "discovery_method", None
-        )
+        discovery_method = report["policy_published"].get("discovery_method", None)
 
         report_dict: dict[str, Any] = dict(
             xml_schema=xml_schema,
@@ -2397,9 +2389,7 @@ def save_output(
         parsed_aggregate_reports_to_csv(aggregate_reports),
     )
 
-    append_json(
-        os.path.join(output_directory, failure_json_filename), failure_reports
-    )
+    append_json(os.path.join(output_directory, failure_json_filename), failure_reports)
 
     append_csv(
         os.path.join(output_directory, failure_csv_filename),
