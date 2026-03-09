@@ -281,7 +281,7 @@ The full set of configuration options are:
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
   - `api_key` - str: API key
-  - `auth_type` - str: Authentication type: `basic` (default) or `awssigv4`
+  - `auth_type` - str: Authentication type: `basic` (default) or `awssigv4` (the key `authentication_type` is accepted as an alias for this option)
   - `aws_region` - str: AWS region for SigV4 authentication
     (required when `auth_type = awssigv4`)
   - `aws_service` - str: AWS service for SigV4 signing (Default: `es`)
