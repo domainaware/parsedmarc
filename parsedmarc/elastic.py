@@ -437,8 +437,8 @@ def save_aggregate_report_to_elasticsearch(
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))  # type: ignore
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))  # pyright: ignore[reportArgumentType]
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))  # pyright: ignore[reportArgumentType]
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))  # pyright: ignore[reportArgumentType]
-    end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
+    begin_date_query = Q(dict(range=dict(date_begin=dict(gte=begin_date))))  # pyright: ignore[reportArgumentType]
+    end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
         search_index = "dmarc_aggregate_{0}*".format(index_suffix)

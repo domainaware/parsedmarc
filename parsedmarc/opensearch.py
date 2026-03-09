@@ -437,8 +437,8 @@ def save_aggregate_report_to_opensearch(
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
-    end_date_query = Q(dict(match=dict(date_end=end_date)))
+    begin_date_query = Q(dict(range=dict(date_begin=dict(gte=begin_date))))
+    end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))
 
     if index_suffix is not None:
         search_index = "dmarc_aggregate_{0}*".format(index_suffix)
