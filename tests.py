@@ -881,6 +881,14 @@ scopes = https://www.googleapis.com/auth/gmail.modify
 
 
 class TestImapFallbacks(unittest.TestCase):
+    def testDeleteSuccessDoesNotUseFallback(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection.delete_message(42)
+        connection._client.delete_messages.assert_called_once_with([42])
+        connection._client.add_flags.assert_not_called()
+        connection._client.expunge.assert_not_called()
+
     def testDeleteFallbackUsesFlagsAndExpunge(self):
         connection = IMAPConnection.__new__(IMAPConnection)
         connection._client = MagicMock()
@@ -891,6 +899,23 @@ class TestImapFallbacks(unittest.TestCase):
         )
         connection._client.expunge.assert_called_once_with()
 
+    def testDeleteFallbackErrorPropagates(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.delete_messages.side_effect = IMAPClientError("uid expunge")
+        connection._client.add_flags.side_effect = IMAPClientError("flag failed")
+        with self.assertRaises(IMAPClientError):
+            connection.delete_message(42)
+
+    def testMoveSuccessDoesNotUseFallback(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        with patch.object(connection, "delete_message") as delete_mock:
+            connection.move_message(99, "Archive")
+        connection._client.move_messages.assert_called_once_with([99], "Archive")
+        connection._client.copy.assert_not_called()
+        delete_mock.assert_not_called()
+
     def testMoveFallbackCopiesThenDeletes(self):
         connection = IMAPConnection.__new__(IMAPConnection)
         connection._client = MagicMock()
@@ -899,5 +924,15 @@ class TestImapFallbacks(unittest.TestCase):
             connection.move_message(99, "Archive")
         connection._client.copy.assert_called_once_with([99], "Archive")
         delete_mock.assert_called_once_with(99)
+
+    def testMoveFallbackCopyErrorPropagates(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.move_messages.side_effect = IMAPClientError("move failed")
+        connection._client.copy.side_effect = IMAPClientError("copy failed")
+        with patch.object(connection, "delete_message") as delete_mock:
+            with self.assertRaises(IMAPClientError):
+                connection.move_message(99, "Archive")
+        delete_mock.assert_not_called()
 if __name__ == "__main__":
     unittest.main(verbosity=2)
