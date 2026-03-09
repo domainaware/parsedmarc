@@ -394,9 +394,18 @@ The full set of configuration options are:
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
+  - `auth_mode` - str: Authentication mode, `installed_app` (default)
+      or `service_account`
+  - `service_account_user` - str: Delegated mailbox user for Gmail
+      service account auth (required for domain-wide delegation). Also
+      accepted as `delegated_user` for backward compatibility.
 
     :::{note}
     credentials_file and token_file can be got with [quickstart](https://developers.google.com/gmail/api/quickstart/python).Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
+    :::
+    :::{note}
+    When `auth_mode = service_account`, `credentials_file` must point to a
+    Google service account key JSON file, and `token_file` is not used.
     :::
   - `include_spam_trash` - bool: Include messages in Spam and
       Trash when searching reports (Default: `False`)
