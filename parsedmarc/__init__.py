@@ -2141,14 +2141,17 @@ def get_dmarc_reports_from_mailbox(
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    if current_time:
-        total_messages = len(
-            connection.fetch_messages(reports_folder, since=current_time)
-        )
+    if not test and not batch_size:
+        if current_time:
+            total_messages = len(
+                connection.fetch_messages(reports_folder, since=current_time)
+            )
+        else:
+            total_messages = len(connection.fetch_messages(reports_folder))
     else:
-        total_messages = len(connection.fetch_messages(reports_folder))
+        total_messages = 0
 
-    if not test and not batch_size and total_messages > 0:
+    if total_messages > 0:
         # Process emails that came in during the last run
         results = get_dmarc_reports_from_mailbox(
             connection=connection,
