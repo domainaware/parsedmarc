@@ -11,6 +11,7 @@ from base64 import urlsafe_b64encode
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from lxml import etree
@@ -286,7 +287,6 @@ class _FakeGraphResponse:
 
     def json(self):
         return self._payload
-
 
 class _BreakLoop(BaseException):
     pass
@@ -934,5 +934,67 @@ class TestImapFallbacks(unittest.TestCase):
             with self.assertRaises(IMAPClientError):
                 connection.move_message(99, "Archive")
         delete_mock.assert_not_called()
+
+class TestMailboxWatchSince(unittest.TestCase):
+    def testWatchInboxPassesSinceToMailboxFetch(self):
+        mailbox_connection = SimpleNamespace()
+
+        def fake_watch(check_callback, check_timeout):
+            check_callback(mailbox_connection)
+            raise _BreakLoop()
+
+        mailbox_connection.watch = fake_watch
+        callback = MagicMock()
+        with patch.object(
+            parsedmarc, "get_dmarc_reports_from_mailbox", return_value={}
+        ) as mocked:
+            with self.assertRaises(_BreakLoop):
+                parsedmarc.watch_inbox(
+                    mailbox_connection=mailbox_connection,
+                    callback=callback,
+                    check_timeout=1,
+                    batch_size=10,
+                    since="1d",
+                )
+        self.assertEqual(mocked.call_args.kwargs.get("since"), "1d")
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesSinceToWatchInbox(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_mailbox_reports
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+since = 2d
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
