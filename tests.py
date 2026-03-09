@@ -8,7 +8,7 @@ import unittest
 from base64 import urlsafe_b64encode
 from glob import glob
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
@@ -318,7 +318,9 @@ class TestGmailConnection(unittest.TestCase):
 
 class TestGraphConnection(unittest.TestCase):
     def testLoadTokenMissing(self):
-        self.assertIsNone(_load_token(Path("/tmp/definitely_missing_token_file")))
+        with TemporaryDirectory() as temp_dir:
+            missing_path = Path(temp_dir) / "missing-token-file"
+            self.assertIsNone(_load_token(missing_path))
 
     def testLoadTokenExisting(self):
         with NamedTemporaryFile("w", delete=False) as token_file:
