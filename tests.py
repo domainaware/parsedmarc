@@ -31,6 +31,7 @@ import parsedmarc.mail.gmail as gmail_module
 import parsedmarc.mail.graph as graph_module
 import parsedmarc.mail.imap as imap_module
 import parsedmarc.utils
+from parsedmarc.mail.gmail import GmailConnection
 
 # Detect if running in GitHub Actions to skip DNS lookups
 OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
@@ -257,6 +258,7 @@ class TestGmailConnection(unittest.TestCase):
         messages_api.modify.assert_called_once()
         connection.delete_message("m1")
         messages_api.delete.assert_called_once_with(userId="me", id="m1")
+        messages_api.delete.return_value.execute.assert_called_once()
 
     def testGetCredsFromTokenFile(self):
         creds = MagicMock()
@@ -613,8 +615,6 @@ class TestImapConnection(unittest.TestCase):
                     with self.assertRaises(_BreakLoop):
                         connection.watch(callback, check_timeout=1)
             callback.assert_called_once_with(connection)
-
-
 class TestGmailAuthModes(unittest.TestCase):
     @patch("parsedmarc.mail.gmail.service_account.Credentials.from_service_account_file")
     def testGetCredsServiceAccountWithoutSubject(self, mock_from_service_account_file):
@@ -787,7 +787,5 @@ scopes = https://www.googleapis.com/auth/gmail.modify
             mock_gmail_connection.call_args.kwargs.get("service_account_user"),
             "delegated@example.com",
         )
-
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)
