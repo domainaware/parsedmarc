@@ -224,6 +224,7 @@ class Test(unittest.TestCase):
                 auth_type="awssigv4",
             )
 
+<<<<<<< HEAD
     def testOpenSearchSigV4ConfiguresConnectionClass(self):
         fake_credentials = object()
         with patch.object(opensearch_module.boto3, "Session") as session_cls:
@@ -473,10 +474,17 @@ class _FakeGraphResponse:
         self.status_code = status_code
         self._payload = payload or {}
         self.text = text
+=======
+class _FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+>>>>>>> 9ef03c0 (Add MS Graph well-known folder fallback for root listing failures)
 
     def json(self):
         return self._payload
 
+<<<<<<< HEAD
 class _BreakLoop(BaseException):
     pass
 
@@ -1210,5 +1218,52 @@ since = 2d
 
         self.assertEqual(system_exit.exception.code, 1)
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
+
+class _FakeGraphClient:
+    def get(self, url, params=None):
+        if "/mailFolders/inbox?$select=id,displayName" in url:
+            return _FakeResponse(200, {"id": "inbox-id", "displayName": "Inbox"})
+
+        if "/mailFolders?$filter=displayName eq 'Inbox'" in url:
+            return _FakeResponse(
+                404,
+                {
+                    "error": {
+                        "code": "ErrorItemNotFound",
+                        "message": "Default folder Root not found.",
+                    }
+                },
+            )
+
+        if "/mailFolders?$filter=displayName eq 'Custom'" in url:
+            return _FakeResponse(
+                404,
+                {
+                    "error": {
+                        "code": "ErrorItemNotFound",
+                        "message": "Default folder Root not found.",
+                    }
+                },
+            )
+
+        return _FakeResponse(404, {"error": {"code": "NotFound"}})
+
+
+class TestMSGraphFolderFallback(unittest.TestCase):
+    def testWellKnownFolderFallback(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "shared@example.com"
+        connection._client = _FakeGraphClient()
+
+        folder_id = connection._find_folder_id_from_folder_path("Inbox")
+        self.assertEqual(folder_id, "inbox-id")
+
+    def testUnknownFolderStillFails(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "shared@example.com"
+        connection._client = _FakeGraphClient()
+
+        with self.assertRaises(RuntimeWarning):
+            connection._find_folder_id_from_folder_path("Custom")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
