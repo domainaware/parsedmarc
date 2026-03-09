@@ -710,6 +710,8 @@ def _main():
         gmail_api_paginate_messages=True,
         gmail_api_scopes=[],
         gmail_api_oauth2_port=8080,
+        gmail_api_auth_mode="installed_app",
+        gmail_api_service_account_user=None,
         maildir_path=None,
         maildir_create=False,
         log_file=args.log_file,
@@ -1295,6 +1297,16 @@ def _main():
                 opts.gmail_api_oauth2_port = gmail_api_config.getint(
                     "oauth2_port", 8080
                 )
+            if "auth_mode" in gmail_api_config:
+                opts.gmail_api_auth_mode = gmail_api_config.get("auth_mode").strip()
+            if "service_account_user" in gmail_api_config:
+                opts.gmail_api_service_account_user = gmail_api_config.get(
+                    "service_account_user"
+                ).strip()
+            elif "delegated_user" in gmail_api_config:
+                opts.gmail_api_service_account_user = gmail_api_config.get(
+                    "delegated_user"
+                ).strip()
 
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
@@ -1755,6 +1767,8 @@ def _main():
                 paginate_messages=opts.gmail_api_paginate_messages,
                 reports_folder=opts.mailbox_reports_folder,
                 oauth2_port=opts.gmail_api_oauth2_port,
+                auth_mode=opts.gmail_api_auth_mode,
+                service_account_user=opts.gmail_api_service_account_user,
             )
 
         except Exception:

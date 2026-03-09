@@ -5,6 +5,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import os
+import sys
+import tempfile
 import unittest
 
 from datetime import datetime, timedelta, timezone
@@ -13,8 +15,7 @@ from base64 import urlsafe_b64encode
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from lxml import etree
 from googleapiclient.errors import HttpError
@@ -22,6 +23,7 @@ from httplib2 import Response
 from imapclient.exceptions import IMAPClientError
 
 import parsedmarc
+import parsedmarc.cli
 from parsedmarc.mail.gmail import GmailConnection
 from parsedmarc.mail.gmail import _get_creds
 from parsedmarc.mail.graph import MSGraphConnection
@@ -1739,6 +1741,7 @@ class TestGmailConnection(unittest.TestCase):
         messages_api.modify.assert_called_once()
         connection.delete_message("m1")
         messages_api.delete.assert_called_once_with(userId="me", id="m1")
+        messages_api.delete.return_value.execute.assert_called_once()
 
     def testGetCredsFromTokenFile(self):
         creds = MagicMock()
@@ -2095,7 +2098,177 @@ class TestImapConnection(unittest.TestCase):
                     with self.assertRaises(_BreakLoop):
                         connection.watch(callback, check_timeout=1)
             callback.assert_called_once_with(connection)
+class TestGmailAuthModes(unittest.TestCase):
+    @patch("parsedmarc.mail.gmail.service_account.Credentials.from_service_account_file")
+    def testGetCredsServiceAccountWithoutSubject(self, mock_from_service_account_file):
+        service_creds = MagicMock()
+        service_creds.with_subject.return_value = MagicMock()
+        mock_from_service_account_file.return_value = service_creds
 
+        creds = gmail_module._get_creds(
+            token_file=".token",
+            credentials_file="service-account.json",
+            scopes=["https://www.googleapis.com/auth/gmail.readonly"],
+            oauth2_port=8080,
+            auth_mode="service_account",
+            service_account_user=None,
+        )
 
+        self.assertIs(creds, service_creds)
+        mock_from_service_account_file.assert_called_once_with(
+            "service-account.json",
+            scopes=["https://www.googleapis.com/auth/gmail.readonly"],
+        )
+        service_creds.with_subject.assert_not_called()
+
+    @patch("parsedmarc.mail.gmail.service_account.Credentials.from_service_account_file")
+    def testGetCredsServiceAccountWithSubject(self, mock_from_service_account_file):
+        base_creds = MagicMock()
+        delegated_creds = MagicMock()
+        base_creds.with_subject.return_value = delegated_creds
+        mock_from_service_account_file.return_value = base_creds
+
+        creds = gmail_module._get_creds(
+            token_file=".token",
+            credentials_file="service-account.json",
+            scopes=["https://www.googleapis.com/auth/gmail.modify"],
+            oauth2_port=8080,
+            auth_mode="service_account",
+            service_account_user="dmarc@example.com",
+        )
+
+        self.assertIs(creds, delegated_creds)
+        base_creds.with_subject.assert_called_once_with("dmarc@example.com")
+
+    def testGetCredsRejectsUnsupportedAuthMode(self):
+        with self.assertRaises(ValueError):
+            gmail_module._get_creds(
+                token_file=".token",
+                credentials_file="client-secret.json",
+                scopes=["https://www.googleapis.com/auth/gmail.modify"],
+                oauth2_port=8080,
+                auth_mode="unsupported",
+            )
+
+    @patch("parsedmarc.mail.gmail.Path.exists", return_value=True)
+    @patch("parsedmarc.mail.gmail.Credentials.from_authorized_user_file")
+    def testGetCredsInstalledAppStillUsesTokenFile(
+        self, mock_from_authorized_user_file, _mock_exists
+    ):
+        token_creds = MagicMock()
+        token_creds.valid = True
+        mock_from_authorized_user_file.return_value = token_creds
+
+        creds = gmail_module._get_creds(
+            token_file=".token",
+            credentials_file="client-secret.json",
+            scopes=["https://www.googleapis.com/auth/gmail.modify"],
+            oauth2_port=8080,
+            auth_mode="installed_app",
+        )
+
+        self.assertIs(creds, token_creds)
+        mock_from_authorized_user_file.assert_called_once_with(
+            ".token",
+            ["https://www.googleapis.com/auth/gmail.modify"],
+        )
+
+    @patch("parsedmarc.mail.gmail.GmailConnection._find_label_id_for_label")
+    @patch("parsedmarc.mail.gmail.build")
+    @patch("parsedmarc.mail.gmail._get_creds")
+    def testGmailConnectionPassesAuthModeAndDelegatedUser(
+        self, mock_get_creds, mock_build, mock_find_label
+    ):
+        mock_get_creds.return_value = MagicMock()
+        mock_build.return_value = MagicMock()
+        mock_find_label.return_value = "INBOX"
+
+        gmail_module.GmailConnection(
+            token_file=".token",
+            credentials_file="service-account.json",
+            scopes=["https://www.googleapis.com/auth/gmail.modify"],
+            include_spam_trash=False,
+            reports_folder="INBOX",
+            oauth2_port=8080,
+            paginate_messages=True,
+            auth_mode="service_account",
+            service_account_user="dmarc@example.com",
+        )
+
+        mock_get_creds.assert_called_once_with(
+            ".token",
+            "service-account.json",
+            ["https://www.googleapis.com/auth/gmail.modify"],
+            8080,
+            auth_mode="service_account",
+            service_account_user="dmarc@example.com",
+        )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.GmailConnection")
+    def testCliPassesGmailServiceAccountAuthSettings(
+        self, mock_gmail_connection, mock_get_mailbox_reports
+    ):
+        mock_gmail_connection.return_value = MagicMock()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config = """[general]
+silent = true
+
+[gmail_api]
+credentials_file = /tmp/service-account.json
+auth_mode = service_account
+service_account_user = dmarc@example.com
+scopes = https://www.googleapis.com/auth/gmail.modify
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg_file:
+            cfg_file.write(config)
+            config_path = cfg_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_gmail_connection.call_args.kwargs.get("auth_mode"), "service_account"
+        )
+        self.assertEqual(
+            mock_gmail_connection.call_args.kwargs.get("service_account_user"),
+            "dmarc@example.com",
+        )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.GmailConnection")
+    def testCliAcceptsDelegatedUserAlias(self, mock_gmail_connection, mock_get_reports):
+        mock_gmail_connection.return_value = MagicMock()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config = """[general]
+silent = true
+
+[gmail_api]
+credentials_file = /tmp/service-account.json
+auth_mode = service_account
+delegated_user = delegated@example.com
+scopes = https://www.googleapis.com/auth/gmail.modify
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg_file:
+            cfg_file.write(config)
+            config_path = cfg_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_gmail_connection.call_args.kwargs.get("service_account_user"),
+            "delegated@example.com",
+        )
 if __name__ == "__main__":
     unittest.main(verbosity=2)

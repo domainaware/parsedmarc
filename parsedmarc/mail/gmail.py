@@ -10,6 +10,7 @@ from typing import List
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -18,7 +19,29 @@ from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
 
 
-def _get_creds(token_file, credentials_file, scopes, oauth2_port):
+def _get_creds(
+    token_file,
+    credentials_file,
+    scopes,
+    oauth2_port,
+    auth_mode="installed_app",
+    service_account_user=None,
+):
+    normalized_auth_mode = (auth_mode or "installed_app").strip().lower()
+    if normalized_auth_mode == "service_account":
+        creds = service_account.Credentials.from_service_account_file(
+            credentials_file,
+            scopes=scopes,
+        )
+        if service_account_user:
+            creds = creds.with_subject(service_account_user)
+        return creds
+    if normalized_auth_mode != "installed_app":
+        raise ValueError(
+            f"Unsupported Gmail auth_mode '{auth_mode}'. "
+            "Expected 'installed_app' or 'service_account'."
+        )
+
     creds = None
 
     if Path(token_file).exists():
@@ -47,8 +70,17 @@ class GmailConnection(MailboxConnection):
         reports_folder: str,
         oauth2_port: int,
         paginate_messages: bool,
+        auth_mode: str = "installed_app",
+        service_account_user: str | None = None,
     ):
-        creds = _get_creds(token_file, credentials_file, scopes, oauth2_port)
+        creds = _get_creds(
+            token_file,
+            credentials_file,
+            scopes,
+            oauth2_port,
+            auth_mode=auth_mode,
+            service_account_user=service_account_user,
+        )
         self.service = build("gmail", "v1", credentials=creds)
         self.include_spam_trash = include_spam_trash
         self.reports_label_id = self._find_label_id_for_label(reports_folder)
@@ -126,7 +158,7 @@ class GmailConnection(MailboxConnection):
         return urlsafe_b64decode(msg["raw"]).decode(errors="replace")
 
     def delete_message(self, message_id: str):
-        self.service.users().messages().delete(userId="me", id=message_id)
+        self.service.users().messages().delete(userId="me", id=message_id).execute()
 
     def move_message(self, message_id: str, folder_name: str):
         label_id = self._find_label_id_for_label(folder_name)
