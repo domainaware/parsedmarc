@@ -134,12 +134,10 @@ class MSGraphConnection(MailboxConnection):
         self.mailbox_name = mailbox
 
     def _request_with_retries(self, method_name: str, *args, **kwargs):
-        last_error = None
         for attempt in range(1, GRAPH_REQUEST_RETRY_ATTEMPTS + 1):
             try:
                 return getattr(self._client, method_name)(*args, **kwargs)
             except RequestException as error:
-                last_error = error
                 if attempt == GRAPH_REQUEST_RETRY_ATTEMPTS:
                     raise
                 logger.warning(
@@ -150,7 +148,7 @@ class MSGraphConnection(MailboxConnection):
                     error,
                 )
                 sleep(GRAPH_REQUEST_RETRY_DELAY_SECONDS)
-        raise last_error
+        raise RuntimeError("no retry attempts configured")
 
     def create_folder(self, folder_name: str):
         sub_url = ""
