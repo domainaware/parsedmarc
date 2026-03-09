@@ -55,10 +55,28 @@ class IMAPConnection(MailboxConnection):
         return cast(str, self._client.fetch_message(message_id, parse=False))
 
     def delete_message(self, message_id: int):
-        self._client.delete_messages([message_id])
+        try:
+            self._client.delete_messages([message_id])
+        except IMAPClientError as error:
+            logger.warning(
+                "IMAP delete fallback for message %s due to server error: %s",
+                message_id,
+                error,
+            )
+            self._client.add_flags([message_id], [r"\Deleted"], silent=True)
+            self._client.expunge()
 
     def move_message(self, message_id: int, folder_name: str):
-        self._client.move_messages([message_id], folder_name)
+        try:
+            self._client.move_messages([message_id], folder_name)
+        except IMAPClientError as error:
+            logger.warning(
+                "IMAP move fallback for message %s due to server error: %s",
+                message_id,
+                error,
+            )
+            self._client.copy([message_id], folder_name)
+            self.delete_message(message_id)
 
     def keepalive(self):
         self._client.noop()

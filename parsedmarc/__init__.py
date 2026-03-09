@@ -2229,6 +2229,7 @@ def watch_inbox(
     dns_timeout: float = 6.0,
     strip_attachment_payloads: bool = False,
     batch_size: int = 10,
+    since: Optional[Union[datetime, date, str]] = None,
     normalize_timespan_threshold_hours: float = 24,
 ):
     """
@@ -2255,6 +2256,7 @@ def watch_inbox(
         strip_attachment_payloads (bool): Replace attachment payloads in
             failure report samples with None
         batch_size (int): Number of messages to read and process before saving
+        since: Search for messages since certain time
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
     """
 
@@ -2274,6 +2276,7 @@ def watch_inbox(
             dns_timeout=dns_timeout,
             strip_attachment_payloads=strip_attachment_payloads,
             batch_size=batch_size,
+            since=since,
             create_folders=False,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )

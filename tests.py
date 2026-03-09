@@ -14,6 +14,7 @@ from glob import glob
 from base64 import urlsafe_b64encode
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from lxml import etree
@@ -33,6 +34,7 @@ from parsedmarc.mail.imap import IMAPConnection
 import parsedmarc.mail.gmail as gmail_module
 import parsedmarc.mail.graph as graph_module
 import parsedmarc.mail.imap as imap_module
+import parsedmarc.opensearch as opensearch_module
 import parsedmarc.utils
 
 # Detect if running in GitHub Actions to skip DNS lookups
@@ -1793,7 +1795,257 @@ class Test(unittest.TestCase):
                 self.assertTrue(len(rows) > 0)
             print("Passed!")
 
+    def testOpenSearchSigV4RequiresRegion(self):
+        with self.assertRaises(opensearch_module.OpenSearchError):
+            opensearch_module.set_hosts(
+                "https://example.org:9200",
+                auth_type="awssigv4",
+            )
 
+    def testOpenSearchSigV4ConfiguresConnectionClass(self):
+        fake_credentials = object()
+        with patch.object(opensearch_module.boto3, "Session") as session_cls:
+            session_cls.return_value.get_credentials.return_value = fake_credentials
+            with patch.object(
+                opensearch_module, "AWSV4SignerAuth", return_value="auth"
+            ) as signer:
+                with patch.object(
+                    opensearch_module.connections, "create_connection"
+                ) as create_connection:
+                    opensearch_module.set_hosts(
+                        "https://example.org:9200",
+                        use_ssl=True,
+                        auth_type="awssigv4",
+                        aws_region="eu-west-1",
+                    )
+        signer.assert_called_once_with(fake_credentials, "eu-west-1", "es")
+        create_connection.assert_called_once()
+        self.assertEqual(
+            create_connection.call_args.kwargs.get("connection_class"),
+            opensearch_module.RequestsHttpConnection,
+        )
+        self.assertEqual(create_connection.call_args.kwargs.get("http_auth"), "auth")
+
+    def testOpenSearchSigV4RejectsUnknownAuthType(self):
+        with self.assertRaises(opensearch_module.OpenSearchError):
+            opensearch_module.set_hosts(
+                "https://example.org:9200",
+                auth_type="kerberos",
+            )
+
+    def testOpenSearchSigV4RequiresAwsCredentials(self):
+        with patch.object(opensearch_module.boto3, "Session") as session_cls:
+            session_cls.return_value.get_credentials.return_value = None
+            with self.assertRaises(opensearch_module.OpenSearchError):
+                opensearch_module.set_hosts(
+                    "https://example.org:9200",
+                    auth_type="awssigv4",
+                    aws_region="eu-west-1",
+                )
+
+    @patch("parsedmarc.cli.opensearch.migrate_indexes")
+    @patch("parsedmarc.cli.opensearch.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesOpenSearchSigV4Settings(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        mock_set_hosts,
+        _mock_migrate_indexes,
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[opensearch]
+hosts = localhost
+authentication_type = awssigv4
+aws_region = eu-west-1
+aws_service = aoss
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("auth_type"), "awssigv4")
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_region"), "eu-west-1")
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_service"), "aoss")
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testFailOnOutputErrorExits(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """CLI should exit with code 1 when fail_on_output_error is enabled"""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+
+        config = """[general]
+save_aggregate = true
+fail_on_output_error = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            with self.assertRaises(SystemExit) as ctx:
+                parsedmarc.cli._main()
+
+        self.assertEqual(ctx.exception.code, 1)
+        mock_save_aggregate.assert_called_once()
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testOutputErrorDoesNotExitWhenDisabled(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+
+        config = """[general]
+save_aggregate = true
+fail_on_output_error = false
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        mock_save_aggregate.assert_called_once()
+
+    @patch("parsedmarc.cli.opensearch.save_forensic_report_to_opensearch")
+    @patch("parsedmarc.cli.opensearch.migrate_indexes")
+    @patch("parsedmarc.cli.opensearch.set_hosts")
+    @patch("parsedmarc.cli.elastic.save_forensic_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testFailOnOutputErrorExitsWithMultipleSinkErrors(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_es_set_hosts,
+        _mock_es_migrate,
+        mock_save_aggregate,
+        _mock_save_forensic_elastic,
+        _mock_os_set_hosts,
+        _mock_os_migrate,
+        mock_save_forensic_opensearch,
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "forensic_reports": [{"reported_domain": "example.com"}],
+            "smtp_tls_reports": [],
+        }
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "aggregate sink failed"
+        )
+        mock_save_forensic_opensearch.side_effect = parsedmarc.cli.opensearch.OpenSearchError(
+            "forensic sink failed"
+        )
+
+        config = """[general]
+save_aggregate = true
+save_forensic = true
+fail_on_output_error = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+
+[opensearch]
+hosts = localhost
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            with self.assertRaises(SystemExit) as ctx:
+                parsedmarc.cli._main()
+
+        self.assertEqual(ctx.exception.code, 1)
+        mock_save_aggregate.assert_called_once()
+        mock_save_forensic_opensearch.assert_called_once()
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
@@ -1802,7 +2054,6 @@ class _FakeGraphResponse:
 
     def json(self):
         return self._payload
-
 
 class _BreakLoop(BaseException):
     pass
@@ -2402,5 +2653,121 @@ scopes = https://www.googleapis.com/auth/gmail.modify
         )
 
 
+class TestImapFallbacks(unittest.TestCase):
+    def testDeleteSuccessDoesNotUseFallback(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection.delete_message(42)
+        connection._client.delete_messages.assert_called_once_with([42])
+        connection._client.add_flags.assert_not_called()
+        connection._client.expunge.assert_not_called()
+
+    def testDeleteFallbackUsesFlagsAndExpunge(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.delete_messages.side_effect = IMAPClientError("uid expunge")
+        connection.delete_message(42)
+        connection._client.add_flags.assert_called_once_with(
+            [42], [r"\Deleted"], silent=True
+        )
+        connection._client.expunge.assert_called_once_with()
+
+    def testDeleteFallbackErrorPropagates(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.delete_messages.side_effect = IMAPClientError("uid expunge")
+        connection._client.add_flags.side_effect = IMAPClientError("flag failed")
+        with self.assertRaises(IMAPClientError):
+            connection.delete_message(42)
+
+    def testMoveSuccessDoesNotUseFallback(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        with patch.object(connection, "delete_message") as delete_mock:
+            connection.move_message(99, "Archive")
+        connection._client.move_messages.assert_called_once_with([99], "Archive")
+        connection._client.copy.assert_not_called()
+        delete_mock.assert_not_called()
+
+    def testMoveFallbackCopiesThenDeletes(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.move_messages.side_effect = IMAPClientError("move failed")
+        with patch.object(connection, "delete_message") as delete_mock:
+            connection.move_message(99, "Archive")
+        connection._client.copy.assert_called_once_with([99], "Archive")
+        delete_mock.assert_called_once_with(99)
+
+    def testMoveFallbackCopyErrorPropagates(self):
+        connection = IMAPConnection.__new__(IMAPConnection)
+        connection._client = MagicMock()
+        connection._client.move_messages.side_effect = IMAPClientError("move failed")
+        connection._client.copy.side_effect = IMAPClientError("copy failed")
+        with patch.object(connection, "delete_message") as delete_mock:
+            with self.assertRaises(IMAPClientError):
+                connection.move_message(99, "Archive")
+        delete_mock.assert_not_called()
+
+class TestMailboxWatchSince(unittest.TestCase):
+    def testWatchInboxPassesSinceToMailboxFetch(self):
+        mailbox_connection = SimpleNamespace()
+
+        def fake_watch(check_callback, check_timeout):
+            check_callback(mailbox_connection)
+            raise _BreakLoop()
+
+        mailbox_connection.watch = fake_watch
+        callback = MagicMock()
+        with patch.object(
+            parsedmarc, "get_dmarc_reports_from_mailbox", return_value={}
+        ) as mocked:
+            with self.assertRaises(_BreakLoop):
+                parsedmarc.watch_inbox(
+                    mailbox_connection=mailbox_connection,
+                    callback=callback,
+                    check_timeout=1,
+                    batch_size=10,
+                    since="1d",
+                )
+        self.assertEqual(mocked.call_args.kwargs.get("since"), "1d")
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesSinceToWatchInbox(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_mailbox_reports
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+since = 2d
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
