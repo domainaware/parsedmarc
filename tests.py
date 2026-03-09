@@ -217,6 +217,68 @@ class Test(unittest.TestCase):
         )
         self.assertEqual(create_connection.call_args.kwargs.get("http_auth"), "auth")
 
+    def testOpenSearchSigV4RejectsUnknownAuthType(self):
+        with self.assertRaises(opensearch_module.OpenSearchError):
+            opensearch_module.set_hosts(
+                "https://example.org:9200",
+                auth_type="kerberos",
+            )
+
+    def testOpenSearchSigV4RequiresAwsCredentials(self):
+        with patch.object(opensearch_module.boto3, "Session") as session_cls:
+            session_cls.return_value.get_credentials.return_value = None
+            with self.assertRaises(opensearch_module.OpenSearchError):
+                opensearch_module.set_hosts(
+                    "https://example.org:9200",
+                    auth_type="awssigv4",
+                    aws_region="eu-west-1",
+                )
+
+    @patch("parsedmarc.cli.opensearch.migrate_indexes")
+    @patch("parsedmarc.cli.opensearch.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesOpenSearchSigV4Settings(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        mock_set_hosts,
+        _mock_migrate_indexes,
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[opensearch]
+hosts = localhost
+authentication_type = awssigv4
+aws_region = eu-west-1
+aws_service = aoss
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("auth_type"), "awssigv4")
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_region"), "eu-west-1")
+        self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_service"), "aoss")
+
 
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
