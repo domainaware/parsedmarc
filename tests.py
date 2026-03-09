@@ -100,19 +100,19 @@ class Test(unittest.TestCase):
     def testExtractReportXML(self):
         """Test extract report function for XML input"""
         print()
-        file = "samples/extract_report/nice-input.xml"
-        print("Testing {0}: ".format(file), end="")
-        xmlout = parsedmarc.extract_report_from_file_path(file)
+        report_path = "samples/extract_report/nice-input.xml"
+        print("Testing {0}: ".format(report_path), end="")
+        xmlout = parsedmarc.extract_report_from_file_path(report_path)
         xmlin_file = open("samples/extract_report/nice-input.xml")
         xmlin = xmlin_file.read()
         xmlin_file.close()
         self.assertTrue(compare_xml(xmlout, xmlin))
         print("Passed!")
 
-    def testExtractReportXMLFromPathObject(self):
+    def testExtractReportXMLFromPath(self):
         """Test extract report function for pathlib.Path input"""
-        file = Path("samples/extract_report/nice-input.xml")
-        xmlout = parsedmarc.extract_report_from_file_path(file)
+        report_path = Path("samples/extract_report/nice-input.xml")
+        xmlout = parsedmarc.extract_report_from_file_path(report_path)
         with open("samples/extract_report/nice-input.xml") as xmlin_file:
             xmlin = xmlin_file.read()
         self.assertTrue(compare_xml(xmlout, xmlin))
@@ -145,19 +145,23 @@ class Test(unittest.TestCase):
         self.assertFalse(compare_xml(xmlout, xmlin))
         print("Passed!")
 
-    def testParseReportFileAcceptsPathObjectForXml(self):
+    def testParseReportFileAcceptsPathForXML(self):
+        report_path = Path(
+            "samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml"
+        )
         result = parsedmarc.parse_report_file(
-            Path("samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml"),
+            report_path,
             offline=True,
         )
         self.assertEqual(result["report_type"], "aggregate")
         self.assertEqual(result["report"]["report_metadata"]["org_name"], "outlook.com")
 
-    def testParseReportFileAcceptsPathObjectForEmail(self):
+    def testParseReportFileAcceptsPathForEmail(self):
+        report_path = Path(
+            "samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml"
+        )
         result = parsedmarc.parse_report_file(
-            Path(
-                "samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml"
-            ),
+            report_path,
             offline=True,
         )
         self.assertEqual(result["report_type"], "aggregate")

@@ -962,7 +962,9 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
     return report
 
 
-def extract_report_from_file_path(file_path: Union[str, os.PathLike[str]]):
+def extract_report_from_file_path(
+    file_path: Union[str, bytes, os.PathLike[str], os.PathLike[bytes]],
+) -> str:
     """Extracts report from a file at the given file_path"""
     try:
         with open(os.fspath(file_path), "rb") as report_file:
@@ -1660,7 +1662,7 @@ def parse_report_email(
 
 
 def parse_report_file(
-    input_: Union[bytes, str, os.PathLike[str], BinaryIO],
+    input_: Union[bytes, str, os.PathLike[str], os.PathLike[bytes], BinaryIO],
     *,
     nameservers: Optional[list[str]] = None,
     dns_timeout: float = 2.0,
