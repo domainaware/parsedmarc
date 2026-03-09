@@ -278,6 +278,55 @@ aws_service = aoss
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("auth_type"), "awssigv4")
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_region"), "eu-west-1")
         self.assertEqual(mock_set_hosts.call_args.kwargs.get("aws_service"), "aoss")
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testFailOnOutputErrorExits(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """CLI should exit with code 1 when fail_on_output_error is enabled"""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+
+        config = """[general]
+save_aggregate = true
+fail_on_output_error = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            with self.assertRaises(SystemExit) as ctx:
+                parsedmarc.cli._main()
+
+        self.assertEqual(ctx.exception.code, 1)
+        mock_save_aggregate.assert_called_once()
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
