@@ -17,9 +17,9 @@ from opensearchpy import (
     Nested,
     Object,
     Q,
+    RequestsHttpConnection,
     Search,
     Text,
-    RequestsHttpConnection,
     connections,
 )
 from opensearchpy.helpers import reindex
