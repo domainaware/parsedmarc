@@ -158,7 +158,7 @@ class GmailConnection(MailboxConnection):
         return urlsafe_b64decode(msg["raw"]).decode(errors="replace")
 
     def delete_message(self, message_id: str):
-        self.service.users().messages().delete(userId="me", id=message_id)
+        self.service.users().messages().delete(userId="me", id=message_id).execute()
 
     def move_message(self, message_id: str, folder_name: str):
         label_id = self._find_label_id_for_label(folder_name)
