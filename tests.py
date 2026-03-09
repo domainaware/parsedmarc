@@ -957,5 +957,44 @@ class TestMailboxWatchSince(unittest.TestCase):
                     since="1d",
                 )
         self.assertEqual(mocked.call_args.kwargs.get("since"), "1d")
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesSinceToWatchInbox(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_mailbox_reports
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+since = 2d
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
