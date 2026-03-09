@@ -16,9 +16,13 @@ from azure.identity import (
     AuthenticationRecord,
 )
 from msgraph.core import GraphClient
+from requests.exceptions import RequestException
 
 from parsedmarc.log import logger
 from parsedmarc.mail.mailbox_connection import MailboxConnection
+
+GRAPH_REQUEST_RETRY_ATTEMPTS = 3
+GRAPH_REQUEST_RETRY_DELAY_SECONDS = 5
 
 
 class AuthMethod(Enum):
@@ -129,6 +133,25 @@ class MSGraphConnection(MailboxConnection):
         self._client = GraphClient(**client_params)
         self.mailbox_name = mailbox
 
+    def _request_with_retries(self, method_name: str, *args, **kwargs):
+        last_error = None
+        for attempt in range(1, GRAPH_REQUEST_RETRY_ATTEMPTS + 1):
+            try:
+                return getattr(self._client, method_name)(*args, **kwargs)
+            except RequestException as error:
+                last_error = error
+                if attempt == GRAPH_REQUEST_RETRY_ATTEMPTS:
+                    raise
+                logger.warning(
+                    "Transient MS Graph %s error on attempt %s/%s: %s",
+                    method_name.upper(),
+                    attempt,
+                    GRAPH_REQUEST_RETRY_ATTEMPTS,
+                    error,
+                )
+                sleep(GRAPH_REQUEST_RETRY_DELAY_SECONDS)
+        raise last_error
+
     def create_folder(self, folder_name: str):
         sub_url = ""
         path_parts = folder_name.split("/")
@@ -143,7 +166,7 @@ class MSGraphConnection(MailboxConnection):
 
         request_body = {"displayName": folder_name}
         request_url = f"/users/{self.mailbox_name}/mailFolders{sub_url}"
-        resp = self._client.post(request_url, json=request_body)
+        resp = self._request_with_retries("post", request_url, json=request_body)
         if resp.status_code == 409:
             logger.debug(f"Folder {folder_name} already exists, skipping creation")
         elif resp.status_code == 201:
@@ -173,7 +196,7 @@ class MSGraphConnection(MailboxConnection):
             params["$top"] = batch_size
         else:
             params["$top"] = 100
-        result = self._client.get(url, params=params)
+        result = self._request_with_retries("get", url, params=params)
         if result.status_code != 200:
             raise RuntimeError(f"Failed to fetch messages {result.text}")
         messages = result.json()["value"]
@@ -181,7 +204,7 @@ class MSGraphConnection(MailboxConnection):
         while "@odata.nextLink" in result.json() and (
             since is not None or (batch_size == 0 or batch_size - len(messages) > 0)
         ):
-            result = self._client.get(result.json()["@odata.nextLink"])
+            result = self._request_with_retries("get", result.json()["@odata.nextLink"])
             if result.status_code != 200:
                 raise RuntimeError(f"Failed to fetch messages {result.text}")
             messages.extend(result.json()["value"])
@@ -190,7 +213,7 @@ class MSGraphConnection(MailboxConnection):
     def mark_message_read(self, message_id: str):
         """Marks a message as read"""
         url = f"/users/{self.mailbox_name}/messages/{message_id}"
-        resp = self._client.patch(url, json={"isRead": "true"})
+        resp = self._request_with_retries("patch", url, json={"isRead": "true"})
         if resp.status_code != 200:
             raise RuntimeWarning(
                 f"Failed to mark message read{resp.status_code}: {resp.json()}"
@@ -198,7 +221,7 @@ class MSGraphConnection(MailboxConnection):
 
     def fetch_message(self, message_id: str, **kwargs):
         url = f"/users/{self.mailbox_name}/messages/{message_id}/$value"
-        result = self._client.get(url)
+        result = self._request_with_retries("get", url)
         if result.status_code != 200:
             raise RuntimeWarning(
                 f"Failed to fetch message{result.status_code}: {result.json()}"
@@ -210,7 +233,7 @@ class MSGraphConnection(MailboxConnection):
 
     def delete_message(self, message_id: str):
         url = f"/users/{self.mailbox_name}/messages/{message_id}"
-        resp = self._client.delete(url)
+        resp = self._request_with_retries("delete", url)
         if resp.status_code != 204:
             raise RuntimeWarning(
                 f"Failed to delete message {resp.status_code}: {resp.json()}"
@@ -220,7 +243,7 @@ class MSGraphConnection(MailboxConnection):
         folder_id = self._find_folder_id_from_folder_path(folder_name)
         request_body = {"destinationId": folder_id}
         url = f"/users/{self.mailbox_name}/messages/{message_id}/move"
-        resp = self._client.post(url, json=request_body)
+        resp = self._request_with_retries("post", url, json=request_body)
         if resp.status_code != 201:
             raise RuntimeWarning(
                 f"Failed to move message {resp.status_code}: {resp.json()}"
@@ -256,7 +279,7 @@ class MSGraphConnection(MailboxConnection):
             sub_url = f"/{parent_folder_id}/childFolders"
         url = f"/users/{self.mailbox_name}/mailFolders{sub_url}"
         filter = f"?$filter=displayName eq '{folder_name}'"
-        folders_resp = self._client.get(url + filter)
+        folders_resp = self._request_with_retries("get", url + filter)
         if folders_resp.status_code != 200:
             raise RuntimeWarning(f"Failed to list folders.{folders_resp.json()}")
         folders: list = folders_resp.json()["value"]
