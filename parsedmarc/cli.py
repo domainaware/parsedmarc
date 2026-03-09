@@ -671,6 +671,9 @@ def _main():
         opensearch_username=None,
         opensearch_password=None,
         opensearch_api_key=None,
+        opensearch_auth_type="basic",
+        opensearch_aws_region=None,
+        opensearch_aws_service="es",
         kafka_hosts=None,
         kafka_username=None,
         kafka_password=None,
@@ -1104,6 +1107,16 @@ def _main():
             # Since 8.20
             if "api_key" in opensearch_config:
                 opts.opensearch_api_key = opensearch_config["api_key"]
+            if "auth_type" in opensearch_config:
+                opts.opensearch_auth_type = opensearch_config["auth_type"].strip().lower()
+            elif "authentication_type" in opensearch_config:
+                opts.opensearch_auth_type = (
+                    opensearch_config["authentication_type"].strip().lower()
+                )
+            if "aws_region" in opensearch_config:
+                opts.opensearch_aws_region = opensearch_config["aws_region"].strip()
+            if "aws_service" in opensearch_config:
+                opts.opensearch_aws_service = opensearch_config["aws_service"].strip()
 
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
@@ -1450,6 +1463,9 @@ def _main():
                     password=opts.opensearch_password,
                     api_key=opts.opensearch_api_key,
                     timeout=opensearch_timeout_value,
+                    auth_type=opts.opensearch_auth_type,
+                    aws_region=opts.opensearch_aws_region,
+                    aws_service=opts.opensearch_aws_service,
                 )
                 opensearch.migrate_indexes(
                     aggregate_indexes=[os_aggregate_index],

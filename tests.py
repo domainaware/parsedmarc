@@ -30,6 +30,7 @@ from parsedmarc.mail.imap import IMAPConnection
 import parsedmarc.mail.gmail as gmail_module
 import parsedmarc.mail.graph as graph_module
 import parsedmarc.mail.imap as imap_module
+import parsedmarc.opensearch as opensearch_module
 import parsedmarc.utils
 
 # Detect if running in GitHub Actions to skip DNS lookups
@@ -184,6 +185,37 @@ class Test(unittest.TestCase):
             )["report"]
             parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
             print("Passed!")
+
+    def testOpenSearchSigV4RequiresRegion(self):
+        with self.assertRaises(opensearch_module.OpenSearchError):
+            opensearch_module.set_hosts(
+                "https://example.org:9200",
+                auth_type="awssigv4",
+            )
+
+    def testOpenSearchSigV4ConfiguresConnectionClass(self):
+        fake_credentials = object()
+        with patch.object(opensearch_module.boto3, "Session") as session_cls:
+            session_cls.return_value.get_credentials.return_value = fake_credentials
+            with patch.object(
+                opensearch_module, "AWSV4SignerAuth", return_value="auth"
+            ) as signer:
+                with patch.object(
+                    opensearch_module.connections, "create_connection"
+                ) as create_connection:
+                    opensearch_module.set_hosts(
+                        "https://example.org:9200",
+                        use_ssl=True,
+                        auth_type="awssigv4",
+                        aws_region="eu-west-1",
+                    )
+        signer.assert_called_once_with(fake_credentials, "eu-west-1", "es")
+        create_connection.assert_called_once()
+        self.assertEqual(
+            create_connection.call_args.kwargs.get("connection_class"),
+            opensearch_module.RequestsHttpConnection,
+        )
+        self.assertEqual(create_connection.call_args.kwargs.get("http_auth"), "auth")
 
 
 class _FakeGraphResponse:

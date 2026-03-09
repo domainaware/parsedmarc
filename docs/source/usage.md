@@ -281,6 +281,10 @@ The full set of configuration options are:
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
   - `api_key` - str: API key
+  - `auth_type` - str: Authentication type: `basic` (default) or `awssigv4`
+  - `aws_region` - str: AWS region for SigV4 authentication
+    (required when `auth_type = awssigv4`)
+  - `aws_service` - str: AWS service for SigV4 signing (Default: `es`)
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
