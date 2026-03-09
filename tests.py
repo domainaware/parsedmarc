@@ -1857,7 +1857,7 @@ class Test(unittest.TestCase):
         mock_imap_connection.return_value = object()
         mock_get_reports.return_value = {
             "aggregate_reports": [],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
 
@@ -1876,7 +1876,9 @@ authentication_type = awssigv4
 aws_region = eu-west-1
 aws_service = aoss
 """
-        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
             config_file.write(config)
             config_path = config_file.name
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
@@ -1905,7 +1907,7 @@ aws_service = aoss
         mock_imap_connection.return_value = object()
         mock_get_reports.return_value = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
@@ -1925,7 +1927,9 @@ password = test-password
 [elasticsearch]
 hosts = localhost
 """
-        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
             config_file.write(config)
             config_path = config_file.name
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
@@ -1953,7 +1957,7 @@ hosts = localhost
         mock_imap_connection.return_value = object()
         mock_get_reports.return_value = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
@@ -1973,7 +1977,9 @@ password = test-password
 [elasticsearch]
 hosts = localhost
 """
-        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
             config_file.write(config)
             config_path = config_file.name
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
@@ -1983,10 +1989,10 @@ hosts = localhost
 
         mock_save_aggregate.assert_called_once()
 
-    @patch("parsedmarc.cli.opensearch.save_forensic_report_to_opensearch")
+    @patch("parsedmarc.cli.opensearch.save_failure_report_to_opensearch")
     @patch("parsedmarc.cli.opensearch.migrate_indexes")
     @patch("parsedmarc.cli.opensearch.set_hosts")
-    @patch("parsedmarc.cli.elastic.save_forensic_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.save_failure_report_to_elasticsearch")
     @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
     @patch("parsedmarc.cli.elastic.migrate_indexes")
     @patch("parsedmarc.cli.elastic.set_hosts")
@@ -1999,22 +2005,22 @@ hosts = localhost
         _mock_es_set_hosts,
         _mock_es_migrate,
         mock_save_aggregate,
-        _mock_save_forensic_elastic,
+        _mock_save_failure_elastic,
         _mock_os_set_hosts,
         _mock_os_migrate,
-        mock_save_forensic_opensearch,
+        mock_save_failure_opensearch,
     ):
         mock_imap_connection.return_value = object()
         mock_get_reports.return_value = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "forensic_reports": [{"reported_domain": "example.com"}],
+            "failure_reports": [{"reported_domain": "example.com"}],
             "smtp_tls_reports": [],
         }
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "aggregate sink failed"
         )
-        mock_save_forensic_opensearch.side_effect = parsedmarc.cli.opensearch.OpenSearchError(
-            "forensic sink failed"
+        mock_save_failure_opensearch.side_effect = (
+            parsedmarc.cli.opensearch.OpenSearchError("failure sink failed")
         )
 
         config = """[general]
@@ -2034,7 +2040,9 @@ hosts = localhost
 [opensearch]
 hosts = localhost
 """
-        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
             config_file.write(config)
             config_path = config_file.name
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
@@ -2045,7 +2053,9 @@ hosts = localhost
 
         self.assertEqual(ctx.exception.code, 1)
         mock_save_aggregate.assert_called_once()
-        mock_save_forensic_opensearch.assert_called_once()
+        mock_save_failure_opensearch.assert_called_once()
+
+
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
@@ -2054,6 +2064,7 @@ class _FakeGraphResponse:
 
     def json(self):
         return self._payload
+
 
 class _BreakLoop(BaseException):
     pass
@@ -2708,6 +2719,7 @@ class TestImapFallbacks(unittest.TestCase):
                 connection.move_message(99, "Archive")
         delete_mock.assert_not_called()
 
+
 class TestMailboxWatchSince(unittest.TestCase):
     def testWatchInboxPassesSinceToMailboxFetch(self):
         mailbox_connection = SimpleNamespace()
@@ -2740,7 +2752,7 @@ class TestMailboxWatchSince(unittest.TestCase):
         mock_imap_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
             "aggregate_reports": [],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
         mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
@@ -2769,5 +2781,7 @@ since = 2d
 
         self.assertEqual(system_exit.exception.code, 1)
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
