@@ -19,10 +19,6 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: "3.13"
-    - name: Install system dependencies
-      run: |
-        sudo apt-get -q update
-        sudo apt-get -qy install libemail-outlook-message-perl
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
