@@ -3,11 +3,7 @@
 ## Reporting a vulnerability
 
 Please do not open a public GitHub issue for an undisclosed security
-vulnerability.
-
-If GitHub private vulnerability reporting is available for this repository, use
-that channel first. Otherwise, contact the maintainers privately before sharing
-details publicly.
+vulnerability. Use GitHub private vulnerability reporting in the Security tab of this project instead.
 
 When reporting a vulnerability, include:
 
@@ -19,10 +15,10 @@ When reporting a vulnerability, include:
 
 ## Supported versions
 
-Security fixes are most likely to be applied to the latest released version and
+Security fixes will be applied to the latest released version and
 the current `master` branch.
 
-Older versions may not receive backported fixes.
+Older versions will not receive backported fixes.
 
 ## Disclosure process
 
