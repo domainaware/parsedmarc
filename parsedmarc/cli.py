@@ -1879,6 +1879,7 @@ def _main():
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 batch_size=mailbox_batch_size_value,
+                since=opts.mailbox_since,
                 ip_db_path=opts.ip_db_path,
                 always_use_local_files=opts.always_use_local_files,
                 reverse_dns_map_path=opts.reverse_dns_map_path,

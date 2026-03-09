@@ -11,6 +11,7 @@ from base64 import urlsafe_b64encode
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from lxml import etree
@@ -286,7 +287,6 @@ class _FakeGraphResponse:
 
     def json(self):
         return self._payload
-
 
 class _BreakLoop(BaseException):
     pass
@@ -934,5 +934,28 @@ class TestImapFallbacks(unittest.TestCase):
             with self.assertRaises(IMAPClientError):
                 connection.move_message(99, "Archive")
         delete_mock.assert_not_called()
+
+class TestMailboxWatchSince(unittest.TestCase):
+    def testWatchInboxPassesSinceToMailboxFetch(self):
+        mailbox_connection = SimpleNamespace()
+
+        def fake_watch(check_callback, check_timeout):
+            check_callback(mailbox_connection)
+            raise _BreakLoop()
+
+        mailbox_connection.watch = fake_watch
+        callback = MagicMock()
+        with patch.object(
+            parsedmarc, "get_dmarc_reports_from_mailbox", return_value={}
+        ) as mocked:
+            with self.assertRaises(_BreakLoop):
+                parsedmarc.watch_inbox(
+                    mailbox_connection=mailbox_connection,
+                    callback=callback,
+                    check_timeout=1,
+                    batch_size=10,
+                    since="1d",
+                )
+        self.assertEqual(mocked.call_args.kwargs.get("since"), "1d")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
