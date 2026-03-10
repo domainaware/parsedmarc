@@ -2284,7 +2284,9 @@ class TestGraphConnection(unittest.TestCase):
         with patch.object(graph_module, "sleep") as mocked_sleep:
             messages = connection._get_all_messages("/url", batch_size=0, since=None)
         self.assertEqual([msg["id"] for msg in messages], ["1"])
-        mocked_sleep.assert_called_once_with(graph_module.GRAPH_REQUEST_RETRY_DELAY_SECONDS)
+        mocked_sleep.assert_called_once_with(
+            graph_module.GRAPH_REQUEST_RETRY_DELAY_SECONDS
+        )
 
     def testGetAllMessagesRaisesAfterRetryExhaustion(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
@@ -2533,14 +2535,18 @@ class TestGraphConnection(unittest.TestCase):
         fake_credential.authenticate.assert_called_once_with(scopes=["Mail.ReadWrite"])
         cache_auth.assert_called_once()
         graph_client.assert_called_once()
-        self.assertEqual(graph_client.call_args.kwargs.get("scopes"), ["Mail.ReadWrite"])
+        self.assertEqual(
+            graph_client.call_args.kwargs.get("scopes"), ["Mail.ReadWrite"]
+        )
 
     def testInitCertificateAuthSkipsInteractiveAuthenticate(self):
         class DummyCertificateCredential:
             pass
 
         fake_credential = DummyCertificateCredential()
-        with patch.object(graph_module, "CertificateCredential", DummyCertificateCredential):
+        with patch.object(
+            graph_module, "CertificateCredential", DummyCertificateCredential
+        ):
             with patch.object(
                 graph_module, "_generate_credential", return_value=fake_credential
             ):
@@ -2977,6 +2983,7 @@ class TestMailboxPerformance(unittest.TestCase):
             create_folders=False,
         )
         self.assertEqual(len(connection.fetch_calls), 1)
+
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.MSGraphConnection")
     def testCliPassesMsGraphCertificateAuthSettings(
@@ -2985,7 +2992,7 @@ class TestMailboxPerformance(unittest.TestCase):
         mock_graph_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
             "aggregate_reports": [],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
 
@@ -3053,6 +3060,7 @@ mailbox = shared@example.com
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
 
+
 class _FakeGraphClient:
     def get(self, url, params=None):
         if "/mailFolders/inbox?$select=id,displayName" in url:
@@ -3091,15 +3099,14 @@ class TestMSGraphFolderFallback(unittest.TestCase):
         connection._request_with_retries = MagicMock(
             side_effect=lambda method_name, *args, **kwargs: getattr(
                 connection._client, method_name
-            )(
-                *args, **kwargs
-            )
+            )(*args, **kwargs)
         )
 
         folder_id = connection._find_folder_id_with_parent("Inbox", None)
         self.assertEqual(folder_id, "inbox-id")
         connection._request_with_retries.assert_any_call(
-            "get", "/users/shared@example.com/mailFolders?$filter=displayName eq 'Inbox'"
+            "get",
+            "/users/shared@example.com/mailFolders?$filter=displayName eq 'Inbox'",
         )
         connection._request_with_retries.assert_any_call(
             "get", "/users/shared@example.com/mailFolders/inbox?$select=id,displayName"
@@ -3112,9 +3119,7 @@ class TestMSGraphFolderFallback(unittest.TestCase):
         connection._request_with_retries = MagicMock(
             side_effect=lambda method_name, *args, **kwargs: getattr(
                 connection._client, method_name
-            )(
-                *args, **kwargs
-            )
+            )(*args, **kwargs)
         )
 
         with self.assertRaises(RuntimeWarning):

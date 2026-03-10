@@ -1139,7 +1139,9 @@ def _main():
             if "api_key" in opensearch_config:
                 opts.opensearch_api_key = opensearch_config["api_key"]
             if "auth_type" in opensearch_config:
-                opts.opensearch_auth_type = opensearch_config["auth_type"].strip().lower()
+                opts.opensearch_auth_type = (
+                    opensearch_config["auth_type"].strip().lower()
+                )
             elif "authentication_type" in opensearch_config:
                 opts.opensearch_auth_type = (
                     opensearch_config["authentication_type"].strip().lower()
