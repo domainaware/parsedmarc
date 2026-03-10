@@ -1346,16 +1346,46 @@ class TestMSGraphFolderFallback(unittest.TestCase):
         connection = MSGraphConnection.__new__(MSGraphConnection)
         connection.mailbox_name = "shared@example.com"
         connection._client = _FakeGraphClient()
+        connection._request_with_retries = MagicMock(
+            side_effect=lambda _method, url, **kwargs: connection._client.get(
+                url, **kwargs
+            )
+        )
 
-        folder_id = connection._find_folder_id_from_folder_path("Inbox")
+        folder_id = connection._find_folder_id_with_parent("Inbox", None)
         self.assertEqual(folder_id, "inbox-id")
+        connection._request_with_retries.assert_any_call(
+            "get", "/users/shared@example.com/mailFolders?$filter=displayName eq 'Inbox'"
+        )
+        connection._request_with_retries.assert_any_call(
+            "get", "/users/shared@example.com/mailFolders/inbox?$select=id,displayName"
+        )
 
     def testUnknownFolderStillFails(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
         connection.mailbox_name = "shared@example.com"
         connection._client = _FakeGraphClient()
+        connection._request_with_retries = MagicMock(
+            side_effect=lambda _method, url, **kwargs: connection._client.get(
+                url, **kwargs
+            )
+        )
 
         with self.assertRaises(RuntimeWarning):
             connection._find_folder_id_from_folder_path("Custom")
+
+    def testSingleSegmentPathAvoidsExtraWellKnownLookupWhenListingSucceeds(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "shared@example.com"
+        connection._find_folder_id_with_parent = MagicMock(return_value="custom-id")
+        connection._get_well_known_folder_id = MagicMock(return_value="inbox-id")
+
+        folder_id = connection._find_folder_id_from_folder_path("Inbox")
+
+        self.assertEqual(folder_id, "custom-id")
+        connection._find_folder_id_with_parent.assert_called_once_with("Inbox", None)
+        connection._get_well_known_folder_id.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
