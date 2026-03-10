@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Optional, Union
 
+import boto3
 from opensearchpy import (
+    AWSV4SignerAuth,
     Boolean,
     Date,
     Document,
@@ -15,6 +17,7 @@ from opensearchpy import (
     Nested,
     Object,
     Q,
+    RequestsHttpConnection,
     Search,
     Text,
     connections,
@@ -272,6 +275,9 @@ def set_hosts(
     password: Optional[str] = None,
     api_key: Optional[str] = None,
     timeout: Optional[float] = 60.0,
+    auth_type: str = "basic",
+    aws_region: Optional[str] = None,
+    aws_service: str = "es",
 ):
     """
     Sets the OpenSearch hosts to use
@@ -284,6 +290,9 @@ def set_hosts(
         password (str): The password to use for authentication
         api_key (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
+        auth_type (str): OpenSearch auth mode: basic (default) or awssigv4
+        aws_region (str): AWS region for SigV4 auth (required for awssigv4)
+        aws_service (str): AWS service for SigV4 signing (default: es)
     """
     if not isinstance(hosts, list):
         hosts = [hosts]
@@ -295,10 +304,32 @@ def set_hosts(
             conn_params["ca_certs"] = ssl_cert_path
         else:
             conn_params["verify_certs"] = False
-    if username and password:
-        conn_params["http_auth"] = username + ":" + password
-    if api_key:
-        conn_params["api_key"] = api_key
+    normalized_auth_type = (auth_type or "basic").strip().lower()
+    if normalized_auth_type == "awssigv4":
+        if not aws_region:
+            raise OpenSearchError(
+                "OpenSearch AWS SigV4 auth requires 'aws_region' to be set"
+            )
+        session = boto3.Session()
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise OpenSearchError(
+                "Unable to load AWS credentials for OpenSearch SigV4 authentication"
+            )
+        conn_params["http_auth"] = AWSV4SignerAuth(
+            credentials, aws_region, aws_service
+        )
+        conn_params["connection_class"] = RequestsHttpConnection
+    elif normalized_auth_type == "basic":
+        if username and password:
+            conn_params["http_auth"] = username + ":" + password
+        if api_key:
+            conn_params["api_key"] = api_key
+    else:
+        raise OpenSearchError(
+            f"Unsupported OpenSearch auth_type '{auth_type}'. "
+            "Expected 'basic' or 'awssigv4'."
+        )
     connections.create_connection(**conn_params)
 
 
@@ -413,8 +444,8 @@ def save_aggregate_report_to_opensearch(
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))
-    end_date_query = Q(dict(match=dict(date_end=end_date)))
+    begin_date_query = Q(dict(range=dict(date_begin=dict(gte=begin_date))))
+    end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))
 
     if index_suffix is not None:
         search_index = "dmarc_aggregate_{0}*".format(index_suffix)

@@ -1,5 +1,46 @@
 # Changelog
 
+## 9.2.0
+
+### Added
+
+- OpenSearch AWS SigV4 authentication support (PR #673)
+- IMAP move/delete compatibility fallbacks (PR #671)
+- `fail_on_output_error` CLI option for sink failures (PR #672)
+- Gmail service account auth mode for non-interactive runs (PR #676)
+- Microsoft Graph certificate authentication support (PRs #692 and #693)
+- Microsoft Graph well-known folder fallback for root listing failures (PR #618 and #684 close #609)
+
+### Fixed
+
+- Pass mailbox since filter through `watch_inbox` callback (PR #670 closes issue #581)
+- `parsedmarc.mail.gmail.GmailConnection.delete_message` now properly calls the Gmail API (PR #668)
+- Avoid extra mailbox fetch in batch and test mode (PR #691 closes #533)
+
+## 9.1.2
+
+### Fixes
+
+- Fix duplicate detection for normalized aggregate reports in Elasticsearch/OpenSearch (PR #666 fixes issue #665)
+
+## 9.1.1
+
+### Fixes
+
+- Fix the use of Elasticsearch and OpenSearch API keys (PR #660 fixes issue #653)
+
+### Changes
+
+- Drop support for Python 3.9 (PR #661)
+
+## 9.1.0
+
+## Enhancements
+
+- Add TCP and TLS support for syslog output. (#656)
+- Skip DNS lookups in GitHub Actions to prevent DNS timeouts during tests timeouts. (#657)
+- Remove microseconds from DMARC aggregate report time ranges before parsing them.
+
 ## 9.0.10
 
 - Support Python 3.14+

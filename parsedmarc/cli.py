@@ -195,6 +195,13 @@ def _main():
         return None
 
     def process_reports(reports_):
+        output_errors = []
+
+        def log_output_error(destination, error):
+            message = f"{destination} Error: {error}"
+            logger.error(message)
+            output_errors.append(message)
+
         indent_value = 2 if opts.prettify_json else None
         output_str = "{0}\n".format(
             json.dumps(reports_, ensure_ascii=False, indent=indent_value)
@@ -231,11 +238,9 @@ def _main():
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
-                    logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+                    log_output_error("Elasticsearch", error_.__str__())
                 except Exception as error_:
-                    logger.error(
-                        "Elasticsearch exception error: {}".format(error_.__str__())
-                    )
+                    log_output_error("Elasticsearch exception", error_.__str__())
 
                 try:
                     if opts.opensearch_hosts:
@@ -253,11 +258,9 @@ def _main():
                 except opensearch.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except opensearch.OpenSearchError as error_:
-                    logger.error("OpenSearch Error: {0}".format(error_.__str__()))
+                    log_output_error("OpenSearch", error_.__str__())
                 except Exception as error_:
-                    logger.error(
-                        "OpenSearch exception error: {}".format(error_.__str__())
-                    )
+                    log_output_error("OpenSearch exception", error_.__str__())
 
                 try:
                     if opts.kafka_hosts:
@@ -265,13 +268,13 @@ def _main():
                             report, kafka_aggregate_topic
                         )
                 except Exception as error_:
-                    logger.error("Kafka Error: {0}".format(error_.__str__()))
+                    log_output_error("Kafka", error_.__str__())
 
                 try:
                     if opts.s3_bucket:
                         s3_client.save_aggregate_report_to_s3(report)
                 except Exception as error_:
-                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                    log_output_error("S3", error_.__str__())
 
                 try:
                     if opts.postgresql_host or opts.postgresql_connection_string:
@@ -285,13 +288,13 @@ def _main():
                     if opts.syslog_server:
                         syslog_client.save_aggregate_report_to_syslog(report)
                 except Exception as error_:
-                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+                    log_output_error("Syslog", error_.__str__())
 
                 try:
                     if opts.gelf_host:
                         gelf_client.save_aggregate_report_to_gelf(report)
                 except Exception as error_:
-                    logger.error("GELF Error: {0}".format(error_.__str__()))
+                    log_output_error("GELF", error_.__str__())
 
                 try:
                     if opts.webhook_aggregate_url:
@@ -300,7 +303,7 @@ def _main():
                             json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
-                    logger.error("Webhook Error: {0}".format(error_.__str__()))
+                    log_output_error("Webhook", error_.__str__())
 
             if opts.hec:
                 try:
@@ -308,7 +311,7 @@ def _main():
                     if len(aggregate_reports_) > 0:
                         hec_client.save_aggregate_reports_to_splunk(aggregate_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+                    log_output_error("Splunk HEC", e.__str__())
 
         if opts.save_forensic:
             for report in reports_["forensic_reports"]:
@@ -328,9 +331,9 @@ def _main():
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
-                    logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+                    log_output_error("Elasticsearch", error_.__str__())
                 except InvalidDMARCReport as error_:
-                    logger.error(error_.__str__())
+                    log_output_error("Invalid DMARC report", error_.__str__())
 
                 try:
                     shards = opts.opensearch_number_of_shards
@@ -348,9 +351,9 @@ def _main():
                 except opensearch.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except opensearch.OpenSearchError as error_:
-                    logger.error("OpenSearch Error: {0}".format(error_.__str__()))
+                    log_output_error("OpenSearch", error_.__str__())
                 except InvalidDMARCReport as error_:
-                    logger.error(error_.__str__())
+                    log_output_error("Invalid DMARC report", error_.__str__())
 
                 try:
                     if opts.kafka_hosts:
@@ -358,13 +361,13 @@ def _main():
                             report, kafka_forensic_topic
                         )
                 except Exception as error_:
-                    logger.error("Kafka Error: {0}".format(error_.__str__()))
+                    log_output_error("Kafka", error_.__str__())
 
                 try:
                     if opts.s3_bucket:
                         s3_client.save_forensic_report_to_s3(report)
                 except Exception as error_:
-                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                    log_output_error("S3", error_.__str__())
 
                 try:
                     if opts.postgresql_host or opts.postgresql_connection_string:
@@ -376,13 +379,13 @@ def _main():
                     if opts.syslog_server:
                         syslog_client.save_forensic_report_to_syslog(report)
                 except Exception as error_:
-                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+                    log_output_error("Syslog", error_.__str__())
 
                 try:
                     if opts.gelf_host:
                         gelf_client.save_forensic_report_to_gelf(report)
                 except Exception as error_:
-                    logger.error("GELF Error: {0}".format(error_.__str__()))
+                    log_output_error("GELF", error_.__str__())
 
                 try:
                     if opts.webhook_forensic_url:
@@ -391,7 +394,7 @@ def _main():
                             json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
-                    logger.error("Webhook Error: {0}".format(error_.__str__()))
+                    log_output_error("Webhook", error_.__str__())
 
             if opts.hec:
                 try:
@@ -399,7 +402,7 @@ def _main():
                     if len(forensic_reports_) > 0:
                         hec_client.save_forensic_reports_to_splunk(forensic_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+                    log_output_error("Splunk HEC", e.__str__())
 
         if opts.save_smtp_tls:
             for report in reports_["smtp_tls_reports"]:
@@ -419,9 +422,9 @@ def _main():
                 except elastic.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except elastic.ElasticsearchError as error_:
-                    logger.error("Elasticsearch Error: {0}".format(error_.__str__()))
+                    log_output_error("Elasticsearch", error_.__str__())
                 except InvalidDMARCReport as error_:
-                    logger.error(error_.__str__())
+                    log_output_error("Invalid DMARC report", error_.__str__())
 
                 try:
                     shards = opts.opensearch_number_of_shards
@@ -439,9 +442,9 @@ def _main():
                 except opensearch.AlreadySaved as warning:
                     logger.warning(warning.__str__())
                 except opensearch.OpenSearchError as error_:
-                    logger.error("OpenSearch Error: {0}".format(error_.__str__()))
+                    log_output_error("OpenSearch", error_.__str__())
                 except InvalidDMARCReport as error_:
-                    logger.error(error_.__str__())
+                    log_output_error("Invalid DMARC report", error_.__str__())
 
                 try:
                     if opts.kafka_hosts:
@@ -449,13 +452,13 @@ def _main():
                             smtp_tls_reports, kafka_smtp_tls_topic
                         )
                 except Exception as error_:
-                    logger.error("Kafka Error: {0}".format(error_.__str__()))
+                    log_output_error("Kafka", error_.__str__())
 
                 try:
                     if opts.s3_bucket:
                         s3_client.save_smtp_tls_report_to_s3(report)
                 except Exception as error_:
-                    logger.error("S3 Error: {0}".format(error_.__str__()))
+                    log_output_error("S3", error_.__str__())
 
                 try:
                     if opts.postgresql_host or opts.postgresql_connection_string:
@@ -469,13 +472,13 @@ def _main():
                     if opts.syslog_server:
                         syslog_client.save_smtp_tls_report_to_syslog(report)
                 except Exception as error_:
-                    logger.error("Syslog Error: {0}".format(error_.__str__()))
+                    log_output_error("Syslog", error_.__str__())
 
                 try:
                     if opts.gelf_host:
                         gelf_client.save_smtp_tls_report_to_gelf(report)
                 except Exception as error_:
-                    logger.error("GELF Error: {0}".format(error_.__str__()))
+                    log_output_error("GELF", error_.__str__())
 
                 try:
                     if opts.webhook_smtp_tls_url:
@@ -484,7 +487,7 @@ def _main():
                             json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
-                    logger.error("Webhook Error: {0}".format(error_.__str__()))
+                    log_output_error("Webhook", error_.__str__())
 
             if opts.hec:
                 try:
@@ -492,7 +495,7 @@ def _main():
                     if len(smtp_tls_reports_) > 0:
                         hec_client.save_smtp_tls_reports_to_splunk(smtp_tls_reports_)
                 except splunk.SplunkError as e:
-                    logger.error("Splunk HEC error: {0}".format(e.__str__()))
+                    log_output_error("Splunk HEC", e.__str__())
 
         if opts.la_dce:
             try:
@@ -513,14 +516,16 @@ def _main():
                     opts.save_smtp_tls,
                 )
             except loganalytics.LogAnalyticsException as e:
-                logger.error("Log Analytics error: {0}".format(e.__str__()))
+                log_output_error("Log Analytics", e.__str__())
             except Exception as e:
-                logger.error(
-                    "Unknown error occurred"
-                    + " during the publishing"
-                    + " to Log Analytics: "
-                    + e.__str__()
+                log_output_error("Log Analytics", f"Unknown publishing error: {e}")
+
+        if opts.fail_on_output_error and output_errors:
+            raise ParserError(
+                "Output destination failures detected: {0}".format(
+                    " | ".join(output_errors)
                 )
+            )
 
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument(
@@ -662,6 +667,8 @@ def _main():
         graph_password=None,
         graph_client_id=None,
         graph_client_secret=None,
+        graph_certificate_path=None,
+        graph_certificate_password=None,
         graph_tenant_id=None,
         graph_mailbox=None,
         graph_allow_unencrypted_storage=False,
@@ -694,6 +701,9 @@ def _main():
         opensearch_username=None,
         opensearch_password=None,
         opensearch_api_key=None,
+        opensearch_auth_type="basic",
+        opensearch_aws_region=None,
+        opensearch_aws_service="es",
         kafka_hosts=None,
         kafka_username=None,
         kafka_password=None,
@@ -733,6 +743,8 @@ def _main():
         gmail_api_paginate_messages=True,
         gmail_api_scopes=[],
         gmail_api_oauth2_port=8080,
+        gmail_api_auth_mode="installed_app",
+        gmail_api_service_account_user=None,
         maildir_path=None,
         maildir_create=False,
         log_file=args.log_file,
@@ -763,6 +775,7 @@ def _main():
         postgresql_password=None,
         postgresql_database=None,
         postgresql_connection_string=None,
+        fail_on_output_error=False,
     )
     args = arg_parser.parse_args()
 
@@ -845,6 +858,10 @@ def _main():
                 opts.silent = bool(general_config.getboolean("silent"))
             if "warnings" in general_config:
                 opts.warnings = bool(general_config.getboolean("warnings"))
+            if "fail_on_output_error" in general_config:
+                opts.fail_on_output_error = bool(
+                    general_config.getboolean("fail_on_output_error")
+                )
             if "log_file" in general_config:
                 opts.log_file = general_config["log_file"]
             if "n_procs" in general_config:
@@ -1026,6 +1043,19 @@ def _main():
                     )
                     exit(-1)
 
+            if opts.graph_auth_method == AuthMethod.Certificate.name:
+                if "certificate_path" in graph_config:
+                    opts.graph_certificate_path = graph_config["certificate_path"]
+                else:
+                    logger.critical(
+                        "certificate_path setting missing from the msgraph config section"
+                    )
+                    exit(-1)
+                if "certificate_password" in graph_config:
+                    opts.graph_certificate_password = graph_config[
+                        "certificate_password"
+                    ]
+
             if "client_id" in graph_config:
                 opts.graph_client_id = graph_config["client_id"]
             else:
@@ -1087,10 +1117,10 @@ def _main():
                 opts.elasticsearch_password = elasticsearch_config["password"]
             # Until 8.20
             if "apiKey" in elasticsearch_config:
-                opts.elasticsearch_apiKey = elasticsearch_config["apiKey"]
+                opts.elasticsearch_api_key = elasticsearch_config["apiKey"]
             # Since 8.20
             if "api_key" in elasticsearch_config:
-                opts.elasticsearch_apiKey = elasticsearch_config["api_key"]
+                opts.elasticsearch_api_key = elasticsearch_config["api_key"]
 
         if "opensearch" in config:
             opensearch_config = config["opensearch"]
@@ -1127,10 +1157,20 @@ def _main():
                 opts.opensearch_password = opensearch_config["password"]
             # Until 8.20
             if "apiKey" in opensearch_config:
-                opts.opensearch_apiKey = opensearch_config["apiKey"]
+                opts.opensearch_api_key = opensearch_config["apiKey"]
             # Since 8.20
             if "api_key" in opensearch_config:
-                opts.opensearch_apiKey = opensearch_config["api_key"]
+                opts.opensearch_api_key = opensearch_config["api_key"]
+            if "auth_type" in opensearch_config:
+                opts.opensearch_auth_type = opensearch_config["auth_type"].strip().lower()
+            elif "authentication_type" in opensearch_config:
+                opts.opensearch_auth_type = (
+                    opensearch_config["authentication_type"].strip().lower()
+                )
+            if "aws_region" in opensearch_config:
+                opts.opensearch_aws_region = opensearch_config["aws_region"].strip()
+            if "aws_service" in opensearch_config:
+                opts.opensearch_aws_service = opensearch_config["aws_service"].strip()
 
         if "splunk_hec" in config.sections():
             hec_config = config["splunk_hec"]
@@ -1338,6 +1378,16 @@ def _main():
                 opts.gmail_api_oauth2_port = gmail_api_config.getint(
                     "oauth2_port", 8080
                 )
+            if "auth_mode" in gmail_api_config:
+                opts.gmail_api_auth_mode = gmail_api_config.get("auth_mode").strip()
+            if "service_account_user" in gmail_api_config:
+                opts.gmail_api_service_account_user = gmail_api_config.get(
+                    "service_account_user"
+                ).strip()
+            elif "delegated_user" in gmail_api_config:
+                opts.gmail_api_service_account_user = gmail_api_config.get(
+                    "delegated_user"
+                ).strip()
 
         if "maildir" in config.sections():
             maildir_api_config = config["maildir"]
@@ -1489,6 +1539,9 @@ def _main():
                     password=opts.opensearch_password,
                     api_key=opts.opensearch_api_key,
                     timeout=opensearch_timeout_value,
+                    auth_type=opts.opensearch_auth_type,
+                    aws_region=opts.opensearch_aws_region,
+                    aws_service=opts.opensearch_aws_service,
                 )
                 opensearch.migrate_indexes(
                     aggregate_indexes=[os_aggregate_index],
@@ -1536,8 +1589,12 @@ def _main():
                 certfile_path=opts.syslog_certfile_path,
                 keyfile_path=opts.syslog_keyfile_path,
                 timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
-                retry_attempts=opts.syslog_retry_attempts if opts.syslog_retry_attempts is not None else 3,
-                retry_delay=opts.syslog_retry_delay if opts.syslog_retry_delay is not None else 5,
+                retry_attempts=opts.syslog_retry_attempts
+                if opts.syslog_retry_attempts is not None
+                else 3,
+                retry_delay=opts.syslog_retry_delay
+                if opts.syslog_retry_delay is not None
+                else 5,
             )
         except Exception as error_:
             logger.error("Syslog Error: {0}".format(error_.__str__()))
@@ -1772,6 +1829,8 @@ def _main():
                 tenant_id=opts.graph_tenant_id,
                 client_id=opts.graph_client_id,
                 client_secret=opts.graph_client_secret,
+                certificate_path=opts.graph_certificate_path,
+                certificate_password=opts.graph_certificate_password,
                 username=opts.graph_user,
                 password=opts.graph_password,
                 token_file=opts.graph_token_file,
@@ -1803,6 +1862,8 @@ def _main():
                 paginate_messages=opts.gmail_api_paginate_messages,
                 reports_folder=opts.mailbox_reports_folder,
                 oauth2_port=opts.gmail_api_oauth2_port,
+                auth_mode=opts.gmail_api_auth_mode,
+                service_account_user=opts.gmail_api_service_account_user,
             )
 
         except Exception:
@@ -1866,7 +1927,11 @@ def _main():
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    process_reports(parsing_results)
+    try:
+        process_reports(parsing_results)
+    except ParserError as error:
+        logger.error(error.__str__())
+        exit(1)
 
     if opts.smtp_host:
         try:
@@ -1911,6 +1976,7 @@ def _main():
                 dns_timeout=opts.dns_timeout,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 batch_size=mailbox_batch_size_value,
+                since=opts.mailbox_since,
                 ip_db_path=opts.ip_db_path,
                 always_use_local_files=opts.always_use_local_files,
                 reverse_dns_map_path=opts.reverse_dns_map_path,
@@ -1920,6 +1986,9 @@ def _main():
             )
         except FileExistsError as error:
             logger.error("{0}".format(error.__str__()))
+            exit(1)
+        except ParserError as error:
+            logger.error(error.__str__())
             exit(1)
 
 

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/domainaware/parsedmarc/security/policy
+    about: Please use the security policy and avoid filing public issues for undisclosed vulnerabilities.
