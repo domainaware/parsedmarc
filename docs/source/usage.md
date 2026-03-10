@@ -342,6 +342,45 @@ The full set of configuration options are:
     `%` characters must be escaped with another `%` character,
     so use `%%` wherever a `%` character is used.
     :::
+- `postgresql`
+  - `host` - str: The PostgreSQL server hostname or IP address.
+    Required unless `connection_string` is provided.
+  - `port` - int: The PostgreSQL server port (Default: `5432`)
+  - `user` - str: The database user name (Optional)
+  - `password` - str: The database user password (Optional)
+  - `database` - str: The database name (Optional)
+  - `connection_string` - str: A full libpq connection string or URI
+    (e.g. `postgresql://user:pass@host/dbname`). When provided,
+    all individual parameters above are ignored.
+
+  Tables are created automatically on first run using
+  `CREATE TABLE IF NOT EXISTS`, so no manual schema migration is needed
+  for fresh installations.
+
+  **Example configuration:**
+
+  ```ini
+  [postgresql]
+  host = localhost
+  port = 5432
+  user = parsedmarc
+  password = secret
+  database = parsedmarc
+  ```
+
+  Or using a DSN/URI:
+
+  ```ini
+  [postgresql]
+  connection_string = postgresql://parsedmarc:secret@localhost/parsedmarc
+  ```
+
+  Saving parsed data to PostgreSQL is controlled by the `[general]`
+  options `save_aggregate`, `save_forensic`, and `save_smtp_tls`.
+  These flags must be set to `True` for the corresponding report types
+  (aggregate DMARC, forensic DMARC, and SMTP TLS reports) or no data
+  will be written to PostgreSQL, even if this section is configured.
+
 - `s3`
   - `bucket` - str: The S3 bucket name
   - `path` - str: The path to upload reports to (Default: `/`)

@@ -1,0 +1,1901 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_POSTGRESQL",
+      "label": "PostgreSQL",
+      "description": "PostgreSQL datasource for parsedmarc",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "piechart",
+      "name": "Pie chart",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "geomap",
+      "name": "Geomap",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Dashboard for reviewing DMARC reports stored in PostgreSQL via parsedmarc",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "gridPos": { "h": 4, "w": 24, "x": 0, "y": 1 },
+          "id": 101,
+          "options": {
+            "content": "# DMARC Reports — PostgreSQL\n\nThis dashboard visualises DMARC aggregate and forensic report data stored in PostgreSQL by **parsedmarc**.\n\nUse the **From Domain** dropdown above to filter by the domain in the `From:` header.",
+            "mode": "markdown"
+          },
+          "title": "Info",
+          "transparent": true,
+          "type": "text"
+        }
+      ],
+      "title": "Info",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 1 },
+      "id": 102,
+      "panels": [],
+      "title": "DMARC Aggregate — Summary",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "true" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#37872D", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "false" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#E0B400", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 2 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "SPF Alignment",
+      "transparent": true,
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS metric,\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.spf_aligned\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "true" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#37872D", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "false" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#E0B400", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 2 },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "DKIM Alignment",
+      "transparent": true,
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS metric,\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.dkim_aligned\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "none" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#E0B400", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "quarantine" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#FF9830", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "reject" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#F2495C", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 2 },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "DMARC Disposition",
+      "transparent": true,
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.disposition, 'unknown') AS metric,\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.disposition\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Messages",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "pass" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "fail" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "softfail" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "super-light-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "neutral" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "super-light-blue", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "temperror" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "semi-dark-yellow", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "permerror" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-orange", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 11 },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "SPF Results Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(spf.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, spf.result\nORDER BY time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Messages",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "pass" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "fail" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 11 },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "DKIM Results Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(dkim.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, dkim.result\nORDER BY time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Messages",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "true" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "false" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "DMARC Pass/Fail Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.dmarc_passed\nORDER BY time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Messages",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "none" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#E0B400", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "quarantine" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#FF9830", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "reject" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "#F2495C", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 20 },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "Disposition Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(r.disposition, 'unknown') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.disposition\nORDER BY time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "dark-blue" },
+          "displayName": "Total Message Count",
+          "mappings": [
+            {
+              "options": { "match": "null", "result": { "text": "N/A" } },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "dark-blue", "value": null }]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 29 },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
+      "title": "",
+      "transparent": true,
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time\nORDER BY time",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 33 },
+      "id": 9,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Reports by Source Domain",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.source_base_domain, 'unknown') AS \"Source Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_base_domain\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Reports" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-blue", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 33 },
+      "id": 10,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Reports" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Reports by Organization",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  COALESCE(rpt.org_extra_contact_info, '') AS \"Contact\",\n  COUNT(DISTINCT rpt.id) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\n  AND EXISTS (\n    SELECT 1 FROM dmarc_aggregate_record r\n    WHERE r.report_id = rpt.id\n      AND r.header_from IN ($fromdomain)\n  )\nGROUP BY rpt.org_name, rpt.org_extra_contact_info\nORDER BY \"Reports\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 43 },
+      "id": 11,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Reports by From Domain",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 43 },
+      "id": 12,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Reports by Source Country",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.source_country, 'unknown') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_country\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DMARC Passed" },
+            "properties": [
+              { "id": "custom.width", "value": 110 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "dark-red", "value": null },
+                    { "color": "dark-green", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SPF Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DKIM Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Disposition" },
+            "properties": [{ "id": "custom.width", "value": 100 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Country" },
+            "properties": [{ "id": "custom.width", "value": 80 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 53 },
+      "id": 13,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Reports by Source",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.source_ip_address, r.source_reverse_dns, r.source_base_domain, r.source_country\nORDER BY \"Messages\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SPF Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DKIM Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DMARC Passed" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "dark-red", "value": null },
+                    { "color": "dark-green", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Disposition" },
+            "properties": [{ "id": "custom.width", "value": 100 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Country" },
+            "properties": [{ "id": "custom.width", "value": 80 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 65 },
+      "id": 14,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Aggregate Report Details",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  rpt.org_name AS \"Organization\",\n  COALESCE(r.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(r.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(r.source_country, '') AS \"Country\",\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.disposition, '') AS \"Disposition\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS \"DMARC Passed\",\n  (\n    SELECT string_agg(DISTINCT dkim.result, ', ')\n    FROM dmarc_aggregate_record_dkim dkim\n    WHERE dkim.record_id = r.id\n  ) AS \"DKIM Result\",\n  (\n    SELECT string_agg(DISTINCT spf.result, ', ')\n    FROM dmarc_aggregate_record_spf spf\n    WHERE spf.record_id = r.id\n  ) AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Reports" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-blue", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 79 },
+      "id": 15,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Reports" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Published Policies",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  rpt.domain AS \"Domain\",\n  COALESCE(rpt.policy, '') AS \"Policy (p)\",\n  COALESCE(rpt.subdomain_policy, '') AS \"Subdomain Policy (sp)\",\n  COALESCE(rpt.adkim, '') AS \"DKIM Alignment (adkim)\",\n  COALESCE(rpt.aspf, '') AS \"SPF Alignment (aspf)\",\n  COALESCE(rpt.pct, '') AS \"Percentage (pct)\",\n  COALESCE(rpt.fo, '') AS \"Failure Options (fo)\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_aggregate_report rpt\nWHERE $__timeFilter(rpt.begin_date)\n  AND EXISTS (\n    SELECT 1 FROM dmarc_aggregate_record r\n    WHERE r.report_id = rpt.id\n      AND r.header_from IN ($fromdomain)\n  )\nGROUP BY rpt.domain, rpt.policy, rpt.subdomain_policy, rpt.adkim, rpt.aspf, rpt.pct, rpt.fo\nORDER BY \"Reports\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SPF Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SPF Result" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 89 },
+      "id": 16,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "SPF Detail",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.envelope_from, '') AS \"Envelope From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.spf_aligned THEN 'true' ELSE 'false' END AS \"SPF Aligned\",\n  COALESCE(spf.domain, '') AS \"SPF Domain\",\n  COALESCE(spf.scope, '') AS \"SPF Scope\",\n  COALESCE(spf.result, '') AS \"SPF Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Messages" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 100 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DKIM Aligned" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "DKIM Result" },
+            "properties": [{ "id": "custom.width", "value": 110 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 101 },
+      "id": 17,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Messages" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "DKIM Detail",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, '') AS \"From\",\n  COALESCE(r.source_base_domain, '') AS \"Source Domain\",\n  CASE WHEN r.dkim_aligned THEN 'true' ELSE 'false' END AS \"DKIM Aligned\",\n  COALESCE(dkim.domain, '') AS \"DKIM Domain\",\n  COALESCE(dkim.selector, '') AS \"DKIM Selector\",\n  COALESCE(dkim.result, '') AS \"DKIM Result\",\n  r.message_count AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nORDER BY r.message_count DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 113 },
+      "id": 200,
+      "panels": [],
+      "title": "DMARC Forensic",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Source IP" },
+            "properties": [{ "id": "custom.width", "value": 140 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Country" },
+            "properties": [{ "id": "custom.width", "value": 80 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Feedback Type" },
+            "properties": [{ "id": "custom.width", "value": 130 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Arrival Date" },
+            "properties": [{ "id": "custom.width", "value": 160 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Auth Failure" },
+            "properties": [{ "id": "custom.width", "value": 120 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 114 },
+      "id": 18,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Arrival Date" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Forensic Reports",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  f.arrival_date_utc AS \"Arrival Date\",\n  COALESCE(f.feedback_type, '') AS \"Feedback Type\",\n  COALESCE(f.reported_domain, '') AS \"Reported Domain\",\n  COALESCE(f.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COALESCE(f.source_base_domain, '') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  COALESCE(array_to_string(f.auth_failure, ', '), '') AS \"Auth Failure\",\n  COALESCE(f.authentication_results, '') AS \"Auth Results\",\n  COALESCE(f.delivery_result, '') AS \"Delivery Result\",\n  COALESCE(f.dkim_domain, '') AS \"DKIM Domain\",\n  COALESCE(f.sample_subject, '') AS \"Subject\",\n  COALESCE(f.original_mail_from, '') AS \"Mail From\",\n  COALESCE(f.original_rcpt_to, '') AS \"Rcpt To\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nORDER BY f.id DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Reports" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 5 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 128 },
+      "id": 19,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Reports" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Forensic Reports by Source Country",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(f.source_country, 'unknown') AS \"Country\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nGROUP BY f.source_country\nORDER BY \"Reports\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Reports" },
+            "properties": [
+              { "id": "custom.width", "value": 120 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 5 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 128 },
+      "id": 20,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Reports" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "Forensic Reports by Source Domain",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  COALESCE(f.source_base_domain, 'unknown') AS \"Source Domain\",\n  COALESCE(f.source_country, '') AS \"Country\",\n  COALESCE(f.source_ip_address::TEXT, '') AS \"Source IP\",\n  COALESCE(f.source_reverse_dns, '') AS \"Reverse DNS\",\n  COUNT(*) AS \"Reports\"\nFROM dmarc_forensic_report f\nWHERE f.arrival_date_utc IS NOT NULL\n  AND f.arrival_date_utc::TIMESTAMPTZ BETWEEN $__timeFrom() AND $__timeTo()\nGROUP BY f.source_base_domain, f.source_country, f.source_ip_address, f.source_reverse_dns\nORDER BY \"Reports\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 138 },
+      "id": 300,
+      "panels": [],
+      "title": "SMTP TLS",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisLabel": "Sessions",
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "scheme",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Successful" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Failed" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 139 },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "SMTP TLS Sessions Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, $__interval) AS time,\n  'Successful' AS metric,\n  SUM(p.successful_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, $__interval) AS time,\n  'Failed' AS metric,\n  SUM(p.failed_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Successful" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-green", "mode": "fixed" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Failed" },
+            "properties": [
+              {
+                "id": "color",
+                "value": { "fixedColor": "dark-red", "mode": "fixed" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 139 },
+      "id": 22,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "SMTP TLS Session Success/Failure",
+      "transparent": true,
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  'Successful' AS metric,\n  SUM(p.successful_session_count) AS \"Sessions\"\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nUNION ALL\nSELECT\n  'Failed' AS metric,\n  SUM(p.failed_session_count) AS \"Sessions\"\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Successful Sessions" },
+            "properties": [
+              { "id": "custom.width", "value": 150 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-green", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Failed Sessions" },
+            "properties": [
+              { "id": "custom.width", "value": 130 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 148 },
+      "id": 23,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Failed Sessions" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "SMTP TLS Policies",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  tr.begin_date AS \"Begin\",\n  tr.end_date AS \"End\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(array_to_string(p.policy_strings, ', '), '') AS \"Policy Strings\",\n  COALESCE(p.successful_session_count, 0) AS \"Successful Sessions\",\n  COALESCE(p.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY p.failed_session_count DESC NULLS LAST",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "filterable": true, "inspect": true },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Failed Sessions" },
+            "properties": [
+              { "id": "custom.width", "value": 130 },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "transparent", "value": null },
+                    { "color": "dark-red", "value": 1 }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": { "mode": "gradient", "type": "color-background" }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 160 },
+      "id": 24,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Failed Sessions" }],
+        "cellHeight": "sm",
+        "footer": { "show": false }
+      },
+      "title": "SMTP TLS Failure Details",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT\n  tr.organization_name AS \"Organization\",\n  COALESCE(p.policy_domain, '') AS \"Policy Domain\",\n  COALESCE(p.policy_type, '') AS \"Policy Type\",\n  COALESCE(fd.result_type, '') AS \"Result Type\",\n  COALESCE(fd.sending_mta_ip::TEXT, '') AS \"Sending MTA IP\",\n  COALESCE(fd.receiving_ip::TEXT, '') AS \"Receiving IP\",\n  COALESCE(fd.receiving_mx_hostname, '') AS \"Receiving MX\",\n  COALESCE(fd.failure_reason_code, '') AS \"Failure Reason\",\n  COALESCE(fd.additional_info_uri, '') AS \"Additional Info\",\n  COALESCE(fd.failed_session_count, 0) AS \"Failed Sessions\"\nFROM smtp_tls_failure_detail fd\nJOIN smtp_tls_policy p ON p.id = fd.policy_id\nJOIN smtp_tls_report tr ON tr.id = p.report_id\nWHERE $__timeFilter(tr.begin_date)\nORDER BY fd.failed_session_count DESC NULLS LAST",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["DKIM", "SPF", "DMARC", "Email", "PostgreSQL", "parsedmarc"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${DS_POSTGRESQL}"
+        },
+        "definition": "SELECT DISTINCT header_from FROM dmarc_aggregate_record WHERE header_from IS NOT NULL ORDER BY header_from",
+        "description": "Filter by the domain in the From header",
+        "hide": 0,
+        "includeAll": true,
+        "label": "From Domain",
+        "multi": true,
+        "name": "fromdomain",
+        "options": [],
+        "query": "SELECT DISTINCT header_from FROM dmarc_aggregate_record WHERE header_from IS NOT NULL ORDER BY header_from",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "type": "query"
+      },
+      {
+        "auto": true,
+        "auto_count": 30,
+        "auto_min": "1h",
+        "current": {
+          "selected": false,
+          "text": "1d",
+          "value": "1d"
+        },
+        "description": "Time bucket interval",
+        "hide": 2,
+        "label": "Interval",
+        "name": "interval",
+        "options": [
+          {
+            "selected": false,
+            "text": "auto",
+            "value": "$__auto_interval_interval"
+          },
+          { "selected": false, "text": "1h", "value": "1h" },
+          { "selected": false, "text": "6h", "value": "6h" },
+          { "selected": true, "text": "1d", "value": "1d" },
+          { "selected": false, "text": "7d", "value": "7d" },
+          { "selected": false, "text": "14d", "value": "14d" },
+          { "selected": false, "text": "30d", "value": "30d" }
+        ],
+        "query": "1h,6h,1d,7d,14d,30d",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": false,
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "DMARC Reports — PostgreSQL",
+  "uid": "parsedmarc-pg",
+  "version": 1
+}
