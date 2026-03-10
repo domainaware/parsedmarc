@@ -468,6 +468,8 @@ hosts = localhost
         self.assertEqual(ctx.exception.code, 1)
         mock_save_aggregate.assert_called_once()
         mock_save_forensic_opensearch.assert_called_once()
+
+
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
@@ -476,6 +478,7 @@ class _FakeGraphResponse:
 
     def json(self):
         return self._payload
+
 
 class _BreakLoop(BaseException):
     pass
@@ -812,6 +815,31 @@ class TestGraphConnection(unittest.TestCase):
             client_id="cid", tenant_id="tenant", client_secret="secret"
         )
 
+    def testGenerateCredentialCertificate(self):
+        fake_credential = object()
+        with patch.object(
+            graph_module, "CertificateCredential", return_value=fake_credential
+        ) as mocked:
+            result = _generate_credential(
+                graph_module.AuthMethod.Certificate.name,
+                Path("/tmp/token"),
+                client_id="cid",
+                client_secret="secret",
+                certificate_path="/tmp/cert.pem",
+                certificate_password="secret-pass",
+                username="user",
+                password="pass",
+                tenant_id="tenant",
+                allow_unencrypted_storage=False,
+            )
+        self.assertIs(result, fake_credential)
+        mocked.assert_called_once_with(
+            client_id="cid",
+            tenant_id="tenant",
+            certificate_path="/tmp/cert.pem",
+            password="secret-pass",
+        )
+
     def testInitUsesSharedMailboxScopes(self):
         class FakeCredential:
             def __init__(self):
@@ -843,6 +871,35 @@ class TestGraphConnection(unittest.TestCase):
         self.assertEqual(
             graph_client.call_args.kwargs.get("scopes"), ["Mail.ReadWrite.Shared"]
         )
+
+    def testInitCertificateAuthSkipsInteractiveAuthenticate(self):
+        class DummyCertificateCredential:
+            pass
+
+        fake_credential = DummyCertificateCredential()
+        with patch.object(graph_module, "CertificateCredential", DummyCertificateCredential):
+            with patch.object(
+                graph_module, "_generate_credential", return_value=fake_credential
+            ):
+                with patch.object(graph_module, "_cache_auth_record") as cache_auth:
+                    with patch.object(graph_module, "GraphClient") as graph_client:
+                        MSGraphConnection(
+                            auth_method=graph_module.AuthMethod.Certificate.name,
+                            mailbox="shared@example.com",
+                            graph_url="https://graph.microsoft.com",
+                            client_id="cid",
+                            client_secret=None,
+                            certificate_path="/tmp/cert.pem",
+                            certificate_password="secret-pass",
+                            username=None,
+                            password=None,
+                            tenant_id="tenant",
+                            token_file="/tmp/token-file",
+                            allow_unencrypted_storage=False,
+                        )
+        cache_auth.assert_not_called()
+        graph_client.assert_called_once()
+        self.assertNotIn("scopes", graph_client.call_args.kwargs)
 
     def testCreateFolderAndMoveErrors(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
@@ -1250,5 +1307,94 @@ class TestMailboxPerformance(unittest.TestCase):
             create_folders=False,
         )
         self.assertEqual(len(connection.fetch_calls), 1)
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliPassesMsGraphCertificateAuthSettings(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = cert-pass
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("auth_method"), "Certificate"
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_path"),
+            "/tmp/msgraph-cert.pem",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_password"),
+            "cert-pass",
+        )
+class _FakeGraphClient:
+    def get(self, url, params=None):
+        if "/mailFolders/inbox?$select=id,displayName" in url:
+            return _FakeGraphResponse(200, {"id": "inbox-id", "displayName": "Inbox"})
+
+        if "/mailFolders?$filter=displayName eq 'Inbox'" in url:
+            return _FakeGraphResponse(
+                404,
+                {
+                    "error": {
+                        "code": "ErrorItemNotFound",
+                        "message": "Default folder Root not found.",
+                    }
+                },
+            )
+
+        if "/mailFolders?$filter=displayName eq 'Custom'" in url:
+            return _FakeGraphResponse(
+                404,
+                {
+                    "error": {
+                        "code": "ErrorItemNotFound",
+                        "message": "Default folder Root not found.",
+                    }
+                },
+            )
+
+        return _FakeGraphResponse(404, {"error": {"code": "NotFound"}})
+
+
+class TestMSGraphFolderFallback(unittest.TestCase):
+    def testWellKnownFolderFallback(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "shared@example.com"
+        connection._client = _FakeGraphClient()
+
+        folder_id = connection._find_folder_id_from_folder_path("Inbox")
+        self.assertEqual(folder_id, "inbox-id")
+
+    def testUnknownFolderStillFails(self):
+        connection = MSGraphConnection.__new__(MSGraphConnection)
+        connection.mailbox_name = "shared@example.com"
+        connection._client = _FakeGraphClient()
+
+        with self.assertRaises(RuntimeWarning):
+            connection._find_folder_id_from_folder_path("Custom")
 if __name__ == "__main__":
     unittest.main(verbosity=2)
