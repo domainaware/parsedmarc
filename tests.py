@@ -1429,6 +1429,78 @@ mailbox = shared@example.com
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
 
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliUsesMsGraphUserAsMailboxForUsernamePasswordAuth(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = UsernamePassword
+client_id = client-id
+client_secret = client-secret
+user = owner@example.com
+password = test-password
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("mailbox"),
+            "owner@example.com",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("username"),
+            "owner@example.com",
+        )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRequiresMsGraphPasswordForUsernamePasswordAuth(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = UsernamePassword
+client_id = client-id
+client_secret = client-secret
+user = owner@example.com
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "password setting missing from the msgraph config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
 class _FakeGraphClient:
     def get(self, url, params=None):
         if "/mailFolders/inbox?$select=id,displayName" in url:

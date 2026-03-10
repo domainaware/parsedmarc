@@ -984,6 +984,7 @@ def _main():
                     logger.critical(
                         "password setting missing from the msgraph config section"
                     )
+                    exit(-1)
                 if "client_secret" in graph_config:
                     opts.graph_client_secret = graph_config["client_secret"]
                 else:
