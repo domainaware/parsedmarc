@@ -151,7 +151,7 @@ class MSGraphConnection(MailboxConnection):
         if not isinstance(credential, (ClientSecretCredential, CertificateCredential)):
             scopes = ["Mail.ReadWrite"]
             # Detect if mailbox is shared
-            if mailbox and username != mailbox:
+            if mailbox and username and username != mailbox:
                 scopes = ["Mail.ReadWrite.Shared"]
             auth_record = credential.authenticate(scopes=scopes)
             _cache_auth_record(auth_record, token_path)
