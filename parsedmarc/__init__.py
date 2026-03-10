@@ -996,10 +996,12 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
     return report
 
 
-def extract_report_from_file_path(file_path: str):
+def extract_report_from_file_path(
+    file_path: Union[str, bytes, os.PathLike[str], os.PathLike[bytes]],
+) -> str:
     """Extracts report from a file at the given file_path"""
     try:
-        with open(file_path, "rb") as report_file:
+        with open(os.fspath(file_path), "rb") as report_file:
             return extract_report(report_file.read())
     except FileNotFoundError:
         raise ParserError("File was not found")
@@ -1703,7 +1705,7 @@ def parse_report_email(
 
 
 def parse_report_file(
-    input_: Union[bytes, str, BinaryIO],
+    input_: Union[bytes, str, os.PathLike[str], os.PathLike[bytes], BinaryIO],
     *,
     nameservers: Optional[list[str]] = None,
     dns_timeout: float = 2.0,
@@ -1720,7 +1722,8 @@ def parse_report_file(
     file-like object. or bytes
 
     Args:
-        input_ (str | bytes | BinaryIO): A path to a file, a file like object, or bytes
+        input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
+            a file-like object, or bytes
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -1737,9 +1740,10 @@ def parse_report_file(
         dict: The parsed DMARC report
     """
     file_object: BinaryIO
-    if isinstance(input_, str):
-        logger.debug("Parsing {0}".format(input_))
-        file_object = open(input_, "rb")
+    if isinstance(input_, (str, os.PathLike)):
+        file_path = os.fspath(input_)
+        logger.debug("Parsing {0}".format(file_path))
+        file_object = open(file_path, "rb")
     elif isinstance(input_, (bytes, bytearray, memoryview)):
         file_object = BytesIO(bytes(input_))
     else:
@@ -2180,14 +2184,17 @@ def get_dmarc_reports_from_mailbox(
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    if current_time:
-        total_messages = len(
-            connection.fetch_messages(reports_folder, since=current_time)
-        )
+    if not test and not batch_size:
+        if current_time:
+            total_messages = len(
+                connection.fetch_messages(reports_folder, since=current_time)
+            )
+        else:
+            total_messages = len(connection.fetch_messages(reports_folder))
     else:
-        total_messages = len(connection.fetch_messages(reports_folder))
+        total_messages = 0
 
-    if not test and not batch_size and total_messages > 0:
+    if total_messages > 0:
         # Process emails that came in during the last run
         results = get_dmarc_reports_from_mailbox(
             connection=connection,

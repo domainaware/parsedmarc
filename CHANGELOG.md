@@ -36,6 +36,23 @@ Forensic reports have been renamed to failure reports throughout the project to 
   - **Kibana**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
   - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
   - **Elasticsearch/OpenSearch**: Duplicate-check searches query across both `dmarc_failure*` and `dmarc_forensic*` index patterns
+## 9.2.0
+
+### Added
+
+- OpenSearch AWS SigV4 authentication support (PR #673)
+- IMAP move/delete compatibility fallbacks (PR #671)
+- `fail_on_output_error` CLI option for sink failures (PR #672)
+- Gmail service account auth mode for non-interactive runs (PR #676)
+- Microsoft Graph certificate authentication support (PRs #692 and #693)
+- Microsoft Graph well-known folder fallback for root listing failures (PR #618 and #684 close #609)
+
+### Fixed
+
+- Pass mailbox since filter through `watch_inbox` callback (PR #670 closes issue #581)
+- `parsedmarc.mail.gmail.GmailConnection.delete_message` now properly calls the Gmail API (PR #668)
+- Avoid extra mailbox fetch in batch and test mode (PR #691 closes #533)
+
 ## 9.1.2
 
 ### Fixes
