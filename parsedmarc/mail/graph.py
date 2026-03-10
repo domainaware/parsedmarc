@@ -12,6 +12,7 @@ from azure.identity import (
     UsernamePasswordCredential,
     DeviceCodeCredential,
     ClientSecretCredential,
+    CertificateCredential,
     TokenCachePersistenceOptions,
     AuthenticationRecord,
 )
@@ -29,6 +30,7 @@ class AuthMethod(Enum):
     DeviceCode = 1
     UsernamePassword = 2
     ClientSecret = 3
+    Certificate = 4
 
 
 def _get_cache_args(token_path: Path, allow_unencrypted_storage):
@@ -87,6 +89,13 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
             tenant_id=kwargs["tenant_id"],
             client_secret=kwargs["client_secret"],
         )
+    elif auth_method == AuthMethod.Certificate.name:
+        credential = CertificateCredential(
+            client_id=kwargs["client_id"],
+            tenant_id=kwargs["tenant_id"],
+            certificate_path=kwargs["certificate_path"],
+            password=kwargs.get("certificate_password"),
+        )
     else:
         raise RuntimeError(f"Auth method {auth_method} not found")
     return credential
@@ -100,6 +109,8 @@ class MSGraphConnection(MailboxConnection):
         graph_url: str,
         client_id: str,
         client_secret: str,
+        certificate_path: Optional[str],
+        certificate_password: Optional[Union[str, bytes]],
         username: str,
         password: str,
         tenant_id: str,
@@ -111,6 +122,8 @@ class MSGraphConnection(MailboxConnection):
             auth_method,
             client_id=client_id,
             client_secret=client_secret,
+            certificate_path=certificate_path,
+            certificate_password=certificate_password,
             username=username,
             password=password,
             tenant_id=tenant_id,
@@ -121,7 +134,7 @@ class MSGraphConnection(MailboxConnection):
             "credential": credential,
             "cloud": graph_url,
         }
-        if not isinstance(credential, ClientSecretCredential):
+        if not isinstance(credential, (ClientSecretCredential, CertificateCredential)):
             scopes = ["Mail.ReadWrite"]
             # Detect if mailbox is shared
             if mailbox and username != mailbox:

@@ -812,6 +812,31 @@ class TestGraphConnection(unittest.TestCase):
             client_id="cid", tenant_id="tenant", client_secret="secret"
         )
 
+    def testGenerateCredentialCertificate(self):
+        fake_credential = object()
+        with patch.object(
+            graph_module, "CertificateCredential", return_value=fake_credential
+        ) as mocked:
+            result = _generate_credential(
+                graph_module.AuthMethod.Certificate.name,
+                Path("/tmp/token"),
+                client_id="cid",
+                client_secret="secret",
+                certificate_path="/tmp/cert.pem",
+                certificate_password="secret-pass",
+                username="user",
+                password="pass",
+                tenant_id="tenant",
+                allow_unencrypted_storage=False,
+            )
+        self.assertIs(result, fake_credential)
+        mocked.assert_called_once_with(
+            client_id="cid",
+            tenant_id="tenant",
+            certificate_path="/tmp/cert.pem",
+            password="secret-pass",
+        )
+
     def testInitUsesSharedMailboxScopes(self):
         class FakeCredential:
             def __init__(self):
@@ -843,6 +868,35 @@ class TestGraphConnection(unittest.TestCase):
         self.assertEqual(
             graph_client.call_args.kwargs.get("scopes"), ["Mail.ReadWrite.Shared"]
         )
+
+    def testInitCertificateAuthSkipsInteractiveAuthenticate(self):
+        class DummyCertificateCredential:
+            pass
+
+        fake_credential = DummyCertificateCredential()
+        with patch.object(graph_module, "CertificateCredential", DummyCertificateCredential):
+            with patch.object(
+                graph_module, "_generate_credential", return_value=fake_credential
+            ):
+                with patch.object(graph_module, "_cache_auth_record") as cache_auth:
+                    with patch.object(graph_module, "GraphClient") as graph_client:
+                        MSGraphConnection(
+                            auth_method=graph_module.AuthMethod.Certificate.name,
+                            mailbox="shared@example.com",
+                            graph_url="https://graph.microsoft.com",
+                            client_id="cid",
+                            client_secret=None,
+                            certificate_path="/tmp/cert.pem",
+                            certificate_password="secret-pass",
+                            username=None,
+                            password=None,
+                            tenant_id="tenant",
+                            token_file="/tmp/token-file",
+                            allow_unencrypted_storage=False,
+                        )
+        cache_auth.assert_not_called()
+        graph_client.assert_called_once()
+        self.assertNotIn("scopes", graph_client.call_args.kwargs)
 
     def testCreateFolderAndMoveErrors(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
@@ -1210,5 +1264,49 @@ since = 2d
 
         self.assertEqual(system_exit.exception.code, 1)
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliPassesMsGraphCertificateAuthSettings(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = cert-pass
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("auth_method"), "Certificate"
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_path"),
+            "/tmp/msgraph-cert.pem",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_password"),
+            "cert-pass",
+        )
 if __name__ == "__main__":
     unittest.main(verbosity=2)
