@@ -840,6 +840,24 @@ class TestGraphConnection(unittest.TestCase):
             password="secret-pass",
         )
 
+    def testGenerateCredentialCertificateRequiresPath(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "certificate_path is required when auth_method is 'Certificate'",
+        ):
+            _generate_credential(
+                graph_module.AuthMethod.Certificate.name,
+                Path("/tmp/token"),
+                client_id="cid",
+                client_secret=None,
+                certificate_path=None,
+                certificate_password="secret-pass",
+                username=None,
+                password=None,
+                tenant_id="tenant",
+                allow_unencrypted_storage=False,
+            )
+
     def testInitUsesSharedMailboxScopes(self):
         class FakeCredential:
             def __init__(self):
@@ -1311,6 +1329,39 @@ certificate_password = cert-pass
             mock_graph_connection.call_args.kwargs.get("certificate_password"),
             "cert-pass",
         )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRequiresMsGraphCertificatePath(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "certificate_path setting missing from the msgraph config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
 class _FakeGraphClient:
     def get(self, url, params=None):
         if "/mailFolders/inbox?$select=id,displayName" in url:

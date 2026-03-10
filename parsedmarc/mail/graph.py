@@ -90,10 +90,15 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
             client_secret=kwargs["client_secret"],
         )
     elif auth_method == AuthMethod.Certificate.name:
+        cert_path = kwargs.get("certificate_path")
+        if not cert_path:
+            raise ValueError(
+                "certificate_path is required when auth_method is 'Certificate'"
+            )
         credential = CertificateCredential(
             client_id=kwargs["client_id"],
             tenant_id=kwargs["tenant_id"],
-            certificate_path=kwargs["certificate_path"],
+            certificate_path=cert_path,
             password=kwargs.get("certificate_password"),
         )
     else:
@@ -117,9 +122,9 @@ class MSGraphConnection(MailboxConnection):
         mailbox: str,
         graph_url: str,
         client_id: str,
-        client_secret: str,
-        username: str,
-        password: str,
+        client_secret: Optional[str],
+        username: Optional[str],
+        password: Optional[str],
         tenant_id: str,
         token_file: str,
         allow_unencrypted_storage: bool,
