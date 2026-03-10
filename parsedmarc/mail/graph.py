@@ -109,13 +109,13 @@ class MSGraphConnection(MailboxConnection):
         graph_url: str,
         client_id: str,
         client_secret: str,
-        certificate_path: Optional[str],
-        certificate_password: Optional[Union[str, bytes]],
         username: str,
         password: str,
         tenant_id: str,
         token_file: str,
         allow_unencrypted_storage: bool,
+        certificate_path: Optional[str] = None,
+        certificate_password: Optional[Union[str, bytes]] = None,
     ):
         token_path = Path(token_file)
         credential = _generate_credential(
