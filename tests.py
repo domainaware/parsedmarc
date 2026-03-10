@@ -224,7 +224,6 @@ class Test(unittest.TestCase):
                 auth_type="awssigv4",
             )
 
-<<<<<<< HEAD
     def testOpenSearchSigV4ConfiguresConnectionClass(self):
         fake_credentials = object()
         with patch.object(opensearch_module.boto3, "Session") as session_cls:
@@ -469,22 +468,18 @@ hosts = localhost
         self.assertEqual(ctx.exception.code, 1)
         mock_save_aggregate.assert_called_once()
         mock_save_forensic_opensearch.assert_called_once()
+
+
 class _FakeGraphResponse:
     def __init__(self, status_code, payload=None, text=""):
         self.status_code = status_code
         self._payload = payload or {}
         self.text = text
-=======
-class _FakeResponse:
-    def __init__(self, status_code, payload):
-        self.status_code = status_code
-        self._payload = payload
->>>>>>> 9ef03c0 (Add MS Graph well-known folder fallback for root listing failures)
 
     def json(self):
         return self._payload
 
-<<<<<<< HEAD
+
 class _BreakLoop(BaseException):
     pass
 
@@ -1222,10 +1217,10 @@ since = 2d
 class _FakeGraphClient:
     def get(self, url, params=None):
         if "/mailFolders/inbox?$select=id,displayName" in url:
-            return _FakeResponse(200, {"id": "inbox-id", "displayName": "Inbox"})
+            return _FakeGraphResponse(200, {"id": "inbox-id", "displayName": "Inbox"})
 
         if "/mailFolders?$filter=displayName eq 'Inbox'" in url:
-            return _FakeResponse(
+            return _FakeGraphResponse(
                 404,
                 {
                     "error": {
@@ -1236,7 +1231,7 @@ class _FakeGraphClient:
             )
 
         if "/mailFolders?$filter=displayName eq 'Custom'" in url:
-            return _FakeResponse(
+            return _FakeGraphResponse(
                 404,
                 {
                     "error": {
@@ -1246,7 +1241,7 @@ class _FakeGraphClient:
                 },
             )
 
-        return _FakeResponse(404, {"error": {"code": "NotFound"}})
+        return _FakeGraphResponse(404, {"error": {"code": "NotFound"}})
 
 
 class TestMSGraphFolderFallback(unittest.TestCase):
