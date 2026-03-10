@@ -102,6 +102,15 @@ def _generate_credential(auth_method: str, token_path: Path, **kwargs):
 
 
 class MSGraphConnection(MailboxConnection):
+    _WELL_KNOWN_FOLDERS = {
+        "inbox": "inbox",
+        "archive": "archive",
+        "drafts": "drafts",
+        "sentitems": "sentitems",
+        "deleteditems": "deleteditems",
+        "junkemail": "junkemail",
+    }
+
     def __init__(
         self,
         auth_method: str,
@@ -280,7 +289,24 @@ class MSGraphConnection(MailboxConnection):
                 parent_folder_id = folder_id
             return self._find_folder_id_with_parent(path_parts[-1], parent_folder_id)
         else:
+            # Shared mailboxes can fail root listing; try well-known folders first.
+            well_known_folder_id = self._get_well_known_folder_id(folder_name)
+            if well_known_folder_id:
+                return well_known_folder_id
             return self._find_folder_id_with_parent(folder_name, None)
+
+    def _get_well_known_folder_id(self, folder_name: str) -> Optional[str]:
+        folder_key = folder_name.lower().replace(" ", "").replace("-", "")
+        alias = self._WELL_KNOWN_FOLDERS.get(folder_key)
+        if alias is None:
+            return None
+
+        url = f"/users/{self.mailbox_name}/mailFolders/{alias}?$select=id,displayName"
+        folder_resp = self._client.get(url)
+        if folder_resp.status_code != 200:
+            return None
+        payload = folder_resp.json()
+        return payload.get("id")
 
     def _find_folder_id_with_parent(
         self, folder_name: str, parent_folder_id: Optional[str]
@@ -292,6 +318,10 @@ class MSGraphConnection(MailboxConnection):
         filter = f"?$filter=displayName eq '{folder_name}'"
         folders_resp = self._request_with_retries("get", url + filter)
         if folders_resp.status_code != 200:
+            if parent_folder_id is None:
+                well_known_folder_id = self._get_well_known_folder_id(folder_name)
+                if well_known_folder_id:
+                    return well_known_folder_id
             raise RuntimeWarning(f"Failed to list folders.{folders_resp.json()}")
         folders: list = folders_resp.json()["value"]
         matched_folders = [
