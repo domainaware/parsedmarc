@@ -1314,6 +1314,45 @@ since = 2d
         self.assertEqual(system_exit.exception.code, 1)
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 
+
+class _DummyMailboxConnection:
+    def __init__(self):
+        self.fetch_calls = []
+
+    def create_folder(self, folder_name):
+        return None
+
+    def fetch_messages(self, reports_folder, **kwargs):
+        self.fetch_calls.append({"reports_folder": reports_folder, **kwargs})
+        return []
+
+    def fetch_message(self, message_id, **kwargs):
+        return ""
+
+    def delete_message(self, message_id):
+        return None
+
+    def move_message(self, message_id, folder_name):
+        return None
+
+    def keepalive(self):
+        return None
+
+    def watch(self, check_callback, check_timeout):
+        return None
+
+
+class TestMailboxPerformance(unittest.TestCase):
+    def testBatchModeAvoidsExtraFullFetch(self):
+        connection = _DummyMailboxConnection()
+        parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=connection,
+            reports_folder="INBOX",
+            test=True,
+            batch_size=10,
+            create_folders=False,
+        )
+        self.assertEqual(len(connection.fetch_calls), 1)
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.MSGraphConnection")
     def testCliPassesMsGraphCertificateAuthSettings(
