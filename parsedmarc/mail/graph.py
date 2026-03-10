@@ -289,10 +289,6 @@ class MSGraphConnection(MailboxConnection):
                 parent_folder_id = folder_id
             return self._find_folder_id_with_parent(path_parts[-1], parent_folder_id)
         else:
-            # Shared mailboxes can fail root listing; try well-known folders first.
-            well_known_folder_id = self._get_well_known_folder_id(folder_name)
-            if well_known_folder_id:
-                return well_known_folder_id
             return self._find_folder_id_with_parent(folder_name, None)
 
     def _get_well_known_folder_id(self, folder_name: str) -> Optional[str]:
@@ -302,7 +298,7 @@ class MSGraphConnection(MailboxConnection):
             return None
 
         url = f"/users/{self.mailbox_name}/mailFolders/{alias}?$select=id,displayName"
-        folder_resp = self._client.get(url)
+        folder_resp = self._request_with_retries("get", url)
         if folder_resp.status_code != 200:
             return None
         payload = folder_resp.json()
