@@ -203,7 +203,7 @@ The full set of configuration options are:
   - `password` - str: The IMAP password
 - `msgraph`
   - `auth_method` - str: Authentication method, valid types are
-      `UsernamePassword`, `DeviceCode`, or `ClientSecret`
+      `UsernamePassword`, `DeviceCode`, `ClientSecret`, or `Certificate`
       (Default: `UsernamePassword`).
   - `user` - str: The M365 user, required when the auth method is
       UsernamePassword
@@ -211,6 +211,11 @@ The full set of configuration options are:
       method is UsernamePassword
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's secret
+  - `certificate_path` - str: Path to a PEM or PKCS12 certificate
+      including the private key. Required when the auth method is
+      `Certificate`
+  - `certificate_password` - str: Optional password for the
+      certificate file when using `Certificate` auth
   - `tenant_id` - str: The Azure AD tenant ID. This is required
       for all auth methods except UsernamePassword.
   - `mailbox` - str: The mailbox name. This defaults to the
@@ -247,6 +252,9 @@ The full set of configuration options are:
     -AppId "<CLIENT_ID>" -PolicyScopeGroupId "<MAILBOX>"
     -Description "Restrict access to dmarc reports mailbox."
     ```
+
+    The same application permission and mailbox scoping guidance
+    applies to the `Certificate` auth method.
 
     :::
 - `elasticsearch`

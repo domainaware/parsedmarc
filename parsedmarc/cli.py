@@ -644,6 +644,8 @@ def _main():
         graph_password=None,
         graph_client_id=None,
         graph_client_secret=None,
+        graph_certificate_path=None,
+        graph_certificate_password=None,
         graph_tenant_id=None,
         graph_mailbox=None,
         graph_allow_unencrypted_storage=False,
@@ -1011,6 +1013,19 @@ def _main():
                         "client_secret setting missing from the msgraph config section"
                     )
                     exit(-1)
+
+            if opts.graph_auth_method == AuthMethod.Certificate.name:
+                if "certificate_path" in graph_config:
+                    opts.graph_certificate_path = graph_config["certificate_path"]
+                else:
+                    logger.critical(
+                        "certificate_path setting missing from the msgraph config section"
+                    )
+                    exit(-1)
+                if "certificate_password" in graph_config:
+                    opts.graph_certificate_password = graph_config[
+                        "certificate_password"
+                    ]
 
             if "client_id" in graph_config:
                 opts.graph_client_id = graph_config["client_id"]
@@ -1748,6 +1763,8 @@ def _main():
                 tenant_id=opts.graph_tenant_id,
                 client_id=opts.graph_client_id,
                 client_secret=opts.graph_client_secret,
+                certificate_path=opts.graph_certificate_path,
+                certificate_password=opts.graph_certificate_password,
                 username=opts.graph_user,
                 password=opts.graph_password,
                 token_file=opts.graph_token_file,
