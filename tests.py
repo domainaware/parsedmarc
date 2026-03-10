@@ -185,7 +185,7 @@ class Test(unittest.TestCase):
         with self.assertRaises(parsedmarc.ParserError):
             parsedmarc.parse_report_file("samples/empty.xml", offline=OFFLINE_MODE)
 
-    def testForensicSamples(self):
+    def testFailureSamples(self):
         """Test sample failure/ruf DMARC reports"""
         print()
         sample_paths = glob("samples/failure/*.eml")
@@ -204,21 +204,21 @@ class Test(unittest.TestCase):
             print("Passed!")
 
     def testFailureReportBackwardCompat(self):
-        """Test that old forensic function aliases still work"""
+        """Test that old failure function aliases still work"""
         self.assertIs(
-            parsedmarc.parse_forensic_report,
+            parsedmarc.parse_failure_report,
             parsedmarc.parse_failure_report,
         )
         self.assertIs(
-            parsedmarc.parsed_forensic_reports_to_csv,
+            parsedmarc.parsed_failure_reports_to_csv,
             parsedmarc.parsed_failure_reports_to_csv,
         )
         self.assertIs(
-            parsedmarc.parsed_forensic_reports_to_csv_rows,
+            parsedmarc.parsed_failure_reports_to_csv_rows,
             parsedmarc.parsed_failure_reports_to_csv_rows,
         )
         self.assertIs(
-            parsedmarc.InvalidForensicReport,
+            parsedmarc.InvalidFailureReport,
             parsedmarc.InvalidFailureReport,
         )
 
@@ -1479,11 +1479,11 @@ class Test(unittest.TestCase):
         )
 
     def testWebhookBackwardCompatAlias(self):
-        """WebhookClient forensic alias points to failure method"""
+        """WebhookClient failure alias points to failure method"""
         from parsedmarc.webhook import WebhookClient
 
         self.assertIs(
-            WebhookClient.save_forensic_report_to_webhook,
+            WebhookClient.save_failure_report_to_webhook,
             WebhookClient.save_failure_report_to_webhook,
         )
 
@@ -1549,11 +1549,11 @@ class Test(unittest.TestCase):
         self.assertEqual(client.access_token, "my-token")
 
     def testSplunkBackwardCompatAlias(self):
-        """HECClient forensic alias points to failure method"""
+        """HECClient failure alias points to failure method"""
         from parsedmarc.splunk import HECClient
 
         self.assertIs(
-            HECClient.save_forensic_reports_to_splunk,
+            HECClient.save_failure_reports_to_splunk,
             HECClient.save_failure_reports_to_splunk,
         )
 
@@ -1574,11 +1574,11 @@ class Test(unittest.TestCase):
             SyslogClient("localhost", 514, protocol="invalid")
 
     def testSyslogBackwardCompatAlias(self):
-        """SyslogClient forensic alias points to failure method"""
+        """SyslogClient failure alias points to failure method"""
         from parsedmarc.syslog import SyslogClient
 
         self.assertIs(
-            SyslogClient.save_forensic_report_to_syslog,
+            SyslogClient.save_failure_report_to_syslog,
             SyslogClient.save_failure_report_to_syslog,
         )
 
@@ -1688,7 +1688,7 @@ class Test(unittest.TestCase):
         self.assertTrue(
             issubclass(parsedmarc.InvalidSMTPTLSReport, parsedmarc.ParserError)
         )
-        self.assertIs(parsedmarc.InvalidForensicReport, parsedmarc.InvalidFailureReport)
+        self.assertIs(parsedmarc.InvalidFailureReport, parsedmarc.InvalidFailureReport)
 
     def testAggregateReportNormalization(self):
         """Reports spanning >24h get normalized per day"""
@@ -1729,29 +1729,29 @@ class Test(unittest.TestCase):
     # ===================================================================
 
     def testGelfBackwardCompatAlias(self):
-        """GelfClient forensic alias points to failure method"""
+        """GelfClient failure alias points to failure method"""
         from parsedmarc.gelf import GelfClient
 
         self.assertIs(
-            GelfClient.save_forensic_report_to_gelf,
+            GelfClient.save_failure_report_to_gelf,
             GelfClient.save_failure_report_to_gelf,
         )
 
     def testS3BackwardCompatAlias(self):
-        """S3Client forensic alias points to failure method"""
+        """S3Client failure alias points to failure method"""
         from parsedmarc.s3 import S3Client
 
         self.assertIs(
-            S3Client.save_forensic_report_to_s3,
+            S3Client.save_failure_report_to_s3,
             S3Client.save_failure_report_to_s3,
         )
 
     def testKafkaBackwardCompatAlias(self):
-        """KafkaClient forensic alias points to failure method"""
+        """KafkaClient failure alias points to failure method"""
         from parsedmarc.kafkaclient import KafkaClient
 
         self.assertIs(
-            KafkaClient.save_forensic_reports_to_kafka,
+            KafkaClient.save_failure_reports_to_kafka,
             KafkaClient.save_failure_reports_to_kafka,
         )
 
@@ -2056,7 +2056,7 @@ hosts = localhost
 
         config = """[general]
 save_aggregate = true
-save_forensic = true
+save_failure = true
 fail_on_output_error = true
 silent = true
 
@@ -3218,7 +3218,7 @@ class TestMSGraphCliValidation(unittest.TestCase):
         mock_graph_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
             "aggregate_reports": [],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
 
@@ -3360,7 +3360,7 @@ tenant_id = tenant-id
         mock_graph_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
             "aggregate_reports": [],
-            "forensic_reports": [],
+            "failure_reports": [],
             "smtp_tls_reports": [],
         }
 
