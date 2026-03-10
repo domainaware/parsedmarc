@@ -1347,8 +1347,10 @@ class TestMSGraphFolderFallback(unittest.TestCase):
         connection.mailbox_name = "shared@example.com"
         connection._client = _FakeGraphClient()
         connection._request_with_retries = MagicMock(
-            side_effect=lambda _method, url, **kwargs: connection._client.get(
-                url, **kwargs
+            side_effect=lambda method_name, *args, **kwargs: getattr(
+                connection._client, method_name
+            )(
+                *args, **kwargs
             )
         )
 
@@ -1366,8 +1368,10 @@ class TestMSGraphFolderFallback(unittest.TestCase):
         connection.mailbox_name = "shared@example.com"
         connection._client = _FakeGraphClient()
         connection._request_with_retries = MagicMock(
-            side_effect=lambda _method, url, **kwargs: connection._client.get(
-                url, **kwargs
+            side_effect=lambda method_name, *args, **kwargs: getattr(
+                connection._client, method_name
+            )(
+                *args, **kwargs
             )
         )
 
