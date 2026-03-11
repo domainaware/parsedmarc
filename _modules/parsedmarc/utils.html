@@ -310,7 +310,8 @@
         <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">except</span> <span class="n">dns</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">DNSException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;get_reverse_dns(</span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2">) exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;The DNS query name does not exist&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;get_reverse_dns(</span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2">) exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">pass</span>
 
     <span class="k">return</span> <span class="n">hostname</span></div>
