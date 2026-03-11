@@ -3132,6 +3132,7 @@ user = owner@example.com
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
 
+
 class _FakeGraphClient:
     def get(self, url, params=None):
         if "/mailFolders/inbox?$select=id,displayName" in url:

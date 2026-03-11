@@ -205,8 +205,7 @@ def get_reverse_dns(
         )[0]
 
     except dns.exception.DNSException as e:
-        logger.warning(f"get_reverse_dns({ip_address}) exception: {e}")
-        pass
+        logger.debug(f"get_reverse_dns({ip_address}) exception: {e}")
 
     return hostname
 

@@ -36,6 +36,17 @@ Forensic reports have been renamed to failure reports throughout the project to 
   - **Kibana**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
   - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
   - **Elasticsearch/OpenSearch**: Duplicate-check searches query across both `dmarc_failure*` and `dmarc_forensic*` index patterns
+## 9.2.1
+
+### Added
+
+- Better checking of `msconfig` configuration (PR #695)
+
+### Changed
+
+- Updated `dbip-country-lite` database to version `2026-03`
+- DNS query error logging level from `warning` to `debug`
+
 ## 9.2.0
 
 ### Added
