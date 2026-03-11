@@ -2,11 +2,11 @@
 
 ## 9.2.1
 
-## Added
+### Added
 
 - Better checking of `msconfig` configuration (PR #695)
 
-## Changed
+### Changed
 
 - Updated `dbip-country-lite` database to version `2026-03`
 - DNS query error logging level from `warning` to `debug`
