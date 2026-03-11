@@ -316,9 +316,7 @@ def set_hosts(
             raise OpenSearchError(
                 "Unable to load AWS credentials for OpenSearch SigV4 authentication"
             )
-        conn_params["http_auth"] = AWSV4SignerAuth(
-            credentials, aws_region, aws_service
-        )
+        conn_params["http_auth"] = AWSV4SignerAuth(credentials, aws_region, aws_service)
         conn_params["connection_class"] = RequestsHttpConnection
     elif normalized_auth_type == "basic":
         if username and password:
