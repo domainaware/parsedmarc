@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.2.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=e8b940be"></script>
+      <script src="../_static/documentation_options.js?v=4cc1c4a7"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -1075,10 +1075,12 @@
 
 <div class="viewcode-block" id="extract_report_from_file_path">
 <a class="viewcode-back" href="../api.html#parsedmarc.extract_report_from_file_path">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">extract_report_from_file_path</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_report_from_file_path</span><span class="p">(</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts report from a file at the given file_path&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">report_file</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">report_file</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">report_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
     <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;File was not found&quot;</span><span class="p">)</span></div>
@@ -1797,7 +1799,7 @@
 <div class="viewcode-block" id="parse_report_file">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_report_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_report_file</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">BinaryIO</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
@@ -1814,7 +1816,8 @@
 <span class="sd">    file-like object. or bytes</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_ (str | bytes | BinaryIO): A path to a file, a file like object, or bytes</span>
+<span class="sd">        input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,</span>
+<span class="sd">            a file-like object, or bytes</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        dns_timeout (float): Sets the DNS timeout in seconds</span>
@@ -1831,9 +1834,10 @@
 <span class="sd">        dict: The parsed DMARC report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">file_object</span><span class="p">:</span> <span class="n">BinaryIO</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Parsing </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
-        <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Parsing </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+        <span class="n">file_object</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">)):</span>
         <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
@@ -2280,14 +2284,17 @@
         <span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">:</span> <span class="n">smtp_tls_reports</span><span class="p">,</span>
     <span class="p">}</span>
 
-    <span class="k">if</span> <span class="n">current_time</span><span class="p">:</span>
-        <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="n">current_time</span><span class="p">)</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">batch_size</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">current_time</span><span class="p">:</span>
+            <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="n">current_time</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">total_messages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">fetch_messages</span><span class="p">(</span><span class="n">reports_folder</span><span class="p">))</span>
+        <span class="n">total_messages</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">batch_size</span> <span class="ow">and</span> <span class="n">total_messages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">total_messages</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># Process emails that came in during the last run</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_mailbox</span><span class="p">(</span>
             <span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
@@ -2332,6 +2339,7 @@
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2358,6 +2366,7 @@
 <span class="sd">        strip_attachment_payloads (bool): Replace attachment payloads in</span>
 <span class="sd">            forensic report samples with None</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
+<span class="sd">        since: Search for messages since certain time</span>
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -2377,6 +2386,7 @@
             <span class="n">dns_timeout</span><span class="o">=</span><span class="n">dns_timeout</span><span class="p">,</span>
             <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">since</span><span class="o">=</span><span class="n">since</span><span class="p">,</span>
             <span class="n">create_folders</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">normalize_timespan_threshold_hours</span><span class="o">=</span><span class="n">normalize_timespan_threshold_hours</span><span class="p">,</span>
         <span class="p">)</span>

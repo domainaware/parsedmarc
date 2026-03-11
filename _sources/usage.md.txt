@@ -146,6 +146,9 @@ The full set of configuration options are:
   - `dns_timeout` - float: DNS timeout period
   - `debug` - bool: Print debugging messages
   - `silent` - bool: Only print errors (Default: `True`)
+  - `fail_on_output_error` - bool: Exit with a non-zero status code if
+      any configured output destination fails while saving/publishing
+      reports (Default: `False`)
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of process to run in parallel when
       parsing in CLI mode (Default: `1`)
@@ -200,7 +203,7 @@ The full set of configuration options are:
   - `password` - str: The IMAP password
 - `msgraph`
   - `auth_method` - str: Authentication method, valid types are
-      `UsernamePassword`, `DeviceCode`, or `ClientSecret`
+      `UsernamePassword`, `DeviceCode`, `ClientSecret`, or `Certificate`
       (Default: `UsernamePassword`).
   - `user` - str: The M365 user, required when the auth method is
       UsernamePassword
@@ -208,6 +211,11 @@ The full set of configuration options are:
       method is UsernamePassword
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's secret
+  - `certificate_path` - str: Path to a PEM or PKCS12 certificate
+      including the private key. Required when the auth method is
+      `Certificate`
+  - `certificate_password` - str: Optional password for the
+      certificate file when using `Certificate` auth
   - `tenant_id` - str: The Azure AD tenant ID. This is required
       for all auth methods except UsernamePassword.
   - `mailbox` - str: The mailbox name. This defaults to the
@@ -245,6 +253,9 @@ The full set of configuration options are:
     -Description "Restrict access to dmarc reports mailbox."
     ```
 
+    The same application permission and mailbox scoping guidance
+    applies to the `Certificate` auth method.
+
     :::
 - `elasticsearch`
   - `hosts` - str: A comma separated list of hostnames and ports
@@ -281,6 +292,10 @@ The full set of configuration options are:
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
   - `api_key` - str: API key
+  - `auth_type` - str: Authentication type: `basic` (default) or `awssigv4` (the key `authentication_type` is accepted as an alias for this option)
+  - `aws_region` - str: AWS region for SigV4 authentication
+    (required when `auth_type = awssigv4`)
+  - `aws_service` - str: AWS service for SigV4 signing (Default: `es`)
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
@@ -394,9 +409,18 @@ The full set of configuration options are:
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
+  - `auth_mode` - str: Authentication mode, `installed_app` (default)
+      or `service_account`
+  - `service_account_user` - str: Delegated mailbox user for Gmail
+      service account auth (required for domain-wide delegation). Also
+      accepted as `delegated_user` for backward compatibility.
 
     :::{note}
     credentials_file and token_file can be got with [quickstart](https://developers.google.com/gmail/api/quickstart/python).Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
+    :::
+    :::{note}
+    When `auth_mode = service_account`, `credentials_file` must point to a
+    Google service account key JSON file, and `token_file` is not used.
     :::
   - `include_spam_trash` - bool: Include messages in Spam and
       Trash when searching reports (Default: `False`)
@@ -501,6 +525,33 @@ PUT _cluster/settings
 
 Increasing this value increases resource usage.
 :::
+
+## Performance tuning
+
+For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
+of memory, especially when it runs on the same host as Elasticsearch or
+OpenSearch. The following settings can reduce peak memory usage and make long
+imports more predictable:
+
+- Reduce `mailbox.batch_size` to smaller values such as `100-500` instead of
+  processing a very large message set at once. Smaller batches trade throughput
+  for lower peak memory use and less sink pressure.
+- Keep `n_procs` low for mailbox-heavy runs. In practice, `1-2` workers is often
+  a safer starting point for large backfills than aggressive parallelism.
+- Use `mailbox.since` to process reports in smaller time windows such as `1d`,
+  `7d`, or another interval that fits the backlog. This makes it easier to catch
+  up incrementally instead of loading an entire mailbox history in one run.
+- Set `strip_attachment_payloads = True` when forensic reports contain large
+  attachments and you do not need to retain the raw payloads in the parsed
+  output.
+- Prefer running parsedmarc separately from Elasticsearch or OpenSearch, or
+  reserve enough RAM for both services if they must share a host.
+- For very large imports, prefer incremental supervised runs, such as a
+  scheduler or systemd service, over infrequent massive backfills.
+
+These are operational tuning recommendations rather than hard requirements, but
+they are often enough to avoid memory pressure and reduce failures during
+high-volume mailbox processing.
 
 ## Multi-tenant support
 

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.2.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 9.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=e8b940be"></script>
+      <script src="_static/documentation_options.js?v=4cc1c4a7"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -48,6 +48,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using parsedmarc</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance tuning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-tenant-support">Multi-tenant support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
 </ul>
@@ -232,6 +233,9 @@ DNS resolvers (Default: <code class="docutils literal notranslate"><span class="
 <li><p><code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code> - float: DNS timeout period</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">debug</span></code> - bool: Print debugging messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fail_on_output_error</span></code> - bool: Exit with a non-zero status code if
+any configured output destination fails while saving/publishing
+reports (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of process to run in parallel when
 parsing in CLI mode (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p>
@@ -295,7 +299,7 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">auth_method</span></code> - str: Authentication method, valid types are
-<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>, or <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code>
+<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>, <code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code>, or <code class="docutils literal notranslate"><span class="pre">Certificate</span></code>
 (Default: <code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The M365 user, required when the auth method is
 UsernamePassword</p></li>
@@ -303,6 +307,11 @@ UsernamePassword</p></li>
 method is UsernamePassword</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code> - str: The app registration’s client ID</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">client_secret</span></code> - str: The app registration’s secret</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">certificate_path</span></code> - str: Path to a PEM or PKCS12 certificate
+including the private key. Required when the auth method is
+<code class="docutils literal notranslate"><span class="pre">Certificate</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">certificate_password</span></code> - str: Optional password for the
+certificate file when using <code class="docutils literal notranslate"><span class="pre">Certificate</span></code> auth</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> - str: The Azure AD tenant ID. This is required
 for all auth methods except UsernamePassword.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code> - str: The mailbox name. This defaults to the
@@ -338,6 +347,8 @@ group and use that as the group id.</p>
 <span class="n">-Description</span> <span class="s2">&quot;Restrict access to dmarc reports mailbox.&quot;</span>
 </pre></div>
 </div>
+<p>The same application permission and mailbox scoping guidance
+applies to the <code class="docutils literal notranslate"><span class="pre">Certificate</span></code> auth method.</p>
 </div>
 </li>
 </ul>
@@ -383,6 +394,10 @@ or URLs (e.g. <code class="docutils literal notranslate"><span class="pre">127.0
 <li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: Basic auth username</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: Basic auth password</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code> - str: API key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_type</span></code> - str: Authentication type: <code class="docutils literal notranslate"><span class="pre">basic</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">awssigv4</span></code> (the key <code class="docutils literal notranslate"><span class="pre">authentication_type</span></code> is accepted as an alias for this option)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aws_region</span></code> - str: AWS region for SigV4 authentication
+(required when <code class="docutils literal notranslate"><span class="pre">auth_type</span> <span class="pre">=</span> <span class="pre">awssigv4</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aws_service</span></code> - str: AWS service for SigV4 signing (Default: <code class="docutils literal notranslate"><span class="pre">es</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Use an encrypted SSL/TLS connection
 (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - float: Timeout in seconds (Default: 60)</p></li>
@@ -506,10 +521,20 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> - str: Path to file containing the
 credentials, None to disable (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
-(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p>
+(Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth_mode</span></code> - str: Authentication mode, <code class="docutils literal notranslate"><span class="pre">installed_app</span></code> (default)
+or <code class="docutils literal notranslate"><span class="pre">service_account</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">service_account_user</span></code> - str: Delegated mailbox user for Gmail
+service account auth (required for domain-wide delegation). Also
+accepted as <code class="docutils literal notranslate"><span class="pre">delegated_user</span></code> for backward compatibility.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>credentials_file and token_file can be got with <a class="reference external" href="https://developers.google.com/gmail/api/quickstart/python">quickstart</a>.Please change the scope to <code class="docutils literal notranslate"><span class="pre">https://www.googleapis.com/auth/gmail.modify</span></code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">auth_mode</span> <span class="pre">=</span> <span class="pre">service_account</span></code>, <code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> must point to a
+Google service account key JSON file, and <code class="docutils literal notranslate"><span class="pre">token_file</span></code> is not used.</p>
 </div>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">include_spam_trash</span></code> - bool: Include messages in Spam and
@@ -620,6 +645,33 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 </div>
 <p>Increasing this value increases resource usage.</p>
 </div>
+</section>
+<section id="performance-tuning">
+<h2>Performance tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>
+<p>For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
+of memory, especially when it runs on the same host as Elasticsearch or
+OpenSearch. The following settings can reduce peak memory usage and make long
+imports more predictable:</p>
+<ul class="simple">
+<li><p>Reduce <code class="docutils literal notranslate"><span class="pre">mailbox.batch_size</span></code> to smaller values such as <code class="docutils literal notranslate"><span class="pre">100-500</span></code> instead of
+processing a very large message set at once. Smaller batches trade throughput
+for lower peak memory use and less sink pressure.</p></li>
+<li><p>Keep <code class="docutils literal notranslate"><span class="pre">n_procs</span></code> low for mailbox-heavy runs. In practice, <code class="docutils literal notranslate"><span class="pre">1-2</span></code> workers is often
+a safer starting point for large backfills than aggressive parallelism.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">mailbox.since</span></code> to process reports in smaller time windows such as <code class="docutils literal notranslate"><span class="pre">1d</span></code>,
+<code class="docutils literal notranslate"><span class="pre">7d</span></code>, or another interval that fits the backlog. This makes it easier to catch
+up incrementally instead of loading an entire mailbox history in one run.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span> <span class="pre">=</span> <span class="pre">True</span></code> when forensic reports contain large
+attachments and you do not need to retain the raw payloads in the parsed
+output.</p></li>
+<li><p>Prefer running parsedmarc separately from Elasticsearch or OpenSearch, or
+reserve enough RAM for both services if they must share a host.</p></li>
+<li><p>For very large imports, prefer incremental supervised runs, such as a
+scheduler or systemd service, over infrequent massive backfills.</p></li>
+</ul>
+<p>These are operational tuning recommendations rather than hard requirements, but
+they are often enough to avoid memory pressure and reduce failures during
+high-volume mailbox processing.</p>
 </section>
 <section id="multi-tenant-support">
 <h2>Multi-tenant support<a class="headerlink" href="#multi-tenant-support" title="Link to this heading"></a></h2>
