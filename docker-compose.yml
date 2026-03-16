@@ -48,7 +48,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -s -XGET http://localhost:9201/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
+          "curl -sk -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD} -XGET https://localhost:9200/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'"
         ]
       interval: 10s
       timeout: 10s
