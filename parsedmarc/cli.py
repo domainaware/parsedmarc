@@ -207,8 +207,9 @@ def _parse_config_file(config_file, opts):
                     index_prefix_domain_map = yaml.safe_load(f)
             except OSError as exc:
                 raise ConfigurationError(
-                    "Failed to read index_prefix_domain_map file "
-                    "'{0}': {1}".format(map_path, exc)
+                    "Failed to read index_prefix_domain_map file '{0}': {1}".format(
+                        map_path, exc
+                    )
                 ) from exc
             except yaml.YAMLError as exc:
                 raise ConfigurationError(
@@ -904,31 +905,39 @@ def _init_output_clients(opts):
             )
 
     if opts.s3_bucket:
-        clients["s3_client"] = s3.S3Client(
-            bucket_name=opts.s3_bucket,
-            bucket_path=opts.s3_path,
-            region_name=opts.s3_region_name,
-            endpoint_url=opts.s3_endpoint_url,
-            access_key_id=opts.s3_access_key_id,
-            secret_access_key=opts.s3_secret_access_key,
-        )
+        try:
+            clients["s3_client"] = s3.S3Client(
+                bucket_name=opts.s3_bucket,
+                bucket_path=opts.s3_path,
+                region_name=opts.s3_region_name,
+                endpoint_url=opts.s3_endpoint_url,
+                access_key_id=opts.s3_access_key_id,
+                secret_access_key=opts.s3_secret_access_key,
+            )
+        except Exception:
+            logger.warning("Failed to initialize S3 client; skipping", exc_info=True)
 
     if opts.syslog_server:
-        clients["syslog_client"] = syslog.SyslogClient(
-            server_name=opts.syslog_server,
-            server_port=int(opts.syslog_port),
-            protocol=opts.syslog_protocol or "udp",
-            cafile_path=opts.syslog_cafile_path,
-            certfile_path=opts.syslog_certfile_path,
-            keyfile_path=opts.syslog_keyfile_path,
-            timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
-            retry_attempts=opts.syslog_retry_attempts
-            if opts.syslog_retry_attempts is not None
-            else 3,
-            retry_delay=opts.syslog_retry_delay
-            if opts.syslog_retry_delay is not None
-            else 5,
-        )
+        try:
+            clients["syslog_client"] = syslog.SyslogClient(
+                server_name=opts.syslog_server,
+                server_port=int(opts.syslog_port),
+                protocol=opts.syslog_protocol or "udp",
+                cafile_path=opts.syslog_cafile_path,
+                certfile_path=opts.syslog_certfile_path,
+                keyfile_path=opts.syslog_keyfile_path,
+                timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
+                retry_attempts=opts.syslog_retry_attempts
+                if opts.syslog_retry_attempts is not None
+                else 3,
+                retry_delay=opts.syslog_retry_delay
+                if opts.syslog_retry_delay is not None
+                else 5,
+            )
+        except Exception:
+            logger.warning(
+                "Failed to initialize syslog client; skipping", exc_info=True
+            )
 
     if opts.hec:
         if opts.hec_token is None or opts.hec_index is None:
@@ -938,9 +947,14 @@ def _init_output_clients(opts):
         verify = True
         if opts.hec_skip_certificate_verification:
             verify = False
-        clients["hec_client"] = splunk.HECClient(
-            opts.hec, opts.hec_token, opts.hec_index, verify=verify
-        )
+        try:
+            clients["hec_client"] = splunk.HECClient(
+                opts.hec, opts.hec_token, opts.hec_index, verify=verify
+            )
+        except Exception:
+            logger.warning(
+                "Failed to initialize Splunk HEC client; skipping", exc_info=True
+            )
 
     if opts.kafka_hosts:
         ssl_context = None
@@ -950,32 +964,43 @@ def _init_output_clients(opts):
                 logger.debug("Skipping Kafka certificate verification")
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = CERT_NONE
-        clients["kafka_client"] = kafkaclient.KafkaClient(
-            opts.kafka_hosts,
-            username=opts.kafka_username,
-            password=opts.kafka_password,
-            ssl=opts.kafka_ssl,
-            ssl_context=ssl_context,
-        )
+        try:
+            clients["kafka_client"] = kafkaclient.KafkaClient(
+                opts.kafka_hosts,
+                username=opts.kafka_username,
+                password=opts.kafka_password,
+                ssl=opts.kafka_ssl,
+                ssl_context=ssl_context,
+            )
+        except Exception:
+            logger.warning("Failed to initialize Kafka client; skipping", exc_info=True)
 
     if opts.gelf_host:
-        clients["gelf_client"] = gelf.GelfClient(
-            host=opts.gelf_host,
-            port=int(opts.gelf_port),
-            mode=opts.gelf_mode,
-        )
+        try:
+            clients["gelf_client"] = gelf.GelfClient(
+                host=opts.gelf_host,
+                port=int(opts.gelf_port),
+                mode=opts.gelf_mode,
+            )
+        except Exception:
+            logger.warning("Failed to initialize GELF client; skipping", exc_info=True)
 
     if (
         opts.webhook_aggregate_url
         or opts.webhook_forensic_url
         or opts.webhook_smtp_tls_url
     ):
-        clients["webhook_client"] = webhook.WebhookClient(
-            aggregate_url=opts.webhook_aggregate_url,
-            forensic_url=opts.webhook_forensic_url,
-            smtp_tls_url=opts.webhook_smtp_tls_url,
-            timeout=opts.webhook_timeout,
-        )
+        try:
+            clients["webhook_client"] = webhook.WebhookClient(
+                aggregate_url=opts.webhook_aggregate_url,
+                forensic_url=opts.webhook_forensic_url,
+                smtp_tls_url=opts.webhook_smtp_tls_url,
+                timeout=opts.webhook_timeout,
+            )
+        except Exception:
+            logger.warning(
+                "Failed to initialize webhook client; skipping", exc_info=True
+            )
 
     return clients
 
