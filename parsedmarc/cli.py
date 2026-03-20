@@ -961,7 +961,12 @@ def _init_output_clients(opts):
 
     if opts.kafka_hosts:
         ssl_context = None
-        if opts.kafka_ssl:
+        # SSL is used explicitly via kafka_ssl, or implicitly when credentials
+        # are provided (KafkaClient treats username/password as implying SSL).
+        kafka_uses_ssl = opts.kafka_ssl or bool(
+            opts.kafka_username or opts.kafka_password
+        )
+        if kafka_uses_ssl or opts.kafka_skip_certificate_verification:
             ssl_context = create_default_context()
             if opts.kafka_skip_certificate_verification:
                 logger.debug("Skipping Kafka certificate verification")
@@ -1988,8 +1993,9 @@ def _main():
 
     def _handle_sighup(signum, frame):
         nonlocal _reload_requested
+        # Logging is not async-signal-safe; only set the flag here.
+        # The log message is emitted from the main loop when the flag is read.
         _reload_requested = True
-        logger.info("SIGHUP received, config will reload after current batch")
 
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, _handle_sighup)
@@ -2036,9 +2042,11 @@ def _main():
             if not _reload_requested:
                 break
 
-            # Reload configuration — clear the flag first so that any new
-            # SIGHUP arriving while we reload will be captured for the next
-            # iteration rather than being silently dropped.
+            # Reload configuration — emit the log message here (not in the
+            # signal handler, which is not async-signal-safe), then clear the
+            # flag so that any new SIGHUP arriving while we reload will be
+            # captured for the next iteration rather than being silently dropped.
+            logger.info("SIGHUP received, config will reload after current batch")
             _reload_requested = False
             logger.info("Reloading configuration...")
             try:
