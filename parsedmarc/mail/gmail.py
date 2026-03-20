@@ -178,10 +178,12 @@ class GmailConnection(MailboxConnection):
     def watch(self, check_callback, check_timeout, should_reload=None):
         """Checks the mailbox for new messages every n seconds"""
         while True:
-            sleep(check_timeout)
-            check_callback(self)
             if should_reload and should_reload():
                 return
+            sleep(check_timeout)
+            if should_reload and should_reload():
+                return
+            check_callback(self)
 
     @lru_cache(maxsize=10)
     def _find_label_id_for_label(self, label_name: str) -> str:
