@@ -201,8 +201,20 @@ def _parse_config_file(config_file, opts):
                 "normalize_timespan_threshold_hours"
             )
         if "index_prefix_domain_map" in general_config:
-            with open(general_config["index_prefix_domain_map"]) as f:
-                index_prefix_domain_map = yaml.safe_load(f)
+            map_path = general_config["index_prefix_domain_map"]
+            try:
+                with open(map_path) as f:
+                    index_prefix_domain_map = yaml.safe_load(f)
+            except OSError as exc:
+                raise ConfigurationError(
+                    "Failed to read index_prefix_domain_map file "
+                    "'{0}': {1}".format(map_path, exc)
+                ) from exc
+            except yaml.YAMLError as exc:
+                raise ConfigurationError(
+                    "Failed to parse YAML in index_prefix_domain_map "
+                    "file '{0}': {1}".format(map_path, exc)
+                ) from exc
         if "offline" in general_config:
             opts.offline = bool(general_config.getboolean("offline"))
         if "strip_attachment_payloads" in general_config:
@@ -588,9 +600,9 @@ def _parse_config_file(config_file, opts):
                 "index setting missing from the splunk_hec config section"
             )
         if "skip_certificate_verification" in hec_config:
-            opts.hec_skip_certificate_verification = hec_config[
-                "skip_certificate_verification"
-            ]
+            opts.hec_skip_certificate_verification = bool(
+                hec_config.getboolean("skip_certificate_verification", fallback=False)
+            )
 
     if "kafka" in config.sections():
         kafka_config = config["kafka"]
@@ -620,14 +632,14 @@ def _parse_config_file(config_file, opts):
         if "forensic_topic" in kafka_config:
             opts.kafka_forensic_topic = kafka_config["forensic_topic"]
         else:
-            logger.critical(
+            raise ConfigurationError(
                 "forensic_topic setting missing from the kafka config section"
             )
         if "smtp_tls_topic" in kafka_config:
             opts.kafka_smtp_tls_topic = kafka_config["smtp_tls_topic"]
         else:
-            logger.critical(
-                "forensic_topic setting missing from the splunk_hec config section"
+            raise ConfigurationError(
+                "smtp_tls_topic setting missing from the kafka config section"
             )
 
     if "smtp" in config.sections():
@@ -1578,7 +1590,6 @@ def _main():
         normalize_timespan_threshold_hours=24.0,
         fail_on_output_error=False,
     )
-    args = arg_parser.parse_args()
 
     # Snapshot opts as set from CLI args / hardcoded defaults, before any config
     # file is applied. On each SIGHUP reload we restore this baseline first so

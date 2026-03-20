@@ -2249,11 +2249,14 @@ def watch_inbox(
         )
         callback(res)
 
-    mailbox_connection.watch(
-        check_callback=check_callback,
-        check_timeout=check_timeout,
-        should_reload=should_reload,
-    )
+    watch_kwargs: dict = {
+        "check_callback": check_callback,
+        "check_timeout": check_timeout,
+    }
+    if should_reload is not None:
+        watch_kwargs["should_reload"] = should_reload
+
+    mailbox_connection.watch(**watch_kwargs)
 
 
 def append_json(
