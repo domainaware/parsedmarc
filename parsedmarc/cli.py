@@ -279,10 +279,10 @@ def _parse_config_file(config_file, opts):
             opts.always_use_local_files = bool(
                 general_config.getboolean("always_use_local_files")
             )
-        if "reverse_dns_map_path" in general_config:
-            opts.reverse_dns_map_path = general_config["reverse_dns_path"]
+        if "local_reverse_dns_map_path" in general_config:
+            opts.reverse_dns_map_path = general_config["local_reverse_dns_map_path"]
         if "reverse_dns_map_url" in general_config:
-            opts.reverse_dns_map_url = general_config["reverse_dns_url"]
+            opts.reverse_dns_map_url = general_config["reverse_dns_map_url"]
         if "prettify_json" in general_config:
             opts.prettify_json = bool(general_config.getboolean("prettify_json"))
 
