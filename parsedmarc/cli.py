@@ -1970,7 +1970,6 @@ def _main():
         logger.info("Watching for email - Quit with ctrl-c")
 
         while True:
-            _reload_requested = False
             try:
                 watch_inbox(
                     mailbox_connection=mailbox_connection,
