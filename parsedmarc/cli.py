@@ -832,6 +832,13 @@ def _init_output_clients(opts):
     Raises:
         ConfigurationError: If a required output client cannot be created.
     """
+    # Validate all required settings before creating any clients so that a
+    # ConfigurationError does not leave partially-created clients un-closed.
+    if opts.hec and (opts.hec_token is None or opts.hec_index is None):
+        raise ConfigurationError(
+            "HEC token and HEC index are required when using HEC URL"
+        )
+
     clients = {}
 
     if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
@@ -940,10 +947,6 @@ def _init_output_clients(opts):
             )
 
     if opts.hec:
-        if opts.hec_token is None or opts.hec_index is None:
-            raise ConfigurationError(
-                "HEC token and HEC index are required when using HEC URL"
-            )
         verify = True
         if opts.hec_skip_certificate_verification:
             verify = False
