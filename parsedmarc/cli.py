@@ -1995,6 +1995,12 @@ def _main():
         logger.info("Watching for email - Quit with ctrl-c")
 
         while True:
+            # Re-check mailbox_watch in case a config reload disabled watch mode
+            if not opts.mailbox_watch:
+                logger.info(
+                    "Mailbox watch disabled in reloaded configuration, stopping watcher"
+                )
+                break
             try:
                 watch_inbox(
                     mailbox_connection=mailbox_connection,
