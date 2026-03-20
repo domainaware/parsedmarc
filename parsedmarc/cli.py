@@ -1249,7 +1249,7 @@ def _main():
                 try:
                     if kafka_client:
                         kafka_client.save_smtp_tls_reports_to_kafka(
-                            reports_["smtp_tls_reports"], kafka_smtp_tls_topic
+                            [report], kafka_smtp_tls_topic
                         )
                 except Exception as error_:
                     log_output_error("Kafka", error_.__str__())
