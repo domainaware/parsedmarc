@@ -254,7 +254,7 @@ def _parse_config_file(config_file, opts):
             except Exception as ns_error:
                 raise ConfigurationError(
                     "DNS pre-flight check failed: {}".format(ns_error)
-                )
+                ) from ns_error
             if not dummy_hostname:
                 raise ConfigurationError(
                     "DNS pre-flight check failed: no PTR record for {} from {}".format(
@@ -271,8 +271,6 @@ def _parse_config_file(config_file, opts):
             opts.debug = bool(general_config.getboolean("debug"))
         if "verbose" in general_config:
             opts.verbose = bool(general_config.getboolean("verbose"))
-        if "silent" in general_config:
-            opts.silent = bool(general_config.getboolean("silent"))
         if "warnings" in general_config:
             opts.warnings = bool(general_config.getboolean("warnings"))
         if "fail_on_output_error" in general_config:
@@ -946,15 +944,17 @@ def _init_output_clients(opts):
 
     if opts.kafka_hosts:
         ssl_context = None
-        if opts.kafka_skip_certificate_verification:
-            logger.debug("Skipping Kafka certificate verification")
+        if opts.kafka_ssl:
             ssl_context = create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = CERT_NONE
+            if opts.kafka_skip_certificate_verification:
+                logger.debug("Skipping Kafka certificate verification")
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = CERT_NONE
         clients["kafka_client"] = kafkaclient.KafkaClient(
             opts.kafka_hosts,
             username=opts.kafka_username,
             password=opts.kafka_password,
+            ssl=opts.kafka_ssl,
             ssl_context=ssl_context,
         )
 
@@ -2046,6 +2046,31 @@ def _main():
                     logger.setLevel(logging.INFO)
                 if opts.debug:
                     logger.setLevel(logging.DEBUG)
+
+                # Refresh FileHandler if log_file changed
+                old_log_file = getattr(opts, "active_log_file", None)
+                new_log_file = opts.log_file
+                if old_log_file != new_log_file:
+                    # Remove old FileHandlers
+                    for h in list(logger.handlers):
+                        if isinstance(h, logging.FileHandler):
+                            h.close()
+                            logger.removeHandler(h)
+                    # Add new FileHandler if configured
+                    if new_log_file:
+                        try:
+                            fh = logging.FileHandler(new_log_file, "a")
+                            file_formatter = logging.Formatter(
+                                "%(asctime)s - %(levelname)s"
+                                " - [%(filename)s:%(lineno)d] - %(message)s"
+                            )
+                            fh.setFormatter(file_formatter)
+                            logger.addHandler(fh)
+                        except Exception as log_error:
+                            logger.warning(
+                                "Unable to write to log file: {}".format(log_error)
+                            )
+                    opts.active_log_file = new_log_file
 
                 logger.info("Configuration reloaded successfully")
             except Exception:
