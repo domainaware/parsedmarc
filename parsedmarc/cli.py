@@ -2027,7 +2027,10 @@ def _main():
             if not _reload_requested:
                 break
 
-            # Reload configuration
+            # Reload configuration — clear the flag first so that any new
+            # SIGHUP arriving while we reload will be captured for the next
+            # iteration rather than being silently dropped.
+            _reload_requested = False
             logger.info("Reloading configuration...")
             try:
                 # Build a fresh opts starting from CLI-only defaults so that
