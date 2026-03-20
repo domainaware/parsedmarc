@@ -4,6 +4,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import signal
 import sys
 import tempfile
 import unittest
@@ -1925,6 +1926,7 @@ password = pass
 watch = true
 """
 
+    @unittest.skipUnless(hasattr(signal, "SIGHUP"), "SIGHUP not available on this platform")
     @patch("parsedmarc.cli._init_output_clients")
     @patch("parsedmarc.cli._parse_config_file")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
@@ -1990,6 +1992,7 @@ watch = true
         # _parse_config_file called for initial load + reload
         self.assertGreaterEqual(mock_parse_config.call_count, 2)
 
+    @unittest.skipUnless(hasattr(signal, "SIGHUP"), "SIGHUP not available on this platform")
     @patch("parsedmarc.cli._init_output_clients")
     @patch("parsedmarc.cli._parse_config_file")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
@@ -2062,6 +2065,7 @@ watch = true
         # The failed reload must not have closed the original clients
         initial_clients["s3_client"].close.assert_not_called()
 
+    @unittest.skipUnless(hasattr(signal, "SIGHUP"), "SIGHUP not available on this platform")
     @patch("parsedmarc.cli._init_output_clients")
     @patch("parsedmarc.cli._parse_config_file")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
@@ -2133,6 +2137,7 @@ watch = true
         # Old client must have been closed when reload succeeded
         old_client.close.assert_called_once()
 
+    @unittest.skipUnless(hasattr(signal, "SIGHUP"), "SIGHUP not available on this platform")
     @patch("parsedmarc.cli._init_output_clients")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.watch_inbox")
