@@ -65,6 +65,8 @@ class MaildirConnection(MailboxConnection):
 
     def watch(self, check_callback, check_timeout, should_reload=None):
         while True:
+            if should_reload and should_reload():
+                return
             try:
                 check_callback(self)
             except Exception as e:

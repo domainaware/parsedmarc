@@ -284,6 +284,8 @@ class MSGraphConnection(MailboxConnection):
             if should_reload and should_reload():
                 return
             sleep(check_timeout)
+            if should_reload and should_reload():
+                return
             check_callback(self)
 
     @lru_cache(maxsize=10)
