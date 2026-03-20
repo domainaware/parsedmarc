@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.3.0
+
+### Added
+
+- SIGHUP-based configuration reload for watch mode — update output
+  destinations, DNS/GeoIP settings, processing flags, and log level
+  without restarting the service or interrupting in-progress report
+  processing. Use `systemctl reload parsedmarc` when running under
+  systemd.
+- Extracted `_parse_config_file()` and `_init_output_clients()` from
+  `_main()` in `cli.py` to support config reload and reduce code
+  duplication.
+
 ## 9.2.1
 
 ### Added

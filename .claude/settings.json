@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''parsedmarc/cli.py'', doraise=True\\)\")",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(GITHUB_ACTIONS=true pytest --cov tests.py)",
+      "Bash(ls tests*)",
+      "Bash(GITHUB_ACTIONS=true python -m pytest --cov tests.py -x)",
+      "Bash(GITHUB_ACTIONS=true python -m pytest tests.py -x -v)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

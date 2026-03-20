@@ -28,5 +28,5 @@ class MailboxConnection(ABC):
     def keepalive(self):
         raise NotImplementedError
 
-    def watch(self, check_callback, check_timeout):
+    def watch(self, check_callback, check_timeout, should_reload=None):
         raise NotImplementedError

@@ -278,11 +278,13 @@ class MSGraphConnection(MailboxConnection):
         # Not needed
         pass
 
-    def watch(self, check_callback, check_timeout):
+    def watch(self, check_callback, check_timeout, should_reload=None):
         """Checks the mailbox for new messages every n seconds"""
         while True:
             sleep(check_timeout)
             check_callback(self)
+            if should_reload and should_reload():
+                return
 
     @lru_cache(maxsize=10)
     def _find_folder_id_from_folder_path(self, folder_name: str) -> str:

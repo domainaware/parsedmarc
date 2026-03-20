@@ -404,6 +404,7 @@ The full set of configuration options are:
   retry_attempts = 3
   retry_delay = 5
   ```
+
 - `gmail_api`
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)
@@ -442,7 +443,7 @@ The full set of configuration options are:
   - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
 
   :::{note}
-    Information regarding the setup of the Data Collection Rule can be found [here](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
+    Information regarding the setup of the Data Collection Rule can be found [in the Azure documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
     :::
 - `gelf`
   - `host` - str: The GELF server name or IP address
@@ -602,6 +603,7 @@ After=network.target network-online.target elasticsearch.service
 
 [Service]
 ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
+ExecReload=/bin/kill -HUP $MAINPID
 User=parsedmarc
 Group=parsedmarc
 Restart=always
@@ -633,6 +635,44 @@ sudo service parsedmarc restart
 ```
 
 :::
+
+### Reloading configuration without restarting
+
+When running in watch mode, `parsedmarc` supports reloading its
+configuration file without restarting the service or interrupting
+report processing that is already in progress. Send a `SIGHUP` signal
+to the process, or use `systemctl reload` if the unit file includes
+the `ExecReload` line shown above:
+
+```bash
+sudo systemctl reload parsedmarc
+```
+
+The reload takes effect after the current batch of reports finishes
+processing and all output operations (Elasticsearch, Kafka, S3, etc.)
+for that batch have completed. The following settings are reloaded:
+
+- All output destinations (Elasticsearch, OpenSearch, Kafka, S3,
+  Splunk, syslog, GELF, webhooks, Log Analytics)
+- Multi-tenant index prefix domain map (`index_prefix_domain_map` —
+  the referenced YAML file is re-read on reload)
+- DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
+  `offline`, etc.)
+- Processing flags (`strip_attachment_payloads`, `batch_size`,
+  `check_timeout`, etc.)
+- Log level (`debug`, `verbose`, `warnings`, `silent`)
+
+Mailbox connection settings (IMAP host/credentials, Microsoft Graph,
+Gmail API, Maildir path) are **not** reloaded — changing those still
+requires a full restart.
+
+If the new configuration file contains errors, the reload is aborted
+and the previous configuration remains active. Check the logs for
+details:
+
+```bash
+journalctl -u parsedmarc.service -r
+```
 
 To check the status of the service, run:
 

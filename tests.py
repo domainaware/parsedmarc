@@ -1277,7 +1277,7 @@ class TestMailboxWatchSince(unittest.TestCase):
     def testWatchInboxPassesSinceToMailboxFetch(self):
         mailbox_connection = SimpleNamespace()
 
-        def fake_watch(check_callback, check_timeout):
+        def fake_watch(check_callback, check_timeout, should_reload=None):
             check_callback(mailbox_connection)
             raise _BreakLoop()
 
@@ -1445,7 +1445,7 @@ mailbox = shared@example.com
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "certificate_path setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1517,7 +1517,7 @@ user = owner@example.com
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "password setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1674,7 +1674,7 @@ mailbox = shared@example.com
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "client_secret setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1706,7 +1706,7 @@ mailbox = shared@example.com
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "tenant_id setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1738,7 +1738,7 @@ tenant_id = tenant-id
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "mailbox setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1808,7 +1808,7 @@ mailbox = shared@example.com
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "tenant_id setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1839,7 +1839,7 @@ tenant_id = tenant-id
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "mailbox setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1871,7 +1871,7 @@ certificate_path = /tmp/msgraph-cert.pem
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "tenant_id setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
@@ -1903,7 +1903,7 @@ certificate_path = /tmp/msgraph-cert.pem
                 parsedmarc.cli._main()
 
         self.assertEqual(system_exit.exception.code, -1)
-        mock_logger.critical.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "mailbox setting missing from the msgraph config section"
         )
         mock_graph_connection.assert_not_called()
