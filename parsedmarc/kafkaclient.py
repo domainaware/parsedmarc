@@ -62,6 +62,10 @@ class KafkaClient(object):
         except NoBrokersAvailable:
             raise KafkaError("No Kafka brokers available")
 
+    def close(self):
+        """Close the Kafka producer, releasing background threads and sockets."""
+        self.producer.close()
+
     @staticmethod
     def strip_metadata(report: dict[str, Any]):
         """
