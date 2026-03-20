@@ -201,21 +201,8 @@ def _parse_config_file(config_file, opts):
                 "normalize_timespan_threshold_hours"
             )
         if "index_prefix_domain_map" in general_config:
-            map_path = general_config["index_prefix_domain_map"]
-            try:
-                with open(map_path) as f:
-                    index_prefix_domain_map = yaml.safe_load(f)
-            except OSError as exc:
-                raise ConfigurationError(
-                    "Failed to read index_prefix_domain_map file '{0}': {1}".format(
-                        map_path, exc
-                    )
-                ) from exc
-            except yaml.YAMLError as exc:
-                raise ConfigurationError(
-                    "Failed to parse YAML in index_prefix_domain_map "
-                    "file '{0}': {1}".format(map_path, exc)
-                ) from exc
+            with open(general_config["index_prefix_domain_map"]) as f:
+                index_prefix_domain_map = yaml.safe_load(f)
         if "offline" in general_config:
             opts.offline = bool(general_config.getboolean("offline"))
         if "strip_attachment_payloads" in general_config:
@@ -832,13 +819,6 @@ def _init_output_clients(opts):
     Raises:
         ConfigurationError: If a required output client cannot be created.
     """
-    # Validate all required settings before creating any clients so that a
-    # ConfigurationError does not leave partially-created clients un-closed.
-    if opts.hec and (opts.hec_token is None or opts.hec_index is None):
-        raise ConfigurationError(
-            "HEC token and HEC index are required when using HEC URL"
-        )
-
     clients = {}
 
     if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
@@ -912,103 +892,76 @@ def _init_output_clients(opts):
             )
 
     if opts.s3_bucket:
-        try:
-            clients["s3_client"] = s3.S3Client(
-                bucket_name=opts.s3_bucket,
-                bucket_path=opts.s3_path,
-                region_name=opts.s3_region_name,
-                endpoint_url=opts.s3_endpoint_url,
-                access_key_id=opts.s3_access_key_id,
-                secret_access_key=opts.s3_secret_access_key,
-            )
-        except Exception:
-            logger.warning("Failed to initialize S3 client; skipping", exc_info=True)
+        clients["s3_client"] = s3.S3Client(
+            bucket_name=opts.s3_bucket,
+            bucket_path=opts.s3_path,
+            region_name=opts.s3_region_name,
+            endpoint_url=opts.s3_endpoint_url,
+            access_key_id=opts.s3_access_key_id,
+            secret_access_key=opts.s3_secret_access_key,
+        )
 
     if opts.syslog_server:
-        try:
-            clients["syslog_client"] = syslog.SyslogClient(
-                server_name=opts.syslog_server,
-                server_port=int(opts.syslog_port),
-                protocol=opts.syslog_protocol or "udp",
-                cafile_path=opts.syslog_cafile_path,
-                certfile_path=opts.syslog_certfile_path,
-                keyfile_path=opts.syslog_keyfile_path,
-                timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
-                retry_attempts=opts.syslog_retry_attempts
-                if opts.syslog_retry_attempts is not None
-                else 3,
-                retry_delay=opts.syslog_retry_delay
-                if opts.syslog_retry_delay is not None
-                else 5,
-            )
-        except Exception:
-            logger.warning(
-                "Failed to initialize syslog client; skipping", exc_info=True
-            )
+        clients["syslog_client"] = syslog.SyslogClient(
+            server_name=opts.syslog_server,
+            server_port=int(opts.syslog_port),
+            protocol=opts.syslog_protocol or "udp",
+            cafile_path=opts.syslog_cafile_path,
+            certfile_path=opts.syslog_certfile_path,
+            keyfile_path=opts.syslog_keyfile_path,
+            timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
+            retry_attempts=opts.syslog_retry_attempts
+            if opts.syslog_retry_attempts is not None
+            else 3,
+            retry_delay=opts.syslog_retry_delay
+            if opts.syslog_retry_delay is not None
+            else 5,
+        )
 
     if opts.hec:
+        if opts.hec_token is None or opts.hec_index is None:
+            raise ConfigurationError(
+                "HEC token and HEC index are required when using HEC URL"
+            )
         verify = True
         if opts.hec_skip_certificate_verification:
             verify = False
-        try:
-            clients["hec_client"] = splunk.HECClient(
-                opts.hec, opts.hec_token, opts.hec_index, verify=verify
-            )
-        except Exception:
-            logger.warning(
-                "Failed to initialize Splunk HEC client; skipping", exc_info=True
-            )
+        clients["hec_client"] = splunk.HECClient(
+            opts.hec, opts.hec_token, opts.hec_index, verify=verify
+        )
 
     if opts.kafka_hosts:
         ssl_context = None
-        # SSL is used explicitly via kafka_ssl, or implicitly when credentials
-        # are provided (KafkaClient treats username/password as implying SSL).
-        kafka_uses_ssl = opts.kafka_ssl or bool(
-            opts.kafka_username or opts.kafka_password
-        )
-        if kafka_uses_ssl or opts.kafka_skip_certificate_verification:
+        if opts.kafka_skip_certificate_verification:
+            logger.debug("Skipping Kafka certificate verification")
             ssl_context = create_default_context()
-            if opts.kafka_skip_certificate_verification:
-                logger.debug("Skipping Kafka certificate verification")
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = CERT_NONE
-        try:
-            clients["kafka_client"] = kafkaclient.KafkaClient(
-                opts.kafka_hosts,
-                username=opts.kafka_username,
-                password=opts.kafka_password,
-                ssl=opts.kafka_ssl,
-                ssl_context=ssl_context,
-            )
-        except Exception:
-            logger.warning("Failed to initialize Kafka client; skipping", exc_info=True)
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = CERT_NONE
+        clients["kafka_client"] = kafkaclient.KafkaClient(
+            opts.kafka_hosts,
+            username=opts.kafka_username,
+            password=opts.kafka_password,
+            ssl_context=ssl_context,
+        )
 
     if opts.gelf_host:
-        try:
-            clients["gelf_client"] = gelf.GelfClient(
-                host=opts.gelf_host,
-                port=int(opts.gelf_port),
-                mode=opts.gelf_mode,
-            )
-        except Exception:
-            logger.warning("Failed to initialize GELF client; skipping", exc_info=True)
+        clients["gelf_client"] = gelf.GelfClient(
+            host=opts.gelf_host,
+            port=int(opts.gelf_port),
+            mode=opts.gelf_mode,
+        )
 
     if (
         opts.webhook_aggregate_url
         or opts.webhook_forensic_url
         or opts.webhook_smtp_tls_url
     ):
-        try:
-            clients["webhook_client"] = webhook.WebhookClient(
-                aggregate_url=opts.webhook_aggregate_url,
-                forensic_url=opts.webhook_forensic_url,
-                smtp_tls_url=opts.webhook_smtp_tls_url,
-                timeout=opts.webhook_timeout,
-            )
-        except Exception:
-            logger.warning(
-                "Failed to initialize webhook client; skipping", exc_info=True
-            )
+        clients["webhook_client"] = webhook.WebhookClient(
+            aggregate_url=opts.webhook_aggregate_url,
+            forensic_url=opts.webhook_forensic_url,
+            smtp_tls_url=opts.webhook_smtp_tls_url,
+            timeout=opts.webhook_timeout,
+        )
 
     return clients
 
