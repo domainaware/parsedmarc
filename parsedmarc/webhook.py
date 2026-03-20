@@ -63,3 +63,7 @@ class WebhookClient(object):
             self.session.post(webhook_url, data=payload, timeout=self.timeout)
         except Exception as error_:
             logger.error("Webhook Error: {0}".format(error_.__str__()))
+
+    def close(self):
+        """Close the underlying HTTP session."""
+        self.session.close()

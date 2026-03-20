@@ -69,3 +69,8 @@ class GelfClient(object):
         for row in rows:
             log_context_data.parsedmarc = row
             self.logger.info("parsedmarc smtptls report")
+
+    def close(self):
+        """Remove and close the GELF handler, releasing its connection."""
+        self.logger.removeHandler(self.handler)
+        self.handler.close()

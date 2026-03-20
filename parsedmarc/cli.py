@@ -968,6 +968,23 @@ def _init_output_clients(opts):
     return clients
 
 
+def _close_output_clients(clients):
+    """Close output clients that hold persistent connections.
+
+    Clients that do not expose a ``close`` method are silently skipped.
+    Errors during closing are logged as warnings and do not propagate.
+
+    Args:
+        clients: dict of client instances returned by :func:`_init_output_clients`.
+    """
+    for name, client in clients.items():
+        if hasattr(client, "close"):
+            try:
+                client.close()
+            except Exception:
+                logger.warning("Error closing %s", name, exc_info=True)
+
+
 def _main():
     """Called when the module is executed"""
 
@@ -1563,6 +1580,11 @@ def _main():
     )
     args = arg_parser.parse_args()
 
+    # Snapshot opts as set from CLI args / hardcoded defaults, before any config
+    # file is applied. On each SIGHUP reload we restore this baseline first so
+    # that sections removed from the config file actually take effect.
+    opts_from_cli = Namespace(**vars(opts))
+
     index_prefix_domain_map = None
 
     if args.config_file:
@@ -1972,10 +1994,21 @@ def _main():
 
             # Reload configuration
             logger.info("Reloading configuration...")
-            old_opts_snapshot = Namespace(**vars(opts))
             try:
-                index_prefix_domain_map = _parse_config_file(args.config_file, opts)
-                clients = _init_output_clients(opts)
+                # Build a fresh opts starting from CLI-only defaults so that
+                # sections removed from the config file actually take effect.
+                new_opts = Namespace(**vars(opts_from_cli))
+                new_index_prefix_domain_map = _parse_config_file(
+                    args.config_file, new_opts
+                )
+                new_clients = _init_output_clients(new_opts)
+
+                # All steps succeeded — commit the changes atomically.
+                _close_output_clients(clients)
+                clients = new_clients
+                index_prefix_domain_map = new_index_prefix_domain_map
+                for k, v in vars(new_opts).items():
+                    setattr(opts, k, v)
 
                 # Update watch parameters from reloaded config
                 mailbox_batch_size_value = (
@@ -2008,9 +2041,6 @@ def _main():
                 logger.exception(
                     "Config reload failed, continuing with previous config"
                 )
-                # Restore old opts
-                for k, v in vars(old_opts_snapshot).items():
-                    setattr(opts, k, v)
 
 
 if __name__ == "__main__":

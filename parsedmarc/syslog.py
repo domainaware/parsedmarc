@@ -57,7 +57,7 @@ class SyslogClient(object):
         self.logger.setLevel(logging.INFO)
 
         # Create the appropriate syslog handler based on protocol
-        log_handler = self._create_syslog_handler(
+        self.log_handler = self._create_syslog_handler(
             server_name,
             server_port,
             self.protocol,
@@ -69,7 +69,7 @@ class SyslogClient(object):
             retry_delay,
         )
 
-        self.logger.addHandler(log_handler)
+        self.logger.addHandler(self.log_handler)
 
     def _create_syslog_handler(
         self,
@@ -179,3 +179,8 @@ class SyslogClient(object):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
+
+    def close(self):
+        """Remove and close the syslog handler, releasing its socket."""
+        self.logger.removeHandler(self.log_handler)
+        self.log_handler.close()
