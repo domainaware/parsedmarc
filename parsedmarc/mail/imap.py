@@ -94,6 +94,8 @@ class IMAPConnection(MailboxConnection):
             check_callback(self)
 
         while True:
+            if should_reload and should_reload():
+                return
             try:
                 IMAPClient(
                     host=self._client.host,
