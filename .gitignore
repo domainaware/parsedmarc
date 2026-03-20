@@ -137,7 +137,7 @@ samples/private
 *.html
 *.sqlite-journal
 
-parsedmarc.ini
+parsedmarc*.ini
 scratch.py
 
 parsedmarc/resources/maps/base_reverse_dns.csv
