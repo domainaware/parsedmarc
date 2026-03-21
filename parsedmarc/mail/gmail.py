@@ -175,13 +175,13 @@ class GmailConnection(MailboxConnection):
         # Not needed
         pass
 
-    def watch(self, check_callback, check_timeout, should_reload=None):
+    def watch(self, check_callback, check_timeout, config_reloading=None):
         """Checks the mailbox for new messages every n seconds"""
         while True:
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return
             sleep(check_timeout)
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return
             check_callback(self)
 

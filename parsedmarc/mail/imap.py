@@ -81,7 +81,7 @@ class IMAPConnection(MailboxConnection):
     def keepalive(self):
         self._client.noop()
 
-    def watch(self, check_callback, check_timeout, should_reload=None):
+    def watch(self, check_callback, check_timeout, config_reloading=None):
         """
         Use an IDLE IMAP connection to parse incoming emails,
         and pass the results to a callback function
@@ -94,7 +94,7 @@ class IMAPConnection(MailboxConnection):
             check_callback(self)
 
         while True:
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return
             try:
                 IMAPClient(
@@ -113,5 +113,5 @@ class IMAPConnection(MailboxConnection):
             except Exception as e:
                 logger.warning("IMAP connection error. {0}. Reconnecting...".format(e))
                 sleep(check_timeout)
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return

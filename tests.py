@@ -1278,7 +1278,7 @@ class TestMailboxWatchSince(unittest.TestCase):
     def testWatchInboxPassesSinceToMailboxFetch(self):
         mailbox_connection = SimpleNamespace()
 
-        def fake_watch(check_callback, check_timeout, should_reload=None):
+        def fake_watch(check_callback, check_timeout, config_reloading=None):
             check_callback(mailbox_connection)
             raise _BreakLoop()
 

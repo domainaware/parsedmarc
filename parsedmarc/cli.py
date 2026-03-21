@@ -2025,7 +2025,7 @@ def _main():
                     reverse_dns_map_url=opts.reverse_dns_map_url,
                     offline=opts.offline,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
-                    should_reload=lambda: _reload_requested,
+                    config_reloading=lambda: _reload_requested,
                 )
             except FileExistsError as error:
                 logger.error("{0}".format(error.__str__()))

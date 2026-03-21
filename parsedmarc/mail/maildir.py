@@ -63,14 +63,14 @@ class MaildirConnection(MailboxConnection):
     def keepalive(self):
         return
 
-    def watch(self, check_callback, check_timeout, should_reload=None):
+    def watch(self, check_callback, check_timeout, config_reloading=None):
         while True:
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return
             try:
                 check_callback(self)
             except Exception as e:
                 logger.warning("Maildir init error. {0}".format(e))
-            if should_reload and should_reload():
+            if config_reloading and config_reloading():
                 return
             sleep(check_timeout)
