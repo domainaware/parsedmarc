@@ -666,8 +666,15 @@ Mailbox connection settings (IMAP host/credentials, Microsoft Graph,
 Gmail API, Maildir path) are **not** reloaded — changing those still
 requires a full restart.
 
-If the new configuration file contains errors, the reload is aborted
-and the previous configuration remains active. Check the logs for
+On a **successful** reload, existing output client connections are
+closed and new ones are created from the updated configuration. The
+service then resumes watching with the new settings.
+
+If the new configuration file contains errors (missing required
+settings, unreachable output destinations, etc.), the **entire reload
+is aborted** — no output clients are replaced and the previous
+configuration remains fully active. This means a typo in one section
+will not take down an otherwise working setup. Check the logs for
 details:
 
 ```bash
