@@ -1666,11 +1666,11 @@ def _main():
     # Initialize output clients
     try:
         clients = _init_output_clients(opts)
-    except elastic.ElasticsearchError:
-        logger.exception("Elasticsearch Error")
+    except elastic.ElasticsearchError as e:
+        logger.exception("Elasticsearch Error: {0}".format(e))
         exit(1)
-    except opensearch.OpenSearchError:
-        logger.exception("OpenSearch Error")
+    except opensearch.OpenSearchError as e:
+        logger.exception("OpenSearch Error: {0}".format(e))
         exit(1)
     except ConfigurationError as e:
         logger.critical(str(e))
