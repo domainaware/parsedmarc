@@ -13,6 +13,21 @@
 - Elasticsearch and OpenSearch connections are now tracked and cleaned  up on reload via `_close_output_clients()`.
 - Extracted `_parse_config_file()` and `_init_output_clients()` from `_main()` in `cli.py` to support config reload and reduce code duplication.
 
+### Changed
+
+- Configuration validation errors now raise `ConfigurationError`
+  instead of calling `logger.critical()` and `sys.exit()` directly,
+  making them recoverable during reload.
+
+### Fixed
+
+- `get_index_prefix()` crashed on forensic reports with `TypeError`
+  due to `report()` instead of `report[]` dict access.
+- Missing `exit(1)` after IMAP user/password validation failure
+  allowed execution to continue with `None` credentials.
+- IMAP `watch()` leaked a connection on every IDLE cycle by not
+  closing the old `IMAPClient` before replacing it.
+
 ## 9.2.1
 
 ### Added
