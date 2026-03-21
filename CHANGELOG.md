@@ -11,14 +11,34 @@
   systemd. On a successful reload, old output clients are closed and
   recreated. On a failed reload, the previous configuration remains
   fully active.
-- `close()` methods on GelfClient, KafkaClient, SyslogClient, and
-  WebhookClient for clean resource teardown on reload.
+- `close()` methods on GelfClient, KafkaClient, SyslogClient,
+  WebhookClient, HECClient, and S3Client for clean resource teardown
+  on reload.
 - `should_reload` parameter on all `MailboxConnection.watch()`
   implementations and `watch_inbox()` to ensure SIGHUP never triggers
   a new email batch mid-reload.
+- Elasticsearch and OpenSearch connections are now tracked and cleaned
+  up on reload via `_close_output_clients()`.
 - Extracted `_parse_config_file()` and `_init_output_clients()` from
   `_main()` in `cli.py` to support config reload and reduce code
   duplication.
+
+### Fixed
+
+- `get_index_prefix()` crashed on forensic reports with `TypeError`
+  due to `report()` instead of `report[]` dict access.
+- Missing `exit(1)` after IMAP user/password validation failure
+  allowed execution to continue with `None` credentials.
+- IMAP `watch()` leaked a connection on every IDLE cycle by not
+  closing the old `IMAPClient` before replacing it.
+- Resource leak in `_init_output_clients()` when Splunk HEC
+  configuration is invalid — the partially-constructed HEC client
+  is now cleaned up on error.
+- Elasticsearch/OpenSearch `set_hosts()` global state was not
+  rollback-safe on reload failure — init now runs last so other
+  client failures don't leave stale global connections.
+- `active_log_file` was not initialized at startup, causing the
+  first reload to unnecessarily remove and re-add the FileHandler.
 
 ## 9.2.1
 

@@ -90,7 +90,12 @@ class IMAPConnection(MailboxConnection):
         # IDLE callback sends IMAPClient object,
         # send back the imap connection object instead
         def idle_callback_wrapper(client: IMAPClient):
+            old_client = self._client
             self._client = client
+            try:
+                old_client.logout()
+            except Exception:
+                pass
             check_callback(self)
 
         while True:
