@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import logging
-import logging.handlers
 import threading
-from typing import Any
 
 from pygelf import GelfTcpHandler, GelfTlsHandler, GelfUdpHandler
 
@@ -14,6 +12,7 @@ from parsedmarc import (
     parsed_forensic_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
+from parsedmarc.types import AggregateReport, ForensicReport, SMTPTLSReport
 
 log_context_data = threading.local()
 
@@ -50,7 +49,7 @@ class GelfClient(object):
         )
         self.logger.addHandler(self.handler)
 
-    def save_aggregate_report_to_gelf(self, aggregate_reports: list[dict[str, Any]]):
+    def save_aggregate_report_to_gelf(self, aggregate_reports: list[AggregateReport]):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             log_context_data.parsedmarc = row
@@ -58,13 +57,13 @@ class GelfClient(object):
 
         log_context_data.parsedmarc = None
 
-    def save_forensic_report_to_gelf(self, forensic_reports: list[dict[str, Any]]):
+    def save_forensic_report_to_gelf(self, forensic_reports: list[ForensicReport]):
         rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
         for row in rows:
             log_context_data.parsedmarc = row
             self.logger.info("parsedmarc forensic report")
 
-    def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: dict[str, Any]):
+    def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: SMTPTLSReport):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             log_context_data.parsedmarc = row
