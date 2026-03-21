@@ -8,7 +8,14 @@
   destinations, DNS/GeoIP settings, processing flags, and log level
   without restarting the service or interrupting in-progress report
   processing. Use `systemctl reload parsedmarc` when running under
-  systemd.
+  systemd. On a successful reload, old output clients are closed and
+  recreated. On a failed reload, the previous configuration remains
+  fully active.
+- `close()` methods on GelfClient, KafkaClient, SyslogClient, and
+  WebhookClient for clean resource teardown on reload.
+- `should_reload` parameter on all `MailboxConnection.watch()`
+  implementations and `watch_inbox()` to ensure SIGHUP never triggers
+  a new email batch mid-reload.
 - Extracted `_parse_config_file()` and `_init_output_clients()` from
   `_main()` in `cli.py` to support config reload and reduce code
   duplication.
