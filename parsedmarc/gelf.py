@@ -9,10 +9,12 @@ from pygelf import GelfTcpHandler, GelfTlsHandler, GelfUdpHandler
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
-    parsed_forensic_reports_to_csv_rows,
+    parsed_failure_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
-from parsedmarc.types import AggregateReport, ForensicReport, SMTPTLSReport
+from typing import Any
+
+from parsedmarc.types import AggregateReport, SMTPTLSReport
 
 log_context_data = threading.local()
 
@@ -57,11 +59,11 @@ class GelfClient(object):
 
         log_context_data.parsedmarc = None
 
-    def save_forensic_report_to_gelf(self, forensic_reports: list[ForensicReport]):
-        rows = parsed_forensic_reports_to_csv_rows(forensic_reports)
+    def save_failure_report_to_gelf(self, failure_reports: list[dict[str, Any]]):
+        rows = parsed_failure_reports_to_csv_rows(failure_reports)
         for row in rows:
             log_context_data.parsedmarc = row
-            self.logger.info("parsedmarc forensic report")
+            self.logger.info("parsedmarc failure report")
 
     def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: SMTPTLSReport):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
@@ -73,3 +75,7 @@ class GelfClient(object):
         """Remove and close the GELF handler, releasing its connection."""
         self.logger.removeHandler(self.handler)
         self.handler.close()
+
+
+# Backward-compatible aliases
+GelfClient.save_forensic_report_to_gelf = GelfClient.save_failure_report_to_gelf

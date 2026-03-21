@@ -1,10 +1,10 @@
 # Splunk
 
 Starting in version 4.3.0 `parsedmarc` supports sending aggregate and/or
-forensic DMARC data to a Splunk [HTTP Event collector (HEC)].
+failure DMARC data to a Splunk [HTTP Event collector (HEC)].
 
 The project repository contains [XML files] for premade Splunk
-dashboards for aggregate and forensic DMARC reports.
+dashboards for aggregate and failure DMARC reports.
 
 Copy and paste the contents of each file into a separate Splunk
 dashboard XML editor.
