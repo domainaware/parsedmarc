@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.2.1 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=4cc1c4a7"></script>
+      <script src="../_static/documentation_options.js?v=996c0ae7"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -2341,6 +2341,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">since</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
+    <span class="n">config_reloading</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Watches the mailbox for new messages and</span>
@@ -2368,6 +2369,8 @@
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">        since: Search for messages since certain time</span>
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
+<span class="sd">        config_reloading: Optional callable that returns True when a config</span>
+<span class="sd">            reload has been requested (e.g. via SIGHUP)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">check_callback</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
@@ -2392,7 +2395,14 @@
         <span class="p">)</span>
         <span class="n">callback</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
-    <span class="n">mailbox_connection</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">check_callback</span><span class="o">=</span><span class="n">check_callback</span><span class="p">,</span> <span class="n">check_timeout</span><span class="o">=</span><span class="n">check_timeout</span><span class="p">)</span></div>
+    <span class="n">watch_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;check_callback&quot;</span><span class="p">:</span> <span class="n">check_callback</span><span class="p">,</span>
+        <span class="s2">&quot;check_timeout&quot;</span><span class="p">:</span> <span class="n">check_timeout</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">config_reloading</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">watch_kwargs</span><span class="p">[</span><span class="s2">&quot;config_reloading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_reloading</span>
+
+    <span class="n">mailbox_connection</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="o">**</span><span class="n">watch_kwargs</span><span class="p">)</span></div>
 
 
 

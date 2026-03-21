@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.2.1 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 9.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=4cc1c4a7"></script>
+      <script src="_static/documentation_options.js?v=996c0ae7"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -50,7 +50,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance tuning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-tenant-support">Multi-tenant support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#reloading-configuration-without-restarting">Reloading configuration without restarting</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a></li>
@@ -561,7 +564,7 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Information regarding the setup of the Data Collection Rule can be found <a class="reference external" href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">here</a>.</p>
+<p>Information regarding the setup of the Data Collection Rule can be found <a class="reference external" href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">in the Azure documentation</a>.</p>
 </div>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gelf</span></code></p>
@@ -713,6 +716,7 @@ sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</spa
 
 <span class="k">[Service]</span>
 <span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span>
+<span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -HUP $MAINPID</span>
 <span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span>
 <span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span>
 <span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
@@ -741,6 +745,45 @@ sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class
 </pre></div>
 </div>
 </div>
+<section id="reloading-configuration-without-restarting">
+<h3>Reloading configuration without restarting<a class="headerlink" href="#reloading-configuration-without-restarting" title="Link to this heading"></a></h3>
+<p>When running in watch mode, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> supports reloading its
+configuration file without restarting the service or interrupting
+report processing that is already in progress. Send a <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code> signal
+to the process, or use <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">reload</span></code> if the unit file includes
+the <code class="docutils literal notranslate"><span class="pre">ExecReload</span></code> line shown above:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>systemctl<span class="w"> </span>reload<span class="w"> </span>parsedmarc
+</pre></div>
+</div>
+<p>The reload takes effect after the current batch of reports finishes
+processing and all output operations (Elasticsearch, Kafka, S3, etc.)
+for that batch have completed. The following settings are reloaded:</p>
+<ul class="simple">
+<li><p>All output destinations (Elasticsearch, OpenSearch, Kafka, S3,
+Splunk, syslog, GELF, webhooks, Log Analytics)</p></li>
+<li><p>Multi-tenant index prefix domain map (<code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> —
+the referenced YAML file is re-read on reload)</p></li>
+<li><p>DNS and GeoIP settings (<code class="docutils literal notranslate"><span class="pre">nameservers</span></code>, <code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code>, <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code>,
+<code class="docutils literal notranslate"><span class="pre">offline</span></code>, etc.)</p></li>
+<li><p>Processing flags (<code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>,
+<code class="docutils literal notranslate"><span class="pre">check_timeout</span></code>, etc.)</p></li>
+<li><p>Log level (<code class="docutils literal notranslate"><span class="pre">debug</span></code>, <code class="docutils literal notranslate"><span class="pre">verbose</span></code>, <code class="docutils literal notranslate"><span class="pre">warnings</span></code>, <code class="docutils literal notranslate"><span class="pre">silent</span></code>)</p></li>
+</ul>
+<p>Mailbox connection settings (IMAP host/credentials, Microsoft Graph,
+Gmail API, Maildir path) are <strong>not</strong> reloaded — changing those still
+requires a full restart.</p>
+<p>On a <strong>successful</strong> reload, existing output client connections are
+closed and new ones are created from the updated configuration. The
+service then resumes watching with the new settings.</p>
+<p>If the new configuration file contains errors (missing required
+settings, unreachable output destinations, etc.), the <strong>entire reload
+is aborted</strong> — no output clients are replaced and the previous
+configuration remains fully active. This means a typo in one section
+will not take down an otherwise working setup. Check the logs for
+details:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>journalctl<span class="w"> </span>-u<span class="w"> </span>parsedmarc.service<span class="w"> </span>-r
+</pre></div>
+</div>
 <p>To check the status of the service, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>service<span class="w"> </span>parsedmarc<span class="w"> </span>status
 </pre></div>
@@ -755,6 +798,7 @@ as well as the current process (newest to oldest), run:</p>
 </pre></div>
 </div>
 </div>
+</section>
 </section>
 </section>
 
