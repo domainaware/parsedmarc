@@ -23,23 +23,6 @@
   `_main()` in `cli.py` to support config reload and reduce code
   duplication.
 
-### Fixed
-
-- `get_index_prefix()` crashed on forensic reports with `TypeError`
-  due to `report()` instead of `report[]` dict access.
-- Missing `exit(1)` after IMAP user/password validation failure
-  allowed execution to continue with `None` credentials.
-- IMAP `watch()` leaked a connection on every IDLE cycle by not
-  closing the old `IMAPClient` before replacing it.
-- Resource leak in `_init_output_clients()` when Splunk HEC
-  configuration is invalid — the partially-constructed HEC client
-  is now cleaned up on error.
-- Elasticsearch/OpenSearch `set_hosts()` global state was not
-  rollback-safe on reload failure — init now runs last so other
-  client failures don't leave stale global connections.
-- `active_log_file` was not initialized at startup, causing the
-  first reload to unnecessarily remove and re-add the FileHandler.
-
 ## 9.2.1
 
 ### Added
