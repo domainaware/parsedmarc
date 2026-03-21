@@ -1627,7 +1627,7 @@ def _main():
         try:
             index_prefix_domain_map = _parse_config_file(args.config_file, opts)
         except ConfigurationError as e:
-            logger.error(str(e))
+            logger.critical(str(e))
             exit(-1)
 
     logger.setLevel(logging.ERROR)
@@ -1673,7 +1673,7 @@ def _main():
         logger.exception("OpenSearch Error")
         exit(1)
     except ConfigurationError as e:
-        logger.error(str(e))
+        logger.critical(str(e))
         exit(1)
     except Exception as error_:
         logger.error("Output client error: {0}".format(error_))
