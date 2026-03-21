@@ -3224,10 +3224,12 @@ watch = true
     def testTimestampToDatetime(self):
         """timestamp_to_datetime converts UNIX timestamp to datetime"""
         from datetime import datetime
-        dt = parsedmarc.utils.timestamp_to_datetime(0)
+
+        ts = 1704067200
+        dt = parsedmarc.utils.timestamp_to_datetime(ts)
         self.assertIsInstance(dt, datetime)
-        # Epoch 0 should be Jan 1 1970 in local time
-        self.assertEqual(dt.year, 1970)
+        # Should match stdlib fromtimestamp (local time)
+        self.assertEqual(dt, datetime.fromtimestamp(ts))
 
     def testTimestampToHuman(self):
         """timestamp_to_human returns formatted string"""
