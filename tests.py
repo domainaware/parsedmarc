@@ -202,9 +202,7 @@ class Test(unittest.TestCase):
                     sample_content, offline=OFFLINE_MODE
                 )
                 assert email_result["report_type"] == "forensic"
-            result = parsedmarc.parse_report_file(
-                sample_path, offline=OFFLINE_MODE
-            )
+            result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
             assert result["report_type"] == "forensic"
             parsedmarc.parsed_forensic_reports_to_csv(result["report"])
             print("Passed!")
@@ -217,9 +215,7 @@ class Test(unittest.TestCase):
             if os.path.isdir(sample_path):
                 continue
             print("Testing {0}: ".format(sample_path), end="")
-            result = parsedmarc.parse_report_file(
-                sample_path, offline=OFFLINE_MODE
-            )
+            result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
             assert result["report_type"] == "smtp_tls"
             parsedmarc.parsed_smtp_tls_reports_to_csv(result["report"])
             print("Passed!")
@@ -1295,7 +1291,9 @@ class TestMailboxWatchSince(unittest.TestCase):
         ) as mocked:
             with self.assertRaises(_BreakLoop):
                 parsedmarc.watch_inbox(
-                    mailbox_connection=cast(parsedmarc.MailboxConnection, mailbox_connection),
+                    mailbox_connection=cast(
+                        parsedmarc.MailboxConnection, mailbox_connection
+                    ),
                     callback=callback,
                     check_timeout=1,
                     batch_size=10,
