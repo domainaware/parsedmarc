@@ -37,7 +37,7 @@ class GelfClient(object):
         """
         self.host = host
         self.port = port
-        self.logger = logging.getLogger("parsedmarc_syslog")
+        self.logger = logging.getLogger("parsedmarc_gelf")
         self.logger.setLevel(logging.INFO)
         self.logger.addFilter(ContextFilter())
         self.gelf_mode = {

@@ -815,6 +815,12 @@ class _ElasticsearchHandle:
 
     def close(self):
         try:
+            conn = elastic.connections.get_connection()
+            if not isinstance(conn, str):
+                conn.close()
+        except Exception:
+            pass
+        try:
             elastic.connections.remove_connection("default")
         except Exception:
             pass
@@ -824,6 +830,12 @@ class _OpenSearchHandle:
     """Sentinel so OpenSearch participates in _close_output_clients."""
 
     def close(self):
+        try:
+            conn = opensearch.connections.get_connection()
+            if not isinstance(conn, str):
+                conn.close()
+        except Exception:
+            pass
         try:
             opensearch.connections.remove_connection("default")
         except Exception:

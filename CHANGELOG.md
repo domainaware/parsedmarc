@@ -21,7 +21,6 @@
 
 - `get_index_prefix()` crashed on forensic reports with `TypeError` due to `report()` instead of `report[]` dict access.
 - Missing `exit(1)` after IMAP user/password validation failure allowed execution to continue with `None` credentials.
-- IMAP `watch()` leaked a connection on every IDLE cycle by not closing the old `IMAPClient` before replacing it.
 
 ## 9.2.1
 
