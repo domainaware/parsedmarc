@@ -17,7 +17,7 @@
 
 ### Added
 
-- Better checking of `msconfig` configuration (PR #695)
+- Better checking of `msgraph` configuration (PR #695)
 
 ### Changed
 
