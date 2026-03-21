@@ -4,6 +4,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import signal
 import sys
 import tempfile
 import unittest
@@ -11,10 +12,11 @@ from base64 import urlsafe_b64encode
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from typing import cast
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from lxml import etree
+from lxml import etree  # type: ignore[import-untyped]
 from googleapiclient.errors import HttpError
 from httplib2 import Response
 from imapclient.exceptions import IMAPClientError
@@ -31,6 +33,7 @@ from parsedmarc.mail.imap import IMAPConnection
 import parsedmarc.mail.gmail as gmail_module
 import parsedmarc.mail.graph as graph_module
 import parsedmarc.mail.imap as imap_module
+import parsedmarc.elastic
 import parsedmarc.opensearch as opensearch_module
 import parsedmarc.utils
 
@@ -153,7 +156,7 @@ class Test(unittest.TestCase):
             report_path,
             offline=True,
         )
-        self.assertEqual(result["report_type"], "aggregate")
+        assert result["report_type"] == "aggregate"
         self.assertEqual(result["report"]["report_metadata"]["org_name"], "outlook.com")
 
     def testParseReportFileAcceptsPathForEmail(self):
@@ -164,7 +167,7 @@ class Test(unittest.TestCase):
             report_path,
             offline=True,
         )
-        self.assertEqual(result["report_type"], "aggregate")
+        assert result["report_type"] == "aggregate"
         self.assertEqual(result["report"]["report_metadata"]["org_name"], "google.com")
 
     def testAggregateSamples(self):
@@ -175,10 +178,11 @@ class Test(unittest.TestCase):
             if os.path.isdir(sample_path):
                 continue
             print("Testing {0}: ".format(sample_path), end="")
-            parsed_report = parsedmarc.parse_report_file(
+            result = parsedmarc.parse_report_file(
                 sample_path, always_use_local_files=True, offline=OFFLINE_MODE
-            )["report"]
-            parsedmarc.parsed_aggregate_reports_to_csv(parsed_report)
+            )
+            assert result["report_type"] == "aggregate"
+            parsedmarc.parsed_aggregate_reports_to_csv(result["report"])
             print("Passed!")
 
     def testEmptySample(self):
@@ -194,13 +198,15 @@ class Test(unittest.TestCase):
             print("Testing {0}: ".format(sample_path), end="")
             with open(sample_path) as sample_file:
                 sample_content = sample_file.read()
-                parsed_report = parsedmarc.parse_report_email(
+                email_result = parsedmarc.parse_report_email(
                     sample_content, offline=OFFLINE_MODE
-                )["report"]
-            parsed_report = parsedmarc.parse_report_file(
+                )
+                assert email_result["report_type"] == "forensic"
+            result = parsedmarc.parse_report_file(
                 sample_path, offline=OFFLINE_MODE
-            )["report"]
-            parsedmarc.parsed_forensic_reports_to_csv(parsed_report)
+            )
+            assert result["report_type"] == "forensic"
+            parsedmarc.parsed_forensic_reports_to_csv(result["report"])
             print("Passed!")
 
     def testSmtpTlsSamples(self):
@@ -211,10 +217,11 @@ class Test(unittest.TestCase):
             if os.path.isdir(sample_path):
                 continue
             print("Testing {0}: ".format(sample_path), end="")
-            parsed_report = parsedmarc.parse_report_file(
+            result = parsedmarc.parse_report_file(
                 sample_path, offline=OFFLINE_MODE
-            )["report"]
-            parsedmarc.parsed_smtp_tls_reports_to_csv(parsed_report)
+            )
+            assert result["report_type"] == "smtp_tls"
+            parsedmarc.parsed_smtp_tls_reports_to_csv(result["report"])
             print("Passed!")
 
     def testOpenSearchSigV4RequiresRegion(self):
@@ -1277,7 +1284,7 @@ class TestMailboxWatchSince(unittest.TestCase):
     def testWatchInboxPassesSinceToMailboxFetch(self):
         mailbox_connection = SimpleNamespace()
 
-        def fake_watch(check_callback, check_timeout):
+        def fake_watch(check_callback, check_timeout, config_reloading=None):
             check_callback(mailbox_connection)
             raise _BreakLoop()
 
@@ -1288,7 +1295,7 @@ class TestMailboxWatchSince(unittest.TestCase):
         ) as mocked:
             with self.assertRaises(_BreakLoop):
                 parsedmarc.watch_inbox(
-                    mailbox_connection=mailbox_connection,
+                    mailbox_connection=cast(parsedmarc.MailboxConnection, mailbox_connection),
                     callback=callback,
                     check_timeout=1,
                     batch_size=10,
@@ -1336,30 +1343,30 @@ since = 2d
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 
 
-class _DummyMailboxConnection:
+class _DummyMailboxConnection(parsedmarc.MailboxConnection):
     def __init__(self):
-        self.fetch_calls = []
+        self.fetch_calls: list[dict[str, object]] = []
 
-    def create_folder(self, folder_name):
+    def create_folder(self, folder_name: str):
         return None
 
-    def fetch_messages(self, reports_folder, **kwargs):
+    def fetch_messages(self, reports_folder: str, **kwargs):
         self.fetch_calls.append({"reports_folder": reports_folder, **kwargs})
         return []
 
-    def fetch_message(self, message_id, **kwargs):
+    def fetch_message(self, message_id) -> str:
         return ""
 
     def delete_message(self, message_id):
         return None
 
-    def move_message(self, message_id, folder_name):
+    def move_message(self, message_id, folder_name: str):
         return None
 
     def keepalive(self):
         return None
 
-    def watch(self, check_callback, check_timeout):
+    def watch(self, check_callback, check_timeout, config_reloading=None):
         return None
 
 
@@ -1558,7 +1565,7 @@ class TestMSGraphFolderFallback(unittest.TestCase):
     def testWellKnownFolderFallback(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
         connection.mailbox_name = "shared@example.com"
-        connection._client = _FakeGraphClient()
+        connection._client = _FakeGraphClient()  # type: ignore[assignment]
         connection._request_with_retries = MagicMock(
             side_effect=lambda method_name, *args, **kwargs: getattr(
                 connection._client, method_name
@@ -1578,7 +1585,7 @@ class TestMSGraphFolderFallback(unittest.TestCase):
     def testUnknownFolderStillFails(self):
         connection = MSGraphConnection.__new__(MSGraphConnection)
         connection.mailbox_name = "shared@example.com"
-        connection._client = _FakeGraphClient()
+        connection._client = _FakeGraphClient()  # type: ignore[assignment]
         connection._request_with_retries = MagicMock(
             side_effect=lambda method_name, *args, **kwargs: getattr(
                 connection._client, method_name
@@ -1908,6 +1915,321 @@ certificate_path = /tmp/msgraph-cert.pem
         )
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
+
+
+class TestSighupReload(unittest.TestCase):
+    """Tests for SIGHUP-driven configuration reload in watch mode."""
+
+    _BASE_CONFIG = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+"""
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config_file")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSighupTriggersReloadAndWatchRestarts(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """SIGHUP causes watch to return, config is re-parsed, and watch restarts."""
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        def parse_side_effect(config_file, opts):
+            opts.imap_host = "imap.example.com"
+            opts.imap_user = "user"
+            opts.imap_password = "pass"
+            opts.mailbox_watch = True
+            return None
+
+        mock_parse_config.side_effect = parse_side_effect
+        mock_init_clients.return_value = {}
+
+        call_count = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # Simulate SIGHUP arriving while watch is running
+                if hasattr(signal_module, "SIGHUP"):
+                    import os
+
+                    os.kill(os.getpid(), signal_module.SIGHUP)
+                return  # Normal return — reload loop will continue
+            else:
+                raise FileExistsError("stop-watch-loop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as cm:
+                parsedmarc.cli._main()
+
+        # Exited with code 1 (from FileExistsError handler)
+        self.assertEqual(cm.exception.code, 1)
+        # watch_inbox was called twice: initial run + after reload
+        self.assertEqual(mock_watch.call_count, 2)
+        # _parse_config_file called for initial load + reload
+        self.assertGreaterEqual(mock_parse_config.call_count, 2)
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config_file")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testInvalidConfigOnReloadKeepsPreviousState(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """A failing reload leaves opts and clients unchanged."""
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        # Initial parse sets required opts; reload parse raises
+        initial_map = {"prefix_": ["example.com"]}
+        call_count = [0]
+
+        def parse_side_effect(config_file, opts):
+            call_count[0] += 1
+            opts.imap_host = "imap.example.com"
+            opts.imap_user = "user"
+            opts.imap_password = "pass"
+            opts.mailbox_watch = True
+            if call_count[0] == 1:
+                return initial_map
+            raise RuntimeError("bad config")
+
+        mock_parse_config.side_effect = parse_side_effect
+
+        initial_clients = {"s3_client": MagicMock()}
+        mock_init_clients.return_value = initial_clients
+
+        watch_calls = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls[0] += 1
+            if watch_calls[0] == 1:
+                if hasattr(signal_module, "SIGHUP"):
+                    import os
+
+                    os.kill(os.getpid(), signal_module.SIGHUP)
+                return
+            else:
+                raise FileExistsError("stop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as cm:
+                parsedmarc.cli._main()
+
+        self.assertEqual(cm.exception.code, 1)
+        # watch was still called twice (reload loop continued after failed reload)
+        self.assertEqual(mock_watch.call_count, 2)
+        # The failed reload must not have closed the original clients
+        initial_clients["s3_client"].close.assert_not_called()
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config_file")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testReloadClosesOldClients(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """Successful reload closes the old output clients before replacing them."""
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        def parse_side_effect(config_file, opts):
+            opts.imap_host = "imap.example.com"
+            opts.imap_user = "user"
+            opts.imap_password = "pass"
+            opts.mailbox_watch = True
+            return None
+
+        mock_parse_config.side_effect = parse_side_effect
+
+        old_client = MagicMock()
+        new_client = MagicMock()
+        init_call = [0]
+
+        def init_side_effect(opts):
+            init_call[0] += 1
+            if init_call[0] == 1:
+                return {"kafka_client": old_client}
+            return {"kafka_client": new_client}
+
+        mock_init_clients.side_effect = init_side_effect
+
+        watch_calls = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls[0] += 1
+            if watch_calls[0] == 1:
+                if hasattr(signal_module, "SIGHUP"):
+                    import os
+
+                    os.kill(os.getpid(), signal_module.SIGHUP)
+                return
+            else:
+                raise FileExistsError("stop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        # Old client must have been closed when reload succeeded
+        old_client.close.assert_called_once()
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testRemovedConfigSectionTakesEffectOnReload(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_init_clients,
+    ):
+        """Removing a config section on reload resets that option to its default."""
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "forensic_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_init_clients.return_value = {}
+
+        # First config sets kafka_hosts (with required topics); second removes it.
+        config_v1 = (
+            self._BASE_CONFIG
+            + "\n[kafka]\nhosts = kafka.example.com:9092\n"
+            + "aggregate_topic = dmarc_agg\n"
+            + "forensic_topic = dmarc_forensic\n"
+            + "smtp_tls_topic = smtp_tls\n"
+        )
+        config_v2 = self._BASE_CONFIG  # no [kafka] section
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_v1)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        watch_calls = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls[0] += 1
+            if watch_calls[0] == 1:
+                # Rewrite config to remove kafka before triggering reload
+                with open(cfg_path, "w") as f:
+                    f.write(config_v2)
+                if hasattr(signal_module, "SIGHUP"):
+                    import os
+
+                    os.kill(os.getpid(), signal_module.SIGHUP)
+                return
+            else:
+                raise FileExistsError("stop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        # Capture opts used on each _init_output_clients call
+        init_opts_captures = []
+
+        def init_side_effect(opts):
+            from argparse import Namespace as NS
+
+            init_opts_captures.append(NS(**vars(opts)))
+            return {}
+
+        mock_init_clients.side_effect = init_side_effect
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        # First init: kafka_hosts should be set from v1 config
+        self.assertIsNotNone(init_opts_captures[0].kafka_hosts)
+        # Second init (after reload with v2 config): kafka_hosts should be None
+        self.assertIsNone(init_opts_captures[1].kafka_hosts)
 
 
 if __name__ == "__main__":

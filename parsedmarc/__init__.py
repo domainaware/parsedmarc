@@ -2195,6 +2195,7 @@ def watch_inbox(
     batch_size: int = 10,
     since: Optional[Union[datetime, date, str]] = None,
     normalize_timespan_threshold_hours: float = 24,
+    config_reloading: Optional[Callable] = None,
 ):
     """
     Watches the mailbox for new messages and
@@ -2222,6 +2223,8 @@ def watch_inbox(
         batch_size (int): Number of messages to read and process before saving
         since: Search for messages since certain time
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config_reloading: Optional callable that returns True when a config
+            reload has been requested (e.g. via SIGHUP)
     """
 
     def check_callback(connection):
@@ -2246,7 +2249,14 @@ def watch_inbox(
         )
         callback(res)
 
-    mailbox_connection.watch(check_callback=check_callback, check_timeout=check_timeout)
+    watch_kwargs: dict = {
+        "check_callback": check_callback,
+        "check_timeout": check_timeout,
+    }
+    if config_reloading is not None:
+        watch_kwargs["config_reloading"] = config_reloading
+
+    mailbox_connection.watch(**watch_kwargs)
 
 
 def append_json(

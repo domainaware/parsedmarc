@@ -278,10 +278,14 @@ class MSGraphConnection(MailboxConnection):
         # Not needed
         pass
 
-    def watch(self, check_callback, check_timeout):
+    def watch(self, check_callback, check_timeout, config_reloading=None):
         """Checks the mailbox for new messages every n seconds"""
         while True:
+            if config_reloading and config_reloading():
+                return
             sleep(check_timeout)
+            if config_reloading and config_reloading():
+                return
             check_callback(self)
 
     @lru_cache(maxsize=10)

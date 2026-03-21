@@ -207,3 +207,7 @@ class HECClient(object):
             raise SplunkError(e.__str__())
         if response["code"] != 0:
             raise SplunkError(response["text"])
+
+    def close(self):
+        """Close the underlying HTTP session."""
+        self.session.close()

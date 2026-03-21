@@ -93,3 +93,11 @@ class S3Client(object):
         self.bucket.put_object(
             Body=json.dumps(report), Key=object_path, Metadata=object_metadata
         )
+
+    def close(self):
+        """Clean up the boto3 resource."""
+        try:
+            if self.s3.meta is not None:
+                self.s3.meta.client.close()
+        except Exception:
+            pass
