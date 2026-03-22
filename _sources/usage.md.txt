@@ -273,6 +273,8 @@ The full set of configuration options are:
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
+  - `skip_certificate_verification` - bool: Skip certificate
+    verification (not recommended)
   - `index_suffix` - str: A suffix to apply to the index names
   - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
@@ -300,6 +302,8 @@ The full set of configuration options are:
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
   - `cert_path` - str: Path to a trusted certificates
+  - `skip_certificate_verification` - bool: Skip certificate
+    verification (not recommended)
   - `index_suffix` - str: A suffix to apply to the index names
   - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
