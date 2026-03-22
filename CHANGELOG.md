@@ -1,5 +1,18 @@
 # Changelog
 
+## 9.3.1
+
+### Breaking changes
+
+- Elasticsearch and OpenSearch now verify SSL certificates by default when `ssl = True`, even without a `cert_path`
+- Added `skip_certificate_verification` option to the `elasticsearch` and `opensearch` configuration sections for consistency with `splunk_hec`
+
+### Fixed
+
+- Splunk HEC `skip_certificate_verification` now works correctly
+- SMTP TLS reports no longer fail when saving to multiple output targets (e.g. Elasticsearch and OpenSearch) due to in-place mutation of the report dict
+- Output client initialization errors now identify which module failed (e.g. "OpenSearch: ConnectionError..." instead of generic "Output client error")
+
 ## 9.3.0
 
 ### Added

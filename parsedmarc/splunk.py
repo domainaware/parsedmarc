@@ -58,7 +58,7 @@ class HECClient(object):
         self.source = source
         self.session = requests.Session()
         self.timeout = timeout
-        self.session.verify = verify
+        self.verify = verify
         self._common_data: dict[str, Union[str, int, float, dict]] = dict(
             host=self.host, source=self.source, index=self.index
         )
@@ -124,10 +124,12 @@ class HECClient(object):
                 data["event"] = new_report.copy()
                 json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
@@ -161,10 +163,12 @@ class HECClient(object):
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
@@ -198,10 +202,12 @@ class HECClient(object):
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())

@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import os
 import signal
 import sys
@@ -1277,6 +1278,22 @@ class TestImapFallbacks(unittest.TestCase):
 
 
 class TestMailboxWatchSince(unittest.TestCase):
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
+
     def testWatchInboxPassesSinceToMailboxFetch(self):
         mailbox_connection = SimpleNamespace()
 
@@ -1369,6 +1386,22 @@ class _DummyMailboxConnection(parsedmarc.MailboxConnection):
 
 
 class TestMailboxPerformance(unittest.TestCase):
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
+
     def testBatchModeAvoidsExtraFullFetch(self):
         connection = _DummyMailboxConnection()
         parsedmarc.get_dmarc_reports_from_mailbox(
@@ -1917,6 +1950,22 @@ certificate_path = /tmp/msgraph-cert.pem
 
 class TestSighupReload(unittest.TestCase):
     """Tests for SIGHUP-driven configuration reload in watch mode."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
 
     _BASE_CONFIG = """[general]
 silent = true
