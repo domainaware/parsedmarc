@@ -511,6 +511,10 @@ def _parse_config_file(config_file, opts):
             opts.elasticsearch_ssl = bool(elasticsearch_config.getboolean("ssl"))
         if "cert_path" in elasticsearch_config:
             opts.elasticsearch_ssl_cert_path = elasticsearch_config["cert_path"]
+        if "skip_certificate_verification" in elasticsearch_config:
+            opts.elasticsearch_skip_certificate_verification = bool(
+                elasticsearch_config.getboolean("skip_certificate_verification")
+            )
         if "user" in elasticsearch_config:
             opts.elasticsearch_username = elasticsearch_config["user"]
         if "password" in elasticsearch_config:
@@ -550,6 +554,10 @@ def _parse_config_file(config_file, opts):
             opts.opensearch_ssl = bool(opensearch_config.getboolean("ssl"))
         if "cert_path" in opensearch_config:
             opts.opensearch_ssl_cert_path = opensearch_config["cert_path"]
+        if "skip_certificate_verification" in opensearch_config:
+            opts.opensearch_skip_certificate_verification = bool(
+                opensearch_config.getboolean("skip_certificate_verification")
+            )
         if "user" in opensearch_config:
             opts.opensearch_username = opensearch_config["user"]
         if "password" in opensearch_config:
@@ -865,77 +873,95 @@ def _init_output_clients(opts):
     """
     clients = {}
 
-    if opts.s3_bucket:
-        clients["s3_client"] = s3.S3Client(
-            bucket_name=opts.s3_bucket,
-            bucket_path=opts.s3_path,
-            region_name=opts.s3_region_name,
-            endpoint_url=opts.s3_endpoint_url,
-            access_key_id=opts.s3_access_key_id,
-            secret_access_key=opts.s3_secret_access_key,
-        )
+    try:
+        if opts.s3_bucket:
+            clients["s3_client"] = s3.S3Client(
+                bucket_name=opts.s3_bucket,
+                bucket_path=opts.s3_path,
+                region_name=opts.s3_region_name,
+                endpoint_url=opts.s3_endpoint_url,
+                access_key_id=opts.s3_access_key_id,
+                secret_access_key=opts.s3_secret_access_key,
+            )
+    except Exception as e:
+        raise RuntimeError(f"S3: {e}") from e
 
-    if opts.syslog_server:
-        clients["syslog_client"] = syslog.SyslogClient(
-            server_name=opts.syslog_server,
-            server_port=int(opts.syslog_port),
-            protocol=opts.syslog_protocol or "udp",
-            cafile_path=opts.syslog_cafile_path,
-            certfile_path=opts.syslog_certfile_path,
-            keyfile_path=opts.syslog_keyfile_path,
-            timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
-            retry_attempts=opts.syslog_retry_attempts
-            if opts.syslog_retry_attempts is not None
-            else 3,
-            retry_delay=opts.syslog_retry_delay
-            if opts.syslog_retry_delay is not None
-            else 5,
-        )
+    try:
+        if opts.syslog_server:
+            clients["syslog_client"] = syslog.SyslogClient(
+                server_name=opts.syslog_server,
+                server_port=int(opts.syslog_port),
+                protocol=opts.syslog_protocol or "udp",
+                cafile_path=opts.syslog_cafile_path,
+                certfile_path=opts.syslog_certfile_path,
+                keyfile_path=opts.syslog_keyfile_path,
+                timeout=opts.syslog_timeout if opts.syslog_timeout is not None else 5.0,
+                retry_attempts=opts.syslog_retry_attempts
+                if opts.syslog_retry_attempts is not None
+                else 3,
+                retry_delay=opts.syslog_retry_delay
+                if opts.syslog_retry_delay is not None
+                else 5,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Syslog: {e}") from e
 
     if opts.hec:
         if opts.hec_token is None or opts.hec_index is None:
             raise ConfigurationError(
                 "HEC token and HEC index are required when using HEC URL"
             )
-        verify = True
-        if opts.hec_skip_certificate_verification:
-            verify = False
-        clients["hec_client"] = splunk.HECClient(
-            opts.hec, opts.hec_token, opts.hec_index, verify=verify
-        )
+        try:
+            verify = True
+            if opts.hec_skip_certificate_verification:
+                verify = False
+            clients["hec_client"] = splunk.HECClient(
+                opts.hec, opts.hec_token, opts.hec_index, verify=verify
+            )
+        except Exception as e:
+            raise RuntimeError(f"Splunk HEC: {e}") from e
 
-    if opts.kafka_hosts:
-        ssl_context = None
-        if opts.kafka_skip_certificate_verification:
-            logger.debug("Skipping Kafka certificate verification")
-            ssl_context = create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = CERT_NONE
-        clients["kafka_client"] = kafkaclient.KafkaClient(
-            opts.kafka_hosts,
-            username=opts.kafka_username,
-            password=opts.kafka_password,
-            ssl_context=ssl_context,
-        )
+    try:
+        if opts.kafka_hosts:
+            ssl_context = None
+            if opts.kafka_skip_certificate_verification:
+                logger.debug("Skipping Kafka certificate verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = CERT_NONE
+            clients["kafka_client"] = kafkaclient.KafkaClient(
+                opts.kafka_hosts,
+                username=opts.kafka_username,
+                password=opts.kafka_password,
+                ssl_context=ssl_context,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Kafka: {e}") from e
 
-    if opts.gelf_host:
-        clients["gelf_client"] = gelf.GelfClient(
-            host=opts.gelf_host,
-            port=int(opts.gelf_port),
-            mode=opts.gelf_mode,
-        )
+    try:
+        if opts.gelf_host:
+            clients["gelf_client"] = gelf.GelfClient(
+                host=opts.gelf_host,
+                port=int(opts.gelf_port),
+                mode=opts.gelf_mode,
+            )
+    except Exception as e:
+        raise RuntimeError(f"GELF: {e}") from e
 
-    if (
-        opts.webhook_aggregate_url
-        or opts.webhook_failure_url
-        or opts.webhook_smtp_tls_url
-    ):
-        clients["webhook_client"] = webhook.WebhookClient(
-            aggregate_url=opts.webhook_aggregate_url,
-            failure_url=opts.webhook_failure_url,
-            smtp_tls_url=opts.webhook_smtp_tls_url,
-            timeout=opts.webhook_timeout,
-        )
+    try:
+        if (
+            opts.webhook_aggregate_url
+            or opts.webhook_failure_url
+            or opts.webhook_smtp_tls_url
+        ):
+            clients["webhook_client"] = webhook.WebhookClient(
+                aggregate_url=opts.webhook_aggregate_url,
+                failure_url=opts.webhook_failure_url,
+                smtp_tls_url=opts.webhook_smtp_tls_url,
+                timeout=opts.webhook_timeout,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Webhook: {e}") from e
 
     # Elasticsearch and OpenSearch mutate module-level global state via
     # connections.create_connection(), which cannot be rolled back if a later
@@ -943,76 +969,84 @@ def _init_output_clients(opts):
     # successfully first; this minimises the window for partial-init problems
     # during config reload.
     if opts.save_aggregate or opts.save_failure or opts.save_smtp_tls:
-        if opts.elasticsearch_hosts:
-            es_aggregate_index = "dmarc_aggregate"
-            es_failure_index = "dmarc_failure"
-            es_smtp_tls_index = "smtp_tls"
-            if opts.elasticsearch_index_suffix:
-                suffix = opts.elasticsearch_index_suffix
-                es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
-                es_failure_index = "{0}_{1}".format(es_failure_index, suffix)
-                es_smtp_tls_index = "{0}_{1}".format(es_smtp_tls_index, suffix)
-            if opts.elasticsearch_index_prefix:
-                prefix = opts.elasticsearch_index_prefix
-                es_aggregate_index = "{0}{1}".format(prefix, es_aggregate_index)
-                es_failure_index = "{0}{1}".format(prefix, es_failure_index)
-                es_smtp_tls_index = "{0}{1}".format(prefix, es_smtp_tls_index)
-            elastic_timeout_value = (
-                float(opts.elasticsearch_timeout)
-                if opts.elasticsearch_timeout is not None
-                else 60.0
-            )
-            elastic.set_hosts(
-                opts.elasticsearch_hosts,
-                use_ssl=opts.elasticsearch_ssl,
-                ssl_cert_path=opts.elasticsearch_ssl_cert_path,
-                username=opts.elasticsearch_username,
-                password=opts.elasticsearch_password,
-                api_key=opts.elasticsearch_api_key,
-                timeout=elastic_timeout_value,
-            )
-            elastic.migrate_indexes(
-                aggregate_indexes=[es_aggregate_index],
-                failure_indexes=[es_failure_index],
-            )
-            clients["elasticsearch"] = _ElasticsearchHandle()
+        try:
+            if opts.elasticsearch_hosts:
+                es_aggregate_index = "dmarc_aggregate"
+                es_failure_index = "dmarc_failure"
+                es_smtp_tls_index = "smtp_tls"
+                if opts.elasticsearch_index_suffix:
+                    suffix = opts.elasticsearch_index_suffix
+                    es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
+                    es_failure_index = "{0}_{1}".format(es_failure_index, suffix)
+                    es_smtp_tls_index = "{0}_{1}".format(es_smtp_tls_index, suffix)
+                if opts.elasticsearch_index_prefix:
+                    prefix = opts.elasticsearch_index_prefix
+                    es_aggregate_index = "{0}{1}".format(prefix, es_aggregate_index)
+                    es_failure_index = "{0}{1}".format(prefix, es_failure_index)
+                    es_smtp_tls_index = "{0}{1}".format(prefix, es_smtp_tls_index)
+                elastic_timeout_value = (
+                    float(opts.elasticsearch_timeout)
+                    if opts.elasticsearch_timeout is not None
+                    else 60.0
+                )
+                elastic.set_hosts(
+                    opts.elasticsearch_hosts,
+                    use_ssl=opts.elasticsearch_ssl,
+                    ssl_cert_path=opts.elasticsearch_ssl_cert_path,
+                    skip_certificate_verification=opts.elasticsearch_skip_certificate_verification,
+                    username=opts.elasticsearch_username,
+                    password=opts.elasticsearch_password,
+                    api_key=opts.elasticsearch_api_key,
+                    timeout=elastic_timeout_value,
+                )
+                elastic.migrate_indexes(
+                    aggregate_indexes=[es_aggregate_index],
+                    failure_indexes=[es_failure_index],
+                )
+                clients["elasticsearch"] = _ElasticsearchHandle()
+        except Exception as e:
+            raise RuntimeError(f"Elasticsearch: {e}") from e
 
-        if opts.opensearch_hosts:
-            os_aggregate_index = "dmarc_aggregate"
-            os_failure_index = "dmarc_failure"
-            os_smtp_tls_index = "smtp_tls"
-            if opts.opensearch_index_suffix:
-                suffix = opts.opensearch_index_suffix
-                os_aggregate_index = "{0}_{1}".format(os_aggregate_index, suffix)
-                os_failure_index = "{0}_{1}".format(os_failure_index, suffix)
-                os_smtp_tls_index = "{0}_{1}".format(os_smtp_tls_index, suffix)
-            if opts.opensearch_index_prefix:
-                prefix = opts.opensearch_index_prefix
-                os_aggregate_index = "{0}{1}".format(prefix, os_aggregate_index)
-                os_failure_index = "{0}{1}".format(prefix, os_failure_index)
-                os_smtp_tls_index = "{0}{1}".format(prefix, os_smtp_tls_index)
-            opensearch_timeout_value = (
-                float(opts.opensearch_timeout)
-                if opts.opensearch_timeout is not None
-                else 60.0
-            )
-            opensearch.set_hosts(
-                opts.opensearch_hosts,
-                use_ssl=opts.opensearch_ssl,
-                ssl_cert_path=opts.opensearch_ssl_cert_path,
-                username=opts.opensearch_username,
-                password=opts.opensearch_password,
-                api_key=opts.opensearch_api_key,
-                timeout=opensearch_timeout_value,
-                auth_type=opts.opensearch_auth_type,
-                aws_region=opts.opensearch_aws_region,
-                aws_service=opts.opensearch_aws_service,
-            )
-            opensearch.migrate_indexes(
-                aggregate_indexes=[os_aggregate_index],
-                failure_indexes=[os_failure_index],
-            )
-            clients["opensearch"] = _OpenSearchHandle()
+        try:
+            if opts.opensearch_hosts:
+                os_aggregate_index = "dmarc_aggregate"
+                os_failure_index = "dmarc_failure"
+                os_smtp_tls_index = "smtp_tls"
+                if opts.opensearch_index_suffix:
+                    suffix = opts.opensearch_index_suffix
+                    os_aggregate_index = "{0}_{1}".format(os_aggregate_index, suffix)
+                    os_failure_index = "{0}_{1}".format(os_failure_index, suffix)
+                    os_smtp_tls_index = "{0}_{1}".format(os_smtp_tls_index, suffix)
+                if opts.opensearch_index_prefix:
+                    prefix = opts.opensearch_index_prefix
+                    os_aggregate_index = "{0}{1}".format(prefix, os_aggregate_index)
+                    os_failure_index = "{0}{1}".format(prefix, os_failure_index)
+                    os_smtp_tls_index = "{0}{1}".format(prefix, os_smtp_tls_index)
+                opensearch_timeout_value = (
+                    float(opts.opensearch_timeout)
+                    if opts.opensearch_timeout is not None
+                    else 60.0
+                )
+                opensearch.set_hosts(
+                    opts.opensearch_hosts,
+                    use_ssl=opts.opensearch_ssl,
+                    ssl_cert_path=opts.opensearch_ssl_cert_path,
+                    skip_certificate_verification=opts.opensearch_skip_certificate_verification,
+                    username=opts.opensearch_username,
+                    password=opts.opensearch_password,
+                    api_key=opts.opensearch_api_key,
+                    timeout=opensearch_timeout_value,
+                    auth_type=opts.opensearch_auth_type,
+                    aws_region=opts.opensearch_aws_region,
+                    aws_service=opts.opensearch_aws_service,
+                )
+                opensearch.migrate_indexes(
+                    aggregate_indexes=[os_aggregate_index],
+                    failure_indexes=[os_failure_index],
+                )
+                clients["opensearch"] = _OpenSearchHandle()
+        except Exception as e:
+            raise RuntimeError(f"OpenSearch: {e}") from e
 
     return clients
 
@@ -1541,6 +1575,7 @@ def _main():
         elasticsearch_index_prefix=None,
         elasticsearch_ssl=True,
         elasticsearch_ssl_cert_path=None,
+        elasticsearch_skip_certificate_verification=False,
         elasticsearch_monthly_indexes=False,
         elasticsearch_username=None,
         elasticsearch_password=None,
@@ -1553,6 +1588,7 @@ def _main():
         opensearch_index_prefix=None,
         opensearch_ssl=True,
         opensearch_ssl_cert_path=None,
+        opensearch_skip_certificate_verification=False,
         opensearch_monthly_indexes=False,
         opensearch_username=None,
         opensearch_password=None,
@@ -1678,12 +1714,6 @@ def _main():
     # Initialize output clients
     try:
         clients = _init_output_clients(opts)
-    except elastic.ElasticsearchError as e:
-        logger.exception("Elasticsearch Error: {0}".format(e))
-        exit(1)
-    except opensearch.OpenSearchError as e:
-        logger.exception("OpenSearch Error: {0}".format(e))
-        exit(1)
     except ConfigurationError as e:
         logger.critical(str(e))
         exit(1)

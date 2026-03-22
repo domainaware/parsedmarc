@@ -302,6 +302,7 @@ def set_hosts(
     *,
     use_ssl: bool = False,
     ssl_cert_path: Optional[str] = None,
+    skip_certificate_verification: bool = False,
     username: Optional[str] = None,
     password: Optional[str] = None,
     api_key: Optional[str] = None,
@@ -314,6 +315,7 @@ def set_hosts(
         hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
+        skip_certificate_verification (bool): Skip certificate verification
         username (str): The username to use for authentication
         password (str): The password to use for authentication
         api_key (str): The Base64 encoded API key to use for authentication
@@ -325,10 +327,11 @@ def set_hosts(
     if use_ssl:
         conn_params["use_ssl"] = True
         if ssl_cert_path:
-            conn_params["verify_certs"] = True
             conn_params["ca_certs"] = ssl_cert_path
-        else:
+        if skip_certificate_verification:
             conn_params["verify_certs"] = False
+        else:
+            conn_params["verify_certs"] = True
     if username and password:
         conn_params["http_auth"] = username + ":" + password
     if api_key:
