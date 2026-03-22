@@ -782,6 +782,7 @@ def save_smtp_tls_report_to_elasticsearch(
         index_date = begin_date.strftime("%Y-%m")
     else:
         index_date = begin_date.strftime("%Y-%m-%d")
+    report = report.copy()
     report["begin_date"] = begin_date
     report["end_date"] = end_date
 
