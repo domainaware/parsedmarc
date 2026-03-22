@@ -27,7 +27,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
     ports:
       - "127.0.0.1:3000:3000"
@@ -41,5 +41,7 @@ services:
       - SPLUNK_START_ARGS=--accept-license
       - "SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com"
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
     ports:
       - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8088:8088"
