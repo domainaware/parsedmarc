@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.4.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 9.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=1737fb29"></script>
+      <script src="_static/documentation_options.js?v=66e2b170"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -48,6 +48,14 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using parsedmarc</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#cli-help">CLI help</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#environment-variable-configuration">Environment variable configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#specifying-the-config-file-via-environment-variable">Specifying the config file via environment variable</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-without-a-config-file-env-only-mode">Running without a config file (env-only mode)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docker-compose-example">Docker Compose example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#section-name-mapping">Section name mapping</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance tuning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-tenant-support">Multi-tenant support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a><ul>
@@ -652,6 +660,132 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 </div>
 <p>Increasing this value increases resource usage.</p>
 </div>
+</section>
+<section id="environment-variable-configuration">
+<h2>Environment variable configuration<a class="headerlink" href="#environment-variable-configuration" title="Link to this heading"></a></h2>
+<p>Any configuration option can be set via environment variables using the
+naming convention <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_{SECTION}_{KEY}</span></code> (uppercase). This is
+especially useful for Docker deployments where file permissions make it
+difficult to use config files for secrets.</p>
+<p><strong>Priority order:</strong> CLI arguments &gt; environment variables &gt; config file &gt; defaults</p>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set IMAP credentials via env vars</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_IMAP_HOST</span><span class="o">=</span>imap.example.com
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_IMAP_USER</span><span class="o">=</span>dmarc@example.com
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_IMAP_PASSWORD</span><span class="o">=</span>secret
+
+<span class="c1"># Elasticsearch</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_ELASTICSEARCH_HOSTS</span><span class="o">=</span>http://localhost:9200
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_ELASTICSEARCH_SSL</span><span class="o">=</span><span class="nb">false</span>
+
+<span class="c1"># Splunk HEC (note: section name splunk_hec becomes SPLUNK_HEC)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_SPLUNK_HEC_URL</span><span class="o">=</span>https://splunk.example.com
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_SPLUNK_HEC_TOKEN</span><span class="o">=</span>my-hec-token
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_SPLUNK_HEC_INDEX</span><span class="o">=</span>email
+
+<span class="c1"># General settings</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_GENERAL_SAVE_AGGREGATE</span><span class="o">=</span><span class="nb">true</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_GENERAL_DEBUG</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<section id="specifying-the-config-file-via-environment-variable">
+<h3>Specifying the config file via environment variable<a class="headerlink" href="#specifying-the-config-file-via-environment-variable" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_CONFIG_FILE</span><span class="o">=</span>/etc/parsedmarc.ini
+parsedmarc
+</pre></div>
+</div>
+</section>
+<section id="running-without-a-config-file-env-only-mode">
+<h3>Running without a config file (env-only mode)<a class="headerlink" href="#running-without-a-config-file-env-only-mode" title="Link to this heading"></a></h3>
+<p>When no config file is given (neither <code class="docutils literal notranslate"><span class="pre">-c</span></code> flag nor <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_CONFIG_FILE</span></code>),
+parsedmarc will still pick up any <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_*</span></code> environment variables. This
+enables fully file-less deployments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_GENERAL_SAVE_AGGREGATE</span><span class="o">=</span><span class="nb">true</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_GENERAL_OFFLINE</span><span class="o">=</span><span class="nb">true</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PARSEDMARC_ELASTICSEARCH_HOSTS</span><span class="o">=</span>http://elasticsearch:9200
+parsedmarc<span class="w"> </span>/path/to/reports/*
+</pre></div>
+</div>
+</section>
+<section id="docker-compose-example">
+<h3>Docker Compose example<a class="headerlink" href="#docker-compose-example" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">parsedmarc</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">parsedmarc:latest</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_HOST</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imap.example.com</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_USER</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dmarc@example.com</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${IMAP_PASSWORD}</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_MAILBOX_WATCH</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_ELASTICSEARCH_HOSTS</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://elasticsearch:9200</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_GENERAL_SAVE_AGGREGATE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_GENERAL_SAVE_FORENSIC</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="section-name-mapping">
+<h3>Section name mapping<a class="headerlink" href="#section-name-mapping" title="Link to this heading"></a></h3>
+<p>For sections with underscores in the name, the full section name is used:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section</p></th>
+<th class="head"><p>Env var prefix</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">general</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GENERAL_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_MAILBOX_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">imap</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_IMAP_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">msgraph</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_MSGRAPH_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">elasticsearch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_ELASTICSEARCH_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">opensearch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_OPENSEARCH_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">splunk_hec</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_SPLUNK_HEC_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kafka</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_KAFKA_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_SMTP_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_S3_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">syslog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_SYSLOG_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gmail_api</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GMAIL_API_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">maildir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_MAILDIR_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">log_analytics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_LOG_ANALYTICS_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gelf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GELF_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">webhook</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PARSEDMARC_WEBHOOK_</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
 </section>
 <section id="performance-tuning">
 <h2>Performance tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>

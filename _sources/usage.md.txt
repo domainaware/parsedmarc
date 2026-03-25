@@ -531,6 +531,96 @@ PUT _cluster/settings
 Increasing this value increases resource usage.
 :::
 
+## Environment variable configuration
+
+Any configuration option can be set via environment variables using the
+naming convention `PARSEDMARC_{SECTION}_{KEY}` (uppercase). This is
+especially useful for Docker deployments where file permissions make it
+difficult to use config files for secrets.
+
+**Priority order:** CLI arguments > environment variables > config file > defaults
+
+### Examples
+
+```bash
+# Set IMAP credentials via env vars
+export PARSEDMARC_IMAP_HOST=imap.example.com
+export PARSEDMARC_IMAP_USER=dmarc@example.com
+export PARSEDMARC_IMAP_PASSWORD=secret
+
+# Elasticsearch
+export PARSEDMARC_ELASTICSEARCH_HOSTS=http://localhost:9200
+export PARSEDMARC_ELASTICSEARCH_SSL=false
+
+# Splunk HEC (note: section name splunk_hec becomes SPLUNK_HEC)
+export PARSEDMARC_SPLUNK_HEC_URL=https://splunk.example.com
+export PARSEDMARC_SPLUNK_HEC_TOKEN=my-hec-token
+export PARSEDMARC_SPLUNK_HEC_INDEX=email
+
+# General settings
+export PARSEDMARC_GENERAL_SAVE_AGGREGATE=true
+export PARSEDMARC_GENERAL_DEBUG=true
+```
+
+### Specifying the config file via environment variable
+
+```bash
+export PARSEDMARC_CONFIG_FILE=/etc/parsedmarc.ini
+parsedmarc
+```
+
+### Running without a config file (env-only mode)
+
+When no config file is given (neither `-c` flag nor `PARSEDMARC_CONFIG_FILE`),
+parsedmarc will still pick up any `PARSEDMARC_*` environment variables. This
+enables fully file-less deployments:
+
+```bash
+export PARSEDMARC_GENERAL_SAVE_AGGREGATE=true
+export PARSEDMARC_GENERAL_OFFLINE=true
+export PARSEDMARC_ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+parsedmarc /path/to/reports/*
+```
+
+### Docker Compose example
+
+```yaml
+services:
+  parsedmarc:
+    image: parsedmarc:latest
+    environment:
+      PARSEDMARC_IMAP_HOST: imap.example.com
+      PARSEDMARC_IMAP_USER: dmarc@example.com
+      PARSEDMARC_IMAP_PASSWORD: ${IMAP_PASSWORD}
+      PARSEDMARC_MAILBOX_WATCH: "true"
+      PARSEDMARC_ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      PARSEDMARC_GENERAL_SAVE_AGGREGATE: "true"
+      PARSEDMARC_GENERAL_SAVE_FORENSIC: "true"
+```
+
+### Section name mapping
+
+For sections with underscores in the name, the full section name is used:
+
+| Section          | Env var prefix                |
+|------------------|-------------------------------|
+| `general`        | `PARSEDMARC_GENERAL_`         |
+| `mailbox`        | `PARSEDMARC_MAILBOX_`         |
+| `imap`           | `PARSEDMARC_IMAP_`            |
+| `msgraph`        | `PARSEDMARC_MSGRAPH_`         |
+| `elasticsearch`  | `PARSEDMARC_ELASTICSEARCH_`   |
+| `opensearch`     | `PARSEDMARC_OPENSEARCH_`      |
+| `splunk_hec`     | `PARSEDMARC_SPLUNK_HEC_`      |
+| `kafka`          | `PARSEDMARC_KAFKA_`           |
+| `smtp`           | `PARSEDMARC_SMTP_`            |
+| `s3`             | `PARSEDMARC_S3_`              |
+| `syslog`         | `PARSEDMARC_SYSLOG_`          |
+| `gmail_api`      | `PARSEDMARC_GMAIL_API_`       |
+| `maildir`        | `PARSEDMARC_MAILDIR_`         |
+| `log_analytics`  | `PARSEDMARC_LOG_ANALYTICS_`   |
+| `gelf`           | `PARSEDMARC_GELF_`            |
+| `webhook`        | `PARSEDMARC_WEBHOOK_`         |
+
 ## Performance tuning
 
 For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
