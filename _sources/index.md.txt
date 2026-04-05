@@ -9,13 +9,10 @@ Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
 
 :::{note}
-**Help Wanted**
+*Sponsors*
 
 This is a project is maintained by one developer.
-Please consider reviewing the open [issues] to see how you can contribute code, documentation, or user support.
-Assistance on the pinned issues would be particularly helpful.
-
-Thanks to all [contributors]!
+Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if you or your organization benefit from it.
 :::
 
 ```{image} _static/screenshots/dmarc-summary-charts.png
@@ -79,6 +76,3 @@ dmarc
 contributing
 api
 ```
-
-[contributors]: https://github.com/domainaware/parsedmarc/graphs/contributors
-[issues]: https://github.com/domainaware/parsedmarc/issues
