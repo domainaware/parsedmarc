@@ -9,7 +9,6 @@ Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/parsedmarc?color=blue)](https://pypistats.org/packages/parsedmarc)
 
 :::{note}
-*Sponsors*
 
 This is a project is maintained by one developer.
 Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if you or your organization benefit from it.
