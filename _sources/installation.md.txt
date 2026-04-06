@@ -49,11 +49,17 @@ Starting in `parsedmarc` 7.1.0, a static copy of the
 `parsedmarc`, under the terms of the
 [Creative Commons Attribution 4.0 International License].
 as a fallback if the [MaxMind GeoLite2 Country database] is not
-installed. However, `parsedmarc` cannot install updated versions of
-these databases as they are released, so MaxMind's databases and the
-[geoipupdate] tool is still the preferable solution.
+installed.
 
-The location of the database file can be overridden by using the
+Starting in `parsedmarc` 9.6.0, the bundled DB-IP database is
+automatically updated at startup by downloading the latest copy from
+GitHub, unless the `offline` flag is set. The database is cached
+locally and refreshed on each run (or on `SIGHUP` in watch mode).
+If the download fails, a previously cached copy or the bundled
+database is used as a fallback.
+
+The download URL can be overridden with the `ip_db_url` setting, and
+the location of a local database file can be overridden with the
 `ip_db_path` setting.
 :::
 

@@ -134,9 +134,13 @@ The full set of configuration options are:
       JSON output file
   - `ip_db_path` - str: An optional custom path to a MMDB file
       from MaxMind or DBIP
+  - `ip_db_url` - str: Overrides the default download URL for the
+      IP-to-country database (env var: `PARSEDMARC_GENERAL_IP_DB_URL`)
   - `offline` - bool: Do not use online queries for geolocation
-      or DNS
-  - `always_use_local_files` - Disables the download of the reverse DNS map
+      or DNS. Also disables automatic downloading of the IP-to-country
+      database and reverse DNS map.
+  - `always_use_local_files` - Disables the download of the
+      IP-to-country database and reverse DNS map
   - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
   - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
   - `nameservers` - str: A comma separated list of
@@ -751,7 +755,7 @@ for that batch have completed. The following settings are reloaded:
 - Multi-tenant index prefix domain map (`index_prefix_domain_map` —
   the referenced YAML file is re-read on reload)
 - DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
-  `offline`, etc.)
+  `ip_db_url`, `offline`, etc.)
 - Processing flags (`strip_attachment_payloads`, `batch_size`,
   `check_timeout`, etc.)
 - Log level (`debug`, `verbose`, `warnings`, `silent`)

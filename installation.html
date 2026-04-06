@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; parsedmarc 9.5.5 documentation</title>
+  <title>Installation &mdash; parsedmarc 9.6.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=3eeb2fce"></script>
+      <script src="_static/documentation_options.js?v=f49d6f9b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -140,10 +140,15 @@ least:</p>
 <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the terms of the
 [Creative Commons Attribution 4.0 International License].
 as a fallback if the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> is not
-installed. However, <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> cannot install updated versions of
-these databases as they are released, so MaxMind’s databases and the
-<a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> tool is still the preferable solution.</p>
-<p>The location of the database file can be overridden by using the
+installed.</p>
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 9.6.0, the bundled DB-IP database is
+automatically updated at startup by downloading the latest copy from
+GitHub, unless the <code class="docutils literal notranslate"><span class="pre">offline</span></code> flag is set. The database is cached
+locally and refreshed on each run (or on <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code> in watch mode).
+If the download fails, a previously cached copy or the bundled
+database is used as a fallback.</p>
+<p>The download URL can be overridden with the <code class="docutils literal notranslate"><span class="pre">ip_db_url</span></code> setting, and
+the location of a local database file can be overridden with the
 <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
 </div>
 <p>On Debian 10 (Buster) or later, run:</p>

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 9.5.5 documentation</title>
+  <title>API reference &mdash; parsedmarc 9.6.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=3eeb2fce"></script>
+      <script src="_static/documentation_options.js?v=f49d6f9b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -160,6 +160,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.human_timestamp_to_unix_timestamp"><code class="docutils literal notranslate"><span class="pre">human_timestamp_to_unix_timestamp()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.is_mbox"><code class="docutils literal notranslate"><span class="pre">is_mbox()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.is_outlook_msg"><code class="docutils literal notranslate"><span class="pre">is_outlook_msg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.load_ip_db"><code class="docutils literal notranslate"><span class="pre">load_ip_db()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.load_reverse_dns_map"><code class="docutils literal notranslate"><span class="pre">load_reverse_dns_map()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.parse_email"><code class="docutils literal notranslate"><span class="pre">parse_email()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.query_dns"><code class="docutils literal notranslate"><span class="pre">query_dns()</span></code></a></li>
@@ -1411,6 +1412,23 @@ the supplied reverse_dns_base_domain and the type will be None</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.utils.load_ip_db">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">load_ip_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">always_use_local_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#load_ip_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.load_ip_db" title="Link to this definition"></a></dt>
+<dd><p>Downloads the IP-to-country MMDB database from a URL and caches it
+locally. Falls back to the bundled copy on failure or when offline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>always_use_local_file</strong> – Always use a local/bundled database file</p></li>
+<li><p><strong>local_file_path</strong> – Path to a local MMDB file</p></li>
+<li><p><strong>url</strong> – URL to the MMDB database file</p></li>
+<li><p><strong>offline</strong> – Do not make online requests</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
