@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 9.6.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 9.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=f49d6f9b"></script>
+      <script src="../../_static/documentation_options.js?v=854825c2"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -131,11 +131,74 @@
 <span class="n">mailparser_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;mailparser&quot;</span><span class="p">)</span>
 <span class="n">mailparser_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">)</span>
 <span class="n">psl</span> <span class="o">=</span> <span class="n">publicsuffixlist</span><span class="o">.</span><span class="n">PublicSuffixList</span><span class="p">()</span>
-<span class="n">psl_overrides_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;psl_overrides.txt&quot;</span><span class="p">))</span>
-<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">psl_overrides_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-    <span class="n">psl_overrides</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
-    <span class="k">while</span> <span class="s2">&quot;&quot;</span> <span class="ow">in</span> <span class="n">psl_overrides</span><span class="p">:</span>
-        <span class="n">psl_overrides</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">psl_overrides</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="load_psl_overrides">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.load_psl_overrides">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_psl_overrides</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">always_use_local_file</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">local_file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads the PSL overrides list from a URL or local file.</span>
+
+<span class="sd">    Clears and repopulates the module-level ``psl_overrides`` list in place,</span>
+<span class="sd">    then returns it. The URL is tried first; on failure (or when</span>
+<span class="sd">    ``offline``/``always_use_local_file`` is set) the local path is used,</span>
+<span class="sd">    defaulting to the bundled ``psl_overrides.txt``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        always_use_local_file (bool): Always use a local overrides file</span>
+<span class="sd">        local_file_path (str): Path to a local overrides file</span>
+<span class="sd">        url (str): URL to a PSL overrides file</span>
+<span class="sd">        offline (bool): Use the built-in copy of the overrides</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[str]: the module-level ``psl_overrides`` list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;https://raw.githubusercontent.com/domainaware&quot;</span>
+            <span class="s2">&quot;/parsedmarc/master/parsedmarc/&quot;</span>
+            <span class="s2">&quot;resources/maps/psl_overrides.txt&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">psl_overrides</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">psl_overrides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offline</span> <span class="ow">or</span> <span class="n">always_use_local_file</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trying to fetch PSL overrides from </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">}</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">_load_text</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to fetch PSL overrides: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">psl_overrides</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">local_file_path</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">maps</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;psl_overrides.txt&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading PSL overrides from </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">_load_text</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">psl_overrides</span></div>
+
+
+
+<span class="c1"># Bootstrap with the bundled file at import time — no network call.</span>
+<span class="n">load_psl_overrides</span><span class="p">(</span><span class="n">offline</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="EmailParserError">
@@ -540,6 +603,8 @@
     <span class="n">local_file_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">psl_overrides_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">psl_overrides_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads the reverse DNS map from a URL or local file.</span>
@@ -548,13 +613,29 @@
 <span class="sd">    fetched from a URL, that is tried first; on failure (or if offline/local</span>
 <span class="sd">    mode is selected) the bundled CSV is used as a fallback.</span>
 
+<span class="sd">    ``psl_overrides.txt`` is reloaded at the same time using the same</span>
+<span class="sd">    ``offline`` / ``always_use_local_file`` flags (with separate path/URL</span>
+<span class="sd">    kwargs), so map entries that depend on a recent overrides entry fold</span>
+<span class="sd">    correctly.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        reverse_dns_map (dict): The map dict to populate (modified in place)</span>
 <span class="sd">        always_use_local_file (bool): Always use a local map file</span>
 <span class="sd">        local_file_path (str): Path to a local map file</span>
 <span class="sd">        url (str): URL to a reverse DNS map</span>
 <span class="sd">        offline (bool): Use the built-in copy of the reverse DNS map</span>
+<span class="sd">        psl_overrides_path (str): Path to a local PSL overrides file</span>
+<span class="sd">        psl_overrides_url (str): URL to a PSL overrides file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Reload PSL overrides first so any map entry that depends on a folded</span>
+    <span class="c1"># base domain resolves correctly against the current overrides list.</span>
+    <span class="n">load_psl_overrides</span><span class="p">(</span>
+        <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_file</span><span class="p">,</span>
+        <span class="n">local_file_path</span><span class="o">=</span><span class="n">psl_overrides_path</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">psl_overrides_url</span><span class="p">,</span>
+        <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+    <span class="p">)</span>
+
     <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">url</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;https://raw.githubusercontent.com/domainaware&quot;</span>
