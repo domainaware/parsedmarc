@@ -2,6 +2,24 @@
 
 import os
 import csv
+import re
+
+
+# Privacy filter: a reverse DNS entry containing a full IPv4 address (four
+# dotted or dashed octets) reveals a specific customer IP. Such entries are
+# dropped here so they never enter unknown_base_reverse_dns.csv and therefore
+# never make it into the map or the known-unknown list.
+_FULL_IP_RE = re.compile(
+    r"(?<![\d])(\d{1,3})[-.](\d{1,3})[-.](\d{1,3})[-.](\d{1,3})(?![\d])"
+)
+
+
+def _has_full_ip(s: str) -> bool:
+    for m in _FULL_IP_RE.finditer(s):
+        octets = [int(g) for g in m.groups()]
+        if all(0 <= o <= 255 for o in octets):
+            return True
+    return False
 
 
 def _main():
@@ -64,6 +82,10 @@ def _main():
                 if domain.endswith(psl_domain):
                     domain = psl_domain.strip(".").strip("-")
                     break
+            # Privacy: never emit an entry containing a full IPv4 address.
+            # If no psl_override folded it away, drop it entirely.
+            if _has_full_ip(domain):
+                continue
             if domain not in known_domains and domain not in known_unknown_domains:
                 print(f"New unknown domain found: {domain}")
                 output_rows.append(row)

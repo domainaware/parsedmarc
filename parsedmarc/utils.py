@@ -49,11 +49,71 @@ null_file = open(os.devnull, "w")
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
 psl = publicsuffixlist.PublicSuffixList()
-psl_overrides_path = str(files(parsedmarc.resources.maps).joinpath("psl_overrides.txt"))
-with open(psl_overrides_path) as f:
-    psl_overrides = [line.rstrip() for line in f.readlines()]
-    while "" in psl_overrides:
-        psl_overrides.remove("")
+psl_overrides: list[str] = []
+
+
+def load_psl_overrides(
+    *,
+    always_use_local_file: bool = False,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
+    offline: bool = False,
+) -> list[str]:
+    """
+    Loads the PSL overrides list from a URL or local file.
+
+    Clears and repopulates the module-level ``psl_overrides`` list in place,
+    then returns it. The URL is tried first; on failure (or when
+    ``offline``/``always_use_local_file`` is set) the local path is used,
+    defaulting to the bundled ``psl_overrides.txt``.
+
+    Args:
+        always_use_local_file (bool): Always use a local overrides file
+        local_file_path (str): Path to a local overrides file
+        url (str): URL to a PSL overrides file
+        offline (bool): Use the built-in copy of the overrides
+
+    Returns:
+        list[str]: the module-level ``psl_overrides`` list
+    """
+    if url is None:
+        url = (
+            "https://raw.githubusercontent.com/domainaware"
+            "/parsedmarc/master/parsedmarc/"
+            "resources/maps/psl_overrides.txt"
+        )
+
+    psl_overrides.clear()
+
+    def _load_text(text: str) -> None:
+        for line in text.splitlines():
+            s = line.strip()
+            if s:
+                psl_overrides.append(s)
+
+    if not (offline or always_use_local_file):
+        try:
+            logger.debug(f"Trying to fetch PSL overrides from {url}...")
+            headers = {"User-Agent": USER_AGENT}
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            _load_text(response.text)
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch PSL overrides: {e}")
+
+    if len(psl_overrides) == 0:
+        path = local_file_path or str(
+            files(parsedmarc.resources.maps).joinpath("psl_overrides.txt")
+        )
+        logger.info(f"Loading PSL overrides from {path}")
+        with open(path, encoding="utf-8") as f:
+            _load_text(f.read())
+
+    return psl_overrides
+
+
+# Bootstrap with the bundled file at import time — no network call.
+load_psl_overrides(offline=True)
 
 
 class EmailParserError(RuntimeError):
@@ -414,6 +474,8 @@ def load_reverse_dns_map(
     local_file_path: Optional[str] = None,
     url: Optional[str] = None,
     offline: bool = False,
+    psl_overrides_path: Optional[str] = None,
+    psl_overrides_url: Optional[str] = None,
 ) -> None:
     """
     Loads the reverse DNS map from a URL or local file.
@@ -422,13 +484,29 @@ def load_reverse_dns_map(
     fetched from a URL, that is tried first; on failure (or if offline/local
     mode is selected) the bundled CSV is used as a fallback.
 
+    ``psl_overrides.txt`` is reloaded at the same time using the same
+    ``offline`` / ``always_use_local_file`` flags (with separate path/URL
+    kwargs), so map entries that depend on a recent overrides entry fold
+    correctly.
+
     Args:
         reverse_dns_map (dict): The map dict to populate (modified in place)
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
         url (str): URL to a reverse DNS map
         offline (bool): Use the built-in copy of the reverse DNS map
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
     """
+    # Reload PSL overrides first so any map entry that depends on a folded
+    # base domain resolves correctly against the current overrides list.
+    load_psl_overrides(
+        always_use_local_file=always_use_local_file,
+        local_file_path=psl_overrides_path,
+        url=psl_overrides_url,
+        offline=offline,
+    )
+
     if url is None:
         url = (
             "https://raw.githubusercontent.com/domainaware"

@@ -143,6 +143,8 @@ The full set of configuration options are:
       IP-to-country database and reverse DNS map
   - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
   - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
+  - `local_psl_overrides_path` - Overrides the default local file path to use for the PSL overrides list
+  - `psl_overrides_url` - Overrides the default download URL for the PSL overrides list
   - `nameservers` - str: A comma separated list of
       DNS resolvers (Default: `[Cloudflare's public resolvers]`)
   - `dns_test_address` - str: a dummy address used for DNS pre-flight checks

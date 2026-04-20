@@ -1,5 +1,22 @@
 # Changelog
 
+## 9.7.0
+
+### Changes
+
+- `psl_overrides.txt` is now automatically downloaded at startup (and on SIGHUP in watch mode) by `load_psl_overrides()` in `parsedmarc.utils`, with the same URL / local-file / offline fallback pattern as the reverse DNS map. It is also reloaded whenever `load_reverse_dns_map()` runs, so `base_reverse_dns_map.csv` entries that depend on a recent overrides entry resolve correctly without requiring a new parsedmarc release.
+- Added the `local_psl_overrides_path` and `psl_overrides_url` configuration options (`[general]` section, also surfaced via `PARSEDMARC_GENERAL_*` env vars) to override the default PSL overrides source.
+- Expanded `base_reverse_dns_map.csv` substantially in this release, following a multi-pass classification pass across the unknown/known-unknown lists (net ~+1,000 entries).
+- Added `Religion` and `Utilities` to the allowed `type` values in `base_reverse_dns_types.txt` and documented them in `parsedmarc/resources/maps/README.md`.
+- Added `parsedmarc/resources/maps/collect_domain_info.py` — a bulk enrichment collector that runs WHOIS, a size-capped HTTP GET, and A/AAAA + IP-WHOIS for every unmapped reverse-DNS base domain, writing a compact TSV suitable for a single classification pass. Respects `psl_overrides.txt` and skips full-IP entries.
+- Added `parsedmarc/resources/maps/detect_psl_overrides.py` — scans `unknown_base_reverse_dns.csv` for IP-containing entries that share a brand suffix, auto-appends the suffix to `psl_overrides.txt`, folds affected entries in all three list files, and removes any remaining full-IP entries for privacy.
+- `find_unknown_base_reverse_dns.py` now drops full-IP entries at ingest so customer IPs never enter the pipeline.
+- Documented the full map-maintenance workflow (privacy rule, auto-override detection, conservative classification, known-unknown handling) in the top-level `AGENTS.md`.
+
+### Fixed
+
+- Reverse-DNS base domains containing a full IPv4 address (four dotted or dashed octets) are now blocked from entering `base_reverse_dns_map.csv`, `known_unknown_base_reverse_dns.txt`, and `unknown_base_reverse_dns.csv`. Customer IPs were previously possible in these lists as part of ISP-generated reverse-DNS subdomain patterns. The filter is enforced in `find_unknown_base_reverse_dns.py`, `collect_domain_info.py`, and `detect_psl_overrides.py`. The existing lists were swept and all pre-existing IP-containing entries removed.
+
 ## 9.6.0
 
 ### Changes
