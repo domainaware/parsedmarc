@@ -134,8 +134,17 @@ The full set of configuration options are:
       JSON output file
   - `ip_db_path` - str: An optional custom path to a MMDB file
       from IPinfo, MaxMind, or DBIP
-  - `ip_db_url` - str: Overrides the default download URL for the
-      IP-to-country database (env var: `PARSEDMARC_GENERAL_IP_DB_URL`)
+  - `ipinfo_url` - str: Overrides the default download URL for the
+      bundled IPinfo Lite MMDB (env var:
+      `PARSEDMARC_GENERAL_IPINFO_URL`). The pre-9.10 name `ip_db_url` is
+      still accepted as a deprecated alias and logs a warning.
+  - `ipinfo_api_token` - str: Optional [IPinfo Lite REST API] token. When
+      set, IP lookups hit the API first for the freshest country/ASN data
+      and fall back to the local MMDB on rate limit, quota exhaustion, or
+      network errors. An invalid token exits the process with a fatal error.
+      Ignored when `offline` is set. The Lite tier is free and has no
+      documented monthly request cap; see the IPinfo Lite docs for current
+      limits. (env var: `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`)
   - `offline` - bool: Do not use online queries for geolocation
       or DNS. Also disables automatic downloading of the IP-to-country
       database and reverse DNS map.
@@ -801,3 +810,4 @@ journalctl -u parsedmarc.service -r
 
 [cloudflare's public resolvers]: https://1.1.1.1/
 [url encoded]: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
+[ipinfo lite rest api]: https://ipinfo.io/developers/lite-api

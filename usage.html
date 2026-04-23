@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.9.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 9.10.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=428ec01f"></script>
+      <script src="_static/documentation_options.js?v=3c16008f"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -232,8 +232,17 @@ JSON output file</p></li>
 JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file
 from IPinfo, MaxMind, or DBIP</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip_db_url</span></code> - str: Overrides the default download URL for the
-IP-to-country database (env var: <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GENERAL_IP_DB_URL</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ipinfo_url</span></code> - str: Overrides the default download URL for the
+bundled IPinfo Lite MMDB (env var:
+<code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GENERAL_IPINFO_URL</span></code>). The pre-9.10 name <code class="docutils literal notranslate"><span class="pre">ip_db_url</span></code> is
+still accepted as a deprecated alias and logs a warning.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ipinfo_api_token</span></code> - str: Optional <a class="reference external" href="https://ipinfo.io/developers/lite-api">IPinfo Lite REST API</a> token. When
+set, IP lookups hit the API first for the freshest country/ASN data
+and fall back to the local MMDB on rate limit, quota exhaustion, or
+network errors. An invalid token exits the process with a fatal error.
+Ignored when <code class="docutils literal notranslate"><span class="pre">offline</span></code> is set. The Lite tier is free and has no
+documented monthly request cap; see the IPinfo Lite docs for current
+limits. (env var: <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GENERAL_IPINFO_API_TOKEN</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">offline</span></code> - bool: Do not use online queries for geolocation
 or DNS. Also disables automatic downloading of the IP-to-country
 database and reverse DNS map.</p></li>
