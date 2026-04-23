@@ -273,21 +273,23 @@ class Test(unittest.TestCase):
     def testIPinfoAPIPrimarySourceAndInvalidKeyIsFatal(self):
         """With an API token configured, lookups hit the API first. A 401/403
         response propagates as ``InvalidIPinfoAPIKey`` so the CLI can exit.
-        A 429 disables the API for the rest of the run and lookups fall back
-        to the MMDB transparently."""
+        A 429 puts the API in a cooldown (falling back to the MMDB) and a
+        successful retry after the cooldown logs recovery."""
         from unittest.mock import patch, MagicMock
 
+        import parsedmarc.utils as utils_module
         from parsedmarc.utils import (
             InvalidIPinfoAPIKey,
             configure_ipinfo_api,
             get_ip_address_db_record,
         )
 
-        def _mock_response(status_code, json_body=None):
+        def _mock_response(status_code, json_body=None, headers=None):
             resp = MagicMock()
             resp.status_code = status_code
             resp.ok = 200 <= status_code < 300
             resp.json.return_value = json_body or {}
+            resp.headers = headers or {}
             return resp
 
         try:
@@ -318,19 +320,26 @@ class Test(unittest.TestCase):
                 with self.assertRaises(InvalidIPinfoAPIKey):
                     get_ip_address_db_record("8.8.8.8")
 
-            # Rate limited: 429 disables the API and falls back to the MMDB.
+            # Rate limited: 429 sets a cooldown and falls back to the MMDB.
+            # The first rate-limit event is logged at WARNING; during the
+            # cooldown no further API requests are made.
+            configure_ipinfo_api("rate-limited", probe=False)
             with patch(
                 "parsedmarc.utils.requests.get",
-                return_value=_mock_response(429),
+                return_value=_mock_response(429, headers={"Retry-After": "120"}),
             ):
-                configure_ipinfo_api("rate-limited", probe=False)
-                record = get_ip_address_db_record("8.8.8.8")
-            # MMDB fallback fills in Google's ASN from the bundled IPinfo Lite DB.
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    record = get_ip_address_db_record("8.8.8.8")
+            # MMDB fallback fills in Google's ASN from the bundled MMDB.
             self.assertEqual(record["asn"], 15169)
+            self.assertTrue(
+                any("rate limit" in line.lower() for line in cm.output),
+                f"expected a rate-limit warning, got: {cm.output}",
+            )
+            self.assertTrue(utils_module._IPINFO_API_RATE_LIMITED)
+            self.assertGreater(utils_module._IPINFO_API_COOLDOWN_UNTIL, 0.0)
 
-            # A subsequent call after the 429 should not re-hit the API
-            # (it's disabled for the rest of the run), so even a mocked 200
-            # response with different data is ignored.
+            # During cooldown: no API call; fall straight through to MMDB.
             poisoned = {"asn": "AS1", "country_code": "ZZ"}
             with patch(
                 "parsedmarc.utils.requests.get",
@@ -338,6 +347,22 @@ class Test(unittest.TestCase):
             ) as mock_get:
                 record = get_ip_address_db_record("8.8.8.8")
                 mock_get.assert_not_called()
+
+            # Simulate the cooldown expiring, then a successful retry: the
+            # recovery is logged at INFO and API lookups resume.
+            utils_module._IPINFO_API_COOLDOWN_UNTIL = 0.0
+            with patch(
+                "parsedmarc.utils.requests.get",
+                return_value=_mock_response(200, api_json),
+            ):
+                with self.assertLogs("parsedmarc.log", level="INFO") as cm:
+                    record = get_ip_address_db_record("8.8.8.8")
+            self.assertEqual(record["asn_domain"], "google.com")
+            self.assertTrue(
+                any("recovered" in line.lower() for line in cm.output),
+                f"expected a recovery info log, got: {cm.output}",
+            )
+            self.assertFalse(utils_module._IPINFO_API_RATE_LIMITED)
         finally:
             configure_ipinfo_api(None)
 

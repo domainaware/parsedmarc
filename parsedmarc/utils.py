@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional, TypedDict, Union, cast
 
@@ -480,10 +481,18 @@ _IPINFO_API_BASE_URL = "https://api.ipinfo.io/lite"
 _IPINFO_API_TOKEN: Optional[str] = None
 _IPINFO_API_URL: str = _IPINFO_API_BASE_URL
 _IPINFO_API_TIMEOUT: float = 5.0
-# Flipped on after a 429 or a 402/quota-exhausted response so we stop hammering
-# the API for the rest of the process. Operators can bounce the process to try
-# again.
-_IPINFO_API_DISABLED: bool = False
+# Default cooldowns when the API returns 429/402 without a ``Retry-After``
+# header. Rate limits are usually short; quota resets (402) are typically at a
+# day/month boundary, so we pick a longer default there.
+_IPINFO_API_RATE_LIMIT_COOLDOWN_SECONDS: float = 300.0
+_IPINFO_API_QUOTA_COOLDOWN_SECONDS: float = 3600.0
+# Unix timestamp before which lookups skip the API and go straight to the
+# MMDB. ``0`` means the API is currently available.
+_IPINFO_API_COOLDOWN_UNTIL: float = 0.0
+# Latch for recovery logging: True while the API is in a rate-limited or
+# quota-exhausted state, so the next successful lookup can log "recovered"
+# exactly once per event.
+_IPINFO_API_RATE_LIMITED: bool = False
 
 
 def configure_ipinfo_api(
@@ -507,17 +516,20 @@ def configure_ipinfo_api(
             errors are logged and the token is still accepted so per-request
             fallback can take over.
     """
-    global _IPINFO_API_TOKEN, _IPINFO_API_URL, _IPINFO_API_DISABLED
+    global _IPINFO_API_TOKEN, _IPINFO_API_URL
+    global _IPINFO_API_COOLDOWN_UNTIL, _IPINFO_API_RATE_LIMITED
 
     if not token:
         _IPINFO_API_TOKEN = None
         _IPINFO_API_URL = _IPINFO_API_BASE_URL
-        _IPINFO_API_DISABLED = False
+        _IPINFO_API_COOLDOWN_UNTIL = 0.0
+        _IPINFO_API_RATE_LIMITED = False
         return
 
     _IPINFO_API_TOKEN = token
     _IPINFO_API_URL = (url or _IPINFO_API_BASE_URL).rstrip("/")
-    _IPINFO_API_DISABLED = False
+    _IPINFO_API_COOLDOWN_UNTIL = 0.0
+    _IPINFO_API_RATE_LIMITED = False
 
     if probe:
         # Verify the token. Any network/quota failure here is non-fatal — we
@@ -534,21 +546,42 @@ def configure_ipinfo_api(
             logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
 
 
+def _parse_retry_after(response, default_seconds: float) -> float:
+    """Parse an HTTP ``Retry-After`` header as seconds.
+
+    Supports the delta-seconds form. HTTP-date form is rare enough for an API
+    client to ignore; we just fall back to the default.
+    """
+    raw = response.headers.get("Retry-After")
+    if raw:
+        try:
+            return max(float(raw.strip()), 1.0)
+        except ValueError:
+            pass
+    return default_seconds
+
+
 def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
     """Look up an IP via the IPinfo Lite REST API.
 
     Returns the normalized record on success, or ``None`` when the API is
     unavailable for any reason the caller should fall back from (network
-    error, 429 rate limit, 402 quota exhausted, malformed response). 429/402
-    disable the API for the rest of the process so we stop re-trying on every
-    subsequent IP.
+    error, 429 rate limit, 402 quota exhausted, malformed response).
+
+    On 429/402 the API is put in a cooldown (using ``Retry-After`` when
+    present) so we stop hammering it, and we log once per event at warning
+    level. After the cooldown expires the next lookup retries transparently;
+    a successful retry logs "API recovered" once at info level so operators
+    can see service came back.
 
     Raises:
         InvalidIPinfoAPIKey: on 401/403. Propagates to abort the run.
     """
-    global _IPINFO_API_DISABLED
+    global _IPINFO_API_COOLDOWN_UNTIL, _IPINFO_API_RATE_LIMITED
 
-    if not _IPINFO_API_TOKEN or _IPINFO_API_DISABLED:
+    if not _IPINFO_API_TOKEN:
+        return None
+    if _IPINFO_API_COOLDOWN_UNTIL and time.time() < _IPINFO_API_COOLDOWN_UNTIL:
         return None
 
     url = f"{_IPINFO_API_URL}/{ip_address}"
@@ -568,18 +601,33 @@ def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
             f"IPinfo API rejected the configured token (HTTP {response.status_code})"
         )
     if response.status_code == 429:
-        _IPINFO_API_DISABLED = True
-        logger.warning(
-            "IPinfo API rate limit hit; falling back to the local MMDB for the "
-            "rest of this run"
-        )
+        cooldown = _parse_retry_after(response, _IPINFO_API_RATE_LIMIT_COOLDOWN_SECONDS)
+        _IPINFO_API_COOLDOWN_UNTIL = time.time() + cooldown
+        # First hit of a rate-limit event is visible at warning; subsequent
+        # 429s after cooldown-and-retry cycles stay at debug so we don't spam
+        # the log when a run spans a long quota reset.
+        if not _IPINFO_API_RATE_LIMITED:
+            logger.warning(
+                "IPinfo API rate limit hit; falling back to the local MMDB "
+                f"for {cooldown:.0f}s before retrying"
+            )
+            _IPINFO_API_RATE_LIMITED = True
+        else:
+            logger.debug(f"IPinfo API still rate-limited; retry after {cooldown:.0f}s")
         return None
     if response.status_code == 402:
-        _IPINFO_API_DISABLED = True
-        logger.warning(
-            "IPinfo API quota exhausted; falling back to the local MMDB for the "
-            "rest of this run"
-        )
+        cooldown = _parse_retry_after(response, _IPINFO_API_QUOTA_COOLDOWN_SECONDS)
+        _IPINFO_API_COOLDOWN_UNTIL = time.time() + cooldown
+        if not _IPINFO_API_RATE_LIMITED:
+            logger.warning(
+                "IPinfo API quota exhausted; falling back to the local MMDB "
+                f"for {cooldown:.0f}s before retrying"
+            )
+            _IPINFO_API_RATE_LIMITED = True
+        else:
+            logger.debug(
+                f"IPinfo API quota still exhausted; retry after {cooldown:.0f}s"
+            )
         return None
     if not response.ok:
         logger.debug(
@@ -594,6 +642,11 @@ def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
         return None
     if not isinstance(payload, dict):
         return None
+
+    if _IPINFO_API_RATE_LIMITED:
+        logger.info("IPinfo API recovered; resuming API lookups")
+        _IPINFO_API_RATE_LIMITED = False
+    _IPINFO_API_COOLDOWN_UNTIL = 0.0
 
     return _normalize_ip_record(payload)
 
