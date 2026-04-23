@@ -477,9 +477,13 @@ class InvalidIPinfoAPIKey(Exception):
 # rate-limit/quota/network errors. A 401/403 on any lookup propagates as
 # ``InvalidIPinfoAPIKey`` so the CLI exits fatally; callers of the library
 # should catch it.
-_IPINFO_API_BASE_URL = "https://api.ipinfo.io/lite"
+_IPINFO_API_URL = "https://api.ipinfo.io/lite"
+# Account-info / quota endpoint. Separate from the lookup URL because ``/me``
+# lives at the ipinfo.io root, not under ``/lite``. Hitting it at startup
+# both validates the token and surfaces plan/usage details; IPinfo documents
+# it as a quota-free meta endpoint.
+_IPINFO_ACCOUNT_URL = "https://ipinfo.io/me"
 _IPINFO_API_TOKEN: Optional[str] = None
-_IPINFO_API_URL: str = _IPINFO_API_BASE_URL
 _IPINFO_API_TIMEOUT: float = 5.0
 # Default cooldowns when the API returns 429/402 without a ``Retry-After``
 # header. Rate limits are usually short; quota resets (402) are typically at a
@@ -493,17 +497,11 @@ _IPINFO_API_COOLDOWN_UNTIL: float = 0.0
 # quota-exhausted state, so the next successful lookup can log "recovered"
 # exactly once per event.
 _IPINFO_API_RATE_LIMITED: bool = False
-# Account-info / quota endpoint. Separate from ``_IPINFO_API_URL`` because
-# ``/me`` lives at the ipinfo.io root, not under ``/lite``. Hitting it at
-# startup both validates the token and surfaces plan/usage details; IPinfo
-# documents it as a quota-free meta endpoint.
-_IPINFO_ACCOUNT_URL = "https://ipinfo.io/me"
 
 
 def configure_ipinfo_api(
     token: Optional[str],
     *,
-    url: Optional[str] = None,
     probe: bool = True,
 ) -> None:
     """Configure the IPinfo Lite REST API as the primary source for IP lookups.
@@ -515,26 +513,20 @@ def configure_ipinfo_api(
 
     Args:
         token: IPinfo API token. ``None`` or empty disables the API.
-        url: Override the API base URL (default ``https://api.ipinfo.io/lite``).
-        probe: If ``True``, verify the token by looking up ``1.1.1.1`` before
-            returning. A 401/403 raises ``InvalidIPinfoAPIKey``; transient
-            errors are logged and the token is still accepted so per-request
-            fallback can take over.
+        probe: If ``True``, verify the token by hitting ``/me`` (and, if that
+            is unreachable, by looking up ``1.1.1.1``). A 401/403 raises
+            ``InvalidIPinfoAPIKey``; other errors are logged and the token is
+            still accepted so per-request fallback can take over.
     """
-    global _IPINFO_API_TOKEN, _IPINFO_API_URL
+    global _IPINFO_API_TOKEN
     global _IPINFO_API_COOLDOWN_UNTIL, _IPINFO_API_RATE_LIMITED
 
-    if not token:
-        _IPINFO_API_TOKEN = None
-        _IPINFO_API_URL = _IPINFO_API_BASE_URL
-        _IPINFO_API_COOLDOWN_UNTIL = 0.0
-        _IPINFO_API_RATE_LIMITED = False
-        return
-
-    _IPINFO_API_TOKEN = token
-    _IPINFO_API_URL = (url or _IPINFO_API_BASE_URL).rstrip("/")
+    _IPINFO_API_TOKEN = token or None
     _IPINFO_API_COOLDOWN_UNTIL = 0.0
     _IPINFO_API_RATE_LIMITED = False
+
+    if not _IPINFO_API_TOKEN:
+        return
 
     if probe:
         # Verify the token. Any network/quota failure here is non-fatal — we
@@ -543,9 +535,8 @@ def configure_ipinfo_api(
         # immediately instead of seeing silent MMDB-only lookups all day.
         #
         # The /me meta endpoint doubles as a free-of-quota token check and a
-        # plan/usage lookup, so we try it first. If /me is unreachable (e.g.
-        # behind a mirror that only proxies /lite), fall back to a lookup of
-        # 1.1.1.1 to validate the token.
+        # plan/usage lookup, so we try it first. If /me is unreachable, fall
+        # back to a lookup of 1.1.1.1 to validate the token.
         account: Optional[dict] = None
         try:
             account = _ipinfo_api_account_info()
@@ -559,7 +550,7 @@ def configure_ipinfo_api(
             if summary:
                 logger.info(f"IPinfo API configured — {summary}")
             else:
-                logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
+                logger.info("IPinfo API configured")
             return
 
         try:
@@ -569,7 +560,7 @@ def configure_ipinfo_api(
         except Exception as e:
             logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
         else:
-            logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
+            logger.info("IPinfo API configured")
 
 
 def _ipinfo_api_account_info() -> Optional[dict]:

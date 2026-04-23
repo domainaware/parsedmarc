@@ -143,9 +143,6 @@ The full set of configuration options are:
       Ignored when `offline` is set. The Lite tier is free and has no
       documented monthly request cap; see the IPinfo Lite docs for current
       limits. (env var: `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`)
-  - `ipinfo_api_url` - str: Override the IPinfo API base URL (default
-      `https://api.ipinfo.io/lite`). (env var:
-      `PARSEDMARC_GENERAL_IPINFO_API_URL`)
   - `offline` - bool: Do not use online queries for geolocation
       or DNS. Also disables automatic downloading of the IP-to-country
       database and reverse DNS map.

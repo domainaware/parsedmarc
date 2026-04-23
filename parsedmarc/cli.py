@@ -403,8 +403,6 @@ def _parse_config(config: ConfigParser, opts):
             opts.ip_db_url = general_config["ip_db_url"]
         if "ipinfo_api_token" in general_config:
             opts.ipinfo_api_token = general_config["ipinfo_api_token"]
-        if "ipinfo_api_url" in general_config:
-            opts.ipinfo_api_url = general_config["ipinfo_api_url"]
         if "always_use_local_files" in general_config:
             opts.always_use_local_files = bool(
                 general_config.getboolean("always_use_local_files")
@@ -1840,7 +1838,6 @@ def _main():
         ip_db_path=None,
         ip_db_url=None,
         ipinfo_api_token=None,
-        ipinfo_api_url=None,
         always_use_local_files=False,
         reverse_dns_map_path=None,
         reverse_dns_map_url=None,
@@ -1928,10 +1925,7 @@ def _main():
 
     if opts.ipinfo_api_token and not opts.offline:
         try:
-            configure_ipinfo_api(
-                opts.ipinfo_api_token,
-                url=opts.ipinfo_api_url,
-            )
+            configure_ipinfo_api(opts.ipinfo_api_token)
         except InvalidIPinfoAPIKey as e:
             logger.critical(str(e))
             exit(1)
@@ -2380,7 +2374,6 @@ def _main():
                 try:
                     configure_ipinfo_api(
                         new_opts.ipinfo_api_token if not new_opts.offline else None,
-                        url=new_opts.ipinfo_api_url,
                     )
                 except InvalidIPinfoAPIKey as e:
                     logger.critical(str(e))
