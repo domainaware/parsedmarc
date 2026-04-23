@@ -67,6 +67,17 @@ Every new option becomes documented surface area the project has to support fore
 
 When you do add an option: surface it in the INI schema, the `_parse_config` branch, the `Namespace` defaults, the CLI docs (`docs/source/usage.md`), and SIGHUP-reload wiring together in one PR. Half-wired options (parsed but not consulted, or consulted but not documented) are worse than none.
 
+#### Read the primary source before coding against an external service
+
+For any third-party REST API, SDK, on-disk format, or protocol, fetch the actual docs page with `WebFetch` as the first step — before writing code, and before spawning a research subagent. Only after confirming what the docs actually say should you ask "how do I handle this?".
+
+Two traps to avoid:
+
+- **Don't outsource primary-source reading to subagents.** Asking a subagent "what are service X's rate-limit codes?" presupposes those codes exist; the agent will synthesize a plausible-sounding answer from adjacent APIs, community posts, and HTTP conventions even when the service documents none of it. Subagents are good for cross-source synthesis, bad for "what does this one page say" — use `WebFetch` yourself for the latter.
+- **Don't treat a feature ask as "build this" without first checking "does this apply?".** If the user asks for rate-limit fallback, verify rate limits exist for this service. If they ask to log quota, verify a quota endpoint exists. When the docs are silent on an edge case, silence means "not specified", not "use HTTP conventions" — default to not implementing it, or flag the assumption in the PR body.
+
+Canonical cautionary tale: the IPinfo Lite integration initially shipped ~230 lines of speculative 429/402 cooldown, `Retry-After` parsing, a fabricated `/me` plan/quota endpoint, and `Authorization: Bearer` auth — none of which the Lite docs support. The docs open with "The API has no daily or monthly limit" and document `?token=` query-param auth only. All of it was removed in a follow-up PR. Don't reintroduce any of it here, and apply the same rule to other external integrations.
+
 ### Caching
 
 IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour (via `ExpiringDict`).
