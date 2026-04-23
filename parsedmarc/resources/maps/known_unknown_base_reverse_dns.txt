@@ -39,7 +39,6 @@
 999lakeshore.com
 999servers.com
 9services.com
-a1.net
 a2-cross.asia
 a2telecomfibra.com.br
 a2u2.com
@@ -83,7 +82,6 @@ acinternet.net.br
 acquatelecom.com.br
 acrsolutions.com
 actcapitaledge.com
-actcorp.in
 activaicon.com
 active-ns.com
 activelifemedical.com
@@ -130,7 +128,6 @@ airsystem33.com
 airtel.cd
 airtel.net
 airyhosting.com
-ais.co.th
 aistechsolutions.com
 ajorealestate.com
 ak888.ru
@@ -1015,7 +1012,6 @@ emeraldonion.net
 emergencyjacket.online
 emergingmarketsreview.com
 emexinternet.com.br
-emirates.net.ae
 emk.ru
 emsgateway.net
 energain.com.mx
@@ -1031,7 +1027,6 @@ entelpcs.cl
 entendercopilot.com
 enticingofdisadvantage.com
 entretothom.net
-eolo.it
 epaycontrol.com
 epbnet.com
 epectelco.com.ar
@@ -1206,7 +1201,6 @@ foxinfo.net.br
 foxitsign.com
 foxnew.de
 foxtelecominformatica.com.br
-fpt.vn
 francecanterbury.com
 franet.com.br
 frauen-online.net
@@ -1525,7 +1519,6 @@ iam.net.ma
 iasys-sg.com
 ib.systems
 iblock.net
-ibm.com
 ibrexres.com
 ibys.com.br
 iccnet.cm
@@ -2134,7 +2127,6 @@ motion4ever.net
 motivationpotion.com
 mottanet.net.br
 mov.pro.br
-movilnet.com.ve
 movinet.com.uy
 movtelecom.net.br
 mpirelease.com
@@ -2439,7 +2431,6 @@ ospepm.cn
 oss-core.com
 oss-core.net
 otccatering.com
-ote.gr
 otmprint.com
 ourhosted.com
 ourinet.com.br
@@ -2894,7 +2885,6 @@ simonmosheshvili.com
 simplediagnostics.org
 simtelecomms.com.br
 sincroniza.net.br
-singnet.com.sg
 sion.net
 siriuscloud.jp
 sisglobalresearch.com
