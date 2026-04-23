@@ -70,10 +70,14 @@ class Test(unittest.TestCase):
         result = parsedmarc.utils.get_base_domain(subdomain)
         assert result == "example.com"
 
-        # Test newer PSL entries
+        # psl_overrides.txt intentionally folds CDN-customer PTRs so every
+        # sender on the same network clusters under one display key.
+        # ``.akamaiedge.net`` is an override, so its subdomains collapse to
+        # ``akamaiedge.net`` even though the live PSL carries the finer-grained
+        # ``c.akamaiedge.net`` — the override is the design decision.
         subdomain = "e3191.c.akamaiedge.net"
         result = parsedmarc.utils.get_base_domain(subdomain)
-        assert result == "c.akamaiedge.net"
+        assert result == "akamaiedge.net"
 
     def testExtractReportXMLComparator(self):
         """Test XML comparator function"""
