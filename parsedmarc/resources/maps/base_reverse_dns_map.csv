@@ -23,7 +23,6 @@ base_reverse_dns,name,type
 47.pl,AfterMarket.pl,Web Host
 4gbhost.com,4GBHost,Web Host
 99cloudhosting.com,99CloudHosting,Web Host
-United-domains.de,United Domains,Web Host
 a-hadar.co.il,Hadar Group,Real Estate
 a2hosting.com,A2Hosting,Web Host
 a2mobile.pl,a2mobile,ISP
@@ -630,7 +629,7 @@ dfn.nl,DELTA Fiber,ISP
 dgeduf.or.kr,Daegu Dong-gu Education Foundation,Education
 dgsys.es,DGsys,Web Host
 dhamma.org,Vipassana Meditation,Nonprofit
-dhl.com,DHL,logistics
+dhl.com,DHL,Logistics
 diako-dresden.de,Diakonissenanstalt Dresden,Healthcare
 diakovere.de,DIAKOVERE,Healthcare
 dialego.de,Dialego,Marketing
@@ -980,7 +979,7 @@ getkeepsafe.com,Keepsafe Software,SaaS
 getordained.org,Universal Life Church,Religion
 getresponse.com,GetResponse,Marketing
 ggsv.jp,Techorus,Web Host
-ghm-grenoble.fr,Groupe hospitalier mutualiste de Grenoble,healthcare
+ghm-grenoble.fr,Groupe hospitalier mutualiste de Grenoble,Healthcare
 giantpartners.com,Giant Partners,Marketing
 gigahost.dk,GigaHost,Web Host
 glasgow-ky.com,Glasgow EPB,ISP
@@ -1504,7 +1503,7 @@ loading.es,Loading,Web Host
 locaweb.com.br,Locaweb,Web Host
 locus-t.com.my,LOCUS-T,Marketing
 locustwalk.cc,Locust Walk,Finance
-lodestonegroup.com,Loadstone Insurance,Insurance
+lodestonegroup.com,Loadstone Insurance,Finance
 loftsinc.com,"Lofts, Inc.",Retail
 logika.ro,Logika IT Solutions,MSP
 logisticintegrators.com,Logistics Integrators,Logistics
@@ -2246,7 +2245,7 @@ regionaltelecom.net.br,Regional Telecom,ISP
 register.it,Register.it,Web Host
 registeredsite.com,Web.com,Web Host
 registrar-servers.com,Namecheap,Web Host
-regusnet.com,Regus,Real estate
+regusnet.com,Regus,Real Estate
 regxa.com,Regxa Cloud,Web Host
 relativity.one,RelativityOne,SaaS
 relmax.net,Relmax,Web Host
@@ -2282,7 +2281,7 @@ rrtelecomrs.net.br,RR Telecom,ISP
 rsa.com,RSA,Technology
 rsgsv.net,Intuit Mailchimp,Marketing
 rssulnet.com.br,RS Sul Net,ISP
-rt.ru,RT,Government Media
+rt.ru,Rostelecom,ISP
 rtctel.com,Ringgold Telephone Company,ISP
 ruelala.com,Rue La La,Retail
 runbox.com,Runbox,Email Provider
@@ -2838,6 +2837,7 @@ unin.hr,Sveučilište Sjever,Education
 unina.it,University of Naples Federico II,Education
 uninet-ide.com.mx,Telmex,ISP
 unionbank.com.bd,Union Bank,Finance
+United-domains.de,United Domains,Web Host
 united.net,United Communications,ISP
 unitedyacht.com,United Yacht Sales,Retail
 unitel.com.la,Unitel,ISP

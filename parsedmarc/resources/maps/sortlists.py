@@ -156,11 +156,9 @@ def _main():
     types_file = "base_reverse_dns_types.txt"
 
     with open(types_file) as f:
-        types = f.readlines()
-        while "" in types:
-            types.remove("")
+        types = [line.strip() for line in f if line.strip()]
 
-    map_allowed_values = {"Type": types}
+    map_allowed_values = {"type": types}
 
     for list_file in list_files:
         if not os.path.exists(list_file):
@@ -175,7 +173,12 @@ def _main():
         print(f"Error: {map_file} does not exist")
         exit(1)
     try:
-        sort_csv(map_file, map_key, allowed_values=map_allowed_values)
+        sort_csv(
+            map_file,
+            map_key,
+            case_insensitive_sort=True,
+            allowed_values=map_allowed_values,
+        )
     except CSVValidationError as e:
         print(f"{map_file} did not validate: {e}")
 
