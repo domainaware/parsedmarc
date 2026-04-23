@@ -952,7 +952,22 @@ def get_ip_address_info(
             # classification. Better than leaving the row unattributed.
             info["name"] = info["as_name"]
 
-    if cache is not None:
+    # Don't cache weak-fallback attributions — rows where we had no PTR AND
+    # the ASN domain wasn't in the map, so ``name`` is just the raw ``as_name``
+    # from the MMDB. ``get_reverse_dns()`` swallows every ``DNSException`` as
+    # ``None``, so a transient PTR lookup failure (timeout, SERVFAIL, OSError)
+    # is indistinguishable from a real no-PTR case at this point. Caching the
+    # weak result would poison the 4-hour cache with a misattribution even
+    # after the PTR becomes resolvable again. Re-running on the next lookup
+    # is cheap and either produces a proper PTR-backed match or the same
+    # (still-best-effort) ASN attribution.
+    weak_fallback = (
+        info["reverse_dns"] is None
+        and info["type"] is None
+        and info["name"] is not None
+        and info["name"] == info["as_name"]
+    )
+    if cache is not None and not weak_fallback:
         cache[ip_address] = info
         logger.debug(f"IP address {ip_address} added to cache")
 

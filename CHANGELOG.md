@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.10.2
+
+### Fixed
+
+- `get_ip_address_info()` no longer caches weak-fallback attributions (no PTR + no ASN-domain map match → raw `as_name` used as `source_name`, `source_type` left null). `get_reverse_dns()` swallows every `DNSException` as `None`, so a transient PTR lookup failure (timeout, SERVFAIL, socket error) is indistinguishable from a genuine no-PTR case at that layer — caching the weak result would poison the 4-hour cache with a misattribution that persisted even after the PTR became resolvable again. PTR-backed matches and ASN-domain matches (both stable attributions) are still cached as before; only the specific `reverse_dns=None AND type=None AND name=as_name` state skips the cache write so the next lookup retries.
+
 ## 9.10.1
 
 ### Fixed

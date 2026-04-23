@@ -274,6 +274,49 @@ class Test(unittest.TestCase):
         self.assertEqual(info["name"], "Some Unmapped Org, Inc.")
         self.assertEqual(info["as_domain"], "unmapped-for-this-test.example")
 
+    def testWeakFallbackAttributionIsNotCached(self):
+        """A transient PTR lookup failure that lands on the raw-as_name
+        fallback must not poison the cache. ``get_reverse_dns()`` swallows
+        every DNSException as ``None``, so a timeout looks identical to a
+        real no-PTR case — if we cached the weak attribution, the 4-hour
+        TTL would lock in a misattribution even after the PTR returns.
+
+        PTR-backed matches and ASN-domain matches are stable attributions
+        and must still be cached, so we only skip the specific
+        ``reverse_dns=None AND type=None AND name=as_name`` state."""
+        from unittest.mock import patch
+        from expiringdict import ExpiringDict
+
+        cache = ExpiringDict(max_len=100, max_age_seconds=14400)
+
+        # Scenario 1: weak fallback (no PTR, unmapped as_domain, raw as_name
+        # used). Must NOT be cached.
+        with patch(
+            "parsedmarc.utils.get_ip_address_db_record",
+            return_value={
+                "country": "US",
+                "asn": 64496,
+                "as_name": "Some Unmapped Org, Inc.",
+                "as_domain": "unmapped-for-this-test.example",
+            },
+        ):
+            parsedmarc.utils.get_ip_address_info("192.0.2.1", offline=True, cache=cache)
+        self.assertNotIn("192.0.2.1", cache)
+
+        # Scenario 2: ASN-domain match (no PTR, as_domain IS in the map).
+        # Stable attribution — must still be cached.
+        with patch(
+            "parsedmarc.utils.get_ip_address_db_record",
+            return_value={
+                "country": "US",
+                "asn": 15169,
+                "as_name": "Google LLC",
+                "as_domain": "google.com",
+            },
+        ):
+            parsedmarc.utils.get_ip_address_info("192.0.2.2", offline=True, cache=cache)
+        self.assertIn("192.0.2.2", cache)
+
     def testIPinfoAPIPrimarySourceAndInvalidKeyIsFatal(self):
         """With an API token configured, lookups hit the API first via the
         documented ?token= query param. A 401/403 response propagates as
