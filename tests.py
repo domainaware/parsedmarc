@@ -2915,6 +2915,38 @@ class TestConfigAliases(unittest.TestCase):
         self.assertEqual(opts.maildir_path, "/original/path")
         self.assertTrue(opts.maildir_create)
 
+    def test_ipinfo_url_option(self):
+        """[general] ipinfo_url lands on opts.ipinfo_url."""
+        from argparse import Namespace
+        from parsedmarc.cli import _parse_config
+
+        config = ConfigParser(interpolation=None)
+        config.add_section("general")
+        config.set("general", "ipinfo_url", "https://mirror.example/mmdb")
+
+        opts = Namespace()
+        _parse_config(config, opts)
+        self.assertEqual(opts.ipinfo_url, "https://mirror.example/mmdb")
+
+    def test_ip_db_url_deprecated_alias(self):
+        """[general] ip_db_url is accepted as an alias for ipinfo_url but
+        emits a deprecation warning."""
+        from argparse import Namespace
+        from parsedmarc.cli import _parse_config
+
+        config = ConfigParser(interpolation=None)
+        config.add_section("general")
+        config.set("general", "ip_db_url", "https://old.example/mmdb")
+
+        opts = Namespace()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            _parse_config(config, opts)
+        self.assertEqual(opts.ipinfo_url, "https://old.example/mmdb")
+        self.assertTrue(
+            any("ip_db_url" in line and "deprecated" in line for line in cm.output),
+            f"expected deprecation warning, got: {cm.output}",
+        )
+
 
 class TestMaildirUidHandling(unittest.TestCase):
     """Tests for Maildir UID mismatch handling in Docker-like environments."""
