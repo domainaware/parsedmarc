@@ -40,8 +40,21 @@ from dateutil.parser import parse as parse_date
 
 import parsedmarc.resources.dbip
 import parsedmarc.resources.maps
-from parsedmarc.constants import USER_AGENT
+from parsedmarc.constants import (
+    DEFAULT_DNS_MAX_RETRIES,
+    DEFAULT_DNS_TIMEOUT,
+    USER_AGENT,
+)
 from parsedmarc.log import logger
+
+# Errors considered transient and retryable by query_dns. LifetimeTimeout is
+# dnspython's deadline expiry; NoNameservers typically wraps a SERVFAIL from
+# upstream; OSError covers socket-level failures during TCP fallback.
+_RETRYABLE_DNS_ERRORS = (
+    dns.resolver.LifetimeTimeout,
+    dns.resolver.NoNameservers,
+    OSError,
+)
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
@@ -189,7 +202,9 @@ def query_dns(
     *,
     cache: Optional[ExpiringDict] = None,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
+    _attempt: int = 0,
 ) -> list[str]:
     """
     Queries DNS
@@ -199,8 +214,21 @@ def query_dns(
         record_type (str): The record type to query for
         cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
-            (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+            (Cloudflare's public DNS resolvers by default). Pass
+            ``parsedmarc.constants.RECOMMENDED_DNS_NAMESERVERS`` for a
+            cross-provider mix that fails over when one provider's path is
+            slow or broken.
+        timeout (float): Overall DNS lifetime budget in seconds per
+            configured nameserver. Per-query UDP attempts are capped at
+            ``min(1.0, timeout)`` so dnspython retries within the lifetime on
+            transient UDP packet loss (mirroring ``dig``'s default
+            ``+tries=3`` behavior); with multiple nameservers configured this
+            same cap also makes a slow or broken nameserver fall through to
+            the next quickly.
+        retries (int): Number of times to retry the whole query after a
+            timeout or other transient error (``LifetimeTimeout``,
+            ``NoNameservers``, ``OSError``). Failover between configured
+            nameservers happens within each attempt.
 
     Returns:
         list: A list of answers
@@ -223,12 +251,36 @@ def query_dns(
             "2606:4700:4700::1001",
         ]
     resolver.nameservers = nameservers
-    resolver.timeout = timeout
-    resolver.lifetime = timeout
+    # Cap per-query UDP timeout at 1s so dnspython retries within the
+    # lifetime window on transient packet loss — otherwise with a single
+    # nameserver and timeout == lifetime, one dropped UDP datagram consumes
+    # the whole budget and raises LifetimeTimeout without a retry (dig's
+    # default +tries=3 masks this case). With multiple nameservers the same
+    # cap lets a slow/broken one fall through.
+    resolver.timeout = min(1.0, timeout)
+    if len(resolver.nameservers) > 1:
+        resolver.lifetime = timeout * len(resolver.nameservers)
+    else:
+        resolver.lifetime = timeout
+    try:
+        answers = resolver.resolve(domain, record_type, lifetime=resolver.lifetime)
+    except _RETRYABLE_DNS_ERRORS as e:
+        _attempt += 1
+        if _attempt > retries:
+            raise e
+        return query_dns(
+            domain,
+            record_type,
+            cache=cache,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
+            _attempt=_attempt,
+        )
     records = list(
         map(
             lambda r: r.to_text().replace('"', "").rstrip("."),
-            resolver.resolve(domain, record_type, lifetime=timeout),
+            answers,
         )
     )
     if cache:
@@ -242,7 +294,8 @@ def get_reverse_dns(
     *,
     cache: Optional[ExpiringDict] = None,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
 ) -> Optional[str]:
     """
     Resolves an IP address to a hostname using a reverse DNS query
@@ -253,6 +306,8 @@ def get_reverse_dns(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
+        retries (int): Number of times to retry on timeout or other transient
+            errors
 
     Returns:
         str: The reverse DNS hostname (if any)
@@ -261,7 +316,12 @@ def get_reverse_dns(
     try:
         address = dns.reversename.from_address(ip_address)
         hostname = query_dns(
-            str(address), "PTR", cache=cache, nameservers=nameservers, timeout=timeout
+            str(address),
+            "PTR",
+            cache=cache,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
         )[0]
 
     except dns.exception.DNSException as e:
@@ -616,7 +676,8 @@ def get_ip_address_info(
     reverse_dns_map: Optional[ReverseDNSMap] = None,
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
 ) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
@@ -633,6 +694,8 @@ def get_ip_address_info(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        retries (int): Number of times to retry on timeout or other transient
+            errors
 
     Returns:
         dict: ``ip_address``, ``reverse_dns``, ``country``
@@ -660,7 +723,10 @@ def get_ip_address_info(
         reverse_dns = None
     else:
         reverse_dns = get_reverse_dns(
-            ip_address, nameservers=nameservers, timeout=timeout
+            ip_address,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
         )
     country = get_ip_address_country(ip_address, db_path=ip_db_path)
     info["country"] = country

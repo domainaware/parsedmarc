@@ -211,6 +211,7 @@ def cli_parse(
     sa,
     nameservers,
     dns_timeout,
+    dns_retries,
     ip_db_path,
     offline,
     always_use_local_files,
@@ -228,6 +229,7 @@ def cli_parse(
         sa: Strip attachment payloads flag
         nameservers: List of nameservers
         dns_timeout: DNS timeout
+        dns_retries: Number of DNS retries on transient errors
         ip_db_path: Path to IP database
         offline: Offline mode flag
         always_use_local_files: Always use local files flag
@@ -251,6 +253,7 @@ def cli_parse(
             reverse_dns_map_url=reverse_dns_map_url,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
+            dns_retries=dns_retries,
             strip_attachment_payloads=sa,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
@@ -344,6 +347,10 @@ def _parse_config(config: ConfigParser, opts):
             opts.dns_timeout = general_config.getfloat("dns_timeout")
             if opts.dns_timeout is None:
                 opts.dns_timeout = 2
+        if "dns_retries" in general_config:
+            opts.dns_retries = general_config.getint("dns_retries")
+            if opts.dns_retries is None:
+                opts.dns_retries = 0
         if "dns_test_address" in general_config:
             opts.dns_test_address = general_config["dns_test_address"]
         if "nameservers" in general_config:
@@ -1653,6 +1660,14 @@ def _main():
         default=2.0,
     )
     arg_parser.add_argument(
+        "--dns-retries",
+        dest="dns_retries",
+        help="number of times to retry DNS queries on timeout or other "
+        "transient errors (default: 0)",
+        type=int,
+        default=0,
+    )
+    arg_parser.add_argument(
         "--offline",
         action="store_true",
         help="do not make online queries for geolocation  or  DNS",
@@ -1704,6 +1719,7 @@ def _main():
         silent=args.silent,
         warnings=args.warnings,
         dns_timeout=args.dns_timeout,
+        dns_retries=args.dns_retries,
         debug=args.debug,
         verbose=args.verbose,
         prettify_json=args.prettify_json,
@@ -1984,6 +2000,7 @@ def _main():
                     opts.strip_attachment_payloads,
                     opts.nameservers,
                     opts.dns_timeout,
+                    opts.dns_retries,
                     opts.ip_db_path,
                     opts.offline,
                     opts.always_use_local_files,
@@ -2044,6 +2061,7 @@ def _main():
             mbox_path,
             nameservers=opts.nameservers,
             dns_timeout=opts.dns_timeout,
+            dns_retries=opts.dns_retries,
             strip_attachment_payloads=strip,
             ip_db_path=opts.ip_db_path,
             always_use_local_files=opts.always_use_local_files,
@@ -2189,6 +2207,7 @@ def _main():
                 test=opts.mailbox_test,
                 strip_attachment_payloads=opts.strip_attachment_payloads,
                 since=opts.mailbox_since,
+                dns_retries=opts.dns_retries,
                 normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
             )
 
@@ -2272,6 +2291,7 @@ def _main():
                     check_timeout=mailbox_check_timeout_value,
                     nameservers=opts.nameservers,
                     dns_timeout=opts.dns_timeout,
+                    dns_retries=opts.dns_retries,
                     strip_attachment_payloads=opts.strip_attachment_payloads,
                     batch_size=mailbox_batch_size_value,
                     since=opts.mailbox_since,

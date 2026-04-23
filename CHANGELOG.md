@@ -1,5 +1,17 @@
 # Changelog
 
+## 9.7.1
+
+### Changes
+
+- Ported DNS lookup reliability improvements from checkdmarc 5.15.x:
+  - Per-query UDP timeout is now capped at `min(1.0, timeout)` in `query_dns()`, so a single dropped UDP datagram no longer consumes the entire lifetime budget — dnspython retries UDP within the lifetime window (mirroring `dig`'s default `+tries=3`). With multiple nameservers configured, the same cap also makes a slow or broken nameserver fall through to the next quickly.
+  - With multiple nameservers configured, the resolver lifetime is now `timeout × len(nameservers)` so each nameserver gets its own timeout budget for failover rather than sharing one overall deadline.
+  - New `retries` kwarg on `query_dns()`, `get_reverse_dns()`, and `get_ip_address_info()` retries the whole query on transient errors (`LifetimeTimeout`, `NoNameservers`/SERVFAIL, and `OSError` during TCP fallback). `NXDOMAIN` and `NoAnswer` remain non-retryable. Default is 0 (no behavior change for existing callers).
+  - Threaded `dns_retries` through the parser API (`parse_report_file`, `parse_aggregate_report_xml`, `parse_forensic_report`, `parse_report_email`, `get_dmarc_reports_from_mbox`, `get_dmarc_reports_from_mailbox`, `watch_inbox`).
+- Added `--dns-retries N` CLI flag and `dns_retries` INI option (`[general]` section, also surfaced via `PARSEDMARC_GENERAL_DNS_RETRIES` env var).
+- Centralized DNS defaults in `parsedmarc.constants`: `DEFAULT_DNS_TIMEOUT`, `DEFAULT_DNS_MAX_RETRIES`, and `RECOMMENDED_DNS_NAMESERVERS` (a cross-provider mix — `("1.1.1.1", "8.8.8.8")` — for callers that want public-resolver failover). The existing default nameservers (all-Cloudflare) are preserved for backward compatibility; callers opt in by passing `nameservers=RECOMMENDED_DNS_NAMESERVERS`.
+
 ## 9.7.0
 
 ### Changes
