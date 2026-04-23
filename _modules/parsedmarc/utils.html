@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 9.7.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 9.7.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=854825c2"></script>
+      <script src="../../_static/documentation_options.js?v=2130a1db"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -122,8 +122,21 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.dbip</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.maps</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">USER_AGENT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
+    <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
+    <span class="n">USER_AGENT</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+
+<span class="c1"># Errors considered transient and retryable by query_dns. LifetimeTimeout is</span>
+<span class="c1"># dnspython&#39;s deadline expiry; NoNameservers typically wraps a SERVFAIL from</span>
+<span class="c1"># upstream; OSError covers socket-level failures during TCP fallback.</span>
+<span class="n">_RETRYABLE_DNS_ERRORS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">dns</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">LifetimeTimeout</span><span class="p">,</span>
+    <span class="n">dns</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">NoNameservers</span><span class="p">,</span>
+    <span class="ne">OSError</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">parenthesis_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*\(.*\)\s*&quot;</span><span class="p">)</span>
 
@@ -294,7 +307,9 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ExpiringDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
+    <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
+    <span class="n">_attempt</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Queries DNS</span>
@@ -304,8 +319,21 @@
 <span class="sd">        record_type (str): The record type to query for</span>
 <span class="sd">        cache (ExpiringDict): Cache storage</span>
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
-<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
-<span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">            (Cloudflare&#39;s public DNS resolvers by default). Pass</span>
+<span class="sd">            ``parsedmarc.constants.RECOMMENDED_DNS_NAMESERVERS`` for a</span>
+<span class="sd">            cross-provider mix that fails over when one provider&#39;s path is</span>
+<span class="sd">            slow or broken.</span>
+<span class="sd">        timeout (float): Overall DNS lifetime budget in seconds per</span>
+<span class="sd">            configured nameserver. Per-query UDP attempts are capped at</span>
+<span class="sd">            ``min(1.0, timeout)`` so dnspython retries within the lifetime on</span>
+<span class="sd">            transient UDP packet loss (mirroring ``dig``&#39;s default</span>
+<span class="sd">            ``+tries=3`` behavior); with multiple nameservers configured this</span>
+<span class="sd">            same cap also makes a slow or broken nameserver fall through to</span>
+<span class="sd">            the next quickly.</span>
+<span class="sd">        retries (int): Number of times to retry the whole query after a</span>
+<span class="sd">            timeout or other transient error (``LifetimeTimeout``,</span>
+<span class="sd">            ``NoNameservers``, ``OSError``). Failover between configured</span>
+<span class="sd">            nameservers happens within each attempt.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        list: A list of answers</span>
@@ -328,12 +356,36 @@
             <span class="s2">&quot;2606:4700:4700::1001&quot;</span><span class="p">,</span>
         <span class="p">]</span>
     <span class="n">resolver</span><span class="o">.</span><span class="n">nameservers</span> <span class="o">=</span> <span class="n">nameservers</span>
-    <span class="n">resolver</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
-    <span class="n">resolver</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">=</span> <span class="n">timeout</span>
+    <span class="c1"># Cap per-query UDP timeout at 1s so dnspython retries within the</span>
+    <span class="c1"># lifetime window on transient packet loss — otherwise with a single</span>
+    <span class="c1"># nameserver and timeout == lifetime, one dropped UDP datagram consumes</span>
+    <span class="c1"># the whole budget and raises LifetimeTimeout without a retry (dig&#39;s</span>
+    <span class="c1"># default +tries=3 masks this case). With multiple nameservers the same</span>
+    <span class="c1"># cap lets a slow/broken one fall through.</span>
+    <span class="n">resolver</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">timeout</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolver</span><span class="o">.</span><span class="n">nameservers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">resolver</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">=</span> <span class="n">timeout</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolver</span><span class="o">.</span><span class="n">nameservers</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">resolver</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">=</span> <span class="n">timeout</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">answers</span> <span class="o">=</span> <span class="n">resolver</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">resolver</span><span class="o">.</span><span class="n">lifetime</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">_RETRYABLE_DNS_ERRORS</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_attempt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">_attempt</span> <span class="o">&gt;</span> <span class="n">retries</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">return</span> <span class="n">query_dns</span><span class="p">(</span>
+            <span class="n">domain</span><span class="p">,</span>
+            <span class="n">record_type</span><span class="p">,</span>
+            <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+            <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+            <span class="n">_attempt</span><span class="o">=</span><span class="n">_attempt</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="n">records</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
         <span class="nb">map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">to_text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">),</span>
-            <span class="n">resolver</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">timeout</span><span class="p">),</span>
+            <span class="n">answers</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
@@ -350,7 +402,8 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ExpiringDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
+    <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Resolves an IP address to a hostname using a reverse DNS query</span>
@@ -361,6 +414,8 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS query timeout in seconds</span>
+<span class="sd">        retries (int): Number of times to retry on timeout or other transient</span>
+<span class="sd">            errors</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: The reverse DNS hostname (if any)</span>
@@ -369,7 +424,12 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">address</span> <span class="o">=</span> <span class="n">dns</span><span class="o">.</span><span class="n">reversename</span><span class="o">.</span><span class="n">from_address</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
         <span class="n">hostname</span> <span class="o">=</span> <span class="n">query_dns</span><span class="p">(</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="s2">&quot;PTR&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span>
+            <span class="s2">&quot;PTR&quot;</span><span class="p">,</span>
+            <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+            <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
         <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">except</span> <span class="n">dns</span><span class="o">.</span><span class="n">exception</span><span class="o">.</span><span class="n">DNSException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -751,7 +811,8 @@
     <span class="n">reverse_dns_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ReverseDNSMap</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
+    <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IPAddressInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
@@ -768,6 +829,8 @@
 <span class="sd">        nameservers (list): A list of one or more nameservers to use</span>
 <span class="sd">            (Cloudflare&#39;s public DNS resolvers by default)</span>
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
+<span class="sd">        retries (int): Number of times to retry on timeout or other transient</span>
+<span class="sd">            errors</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: ``ip_address``, ``reverse_dns``, ``country``</span>
@@ -795,7 +858,10 @@
         <span class="n">reverse_dns</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">reverse_dns</span> <span class="o">=</span> <span class="n">get_reverse_dns</span><span class="p">(</span>
-            <span class="n">ip_address</span><span class="p">,</span> <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span>
+            <span class="n">ip_address</span><span class="p">,</span>
+            <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">)</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">country</span>
