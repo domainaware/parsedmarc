@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 9.8.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 9.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=335b8a46"></script>
+      <script src="../../_static/documentation_options.js?v=428ec01f"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -246,7 +246,10 @@
     <span class="n">country</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">base_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-    <span class="nb">type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">asn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">asn_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">asn_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 
@@ -581,22 +584,7 @@
 
 
 
-<div class="viewcode-block" id="get_ip_address_country">
-<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_ip_address_country</span><span class="p">(</span>
-    <span class="n">ip_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns the ISO code for the country associated</span>
-<span class="sd">    with the given IPv4 or IPv6 address</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        ip_address (str): The IP address to query for</span>
-<span class="sd">        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        str: And ISO country code associated with the given IP address</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_ip_database_path</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">db_paths</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
@@ -612,14 +600,13 @@
         <span class="s2">&quot;dbip-country.mmdb&quot;</span><span class="p">,</span>
     <span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;No file exists at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">. Falling back to an &quot;</span>
-                <span class="s2">&quot;included copy of the IPinfo IP to Country &quot;</span>
-                <span class="s2">&quot;Lite database.&quot;</span>
-            <span class="p">)</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;No file exists at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">. Falling back to an &quot;</span>
+            <span class="s2">&quot;included copy of the IPinfo IP to Country &quot;</span>
+            <span class="s2">&quot;Lite database.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
@@ -639,14 +626,39 @@
     <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IP database is more than a month old&quot;</span><span class="p">)</span>
 
-    <span class="n">db_reader</span> <span class="o">=</span> <span class="n">maxminddb</span><span class="o">.</span><span class="n">open_database</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db_path</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_IPDatabaseRecord</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+    <span class="n">country</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">asn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">asn_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">asn_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_ip_address_db_record">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_db_record">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ip_address_db_record</span><span class="p">(</span>
+    <span class="n">ip_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_IPDatabaseRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Look up an IP in the configured MMDB and return country + ASN fields.</span>
+
+<span class="sd">    IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on</span>
+<span class="sd">    every record. MaxMind/DBIP country-only databases carry only country, so</span>
+<span class="sd">    ``asn_name`` / ``asn_domain`` come back None for those users.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resolved_path</span> <span class="o">=</span> <span class="n">_get_ip_database_path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="n">db_reader</span> <span class="o">=</span> <span class="n">maxminddb</span><span class="o">.</span><span class="n">open_database</span><span class="p">(</span><span class="n">resolved_path</span><span class="p">)</span>
     <span class="n">record</span> <span class="o">=</span> <span class="n">db_reader</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
 
-    <span class="c1"># Support both the IPinfo schema (flat top-level ``country_code``) and the</span>
-    <span class="c1"># MaxMind/DBIP schema (nested ``country.iso_code``) so users dropping in</span>
-    <span class="c1"># their own MMDB from any of these providers keeps working.</span>
     <span class="n">country</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">asn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">asn_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">asn_domain</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="c1"># Support both the IPinfo schema (flat top-level ``country_code``) and</span>
+        <span class="c1"># the MaxMind/DBIP schema (nested ``country.iso_code``) so users</span>
+        <span class="c1"># dropping in their own MMDB from any of these providers keeps working.</span>
         <span class="n">code</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;country_code&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">code</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">nested</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;country&quot;</span><span class="p">)</span>
@@ -655,7 +667,55 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">country</span> <span class="o">=</span> <span class="n">code</span>
 
-    <span class="k">return</span> <span class="n">country</span></div>
+        <span class="c1"># Normalize ASN to a plain integer. IPinfo stores it as a string like</span>
+        <span class="c1"># &quot;AS15169&quot;; MaxMind&#39;s ASN DB uses ``autonomous_system_number`` as an</span>
+        <span class="c1"># int. Integer form lets consumers do range queries and sort</span>
+        <span class="c1"># numerically; display-time formatting with an &quot;AS&quot; prefix is trivial.</span>
+        <span class="n">raw_asn</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;asn&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_asn</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">asn</span> <span class="o">=</span> <span class="n">raw_asn</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_asn</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">raw_asn</span><span class="p">:</span>
+            <span class="n">digits</span> <span class="o">=</span> <span class="n">raw_asn</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">&quot;AS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">&quot;as&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">digits</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+                <span class="n">asn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">digits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">asn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mm_asn</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;autonomous_system_number&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mm_asn</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">asn</span> <span class="o">=</span> <span class="n">mm_asn</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;as_name&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;autonomous_system_organization&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">asn_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;as_domain&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">domain</span><span class="p">:</span>
+            <span class="n">asn_domain</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;country&quot;</span><span class="p">:</span> <span class="n">country</span><span class="p">,</span>
+        <span class="s2">&quot;asn&quot;</span><span class="p">:</span> <span class="n">asn</span><span class="p">,</span>
+        <span class="s2">&quot;asn_name&quot;</span><span class="p">:</span> <span class="n">asn_name</span><span class="p">,</span>
+        <span class="s2">&quot;asn_domain&quot;</span><span class="p">:</span> <span class="n">asn_domain</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="get_ip_address_country">
+<a class="viewcode-back" href="../../api.html#parsedmarc.utils.get_ip_address_country">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ip_address_country</span><span class="p">(</span>
+    <span class="n">ip_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the ISO code for the country associated</span>
+<span class="sd">    with the given IPv4 or IPv6 address.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ip_address (str): The IP address to query for</span>
+<span class="sd">        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: And ISO country code associated with the given IP address</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_ip_address_db_record</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="n">db_path</span><span class="p">)[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span></div>
 
 
 
@@ -858,6 +918,9 @@
         <span class="s2">&quot;base_domain&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;asn&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;asn_name&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;asn_domain&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">}</span>
     <span class="k">if</span> <span class="n">offline</span><span class="p">:</span>
         <span class="n">reverse_dns</span> <span class="o">=</span> <span class="kc">None</span>
@@ -868,9 +931,13 @@
             <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
             <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="n">country</span> <span class="o">=</span> <span class="n">get_ip_address_country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">)</span>
-    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">country</span>
+    <span class="n">db_record</span> <span class="o">=</span> <span class="n">get_ip_address_db_record</span><span class="p">(</span><span class="n">ip_address</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="n">ip_db_path</span><span class="p">)</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db_record</span><span class="p">[</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db_record</span><span class="p">[</span><span class="s2">&quot;asn&quot;</span><span class="p">]</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db_record</span><span class="p">[</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]</span>
+    <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db_record</span><span class="p">[</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span>
     <span class="n">info</span><span class="p">[</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reverse_dns</span>
+
     <span class="k">if</span> <span class="n">reverse_dns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">base_domain</span> <span class="o">=</span> <span class="n">get_base_domain</span><span class="p">(</span><span class="n">reverse_dns</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">base_domain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -885,12 +952,34 @@
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> added to cache&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> reverse_dns not found&quot;</span><span class="p">)</span>
+        <span class="c1"># Fall back to ASN data for source attribution. ``reverse_dns`` and</span>
+        <span class="c1"># ``base_domain`` are left null so consumers can still tell an</span>
+        <span class="c1"># ASN-derived row apart from one resolved via a real PTR.</span>
+        <span class="n">map_value</span><span class="p">:</span> <span class="n">ReverseDNSMap</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">reverse_dns_map</span> <span class="k">if</span> <span class="n">reverse_dns_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">load_reverse_dns_map</span><span class="p">(</span>
+                <span class="n">map_value</span><span class="p">,</span>
+                <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
+                <span class="n">local_file_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
+                <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
+                <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">map_value</span><span class="p">:</span>
+            <span class="n">service</span> <span class="o">=</span> <span class="n">map_value</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]]</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]:</span>
+            <span class="c1"># ASN-domain not in the map: surface the raw AS name with no</span>
+            <span class="c1"># classification. Better than leaving the row unattributed.</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> added to cache&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">info</span></div>
 

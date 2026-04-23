@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 9.8.0 documentation</title>
+  <title>API reference &mdash; parsedmarc 9.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=335b8a46"></script>
+      <script src="_static/documentation_options.js?v=428ec01f"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -153,6 +153,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_base_domain"><code class="docutils literal notranslate"><span class="pre">get_base_domain()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_filename_safe_string"><code class="docutils literal notranslate"><span class="pre">get_filename_safe_string()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_ip_address_country"><code class="docutils literal notranslate"><span class="pre">get_ip_address_country()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_ip_address_db_record"><code class="docutils literal notranslate"><span class="pre">get_ip_address_db_record()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_ip_address_info"><code class="docutils literal notranslate"><span class="pre">get_ip_address_info()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_reverse_dns"><code class="docutils literal notranslate"><span class="pre">get_reverse_dns()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.utils.get_service_from_reverse_dns_base_domain"><code class="docutils literal notranslate"><span class="pre">get_service_from_reverse_dns_base_domain()</span></code></a></li>
@@ -1267,7 +1268,7 @@ parsedmarc.resources.maps.psl_overrides.txt</p>
 <dt class="sig sig-object py" id="parsedmarc.utils.get_ip_address_country">
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_ip_address_country</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_country"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_country" title="Link to this definition"></a></dt>
 <dd><p>Returns the ISO code for the country associated
-with the given IPv4 or IPv6 address</p>
+with the given IPv4 or IPv6 address.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1282,6 +1283,15 @@ with the given IPv4 or IPv6 address</p>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.utils.get_ip_address_db_record">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">get_ip_address_db_record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip_address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">_IPDatabaseRecord</span></span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#get_ip_address_db_record"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.get_ip_address_db_record" title="Link to this definition"></a></dt>
+<dd><p>Look up an IP in the configured MMDB and return country + ASN fields.</p>
+<p>IPinfo Lite carries <code class="docutils literal notranslate"><span class="pre">country_code</span></code>, <code class="docutils literal notranslate"><span class="pre">as_name</span></code>, and <code class="docutils literal notranslate"><span class="pre">as_domain</span></code> on
+every record. MaxMind/DBIP country-only databases carry only country, so
+<code class="docutils literal notranslate"><span class="pre">asn_name</span></code> / <code class="docutils literal notranslate"><span class="pre">asn_domain</span></code> come back None for those users.</p>
 </dd></dl>
 
 <dl class="py function">

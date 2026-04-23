@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.8.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 9.9.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=335b8a46"></script>
+      <script src="../_static/documentation_options.js?v=428ec01f"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -1233,6 +1233,9 @@
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;spf_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dkim_aligned&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
@@ -1327,6 +1330,9 @@
         <span class="s2">&quot;source_base_domain&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_name&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn_name&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn_domain&quot;</span><span class="p">,</span>
         <span class="s2">&quot;count&quot;</span><span class="p">,</span>
         <span class="s2">&quot;spf_aligned&quot;</span><span class="p">,</span>
         <span class="s2">&quot;dkim_aligned&quot;</span><span class="p">,</span>
@@ -1534,6 +1540,9 @@
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn&quot;</span><span class="p">]</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn_name&quot;</span><span class="p">]</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_asn_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;asn_domain&quot;</span><span class="p">]</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_country&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">][</span><span class="s2">&quot;country&quot;</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">)</span>
@@ -1582,6 +1591,9 @@
         <span class="s2">&quot;source_base_domain&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_name&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn_name&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;source_asn_domain&quot;</span><span class="p">,</span>
         <span class="s2">&quot;delivery_result&quot;</span><span class="p">,</span>
         <span class="s2">&quot;auth_failure&quot;</span><span class="p">,</span>
         <span class="s2">&quot;reported_domain&quot;</span><span class="p">,</span>
