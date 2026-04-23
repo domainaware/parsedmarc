@@ -32,13 +32,12 @@ except ImportError:
 import dns.exception
 import dns.resolver
 import dns.reversename
-import geoip2.database
-import geoip2.errors
+import maxminddb
 import publicsuffixlist
 import requests
 from dateutil.parser import parse as parse_date
 
-import parsedmarc.resources.dbip
+import parsedmarc.resources.ipinfo
 import parsedmarc.resources.maps
 from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
@@ -416,8 +415,8 @@ def load_ip_db(
     if url is None:
         url = (
             "https://github.com/domainaware/parsedmarc/raw/"
-            "refs/heads/master/parsedmarc/resources/dbip/"
-            "dbip-country-lite.mmdb"
+            "refs/heads/master/parsedmarc/resources/ipinfo/"
+            "ipinfo_lite.mmdb"
         )
 
     if local_file_path is not None and os.path.isfile(local_file_path):
@@ -426,7 +425,7 @@ def load_ip_db(
         return
 
     cache_dir = os.path.join(tempfile.gettempdir(), "parsedmarc")
-    cached_path = os.path.join(cache_dir, "dbip-country-lite.mmdb")
+    cached_path = os.path.join(cache_dir, "ipinfo_lite.mmdb")
 
     if not (offline or always_use_local_file):
         try:
@@ -454,9 +453,7 @@ def load_ip_db(
         return
 
     # Final fallback: bundled copy
-    _IP_DB_PATH = str(
-        files(parsedmarc.resources.dbip).joinpath("dbip-country-lite.mmdb")
-    )
+    _IP_DB_PATH = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
     logger.info("Using bundled IP database")
 
 
@@ -469,12 +466,13 @@ def get_ip_address_country(
 
     Args:
         ip_address (str): The IP address to query for
-        db_path (str): Path to a MMDB file from MaxMind or DBIP
+        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
 
     Returns:
         str: And ISO country code associated with the given IP address
     """
     db_paths = [
+        "ipinfo_lite.mmdb",
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
         "/usr/share/GeoIP/GeoLite2-Country.mmdb",
@@ -490,12 +488,12 @@ def get_ip_address_country(
 
     if db_path is not None:
         if not os.path.isfile(db_path):
-            db_path = None
             logger.warning(
                 f"No file exists at {db_path}. Falling back to an "
-                "included copy of the IPDB IP to Country "
+                "included copy of the IPinfo IP to Country "
                 "Lite database."
             )
+            db_path = None
 
     if db_path is None:
         for system_path in db_paths:
@@ -508,21 +506,28 @@ def get_ip_address_country(
             db_path = _IP_DB_PATH
         else:
             db_path = str(
-                files(parsedmarc.resources.dbip).joinpath("dbip-country-lite.mmdb")
+                files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb")
             )
 
     db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
     if db_age > timedelta(days=30):
         logger.warning("IP database is more than a month old")
 
-    db_reader = geoip2.database.Reader(db_path)
+    db_reader = maxminddb.open_database(db_path)
+    record = db_reader.get(ip_address)
 
-    country = None
-
-    try:
-        country = db_reader.country(ip_address).country.iso_code
-    except geoip2.errors.AddressNotFoundError:
-        pass
+    # Support both the IPinfo schema (flat top-level ``country_code``) and the
+    # MaxMind/DBIP schema (nested ``country.iso_code``) so users dropping in
+    # their own MMDB from any of these providers keeps working.
+    country: Optional[str] = None
+    if isinstance(record, dict):
+        code = record.get("country_code")
+        if code is None:
+            nested = record.get("country")
+            if isinstance(nested, dict):
+                code = nested.get("iso_code")
+        if isinstance(code, str):
+            country = code
 
     return country
 

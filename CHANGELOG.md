@@ -1,5 +1,22 @@
 # Changelog
 
+## 9.8.0
+
+### Changes
+
+- Replaced the bundled DB-IP Country Lite database with the [IPinfo Lite] database (`parsedmarc/resources/ipinfo/ipinfo_lite.mmdb`, under the [Creative Commons Attribution-ShareAlike 4.0 License][cc-by-sa-4]) for greater IP-to-country lookup accuracy. The download URL / cached filename / packaged module path have all moved from `dbip/dbip-country-lite.mmdb` to `ipinfo/ipinfo_lite.mmdb`.
+- `get_ip_address_country()` now reads MMDBs with `maxminddb` directly and handles both schemas — the IPinfo flat-top-level `country_code` field and the MaxMind/DBIP nested `country.iso_code` field — so users who drop in their own MMDB from any of these providers continue to work. The in-disk search list for user-supplied files still includes `ipinfo_lite.mmdb`, `GeoLite2-Country.mmdb`, and `dbip-country-lite*.mmdb`.
+- Dropped the `geoip2` dependency (its only use was the `.country()` helper, which is incompatible with the IPinfo schema). Added `maxminddb` as a direct dependency — it was already installed transitively through `geoip2`, so this is a no-op for most environments.
+
+### Upgrade notes
+
+- Callers that imported `parsedmarc.resources.dbip` directly need to switch to `parsedmarc.resources.ipinfo`. The `parsedmarc.resources.dbip` module has been removed.
+- Callers that imported `geoip2` only because `parsedmarc` depended on it will need to add it to their own requirements. `parsedmarc` itself no longer depends on `geoip2`.
+- The auto-update download URL used by previous parsedmarc versions (`.../dbip/dbip-country-lite.mmdb`) is no longer hosted on `master`; those versions will fail to download and fall back to their bundled copy, which is the documented behavior of `load_ip_db()`.
+
+[IPinfo Lite]: https://ipinfo.io/lite
+[cc-by-sa-4]: https://creativecommons.org/licenses/by-sa/4.0/deed.en
+
 ## 9.7.1
 
 ### Changes

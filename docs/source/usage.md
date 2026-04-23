@@ -133,7 +133,7 @@ The full set of configuration options are:
   - `forensic_json_filename` - str: filename for the forensic
       JSON output file
   - `ip_db_path` - str: An optional custom path to a MMDB file
-      from MaxMind or DBIP
+      from IPinfo, MaxMind, or DBIP
   - `ip_db_url` - str: Overrides the default download URL for the
       IP-to-country database (env var: `PARSEDMARC_GENERAL_IP_DB_URL`)
   - `offline` - bool: Do not use online queries for geolocation

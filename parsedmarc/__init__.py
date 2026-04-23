@@ -317,7 +317,7 @@ def _parse_report_record(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
@@ -685,7 +685,7 @@ def parse_aggregate_report_xml(
 
     Args:
         xml (str): A string of DMARC aggregate report XML
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -1009,7 +1009,7 @@ def parse_aggregate_report_file(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -1257,7 +1257,7 @@ def parse_forensic_report(
     Args:
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -1493,7 +1493,7 @@ def parse_report_email(
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
@@ -1715,7 +1715,7 @@ def parse_report_file(
             or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
             forensic report results
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
@@ -1814,7 +1814,7 @@ def get_dmarc_reports_from_mbox(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
@@ -1907,7 +1907,7 @@ def get_dmarc_reports_from_mailbox(
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -2249,7 +2249,7 @@ def watch_inbox(
         test (bool): Do not move or delete messages after processing them
         check_timeout (int): Number of seconds to wait for a IMAP IDLE response
             or the number of seconds until the next mail check
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
