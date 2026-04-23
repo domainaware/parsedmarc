@@ -153,8 +153,8 @@ class IPAddressInfo(TypedDict):
     name: Optional[str]
     type: Optional[str]
     asn: Optional[int]
-    asn_name: Optional[str]
-    asn_domain: Optional[str]
+    as_name: Optional[str]
+    as_domain: Optional[str]
 
 
 def decode_base64(data: str) -> bytes:
@@ -464,8 +464,8 @@ def load_ip_db(
 class _IPDatabaseRecord(TypedDict):
     country: Optional[str]
     asn: Optional[int]
-    asn_name: Optional[str]
-    asn_domain: Optional[str]
+    as_name: Optional[str]
+    as_domain: Optional[str]
 
 
 class InvalidIPinfoAPIKey(Exception):
@@ -734,13 +734,13 @@ def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
     """Normalize an IPinfo / MaxMind record to the internal shape.
 
     Shared between the API path and the MMDB path so both schemas produce the
-    same output: country as ISO code, ASN as plain int, asn_name string,
-    asn_domain lowercased.
+    same output: country as ISO code, ASN as plain int, as_name string,
+    as_domain lowercased.
     """
     country: Optional[str] = None
     asn: Optional[int] = None
-    asn_name: Optional[str] = None
-    asn_domain: Optional[str] = None
+    as_name: Optional[str] = None
+    as_domain: Optional[str] = None
 
     code = record.get("country_code")
     if code is None:
@@ -764,16 +764,16 @@ def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
 
     name = record.get("as_name") or record.get("autonomous_system_organization")
     if isinstance(name, str) and name:
-        asn_name = name
+        as_name = name
     domain = record.get("as_domain")
     if isinstance(domain, str) and domain:
-        asn_domain = domain.lower()
+        as_domain = domain.lower()
 
     return {
         "country": country,
         "asn": asn,
-        "asn_name": asn_name,
-        "asn_domain": asn_domain,
+        "as_name": as_name,
+        "as_domain": as_domain,
     }
 
 
@@ -834,7 +834,7 @@ def get_ip_address_db_record(
 
     IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on
     every record. MaxMind/DBIP country-only databases carry only country, so
-    ``asn_name`` / ``asn_domain`` come back None for those users.
+    ``as_name`` / ``as_domain`` come back None for those users.
     """
     api_record = _ipinfo_api_lookup(ip_address)
     if api_record is not None:
@@ -847,8 +847,8 @@ def get_ip_address_db_record(
         return {
             "country": None,
             "asn": None,
-            "asn_name": None,
-            "asn_domain": None,
+            "as_name": None,
+            "as_domain": None,
         }
     return _normalize_ip_record(record)
 
@@ -1062,8 +1062,8 @@ def get_ip_address_info(
         "name": None,
         "type": None,
         "asn": None,
-        "asn_name": None,
-        "asn_domain": None,
+        "as_name": None,
+        "as_domain": None,
     }
     if offline:
         reverse_dns = None
@@ -1077,8 +1077,8 @@ def get_ip_address_info(
     db_record = get_ip_address_db_record(ip_address, db_path=ip_db_path)
     info["country"] = db_record["country"]
     info["asn"] = db_record["asn"]
-    info["asn_name"] = db_record["asn_name"]
-    info["asn_domain"] = db_record["asn_domain"]
+    info["as_name"] = db_record["as_name"]
+    info["as_domain"] = db_record["as_domain"]
     info["reverse_dns"] = reverse_dns
 
     if reverse_dns is not None:
@@ -1111,14 +1111,14 @@ def get_ip_address_info(
                 url=reverse_dns_map_url,
                 offline=offline,
             )
-        if info["asn_domain"] and info["asn_domain"] in map_value:
-            service = map_value[info["asn_domain"]]
+        if info["as_domain"] and info["as_domain"] in map_value:
+            service = map_value[info["as_domain"]]
             info["name"] = service["name"]
             info["type"] = service["type"]
-        elif info["asn_name"]:
+        elif info["as_name"]:
             # ASN-domain not in the map: surface the raw AS name with no
             # classification. Better than leaving the row unattributed.
-            info["name"] = info["asn_name"]
+            info["name"] = info["as_name"]
 
     if cache is not None:
         cache[ip_address] = info

@@ -1115,8 +1115,8 @@ def parsed_aggregate_reports_to_csv_rows(
             row["source_name"] = record["source"]["name"]
             row["source_type"] = record["source"]["type"]
             row["source_asn"] = record["source"]["asn"]
-            row["source_asn_name"] = record["source"]["asn_name"]
-            row["source_asn_domain"] = record["source"]["asn_domain"]
+            row["source_as_name"] = record["source"]["as_name"]
+            row["source_as_domain"] = record["source"]["as_domain"]
             row["count"] = record["count"]
             row["spf_aligned"] = record["alignment"]["spf"]
             row["dkim_aligned"] = record["alignment"]["dkim"]
@@ -1209,8 +1209,8 @@ def parsed_aggregate_reports_to_csv(
         "source_name",
         "source_type",
         "source_asn",
-        "source_asn_name",
-        "source_asn_domain",
+        "source_as_name",
+        "source_as_domain",
         "count",
         "spf_aligned",
         "dkim_aligned",
@@ -1413,8 +1413,8 @@ def parsed_forensic_reports_to_csv_rows(
         row["source_name"] = report["source"]["name"]
         row["source_type"] = report["source"]["type"]
         row["source_asn"] = report["source"]["asn"]
-        row["source_asn_name"] = report["source"]["asn_name"]
-        row["source_asn_domain"] = report["source"]["asn_domain"]
+        row["source_as_name"] = report["source"]["as_name"]
+        row["source_as_domain"] = report["source"]["as_domain"]
         row["source_country"] = report["source"]["country"]
         del row["source"]
         row["subject"] = report["parsed_sample"].get("subject")
@@ -1461,8 +1461,8 @@ def parsed_forensic_reports_to_csv(
         "source_name",
         "source_type",
         "source_asn",
-        "source_asn_name",
-        "source_asn_domain",
+        "source_as_name",
+        "source_as_domain",
         "delivery_result",
         "auth_failure",
         "reported_domain",

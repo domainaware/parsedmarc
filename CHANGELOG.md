@@ -6,6 +6,11 @@
 
 - Renamed `[general] ip_db_url` to `ipinfo_url` to reflect what it actually overrides (the bundled IPinfo Lite MMDB download URL). The old name is still accepted as a deprecated alias and logs a warning on use; the env-var equivalent is now `PARSEDMARC_GENERAL_IPINFO_URL`, with `PARSEDMARC_GENERAL_IP_DB_URL` also still honored.
 - Added an optional IPinfo Lite REST API path for country + ASN lookups, so deployments that want the freshest data can query the API directly instead of waiting for the next MMDB release. Configure `[general] ipinfo_api_token` (or `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`) and every IP lookup hits `https://api.ipinfo.io/lite/<ip>` first. At startup the `https://ipinfo.io/me` account endpoint is hit once to validate the token and log the plan, month-to-date usage, and remaining quota at info level (e.g. `IPinfo API configured — plan: Lite, usage: 12345/50000 this month, 37655 remaining`). An invalid token exits the process with a fatal error. Rate-limit (HTTP 429) and quota-exhausted (HTTP 402) responses put the API in a cooldown (honoring `Retry-After`, with a 5-minute / 1-hour default) and fall through to the bundled/cached MMDB; the first event is logged once at warning level and recovery is logged once at info level when the next lookup succeeds. Transient network errors fall through per-request without triggering a cooldown. The API token is never logged.
+- Renamed the ASN name and domain fields to match the IPinfo Lite MMDB's native schema: `asn_name` → `as_name` and `asn_domain` → `as_domain` on every source record (JSON output), and `source_asn_name` → `source_as_name` / `source_asn_domain` → `source_as_domain` in CSV output (aggregate + forensic) and the Elasticsearch / OpenSearch / Splunk integrations. The integer `asn` / `source_asn` field is unchanged. The emitted order is `asn`, `as_name`, `as_domain`.
+
+### Upgrade notes
+
+- CSV / JSON / Elasticsearch / OpenSearch / Splunk consumers that query the 9.9.0 field names (`asn_name`, `asn_domain`, `source_asn_name`, `source_asn_domain`) must switch to `as_name`, `as_domain`, `source_as_name`, `source_as_domain`. Elasticsearch / OpenSearch will add the new mappings on next document write; existing documents indexed under the old names will stay in place until reindexed.
 
 ## 9.9.0
 

@@ -233,8 +233,8 @@ class Test(unittest.TestCase):
         info = parsedmarc.utils.get_ip_address_info("8.8.8.8", offline=True)
         self.assertEqual(info["asn"], 15169)
         self.assertIsInstance(info["asn"], int)
-        self.assertEqual(info["asn_domain"], "google.com")
-        self.assertTrue(info["asn_name"])
+        self.assertEqual(info["as_domain"], "google.com")
+        self.assertTrue(info["as_name"])
 
     def testIpAddressInfoFallsBackToASNMapEntryWhenNoPTR(self):
         """When reverse DNS is absent, the ASN domain should be used as a
@@ -251,7 +251,7 @@ class Test(unittest.TestCase):
         is used as source_name with type left null — better than leaving
         the row unattributed."""
         # 204.79.197.100 is in an ASN whose as_domain is not in the map at
-        # the time of this test (msn.com); this exercises the asn_name
+        # the time of this test (msn.com); this exercises the as_name
         # fallback branch without depending on a specific map state.
         from unittest.mock import patch
 
@@ -260,8 +260,8 @@ class Test(unittest.TestCase):
             return_value={
                 "country": "US",
                 "asn": 64496,
-                "asn_name": "Some Unmapped Org, Inc.",
-                "asn_domain": "unmapped-for-this-test.example",
+                "as_name": "Some Unmapped Org, Inc.",
+                "as_domain": "unmapped-for-this-test.example",
             },
         ):
             # Bypass cache to avoid prior-test pollution.
@@ -272,7 +272,7 @@ class Test(unittest.TestCase):
         self.assertIsNone(info["base_domain"])
         self.assertIsNone(info["type"])
         self.assertEqual(info["name"], "Some Unmapped Org, Inc.")
-        self.assertEqual(info["asn_domain"], "unmapped-for-this-test.example")
+        self.assertEqual(info["as_domain"], "unmapped-for-this-test.example")
 
     def testIPinfoAPIPrimarySourceAndInvalidKeyIsFatal(self):
         """With an API token configured, lookups hit the API first. A 401/403
@@ -313,7 +313,7 @@ class Test(unittest.TestCase):
                 record = get_ip_address_db_record("8.8.8.8")
             self.assertEqual(record["country"], "US")
             self.assertEqual(record["asn"], 15169)
-            self.assertEqual(record["asn_domain"], "google.com")
+            self.assertEqual(record["as_domain"], "google.com")
 
             # Invalid key: 401 raises a fatal exception even on a random lookup.
             with patch(
@@ -361,7 +361,7 @@ class Test(unittest.TestCase):
             ):
                 with self.assertLogs("parsedmarc.log", level="INFO") as cm:
                     record = get_ip_address_db_record("8.8.8.8")
-            self.assertEqual(record["asn_domain"], "google.com")
+            self.assertEqual(record["as_domain"], "google.com")
             self.assertTrue(
                 any("recovered" in line.lower() for line in cm.output),
                 f"expected a recovery info log, got: {cm.output}",
@@ -406,8 +406,8 @@ class Test(unittest.TestCase):
             configure_ipinfo_api(None)
 
     def testAggregateCsvExposesASNColumns(self):
-        """The aggregate CSV output should include source_asn, source_asn_name,
-        and source_asn_domain columns."""
+        """The aggregate CSV output should include source_asn, source_as_name,
+        and source_as_domain columns."""
         result = parsedmarc.parse_report_file(
             "samples/aggregate/!example.com!1538204542!1538463818.xml",
             always_use_local_files=True,
@@ -416,8 +416,8 @@ class Test(unittest.TestCase):
         csv_text = parsedmarc.parsed_aggregate_reports_to_csv(result["report"])
         header = csv_text.splitlines()[0].split(",")
         self.assertIn("source_asn", header)
-        self.assertIn("source_asn_name", header)
-        self.assertIn("source_asn_domain", header)
+        self.assertIn("source_as_name", header)
+        self.assertIn("source_as_domain", header)
 
     def testOpenSearchSigV4RequiresRegion(self):
         with self.assertRaises(opensearch_module.OpenSearchError):
