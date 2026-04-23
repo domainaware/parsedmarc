@@ -72,12 +72,14 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 
 ## Maintaining the reverse DNS maps
 
-`parsedmarc/resources/maps/base_reverse_dns_map.csv` maps reverse DNS base domains to a display name and service type. See `parsedmarc/resources/maps/README.md` for the field format and the service_type precedence rules.
+`parsedmarc/resources/maps/base_reverse_dns_map.csv` maps a base domain to a display name and service type. The same map is consulted at two points: first with a PTR-derived base domain, and — if the IP has no PTR — with the ASN domain from the bundled IPinfo Lite MMDB (`parsedmarc/resources/ipinfo/ipinfo_lite.mmdb`). See `parsedmarc/resources/maps/README.md` for the field format and the service_type precedence rules.
+
+Because both lookup paths read the same CSV, map keys are a mixed namespace — rDNS-base domains (e.g. `comcast.net`, discovered via `base_reverse_dns.csv`) coexist with ASN domains (e.g. `comcast.com`, discovered via coverage-gap analysis against the MMDB). Entries of both kinds should point to the same `(name, type)` when they describe the same operator — grep before inventing a new display name.
 
 ### File format
 
 - CSV uses **CRLF** line endings and UTF-8 encoding — preserve both when editing programmatically.
-- Entries are sorted alphabetically (case-insensitive) by the first column.
+- Entries are sorted alphabetically (case-insensitive) by the first column. `parsedmarc/resources/maps/sortlists.py` is authoritative — run it after any batch edit to re-sort, dedupe, and validate `type` values.
 - Names containing commas must be quoted.
 - Do not edit in Excel (it mangles Unicode); use LibreOffice Calc or a text editor.
 
@@ -125,7 +127,32 @@ When `unknown_base_reverse_dns.csv` has new entries, follow this order rather th
 - `detect_psl_overrides.py` — scans the lists for clustered IP-containing patterns, auto-adds brand suffixes to `psl_overrides.txt`, folds affected entries to their base, and removes any remaining full-IP entries. Run before the collector on any new batch.
 - `collect_domain_info.py` — the bulk enrichment collector described above. Respects `psl_overrides.txt` and skips full-IP entries.
 - `find_bad_utf8.py` — locates invalid UTF-8 bytes (used after past encoding corruption).
-- `sortlists.py` — sorting helper for the list files.
+- `sortlists.py` — case-insensitive sort + dedupe + `type`-column validator for the list files; the authoritative sorter run after every batch edit.
+
+### Checking ASN-domain coverage of the MMDB
+
+Separately from `base_reverse_dns.csv`, the MMDB itself is a source of keys worth mapping. To find ASN domains with high IP weight that don't yet have a map entry, walk every record in `ipinfo_lite.mmdb`, aggregate IPv4 count per `as_domain`, and subtract what's already a map key:
+
+```python
+import csv, maxminddb
+from collections import defaultdict
+keys = set()
+with open("parsedmarc/resources/maps/base_reverse_dns_map.csv", newline="", encoding="utf-8") as f:
+    for row in csv.DictReader(f):
+        keys.add(row["base_reverse_dns"].strip().lower())
+v4 = defaultdict(int); names = {}
+for net, rec in maxminddb.open_database("parsedmarc/resources/ipinfo/ipinfo_lite.mmdb"):
+    if net.version != 4 or not isinstance(rec, dict): continue
+    d = rec.get("as_domain")
+    if not d: continue
+    v4[d.lower()] += net.num_addresses
+    names[d.lower()] = rec.get("as_name", "")
+miss = sorted(((d, v4[d], names[d]) for d in v4 if d not in keys), key=lambda x: -x[1])
+for d, c, n in miss[:50]:
+    print(f"{c:>12,}  {d:<30}  {n}")
+```
+
+Apply the same classification rules above (precedence, naming consistency, skip-if-ambiguous, privacy). Many top misses will be brands already in the map under a different rDNS-base key — the goal there is to alias the ASN domain to the same `(name, type)` so both lookup paths hit. For ASN domains with no obvious brand identity (small resellers, parked ASNs), don't map them — the attribution code falls back to the raw `as_name` from the MMDB, which is better than a guess.
 
 ### After a batch merge
 

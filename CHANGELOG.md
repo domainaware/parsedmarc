@@ -1,5 +1,29 @@
 # Changelog
 
+## 9.9.0
+
+### Changes
+
+- Source attribution now has an ASN fallback. Every IP source record carries three new fields — `asn` (integer, e.g. `15169`), `asn_name` (`"Google LLC"`), and `asn_domain` (`"google.com"`) — sourced from the bundled IPinfo Lite MMDB. When an IP has no reverse DNS, `get_ip_address_info()` uses `asn_domain` as a lookup into the same `reverse_dns_map`, and if that misses, falls back to the raw `asn_name`. `reverse_dns` and `base_domain` stay null on ASN-derived rows so consumers can still distinguish PTR-derived from ASN-derived attribution.
+- Added `source_asn`, `source_asn_name`, `source_asn_domain` to CSV output (aggregate + forensic), JSON output, and the Elasticsearch / OpenSearch / Splunk integrations. `source_asn` is mapped as `Integer` at the schema level so consumers can do range queries and numeric sorts; dashboards can prepend `"AS"` at display time.
+- Expanded `base_reverse_dns_map.csv` with 500 ASN-domain aliases for the most-routed IPv4 ranges. IPv4-weighted coverage of the bundled `ipinfo_lite.mmdb` went from ~34% of routed space matching a map entry via ASN domain to ~85%. Every alias is a brand that was already in the map under a different rDNS-base key (e.g. adding `comcast.com` alongside the existing `comcast.net`), plus a small number of large operators that previously had no entry. 11 entries were also promoted out of `known_unknown_base_reverse_dns.txt` because ASN context made their identity unambiguous.
+- Added `get_ip_address_db_record()` in `parsedmarc.utils`, a single-open MMDB reader that returns country + ASN fields together. `get_ip_address_country()` is now a thin wrapper. Supports both IPinfo Lite's schema (`country_code`, `asn` as `"AS15169"`, `as_name`, `as_domain`) and MaxMind's (`country.iso_code`, `autonomous_system_number` as int, `autonomous_system_organization`) in one pass; ASN is normalized to a plain int from either. MaxMind users who drop in their own ASN MMDB get `asn` + `asn_name` populated; `asn_domain` stays null because MaxMind doesn't carry it.
+
+### Fixed
+
+- `get_ip_address_info()` now caches entries for IPs without reverse DNS. Previously the cache write was inside the `if reverse_dns is not None` branch, so every no-PTR IP re-did the MMDB read and DNS attempt on every call.
+- Fixed three bugs in `parsedmarc/resources/maps/sortlists.py` that silently disabled the `type`-column validator and sorted the map case-sensitively, contrary to its documented behavior:
+  - Validator allowed-values map was keyed on `"Type"` (capital T), but the CSV header is `"type"` (lowercase), so every row bypassed validation.
+  - Types were read with trailing newlines via `f.readlines()`, so comparisons would not have matched even if the column name had been right.
+  - `sort_csv()` was called without `case_insensitive_sort=True`, which moved the sole mixed-case key (`United-domains.de`) to the top of the file instead of into its alphabetical position.
+- Fixed eight pre-existing map rows with invalid or inconsistent `type` values that the now-working validator surfaced: casing corrections for `dhl.com` (`logistics` → `Logistics`), `ghm-grenoble.fr` (`healthcare` → `Healthcare`), and `regusnet.com` (`Real estate` → `Real Estate`); reclassified `lodestonegroup.com` from the nonexistent `Insurance` type to `Finance`; added missing `Religion` and `Utilities` entries to `base_reverse_dns_types.txt` so it matches the README's industry list.
+- Fixed the `rt.ru` map entry: was classified as `RT,Government Media`, which conflated Rostelecom (the Russian telco that owns and uses `rt.ru`) with RT / Russia Today (which uses `rt.com`). Corrected to `Rostelecom,ISP`.
+
+### Upgrade notes
+
+- Output schema change: CSV, JSON, Elasticsearch, OpenSearch, and Splunk all gain three new fields per row (`source_asn`, `source_asn_name`, `source_asn_domain`). Existing queries and dashboards keep working; dashboards that want to consume the new fields will need to be updated. Elasticsearch / OpenSearch will add the new mappings on next document write.
+- Rows for IPs without reverse DNS now populate `source_name` / `source_type` via ASN fallback. If downstream dashboards treated "null `source_name`" as a signal for "no rDNS", switch to checking `source_reverse_dns IS NULL` instead — that remains the unambiguous signal.
+
 ## 9.8.0
 
 ### Changes
