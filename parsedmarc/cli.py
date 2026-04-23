@@ -51,6 +51,8 @@ from parsedmarc.mail import (
 from parsedmarc.mail.graph import AuthMethod
 from parsedmarc.types import ParsingResults
 from parsedmarc.utils import (
+    InvalidIPinfoAPIKey,
+    configure_ipinfo_api,
     get_base_domain,
     get_reverse_dns,
     is_mbox,
@@ -399,6 +401,10 @@ def _parse_config(config: ConfigParser, opts):
             opts.ip_db_path = None
         if "ip_db_url" in general_config:
             opts.ip_db_url = general_config["ip_db_url"]
+        if "ipinfo_api_token" in general_config:
+            opts.ipinfo_api_token = general_config["ipinfo_api_token"]
+        if "ipinfo_api_url" in general_config:
+            opts.ipinfo_api_url = general_config["ipinfo_api_url"]
         if "always_use_local_files" in general_config:
             opts.always_use_local_files = bool(
                 general_config.getboolean("always_use_local_files")
@@ -1833,6 +1839,8 @@ def _main():
         n_procs=1,
         ip_db_path=None,
         ip_db_url=None,
+        ipinfo_api_token=None,
+        ipinfo_api_url=None,
         always_use_local_files=False,
         reverse_dns_map_path=None,
         reverse_dns_map_url=None,
@@ -1917,6 +1925,16 @@ def _main():
         url=opts.ip_db_url,
         offline=opts.offline,
     )
+
+    if opts.ipinfo_api_token and not opts.offline:
+        try:
+            configure_ipinfo_api(
+                opts.ipinfo_api_token,
+                url=opts.ipinfo_api_url,
+            )
+        except InvalidIPinfoAPIKey as e:
+            logger.critical(str(e))
+            exit(1)
 
     load_psl_overrides(
         always_use_local_file=opts.always_use_local_files,
@@ -2355,6 +2373,18 @@ def _main():
                     url=new_opts.ip_db_url,
                     offline=new_opts.offline,
                 )
+
+                # Re-apply IPinfo API settings. Passing a falsy token disables
+                # the API; a rotated token picks up here too. An invalid token
+                # is fatal even on reload — the operator asked for it.
+                try:
+                    configure_ipinfo_api(
+                        new_opts.ipinfo_api_token if not new_opts.offline else None,
+                        url=new_opts.ipinfo_api_url,
+                    )
+                except InvalidIPinfoAPIKey as e:
+                    logger.critical(str(e))
+                    exit(1)
 
                 for k, v in vars(new_opts).items():
                     setattr(opts, k, v)

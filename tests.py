@@ -270,6 +270,77 @@ class Test(unittest.TestCase):
         self.assertEqual(info["name"], "Some Unmapped Org, Inc.")
         self.assertEqual(info["asn_domain"], "unmapped-for-this-test.example")
 
+    def testIPinfoAPIPrimarySourceAndInvalidKeyIsFatal(self):
+        """With an API token configured, lookups hit the API first. A 401/403
+        response propagates as ``InvalidIPinfoAPIKey`` so the CLI can exit.
+        A 429 disables the API for the rest of the run and lookups fall back
+        to the MMDB transparently."""
+        from unittest.mock import patch, MagicMock
+
+        from parsedmarc.utils import (
+            InvalidIPinfoAPIKey,
+            configure_ipinfo_api,
+            get_ip_address_db_record,
+        )
+
+        def _mock_response(status_code, json_body=None):
+            resp = MagicMock()
+            resp.status_code = status_code
+            resp.ok = 200 <= status_code < 300
+            resp.json.return_value = json_body or {}
+            return resp
+
+        try:
+            # Success: API returns IPinfo-schema JSON; record comes from API.
+            api_json = {
+                "ip": "8.8.8.8",
+                "asn": "AS15169",
+                "as_name": "Google LLC",
+                "as_domain": "google.com",
+                "country_code": "US",
+            }
+            with patch(
+                "parsedmarc.utils.requests.get",
+                return_value=_mock_response(200, api_json),
+            ):
+                configure_ipinfo_api("fake-token", probe=False)
+                record = get_ip_address_db_record("8.8.8.8")
+            self.assertEqual(record["country"], "US")
+            self.assertEqual(record["asn"], 15169)
+            self.assertEqual(record["asn_domain"], "google.com")
+
+            # Invalid key: 401 raises a fatal exception even on a random lookup.
+            with patch(
+                "parsedmarc.utils.requests.get",
+                return_value=_mock_response(401),
+            ):
+                configure_ipinfo_api("bad-token", probe=False)
+                with self.assertRaises(InvalidIPinfoAPIKey):
+                    get_ip_address_db_record("8.8.8.8")
+
+            # Rate limited: 429 disables the API and falls back to the MMDB.
+            with patch(
+                "parsedmarc.utils.requests.get",
+                return_value=_mock_response(429),
+            ):
+                configure_ipinfo_api("rate-limited", probe=False)
+                record = get_ip_address_db_record("8.8.8.8")
+            # MMDB fallback fills in Google's ASN from the bundled IPinfo Lite DB.
+            self.assertEqual(record["asn"], 15169)
+
+            # A subsequent call after the 429 should not re-hit the API
+            # (it's disabled for the rest of the run), so even a mocked 200
+            # response with different data is ignored.
+            poisoned = {"asn": "AS1", "country_code": "ZZ"}
+            with patch(
+                "parsedmarc.utils.requests.get",
+                return_value=_mock_response(200, poisoned),
+            ) as mock_get:
+                record = get_ip_address_db_record("8.8.8.8")
+                mock_get.assert_not_called()
+        finally:
+            configure_ipinfo_api(None)
+
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_asn_name,
         and source_asn_domain columns."""

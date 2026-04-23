@@ -460,6 +460,191 @@ def load_ip_db(
     logger.info("Using bundled IP database")
 
 
+class _IPDatabaseRecord(TypedDict):
+    country: Optional[str]
+    asn: Optional[int]
+    asn_name: Optional[str]
+    asn_domain: Optional[str]
+
+
+class InvalidIPinfoAPIKey(Exception):
+    """Raised when the IPinfo API rejects the configured token."""
+
+
+# IPinfo Lite REST API. When ``_IPINFO_API_TOKEN`` is set, ``get_ip_address_db_record()``
+# queries the API first and falls through to the bundled/cached MMDB only on
+# rate-limit/quota/network errors. A 401/403 on any lookup propagates as
+# ``InvalidIPinfoAPIKey`` so the CLI exits fatally; callers of the library
+# should catch it.
+_IPINFO_API_BASE_URL = "https://api.ipinfo.io/lite"
+_IPINFO_API_TOKEN: Optional[str] = None
+_IPINFO_API_URL: str = _IPINFO_API_BASE_URL
+_IPINFO_API_TIMEOUT: float = 5.0
+# Flipped on after a 429 or a 402/quota-exhausted response so we stop hammering
+# the API for the rest of the process. Operators can bounce the process to try
+# again.
+_IPINFO_API_DISABLED: bool = False
+
+
+def configure_ipinfo_api(
+    token: Optional[str],
+    *,
+    url: Optional[str] = None,
+    probe: bool = True,
+) -> None:
+    """Configure the IPinfo Lite REST API as the primary source for IP lookups.
+
+    When a token is configured, ``get_ip_address_db_record()`` hits the API
+    first for every lookup and falls back to the MMDB on rate-limit, quota, or
+    network errors. An invalid token raises ``InvalidIPinfoAPIKey`` — the CLI
+    catches that and exits fatally.
+
+    Args:
+        token: IPinfo API token. ``None`` or empty disables the API.
+        url: Override the API base URL (default ``https://api.ipinfo.io/lite``).
+        probe: If ``True``, verify the token by looking up ``1.1.1.1`` before
+            returning. A 401/403 raises ``InvalidIPinfoAPIKey``; transient
+            errors are logged and the token is still accepted so per-request
+            fallback can take over.
+    """
+    global _IPINFO_API_TOKEN, _IPINFO_API_URL, _IPINFO_API_DISABLED
+
+    if not token:
+        _IPINFO_API_TOKEN = None
+        _IPINFO_API_URL = _IPINFO_API_BASE_URL
+        _IPINFO_API_DISABLED = False
+        return
+
+    _IPINFO_API_TOKEN = token
+    _IPINFO_API_URL = (url or _IPINFO_API_BASE_URL).rstrip("/")
+    _IPINFO_API_DISABLED = False
+
+    if probe:
+        # Verify the token. Any network/quota failure here is non-fatal — we
+        # still accept the token and let per-request fallback handle it — but
+        # an invalid-key response must fail fast so operators notice
+        # immediately instead of seeing silent MMDB-only lookups all day.
+        try:
+            _ipinfo_api_lookup("1.1.1.1")
+        except InvalidIPinfoAPIKey:
+            raise
+        except Exception as e:
+            logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
+        else:
+            logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
+
+
+def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
+    """Look up an IP via the IPinfo Lite REST API.
+
+    Returns the normalized record on success, or ``None`` when the API is
+    unavailable for any reason the caller should fall back from (network
+    error, 429 rate limit, 402 quota exhausted, malformed response). 429/402
+    disable the API for the rest of the process so we stop re-trying on every
+    subsequent IP.
+
+    Raises:
+        InvalidIPinfoAPIKey: on 401/403. Propagates to abort the run.
+    """
+    global _IPINFO_API_DISABLED
+
+    if not _IPINFO_API_TOKEN or _IPINFO_API_DISABLED:
+        return None
+
+    url = f"{_IPINFO_API_URL}/{ip_address}"
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Authorization": f"Bearer {_IPINFO_API_TOKEN}",
+        "Accept": "application/json",
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=_IPINFO_API_TIMEOUT)
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"IPinfo API request for {ip_address} failed: {e}")
+        return None
+
+    if response.status_code in (401, 403):
+        raise InvalidIPinfoAPIKey(
+            f"IPinfo API rejected the configured token (HTTP {response.status_code})"
+        )
+    if response.status_code == 429:
+        _IPINFO_API_DISABLED = True
+        logger.warning(
+            "IPinfo API rate limit hit; falling back to the local MMDB for the "
+            "rest of this run"
+        )
+        return None
+    if response.status_code == 402:
+        _IPINFO_API_DISABLED = True
+        logger.warning(
+            "IPinfo API quota exhausted; falling back to the local MMDB for the "
+            "rest of this run"
+        )
+        return None
+    if not response.ok:
+        logger.debug(
+            f"IPinfo API returned HTTP {response.status_code} for {ip_address}"
+        )
+        return None
+
+    try:
+        payload = response.json()
+    except ValueError:
+        logger.debug(f"IPinfo API returned non-JSON for {ip_address}")
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    return _normalize_ip_record(payload)
+
+
+def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
+    """Normalize an IPinfo / MaxMind record to the internal shape.
+
+    Shared between the API path and the MMDB path so both schemas produce the
+    same output: country as ISO code, ASN as plain int, asn_name string,
+    asn_domain lowercased.
+    """
+    country: Optional[str] = None
+    asn: Optional[int] = None
+    asn_name: Optional[str] = None
+    asn_domain: Optional[str] = None
+
+    code = record.get("country_code")
+    if code is None:
+        nested = record.get("country")
+        if isinstance(nested, dict):
+            code = nested.get("iso_code")
+    if isinstance(code, str):
+        country = code
+
+    raw_asn = record.get("asn")
+    if isinstance(raw_asn, int):
+        asn = raw_asn
+    elif isinstance(raw_asn, str) and raw_asn:
+        digits = raw_asn.removeprefix("AS").removeprefix("as")
+        if digits.isdigit():
+            asn = int(digits)
+    if asn is None:
+        mm_asn = record.get("autonomous_system_number")
+        if isinstance(mm_asn, int):
+            asn = mm_asn
+
+    name = record.get("as_name") or record.get("autonomous_system_organization")
+    if isinstance(name, str) and name:
+        asn_name = name
+    domain = record.get("as_domain")
+    if isinstance(domain, str) and domain:
+        asn_domain = domain.lower()
+
+    return {
+        "country": country,
+        "asn": asn,
+        "asn_name": asn_name,
+        "asn_domain": asn_domain,
+    }
+
+
 def _get_ip_database_path(db_path: Optional[str]) -> str:
     db_paths = [
         "ipinfo_lite.mmdb",
@@ -505,71 +690,35 @@ def _get_ip_database_path(db_path: Optional[str]) -> str:
     return db_path
 
 
-class _IPDatabaseRecord(TypedDict):
-    country: Optional[str]
-    asn: Optional[int]
-    asn_name: Optional[str]
-    asn_domain: Optional[str]
-
-
 def get_ip_address_db_record(
     ip_address: str, *, db_path: Optional[str] = None
 ) -> _IPDatabaseRecord:
-    """Look up an IP in the configured MMDB and return country + ASN fields.
+    """Look up an IP and return country + ASN fields.
+
+    If the IPinfo Lite API is configured via ``configure_ipinfo_api()``, the
+    API is queried first; any non-fatal failure (rate limit, quota, network)
+    falls through to the MMDB. An invalid API token raises
+    ``InvalidIPinfoAPIKey`` and is not caught here.
 
     IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on
     every record. MaxMind/DBIP country-only databases carry only country, so
     ``asn_name`` / ``asn_domain`` come back None for those users.
     """
+    api_record = _ipinfo_api_lookup(ip_address)
+    if api_record is not None:
+        return api_record
+
     resolved_path = _get_ip_database_path(db_path)
     db_reader = maxminddb.open_database(resolved_path)
     record = db_reader.get(ip_address)
-
-    country: Optional[str] = None
-    asn: Optional[int] = None
-    asn_name: Optional[str] = None
-    asn_domain: Optional[str] = None
-    if isinstance(record, dict):
-        # Support both the IPinfo schema (flat top-level ``country_code``) and
-        # the MaxMind/DBIP schema (nested ``country.iso_code``) so users
-        # dropping in their own MMDB from any of these providers keeps working.
-        code = record.get("country_code")
-        if code is None:
-            nested = record.get("country")
-            if isinstance(nested, dict):
-                code = nested.get("iso_code")
-        if isinstance(code, str):
-            country = code
-
-        # Normalize ASN to a plain integer. IPinfo stores it as a string like
-        # "AS15169"; MaxMind's ASN DB uses ``autonomous_system_number`` as an
-        # int. Integer form lets consumers do range queries and sort
-        # numerically; display-time formatting with an "AS" prefix is trivial.
-        raw_asn = record.get("asn")
-        if isinstance(raw_asn, int):
-            asn = raw_asn
-        elif isinstance(raw_asn, str) and raw_asn:
-            digits = raw_asn.removeprefix("AS").removeprefix("as")
-            if digits.isdigit():
-                asn = int(digits)
-        if asn is None:
-            mm_asn = record.get("autonomous_system_number")
-            if isinstance(mm_asn, int):
-                asn = mm_asn
-
-        name = record.get("as_name") or record.get("autonomous_system_organization")
-        if isinstance(name, str) and name:
-            asn_name = name
-        domain = record.get("as_domain")
-        if isinstance(domain, str) and domain:
-            asn_domain = domain.lower()
-
-    return {
-        "country": country,
-        "asn": asn,
-        "asn_name": asn_name,
-        "asn_domain": asn_domain,
-    }
+    if not isinstance(record, dict):
+        return {
+            "country": None,
+            "asn": None,
+            "asn_name": None,
+            "asn_domain": None,
+        }
+    return _normalize_ip_record(record)
 
 
 def get_ip_address_country(

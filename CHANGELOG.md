@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.10.0
+
+### Changes
+
+- Added an optional IPinfo Lite REST API path for country + ASN lookups, so deployments that want the freshest data can query the API directly instead of waiting for the next MMDB release. Configure `[general] ipinfo_api_token` (or `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`) and every IP lookup hits `https://api.ipinfo.io/lite/<ip>` first. An invalid token exits the process with a fatal error at startup (via a probe lookup). Rate-limit (HTTP 429) and quota-exhausted (HTTP 402) responses disable the API for the rest of the run and fall through to the bundled/cached MMDB; transient network errors fall through per-request without disabling the API. The Lite tier is free and has no documented monthly request cap. A new `[general] ipinfo_api_url` option lets operators point at a mirror or proxy. The API token is never logged.
+
 ## 9.9.0
 
 ### Changes

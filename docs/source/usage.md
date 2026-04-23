@@ -136,6 +136,16 @@ The full set of configuration options are:
       from IPinfo, MaxMind, or DBIP
   - `ip_db_url` - str: Overrides the default download URL for the
       IP-to-country database (env var: `PARSEDMARC_GENERAL_IP_DB_URL`)
+  - `ipinfo_api_token` - str: Optional [IPinfo Lite REST API] token. When
+      set, IP lookups hit the API first for the freshest country/ASN data
+      and fall back to the local MMDB on rate limit, quota exhaustion, or
+      network errors. An invalid token exits the process with a fatal error.
+      Ignored when `offline` is set. The Lite tier is free and has no
+      documented monthly request cap; see the IPinfo Lite docs for current
+      limits. (env var: `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`)
+  - `ipinfo_api_url` - str: Override the IPinfo API base URL (default
+      `https://api.ipinfo.io/lite`). (env var:
+      `PARSEDMARC_GENERAL_IPINFO_API_URL`)
   - `offline` - bool: Do not use online queries for geolocation
       or DNS. Also disables automatic downloading of the IP-to-country
       database and reverse DNS map.
@@ -801,3 +811,4 @@ journalctl -u parsedmarc.service -r
 
 [cloudflare's public resolvers]: https://1.1.1.1/
 [url encoded]: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
+[ipinfo lite rest api]: https://ipinfo.io/developers/lite-api
