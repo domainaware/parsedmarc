@@ -172,6 +172,28 @@ for d, c, n in miss[:50]:
 
 Apply the same classification rules above (precedence, naming consistency, skip-if-ambiguous, privacy). Many top misses will be brands already in the map under a different rDNS-base key — the goal there is to alias the ASN domain to the same `(name, type)` so both lookup paths hit. For ASN domains with no obvious brand identity (small resellers, parked ASNs), don't map them — the attribution code falls back to the raw `as_name` from the MMDB, which is better than a guess.
 
+### Discovering overrides from the live PSL private-domains section
+
+Separately from live DMARC data and the MMDB, the [Public Suffix List](https://publicsuffix.org/list/public_suffix_list.dat) is itself a source of override candidates. Every entry between `===BEGIN PRIVATE DOMAINS===` and `===END PRIVATE DOMAINS===` is a brand-owned suffix by definition (registered by the operator under their own name), so each is a candidate for a `(psl_override + map entry)` pair — folding `customer.brand.tld` → `brand.tld` and attributing it to the operator.
+
+Workflow:
+
+1. Fetch the live PSL file and parse the private section by `// Org` comment blocks → `{org: [suffixes]}`.
+2. Cross-reference against `base_reverse_dns_map.csv` keys and existing `psl_overrides.txt` entries to drop already-covered orgs.
+3. **Be ruthlessly selective.** The private section has 600+ orgs, most of which are dev sandboxes, dynamic DNS services, IPFS gateways, single-person hobby domains, or registry subzones that will never appear in a DMARC report. Keep only orgs that clearly host email senders — shared web hosts, PaaS / SaaS where customers publish mail-sending sites, email/marketing platforms, major ISPs, dynamic-DNS services that home mail servers actually use.
+4. For each kept org, emit one override (`.brand.tld` per the `psl_overrides.txt` format) and one map row per suffix, all pointing at the same `(name, type)`. Apply the README precedence rules for `type`. Grep existing map keys for the brand name before inventing a new one — the goal is a single canonical display name per operator.
+5. **Same-PR follow-up: two-path coverage.** For every brand added this way, also check whether the brand's corporate domain (e.g. `netlify.com` for `netlify.app`, `shopify.com` for `myshopify.com`, `beget.com` for `beget.app`) is an `as_domain` in the MMDB, and add a map row for it with the same `(name, type)`. The PSL override fixes the PTR path; the ASN-domain alias fixes the ASN-fallback path. Do these together — one pass, not two.
+
+### The `load_psl_overrides()` fetch-first gotcha
+
+`parsedmarc.utils.load_psl_overrides()` with no arguments fetches the overrides file from `raw.githubusercontent.com/domainaware/parsedmarc/master/...` *first* and only falls back to the bundled local file on network failure. This means end-to-end testing of local `psl_overrides.txt` changes via `get_base_domain()` silently uses the old remote version until the PR merges. When testing local changes, explicitly pass `offline=True`:
+
+```python
+from parsedmarc.utils import load_psl_overrides, get_base_domain
+load_psl_overrides(offline=True)
+assert get_base_domain("host01.netlify.app") == "netlify.app"
+```
+
 ### After a batch merge
 
 - Re-sort `base_reverse_dns_map.csv` alphabetically (case-insensitive) by the first column and write it out with CRLF line endings.
