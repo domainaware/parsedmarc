@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 9.7.1 documentation</title>
+  <title>API reference &mdash; parsedmarc 9.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2130a1db"></script>
+      <script src="_static/documentation_options.js?v=335b8a46"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -298,7 +298,7 @@ file-like object, or bytes.</p>
 <li><p><strong>archive_folder</strong> (<em>str</em>) – The folder to move processed mail to</p></li>
 <li><p><strong>delete</strong> (<em>bool</em>) – Delete  messages after processing them</p></li>
 <li><p><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
@@ -347,7 +347,7 @@ forensic report results</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>offline</strong> (<em>bool</em>) – Do not make online queries for geolocation or DNS</p></li>
 <li><p><strong>normalize_timespan_threshold_hours</strong> (<em>float</em>) – Normalize timespans beyond this</p></li>
 </ul>
@@ -391,7 +391,7 @@ aggregate DMARC report</p>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>nameservers</strong> (<em>list</em>) – A list of one or more nameservers to use
 (Cloudflare’s public DNS resolvers by default)</p></li>
 <li><p><strong>dns_timeout</strong> (<em>float</em>) – Sets the DNS timeout in seconds</p></li>
@@ -418,7 +418,7 @@ or other transient errors</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xml</strong> (<em>str</em>) – A string of DMARC aggregate report XML</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
@@ -450,7 +450,7 @@ other transient errors</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>feedback_report</strong> (<em>str</em>) – A message’s feedback report as a string</p></li>
 <li><p><strong>sample</strong> (<em>str</em>) – The RFC 822 headers or RFC 822 message sample</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
@@ -482,7 +482,7 @@ forensic report results</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – An emailed DMARC report in RFC 822 format, as bytes or a string</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map</p></li>
@@ -527,7 +527,7 @@ a file-like object, or bytes</p></li>
 or other transient errors</p></li>
 <li><p><strong>strip_attachment_payloads</strong> (<em>bool</em>) – Remove attachment payloads from
 forensic report results</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map</p></li>
@@ -686,7 +686,7 @@ layer dict objects suitable for use in a CSV</p>
 <li><p><strong>test</strong> (<em>bool</em>) – Do not move or delete messages after processing them</p></li>
 <li><p><strong>check_timeout</strong> (<em>int</em>) – Number of seconds to wait for a IMAP IDLE response
 or the number of seconds until the next mail check</p></li>
-<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>ip_db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 <li><p><strong>always_use_local_files</strong> (<em>bool</em>) – Do not download files</p></li>
 <li><p><strong>reverse_dns_map_path</strong> (<em>str</em>) – Path to a reverse DNS map file</p></li>
 <li><p><strong>reverse_dns_map_url</strong> (<em>str</em>) – URL to a reverse DNS map file</p></li>
@@ -1272,7 +1272,7 @@ with the given IPv4 or IPv6 address</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ip_address</strong> (<em>str</em>) – The IP address to query for</p></li>
-<li><p><strong>db_path</strong> (<em>str</em>) – Path to a MMDB file from MaxMind or DBIP</p></li>
+<li><p><strong>db_path</strong> (<em>str</em>) – Path to a MMDB file from IPinfo, MaxMind, or DBIP</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 9.7.1 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 9.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=2130a1db"></script>
+      <script src="../../_static/documentation_options.js?v=335b8a46"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -114,13 +114,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">dns.exception</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dns.resolver</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dns.reversename</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">geoip2.database</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">geoip2.errors</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">maxminddb</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">publicsuffixlist</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dateutil.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_date</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.dbip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.ipinfo</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">parsedmarc.resources.maps</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
@@ -539,8 +538,8 @@
     <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">url</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;https://github.com/domainaware/parsedmarc/raw/&quot;</span>
-            <span class="s2">&quot;refs/heads/master/parsedmarc/resources/dbip/&quot;</span>
-            <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span>
+            <span class="s2">&quot;refs/heads/master/parsedmarc/resources/ipinfo/&quot;</span>
+            <span class="s2">&quot;ipinfo_lite.mmdb&quot;</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">local_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">local_file_path</span><span class="p">):</span>
@@ -549,7 +548,7 @@
         <span class="k">return</span>
 
     <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">(),</span> <span class="s2">&quot;parsedmarc&quot;</span><span class="p">)</span>
-    <span class="n">cached_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">)</span>
+    <span class="n">cached_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">offline</span> <span class="ow">or</span> <span class="n">always_use_local_file</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -577,9 +576,7 @@
         <span class="k">return</span>
 
     <span class="c1"># Final fallback: bundled copy</span>
-    <span class="n">_IP_DB_PATH</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
-        <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">dbip</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">_IP_DB_PATH</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">ipinfo</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">))</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using bundled IP database&quot;</span><span class="p">)</span></div>
 
 
@@ -595,12 +592,13 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        ip_address (str): The IP address to query for</span>
-<span class="sd">        db_path (str): Path to a MMDB file from MaxMind or DBIP</span>
+<span class="sd">        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: And ISO country code associated with the given IP address</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">db_paths</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/usr/local/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;/usr/share/GeoIP/GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
@@ -616,12 +614,12 @@
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_path</span><span class="p">):</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;No file exists at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">. Falling back to an &quot;</span>
-                <span class="s2">&quot;included copy of the IPDB IP to Country &quot;</span>
+                <span class="s2">&quot;included copy of the IPinfo IP to Country &quot;</span>
                 <span class="s2">&quot;Lite database.&quot;</span>
             <span class="p">)</span>
+            <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
@@ -634,21 +632,28 @@
             <span class="n">db_path</span> <span class="o">=</span> <span class="n">_IP_DB_PATH</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">db_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
-                <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">dbip</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;dbip-country-lite.mmdb&quot;</span><span class="p">)</span>
+                <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">ipinfo</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">)</span>
             <span class="p">)</span>
 
     <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IP database is more than a month old&quot;</span><span class="p">)</span>
 
-    <span class="n">db_reader</span> <span class="o">=</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="n">db_reader</span> <span class="o">=</span> <span class="n">maxminddb</span><span class="o">.</span><span class="n">open_database</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">db_reader</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span>
 
-    <span class="n">country</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">country</span> <span class="o">=</span> <span class="n">db_reader</span><span class="o">.</span><span class="n">country</span><span class="p">(</span><span class="n">ip_address</span><span class="p">)</span><span class="o">.</span><span class="n">country</span><span class="o">.</span><span class="n">iso_code</span>
-    <span class="k">except</span> <span class="n">geoip2</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AddressNotFoundError</span><span class="p">:</span>
-        <span class="k">pass</span>
+    <span class="c1"># Support both the IPinfo schema (flat top-level ``country_code``) and the</span>
+    <span class="c1"># MaxMind/DBIP schema (nested ``country.iso_code``) so users dropping in</span>
+    <span class="c1"># their own MMDB from any of these providers keeps working.</span>
+    <span class="n">country</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;country_code&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nested</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;country&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">code</span> <span class="o">=</span> <span class="n">nested</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iso_code&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">country</span> <span class="o">=</span> <span class="n">code</span>
 
     <span class="k">return</span> <span class="n">country</span></div>
 

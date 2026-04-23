@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; parsedmarc 9.7.1 documentation</title>
+  <title>Installation &mdash; parsedmarc 9.8.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2130a1db"></script>
+      <script src="_static/documentation_options.js?v=335b8a46"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -135,18 +135,19 @@ least:</p>
 <h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Link to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 7.1.0, a static copy of the
-<a class="reference external" href="https://db-ip.com/db/download/ip-to-country-lite">IP to Country Lite database</a> from IPDB is distributed with
-<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the terms of the
-[Creative Commons Attribution 4.0 International License].
+<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 9.8.0, a static copy of the
+<a class="reference external" href="https://ipinfo.io/lite">IPinfo Lite</a> database is distributed with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the
+terms of the <a class="reference external" href="https://creativecommons.org/licenses/by-sa/4.0/deed.en">Creative Commons Attribution-ShareAlike 4.0 License</a>,
 as a fallback if the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> is not
-installed.</p>
-<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 9.6.0, the bundled DB-IP database is
-automatically updated at startup by downloading the latest copy from
-GitHub, unless the <code class="docutils literal notranslate"><span class="pre">offline</span></code> flag is set. The database is cached
-locally and refreshed on each run (or on <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code> in watch mode).
-If the download fails, a previously cached copy or the bundled
-database is used as a fallback.</p>
+installed. Prior versions bundled the DB-IP Country Lite database
+instead; both share the same MMDB format, so users who have installed
+either (or a MaxMind GeoLite2) database locally will continue to work
+without changes.</p>
+<p>The bundled database is automatically updated at startup by downloading
+the latest copy from GitHub, unless the <code class="docutils literal notranslate"><span class="pre">offline</span></code> flag is set. The
+database is cached locally and refreshed on each run (or on <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code>
+in watch mode). If the download fails, a previously cached copy or the
+bundled database is used as a fallback.</p>
 <p>The download URL can be overridden with the <code class="docutils literal notranslate"><span class="pre">ip_db_url</span></code> setting, and
 the location of a local database file can be overridden with the
 <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>

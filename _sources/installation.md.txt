@@ -44,19 +44,20 @@ least:
 ### geoipupdate setup
 
 :::{note}
-Starting in `parsedmarc` 7.1.0, a static copy of the
-[IP to Country Lite database] from IPDB is distributed with
-`parsedmarc`, under the terms of the
-[Creative Commons Attribution 4.0 International License].
+Starting in `parsedmarc` 9.8.0, a static copy of the
+[IPinfo Lite] database is distributed with `parsedmarc`, under the
+terms of the [Creative Commons Attribution-ShareAlike 4.0 License],
 as a fallback if the [MaxMind GeoLite2 Country database] is not
-installed.
+installed. Prior versions bundled the DB-IP Country Lite database
+instead; both share the same MMDB format, so users who have installed
+either (or a MaxMind GeoLite2) database locally will continue to work
+without changes.
 
-Starting in `parsedmarc` 9.6.0, the bundled DB-IP database is
-automatically updated at startup by downloading the latest copy from
-GitHub, unless the `offline` flag is set. The database is cached
-locally and refreshed on each run (or on `SIGHUP` in watch mode).
-If the download fails, a previously cached copy or the bundled
-database is used as a fallback.
+The bundled database is automatically updated at startup by downloading
+the latest copy from GitHub, unless the `offline` flag is set. The
+database is cached locally and refreshed on each run (or on `SIGHUP`
+in watch mode). If the download fails, a previously cached copy or the
+bundled database is used as a fallback.
 
 The download URL can be overridden with the `ip_db_url` setting, and
 the location of a local database file can be overridden with the
@@ -203,7 +204,8 @@ sudo apt-get install libemail-outlook-message-perl
 [Component "contrib"]: https://wiki.debian.org/SourcesList#Component
 [geoipupdate]: https://github.com/maxmind/geoipupdate
 [geoipupdate releases page on github]: https://github.com/maxmind/geoipupdate/releases
-[ip to country lite database]: https://db-ip.com/db/download/ip-to-country-lite
+[ipinfo lite]: https://ipinfo.io/lite
+[creative commons attribution-sharealike 4.0 license]: https://creativecommons.org/licenses/by-sa/4.0/deed.en
 [license keys]: https://www.maxmind.com/en/accounts/current/license-key
 [maxmind geoipupdate page]: https://dev.maxmind.com/geoip/updating-databases/
 [maxmind geolite2 country database]: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
