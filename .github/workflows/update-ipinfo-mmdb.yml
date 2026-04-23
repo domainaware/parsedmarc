@@ -1,0 +1,75 @@
+name: Update IPinfo Lite MMDB
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install maxminddb
+        run: pip install "maxminddb>=2.0.0"
+
+      - name: Download latest IPinfo Lite MMDB
+        env:
+          IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${IPINFO_TOKEN:-}" ]; then
+            echo "IPINFO_TOKEN secret is not set" >&2
+            exit 1
+          fi
+          dest="parsedmarc/resources/ipinfo/ipinfo_lite.mmdb"
+          tmp="$(mktemp)"
+          curl --fail --silent --show-error --location \
+            -o "$tmp" \
+            "https://ipinfo.io/data/ipinfo_lite.mmdb?token=${IPINFO_TOKEN}"
+          # Sanity-check: non-trivial size and openable as an MMDB with a
+          # known-good lookup. Anything smaller than ~1 MB is almost certainly
+          # an error page, not a database.
+          size=$(stat -c%s "$tmp")
+          if [ "$size" -lt 1048576 ]; then
+            echo "Downloaded file is suspiciously small ($size bytes)" >&2
+            exit 1
+          fi
+          python - "$tmp" <<'PY'
+          import sys
+          import maxminddb
+          with maxminddb.open_database(sys.argv[1]) as r:
+              rec = r.get("1.1.1.1")
+              if not isinstance(rec, dict) or not rec.get("as_domain"):
+                  raise SystemExit(f"Unexpected MMDB record: {rec!r}")
+          PY
+          mv "$tmp" "$dest"
+
+      - name: Open pull request if changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update IPinfo Lite MMDB"
+          title: "chore: update IPinfo Lite MMDB"
+          body: |
+            Automated weekly refresh of `parsedmarc/resources/ipinfo/ipinfo_lite.mmdb`
+            from the IPinfo Lite distribution.
+
+            Data © IPinfo, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.en).
+          branch: chore/update-ipinfo-mmdb
+          delete-branch: true
+          add-paths: parsedmarc/resources/ipinfo/ipinfo_lite.mmdb
