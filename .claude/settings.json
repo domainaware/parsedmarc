@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git fetch:*)",
       "Bash(python -c \"import py_compile; py_compile.compile\\(''parsedmarc/cli.py'', doraise=True\\)\")",
       "Bash(ruff check:*)",
       "Bash(ruff format:*)",

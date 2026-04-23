@@ -57,7 +57,7 @@ _RETRYABLE_DNS_ERRORS = (
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
-null_file = open(os.devnull, "w")
+null_file = subprocess.DEVNULL
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
 psl = publicsuffixlist.PublicSuffixList()

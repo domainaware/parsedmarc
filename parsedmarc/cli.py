@@ -335,14 +335,18 @@ def _parse_config(config: ConfigParser, opts):
             opts.output = _expand_path(general_config["output"])
         if "aggregate_json_filename" in general_config:
             opts.aggregate_json_filename = general_config["aggregate_json_filename"]
-        if "forensic_json_filename" in general_config:
-            opts.forensic_json_filename = general_config["forensic_json_filename"]
+        if "failure_json_filename" in general_config:
+            opts.failure_json_filename = general_config["failure_json_filename"]
+        elif "forensic_json_filename" in general_config:
+            opts.failure_json_filename = general_config["forensic_json_filename"]
         if "smtp_tls_json_filename" in general_config:
             opts.smtp_tls_json_filename = general_config["smtp_tls_json_filename"]
         if "aggregate_csv_filename" in general_config:
             opts.aggregate_csv_filename = general_config["aggregate_csv_filename"]
-        if "forensic_csv_filename" in general_config:
-            opts.forensic_csv_filename = general_config["forensic_csv_filename"]
+        if "failure_csv_filename" in general_config:
+            opts.failure_csv_filename = general_config["failure_csv_filename"]
+        elif "forensic_csv_filename" in general_config:
+            opts.failure_csv_filename = general_config["forensic_csv_filename"]
         if "smtp_tls_csv_filename" in general_config:
             opts.smtp_tls_csv_filename = general_config["smtp_tls_csv_filename"]
         if "dns_timeout" in general_config:
@@ -377,8 +381,10 @@ def _parse_config(config: ConfigParser, opts):
                 )
         if "save_aggregate" in general_config:
             opts.save_aggregate = bool(general_config.getboolean("save_aggregate"))
-        if "save_forensic" in general_config:
-            opts.save_forensic = bool(general_config.getboolean("save_forensic"))
+        if "save_failure" in general_config:
+            opts.save_failure = bool(general_config.getboolean("save_failure"))
+        elif "save_forensic" in general_config:
+            opts.save_failure = bool(general_config.getboolean("save_forensic"))
         if "save_smtp_tls" in general_config:
             opts.save_smtp_tls = bool(general_config.getboolean("save_smtp_tls"))
         if "debug" in general_config:
@@ -772,11 +778,13 @@ def _parse_config(config: ConfigParser, opts):
             raise ConfigurationError(
                 "aggregate_topic setting missing from the kafka config section"
             )
-        if "forensic_topic" in kafka_config:
-            opts.kafka_forensic_topic = kafka_config["forensic_topic"]
+        if "failure_topic" in kafka_config:
+            opts.kafka_failure_topic = kafka_config["failure_topic"]
+        elif "forensic_topic" in kafka_config:
+            opts.kafka_failure_topic = kafka_config["forensic_topic"]
         else:
             raise ConfigurationError(
-                "forensic_topic setting missing from the kafka config section"
+                "failure_topic setting missing from the kafka config section"
             )
         if "smtp_tls_topic" in kafka_config:
             opts.kafka_smtp_tls_topic = kafka_config["smtp_tls_topic"]
@@ -940,7 +948,9 @@ def _parse_config(config: ConfigParser, opts):
         opts.la_dce = log_analytics_config.get("dce")
         opts.la_dcr_immutable_id = log_analytics_config.get("dcr_immutable_id")
         opts.la_dcr_aggregate_stream = log_analytics_config.get("dcr_aggregate_stream")
-        opts.la_dcr_forensic_stream = log_analytics_config.get("dcr_forensic_stream")
+        opts.la_dcr_failure_stream = log_analytics_config.get(
+            "dcr_failure_stream"
+        ) or log_analytics_config.get("dcr_forensic_stream")
         opts.la_dcr_smtp_tls_stream = log_analytics_config.get("dcr_smtp_tls_stream")
 
     if "gelf" in config.sections():
@@ -968,8 +978,10 @@ def _parse_config(config: ConfigParser, opts):
         webhook_config = config["webhook"]
         if "aggregate_url" in webhook_config:
             opts.webhook_aggregate_url = webhook_config["aggregate_url"]
-        if "forensic_url" in webhook_config:
-            opts.webhook_forensic_url = webhook_config["forensic_url"]
+        if "failure_url" in webhook_config:
+            opts.webhook_failure_url = webhook_config["failure_url"]
+        elif "forensic_url" in webhook_config:
+            opts.webhook_failure_url = webhook_config["forensic_url"]
         if "smtp_tls_url" in webhook_config:
             opts.webhook_smtp_tls_url = webhook_config["smtp_tls_url"]
         if "timeout" in webhook_config:
@@ -1112,13 +1124,13 @@ def _init_output_clients(opts):
     try:
         if (
             opts.webhook_aggregate_url
-            or opts.webhook_forensic_url
+            or opts.webhook_failure_url
             or opts.webhook_smtp_tls_url
         ):
             logger.debug("Initializing webhook client")
             clients["webhook_client"] = webhook.WebhookClient(
                 aggregate_url=opts.webhook_aggregate_url,
-                forensic_url=opts.webhook_forensic_url,
+                failure_url=opts.webhook_failure_url,
                 smtp_tls_url=opts.webhook_smtp_tls_url,
                 timeout=opts.webhook_timeout,
             )
@@ -1130,7 +1142,7 @@ def _init_output_clients(opts):
     # step fails.  Initialise them last so that all other clients are created
     # successfully first; this minimizes the window for partial-init problems
     # during config reload.
-    if opts.save_aggregate or opts.save_forensic or opts.save_smtp_tls:
+    if opts.save_aggregate or opts.save_failure or opts.save_smtp_tls:
         try:
             if opts.elasticsearch_hosts:
                 logger.debug(
@@ -1139,17 +1151,17 @@ def _init_output_clients(opts):
                     opts.elasticsearch_ssl,
                 )
                 es_aggregate_index = "dmarc_aggregate"
-                es_forensic_index = "dmarc_forensic"
+                es_failure_index = "dmarc_failure"
                 es_smtp_tls_index = "smtp_tls"
                 if opts.elasticsearch_index_suffix:
                     suffix = opts.elasticsearch_index_suffix
                     es_aggregate_index = "{0}_{1}".format(es_aggregate_index, suffix)
-                    es_forensic_index = "{0}_{1}".format(es_forensic_index, suffix)
+                    es_failure_index = "{0}_{1}".format(es_failure_index, suffix)
                     es_smtp_tls_index = "{0}_{1}".format(es_smtp_tls_index, suffix)
                 if opts.elasticsearch_index_prefix:
                     prefix = opts.elasticsearch_index_prefix
                     es_aggregate_index = "{0}{1}".format(prefix, es_aggregate_index)
-                    es_forensic_index = "{0}{1}".format(prefix, es_forensic_index)
+                    es_failure_index = "{0}{1}".format(prefix, es_failure_index)
                     es_smtp_tls_index = "{0}{1}".format(prefix, es_smtp_tls_index)
                 elastic_timeout_value = (
                     float(opts.elasticsearch_timeout)
@@ -1168,7 +1180,7 @@ def _init_output_clients(opts):
                 )
                 elastic.migrate_indexes(
                     aggregate_indexes=[es_aggregate_index],
-                    forensic_indexes=[es_forensic_index],
+                    failure_indexes=[es_failure_index],
                 )
                 clients["elasticsearch"] = _ElasticsearchHandle()
         except Exception as e:
@@ -1182,17 +1194,17 @@ def _init_output_clients(opts):
                     opts.opensearch_ssl,
                 )
                 os_aggregate_index = "dmarc_aggregate"
-                os_forensic_index = "dmarc_forensic"
+                os_failure_index = "dmarc_failure"
                 os_smtp_tls_index = "smtp_tls"
                 if opts.opensearch_index_suffix:
                     suffix = opts.opensearch_index_suffix
                     os_aggregate_index = "{0}_{1}".format(os_aggregate_index, suffix)
-                    os_forensic_index = "{0}_{1}".format(os_forensic_index, suffix)
+                    os_failure_index = "{0}_{1}".format(os_failure_index, suffix)
                     os_smtp_tls_index = "{0}_{1}".format(os_smtp_tls_index, suffix)
                 if opts.opensearch_index_prefix:
                     prefix = opts.opensearch_index_prefix
                     os_aggregate_index = "{0}{1}".format(prefix, os_aggregate_index)
-                    os_forensic_index = "{0}{1}".format(prefix, os_forensic_index)
+                    os_failure_index = "{0}{1}".format(prefix, os_failure_index)
                     os_smtp_tls_index = "{0}{1}".format(prefix, os_smtp_tls_index)
                 opensearch_timeout_value = (
                     float(opts.opensearch_timeout)
@@ -1214,7 +1226,7 @@ def _init_output_clients(opts):
                 )
                 opensearch.migrate_indexes(
                     aggregate_indexes=[os_aggregate_index],
-                    forensic_indexes=[os_forensic_index],
+                    failure_indexes=[os_failure_index],
                 )
                 clients["opensearch"] = _OpenSearchHandle()
         except Exception as e:
@@ -1306,10 +1318,10 @@ def _main():
                 reports_,
                 output_directory=opts.output,
                 aggregate_json_filename=opts.aggregate_json_filename,
-                forensic_json_filename=opts.forensic_json_filename,
+                failure_json_filename=opts.failure_json_filename,
                 smtp_tls_json_filename=opts.smtp_tls_json_filename,
                 aggregate_csv_filename=opts.aggregate_csv_filename,
-                forensic_csv_filename=opts.forensic_csv_filename,
+                failure_csv_filename=opts.failure_csv_filename,
                 smtp_tls_csv_filename=opts.smtp_tls_csv_filename,
             )
 
@@ -1321,7 +1333,7 @@ def _main():
         webhook_client = clients.get("webhook_client")
 
         kafka_aggregate_topic = opts.kafka_aggregate_topic
-        kafka_forensic_topic = opts.kafka_forensic_topic
+        kafka_failure_topic = opts.kafka_failure_topic
         kafka_smtp_tls_topic = opts.kafka_smtp_tls_topic
 
         if opts.save_aggregate:
@@ -1409,13 +1421,13 @@ def _main():
                 except splunk.SplunkError as e:
                     log_output_error("Splunk HEC", e.__str__())
 
-        if opts.save_forensic:
-            for report in reports_["forensic_reports"]:
+        if opts.save_failure:
+            for report in reports_["failure_reports"]:
                 try:
                     shards = opts.elasticsearch_number_of_shards
                     replicas = opts.elasticsearch_number_of_replicas
                     if opts.elasticsearch_hosts:
-                        elastic.save_forensic_report_to_elasticsearch(
+                        elastic.save_failure_report_to_elasticsearch(
                             report,
                             index_suffix=opts.elasticsearch_index_suffix,
                             index_prefix=opts.elasticsearch_index_prefix
@@ -1435,7 +1447,7 @@ def _main():
                     shards = opts.opensearch_number_of_shards
                     replicas = opts.opensearch_number_of_replicas
                     if opts.opensearch_hosts:
-                        opensearch.save_forensic_report_to_opensearch(
+                        opensearch.save_failure_report_to_opensearch(
                             report,
                             index_suffix=opts.opensearch_index_suffix,
                             index_prefix=opts.opensearch_index_prefix
@@ -1453,34 +1465,34 @@ def _main():
 
                 try:
                     if kafka_client:
-                        kafka_client.save_forensic_reports_to_kafka(
-                            report, kafka_forensic_topic
+                        kafka_client.save_failure_reports_to_kafka(
+                            report, kafka_failure_topic
                         )
                 except Exception as error_:
                     log_output_error("Kafka", error_.__str__())
 
                 try:
                     if s3_client:
-                        s3_client.save_forensic_report_to_s3(report)
+                        s3_client.save_failure_report_to_s3(report)
                 except Exception as error_:
                     log_output_error("S3", error_.__str__())
 
                 try:
                     if syslog_client:
-                        syslog_client.save_forensic_report_to_syslog(report)
+                        syslog_client.save_failure_report_to_syslog(report)
                 except Exception as error_:
                     log_output_error("Syslog", error_.__str__())
 
                 try:
                     if gelf_client:
-                        gelf_client.save_forensic_report_to_gelf(report)
+                        gelf_client.save_failure_report_to_gelf(report)
                 except Exception as error_:
                     log_output_error("GELF", error_.__str__())
 
                 try:
-                    if opts.webhook_forensic_url and webhook_client:
+                    if opts.webhook_failure_url and webhook_client:
                         indent_value = 2 if opts.prettify_json else None
-                        webhook_client.save_forensic_report_to_webhook(
+                        webhook_client.save_failure_report_to_webhook(
                             json.dumps(report, ensure_ascii=False, indent=indent_value)
                         )
                 except Exception as error_:
@@ -1488,9 +1500,9 @@ def _main():
 
             if hec_client:
                 try:
-                    forensic_reports_ = reports_["forensic_reports"]
-                    if len(forensic_reports_) > 0:
-                        hec_client.save_forensic_reports_to_splunk(forensic_reports_)
+                    failure_reports_ = reports_["failure_reports"]
+                    if len(failure_reports_) > 0:
+                        hec_client.save_failure_reports_to_splunk(failure_reports_)
                 except splunk.SplunkError as e:
                     log_output_error("Splunk HEC", e.__str__())
 
@@ -1588,13 +1600,13 @@ def _main():
                     dce=opts.la_dce,
                     dcr_immutable_id=opts.la_dcr_immutable_id,
                     dcr_aggregate_stream=opts.la_dcr_aggregate_stream,
-                    dcr_forensic_stream=opts.la_dcr_forensic_stream,
+                    dcr_failure_stream=opts.la_dcr_failure_stream,
                     dcr_smtp_tls_stream=opts.la_dcr_smtp_tls_stream,
                 )
                 la_client.publish_results(
                     reports_,
                     opts.save_aggregate,
-                    opts.save_forensic,
+                    opts.save_failure,
                     opts.save_smtp_tls,
                 )
             except loganalytics.LogAnalyticsException as e:
@@ -1634,9 +1646,9 @@ def _main():
         default="aggregate.json",
     )
     arg_parser.add_argument(
-        "--forensic-json-filename",
-        help="filename for the forensic JSON output file",
-        default="forensic.json",
+        "--failure-json-filename",
+        help="filename for the failure JSON output file",
+        default="failure.json",
     )
     arg_parser.add_argument(
         "--smtp-tls-json-filename",
@@ -1649,9 +1661,9 @@ def _main():
         default="aggregate.csv",
     )
     arg_parser.add_argument(
-        "--forensic-csv-filename",
-        help="filename for the forensic CSV output file",
-        default="forensic.csv",
+        "--failure-csv-filename",
+        help="filename for the failure CSV output file",
+        default="failure.csv",
     )
     arg_parser.add_argument(
         "--smtp-tls-csv-filename",
@@ -1706,7 +1718,7 @@ def _main():
     arg_parser.add_argument("-v", "--version", action="version", version=__version__)
 
     aggregate_reports = []
-    forensic_reports = []
+    failure_reports = []
     smtp_tls_reports = []
 
     args = arg_parser.parse_args()
@@ -1719,8 +1731,8 @@ def _main():
         output=args.output,
         aggregate_csv_filename=args.aggregate_csv_filename,
         aggregate_json_filename=args.aggregate_json_filename,
-        forensic_csv_filename=args.forensic_csv_filename,
-        forensic_json_filename=args.forensic_json_filename,
+        failure_csv_filename=args.failure_csv_filename,
+        failure_json_filename=args.failure_json_filename,
         smtp_tls_json_filename=args.smtp_tls_json_filename,
         smtp_tls_csv_filename=args.smtp_tls_csv_filename,
         nameservers=args.nameservers,
@@ -1733,7 +1745,7 @@ def _main():
         verbose=args.verbose,
         prettify_json=args.prettify_json,
         save_aggregate=False,
-        save_forensic=False,
+        save_failure=False,
         save_smtp_tls=False,
         mailbox_reports_folder="INBOX",
         mailbox_archive_folder="Archive",
@@ -1799,7 +1811,7 @@ def _main():
         kafka_username=None,
         kafka_password=None,
         kafka_aggregate_topic=None,
-        kafka_forensic_topic=None,
+        kafka_failure_topic=None,
         kafka_smtp_tls_topic=None,
         kafka_ssl=False,
         kafka_skip_certificate_verification=False,
@@ -1854,13 +1866,13 @@ def _main():
         la_dce=None,
         la_dcr_immutable_id=None,
         la_dcr_aggregate_stream=None,
-        la_dcr_forensic_stream=None,
+        la_dcr_failure_stream=None,
         la_dcr_smtp_tls_stream=None,
         gelf_host=None,
         gelf_port=None,
         gelf_mode=None,
         webhook_aggregate_url=None,
-        webhook_forensic_url=None,
+        webhook_failure_url=None,
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
         normalize_timespan_threshold_hours=24.0,
@@ -2062,8 +2074,8 @@ def _main():
                         "Skipping duplicate aggregate report "
                         f"from {report_org} with ID: {report_id}"
                     )
-            elif result[0]["report_type"] == "forensic":
-                forensic_reports.append(result[0]["report"])
+            elif result[0]["report_type"] == "failure":
+                failure_reports.append(result[0]["report"])
             elif result[0]["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(result[0]["report"])
 
@@ -2088,7 +2100,7 @@ def _main():
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
         )
         aggregate_reports += reports["aggregate_reports"]
-        forensic_reports += reports["forensic_reports"]
+        failure_reports += reports["failure_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
 
     mailbox_connection = None
@@ -2229,7 +2241,7 @@ def _main():
             )
 
             aggregate_reports += reports["aggregate_reports"]
-            forensic_reports += reports["forensic_reports"]
+            failure_reports += reports["failure_reports"]
             smtp_tls_reports += reports["smtp_tls_reports"]
 
         except Exception:
@@ -2238,7 +2250,7 @@ def _main():
 
     parsing_results: ParsingResults = {
         "aggregate_reports": aggregate_reports,
-        "forensic_reports": forensic_reports,
+        "failure_reports": failure_reports,
         "smtp_tls_reports": smtp_tls_reports,
     }
 
