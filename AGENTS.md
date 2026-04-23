@@ -62,13 +62,31 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 
 ## Code Style
 
-- Ruff for formatting and linting (configured in `.vscode/settings.json`)
-- TypedDict for structured data, type hints throughout
-- Python ≥3.10 required
-- Tests are in a single `tests.py` file using unittest; sample reports live in `samples/`
-- File path config values must be wrapped with `_expand_path()` in `cli.py`
-- Maildir UID checks are intentionally relaxed (warn, don't crash) for Docker compatibility
-- Token file writes must create parent directories before opening for write
+- Ruff for formatting and linting (configured in `.vscode/settings.json`). Run `ruff check .` and `ruff format --check .` after every code edit, before committing.
+- TypedDict for structured data, type hints throughout.
+- Python ≥3.10 required.
+- Tests are in a single `tests.py` file using unittest; sample reports live in `samples/`.
+- File path config values must be wrapped with `_expand_path()` in `cli.py`.
+- Maildir UID checks are intentionally relaxed (warn, don't crash) for Docker compatibility.
+- Token file writes must create parent directories before opening for write.
+- Store natively numeric values as numbers, not pre-formatted strings. Example: ASN is stored as `int 15169`, not `"AS15169"`; Elasticsearch / OpenSearch mappings for such fields use `Integer()` so consumers can do range queries and numeric sorts. Display layers format with a prefix at render time.
+
+## Editing tracked data files
+
+Before rewriting a tracked list/data file from freshly-generated content (anything under `parsedmarc/resources/maps/`, CSVs, `.txt` lists), check the existing file first — `git show HEAD:<path> | wc -l`, `git log -1 -- <path>`, `git diff --stat`. Files like `known_unknown_base_reverse_dns.txt` and `base_reverse_dns_map.csv` accumulate manually-curated entries across many sessions, and a "fresh" regeneration that drops the row count is almost certainly destroying prior work. If the new content is meant to *add* rather than *replace*, use a merge/append pattern. Treat any unexpected row-count drop in the pending diff as a red flag.
+
+## Releases
+
+A release isn't done until built artifacts are attached to the GitHub release page. Full sequence:
+
+1. Bump version in `parsedmarc/constants.py`; update `CHANGELOG.md` with a new section under the new version number.
+2. Commit on a feature branch, open a PR, merge to master.
+3. `git fetch && git checkout master && git pull`.
+4. `git tag -a <version> -m "<version>" <sha>` and `git push origin <version>`.
+5. `rm -rf dist && hatch build`. Verify `git describe --tags --exact-match` matches the tag.
+6. `gh release create <version> --title "<version>" --notes-file <notes>`.
+7. `gh release upload <version> dist/parsedmarc-<version>.tar.gz dist/parsedmarc-<version>-py3-none-any.whl`.
+8. Confirm `gh release view <version> --json assets` shows both the sdist and the wheel before considering the release complete.
 
 ## Maintaining the reverse DNS maps
 
