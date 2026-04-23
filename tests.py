@@ -366,6 +366,41 @@ class Test(unittest.TestCase):
         finally:
             configure_ipinfo_api(None)
 
+    def testIPinfoAPIStartupLogsAccountQuota(self):
+        """``configure_ipinfo_api(..., probe=True)`` should hit the /me
+        endpoint and log plan/usage info at INFO level when available."""
+        from unittest.mock import patch, MagicMock
+
+        from parsedmarc.utils import configure_ipinfo_api
+
+        me_body = {
+            "plan": "Lite",
+            "month": 12345,
+            "limit": 50000,
+            "remaining": 37655,
+        }
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.ok = True
+        mock_resp.json.return_value = me_body
+        mock_resp.headers = {}
+
+        try:
+            with patch(
+                "parsedmarc.utils.requests.get", return_value=mock_resp
+            ) as mock_get:
+                with self.assertLogs("parsedmarc.log", level="INFO") as cm:
+                    configure_ipinfo_api("good-token", probe=True)
+                # /me is the first (and only) probe request when it succeeds.
+                called_urls = [args[0] for args, _ in mock_get.call_args_list]
+                self.assertIn("https://ipinfo.io/me", called_urls)
+            output = " ".join(cm.output)
+            self.assertIn("Lite", output)
+            self.assertIn("12345/50000", output)
+            self.assertIn("37655", output)
+        finally:
+            configure_ipinfo_api(None)
+
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_asn_name,
         and source_asn_domain columns."""

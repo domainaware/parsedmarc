@@ -493,6 +493,11 @@ _IPINFO_API_COOLDOWN_UNTIL: float = 0.0
 # quota-exhausted state, so the next successful lookup can log "recovered"
 # exactly once per event.
 _IPINFO_API_RATE_LIMITED: bool = False
+# Account-info / quota endpoint. Separate from ``_IPINFO_API_URL`` because
+# ``/me`` lives at the ipinfo.io root, not under ``/lite``. Hitting it at
+# startup both validates the token and surfaces plan/usage details; IPinfo
+# documents it as a quota-free meta endpoint.
+_IPINFO_ACCOUNT_URL = "https://ipinfo.io/me"
 
 
 def configure_ipinfo_api(
@@ -536,6 +541,27 @@ def configure_ipinfo_api(
         # still accept the token and let per-request fallback handle it — but
         # an invalid-key response must fail fast so operators notice
         # immediately instead of seeing silent MMDB-only lookups all day.
+        #
+        # The /me meta endpoint doubles as a free-of-quota token check and a
+        # plan/usage lookup, so we try it first. If /me is unreachable (e.g.
+        # behind a mirror that only proxies /lite), fall back to a lookup of
+        # 1.1.1.1 to validate the token.
+        account: Optional[dict] = None
+        try:
+            account = _ipinfo_api_account_info()
+        except InvalidIPinfoAPIKey:
+            raise
+        except Exception as e:
+            logger.debug(f"IPinfo account info fetch failed: {e}")
+
+        if account is not None:
+            summary = _format_ipinfo_account_summary(account)
+            if summary:
+                logger.info(f"IPinfo API configured — {summary}")
+            else:
+                logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
+            return
+
         try:
             _ipinfo_api_lookup("1.1.1.1")
         except InvalidIPinfoAPIKey:
@@ -544,6 +570,68 @@ def configure_ipinfo_api(
             logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
         else:
             logger.info(f"IPinfo API configured (base URL: {_IPINFO_API_URL})")
+
+
+def _ipinfo_api_account_info() -> Optional[dict]:
+    """Fetch the IPinfo ``/me`` account endpoint.
+
+    Returns the parsed JSON dict on success, or ``None`` when the endpoint is
+    unreachable (network error, non-JSON body, non-2xx other than 401/403).
+    A 401/403 raises ``InvalidIPinfoAPIKey`` — this endpoint is the best way
+    to validate a token since it doesn't consume a lookup-quota unit.
+    """
+    if not _IPINFO_API_TOKEN:
+        return None
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Authorization": f"Bearer {_IPINFO_API_TOKEN}",
+        "Accept": "application/json",
+    }
+    response = requests.get(
+        _IPINFO_ACCOUNT_URL, headers=headers, timeout=_IPINFO_API_TIMEOUT
+    )
+    if response.status_code in (401, 403):
+        raise InvalidIPinfoAPIKey(
+            f"IPinfo API rejected the configured token (HTTP {response.status_code})"
+        )
+    if not response.ok:
+        logger.debug(f"IPinfo /me returned HTTP {response.status_code}")
+        return None
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _format_ipinfo_account_summary(account: dict) -> Optional[str]:
+    """Render a short, log-friendly summary of the IPinfo /me response.
+
+    Field names in /me have varied across IPinfo plan generations, so we
+    probe a few aliases rather than commit to one schema. If nothing
+    useful is present we return ``None`` and the caller falls back to a
+    generic "configured" message.
+    """
+    plan = (
+        account.get("plan")
+        or account.get("tier")
+        or account.get("token_type")
+        or account.get("type")
+    )
+    limit = account.get("limit") or account.get("monthly_limit")
+    remaining = account.get("remaining") or account.get("requests_remaining")
+    used = account.get("month") or account.get("month_requests") or account.get("used")
+
+    parts = []
+    if plan:
+        parts.append(f"plan: {plan}")
+    if used is not None and limit:
+        parts.append(f"usage: {used}/{limit} this month")
+    elif limit:
+        parts.append(f"monthly limit: {limit}")
+    if remaining is not None:
+        parts.append(f"{remaining} remaining")
+    return ", ".join(parts) if parts else None
 
 
 def _parse_retry_after(response, default_seconds: float) -> float:
