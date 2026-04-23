@@ -56,6 +56,17 @@ To skip DNS lookups during testing, set `GITHUB_ACTIONS=true`.
 
 Config priority: CLI args > env vars > config file > defaults. Env var naming: `PARSEDMARC_{SECTION}_{KEY}` (e.g. `PARSEDMARC_IMAP_PASSWORD`). Section names with underscores use longest-prefix matching (`PARSEDMARC_SPLUNK_HEC_TOKEN` → `[splunk_hec] token`). Some INI keys have short aliases for env var friendliness (e.g. `[maildir] create` for `maildir_create`). File path values are expanded via `os.path.expanduser`/`os.path.expandvars`. Config can be loaded purely from env vars with no file (`PARSEDMARC_CONFIG_FILE` sets the file path).
 
+#### Adding a config option is a commitment — justify each one from a real need
+
+Every new option becomes documented surface area the project has to support forever. Before adding one, be able to answer "who asked for this and what breaks without it?" with a concrete user, request, or constraint — not "someone might want to override this someday".
+
+**Do not pattern-match from a nearby option.** Existing overrides are not templates to copy; they exist because each had a real use case. In particular:
+
+- `ip_db_url` exists because users self-host the MMDB when they can't reach GitHub raw. That rationale does **not** carry over to authenticated third-party APIs (IPinfo, etc.) — nobody runs a mirror of those, and adding a "mirror URL" override for one is a YAGNI pitfall. The canonical cautionary tale: a speculative `ipinfo_api_url` was added by pattern-matching `ip_db_url`, then removed in the same PR once the lack of a real use case became obvious. Don't reintroduce it; don't add its siblings for other authenticated APIs.
+- "Override the base URL" and "configurable retry count" knobs almost always fall in this bucket. Ship the hardcoded value; add the knob when a user asks, with the use case recorded in the PR.
+
+When you do add an option: surface it in the INI schema, the `_parse_config` branch, the `Namespace` defaults, the CLI docs (`docs/source/usage.md`), and SIGHUP-reload wiring together in one PR. Half-wired options (parsed but not consulted, or consulted but not documented) are worse than none.
+
 ### Caching
 
 IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour (via `ExpiringDict`).
