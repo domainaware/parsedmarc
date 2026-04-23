@@ -275,25 +275,27 @@ class Test(unittest.TestCase):
         self.assertEqual(info["as_domain"], "unmapped-for-this-test.example")
 
     def testIPinfoAPIPrimarySourceAndInvalidKeyIsFatal(self):
-        """With an API token configured, lookups hit the API first. A 401/403
-        response propagates as ``InvalidIPinfoAPIKey`` so the CLI can exit.
-        A 429 puts the API in a cooldown (falling back to the MMDB) and a
-        successful retry after the cooldown logs recovery."""
+        """With an API token configured, lookups hit the API first via the
+        documented ?token= query param. A 401/403 response propagates as
+        ``InvalidIPinfoAPIKey`` so the CLI can exit fatally. Any other
+        non-2xx or network error falls through to the MMDB silently.
+
+        The IPinfo Lite API is documented as having no request limit, so
+        there is no rate-limit/quota handling to test — only the fatal path
+        on invalid tokens and the success path."""
         from unittest.mock import patch, MagicMock
 
-        import parsedmarc.utils as utils_module
         from parsedmarc.utils import (
             InvalidIPinfoAPIKey,
             configure_ipinfo_api,
             get_ip_address_db_record,
         )
 
-        def _mock_response(status_code, json_body=None, headers=None):
+        def _mock_response(status_code, json_body=None):
             resp = MagicMock()
             resp.status_code = status_code
             resp.ok = 200 <= status_code < 300
             resp.json.return_value = json_body or {}
-            resp.headers = headers or {}
             return resp
 
         try:
@@ -308,12 +310,16 @@ class Test(unittest.TestCase):
             with patch(
                 "parsedmarc.utils.requests.get",
                 return_value=_mock_response(200, api_json),
-            ):
+            ) as mock_get:
                 configure_ipinfo_api("fake-token", probe=False)
                 record = get_ip_address_db_record("8.8.8.8")
             self.assertEqual(record["country"], "US")
             self.assertEqual(record["asn"], 15169)
             self.assertEqual(record["as_domain"], "google.com")
+            # Auth must use the documented query param, not a Bearer header.
+            _, kwargs = mock_get.call_args
+            self.assertEqual(kwargs["params"], {"token": "fake-token"})
+            self.assertNotIn("Authorization", kwargs["headers"])
 
             # Invalid key: 401 raises a fatal exception even on a random lookup.
             with patch(
@@ -324,84 +330,15 @@ class Test(unittest.TestCase):
                 with self.assertRaises(InvalidIPinfoAPIKey):
                     get_ip_address_db_record("8.8.8.8")
 
-            # Rate limited: 429 sets a cooldown and falls back to the MMDB.
-            # The first rate-limit event is logged at WARNING; during the
-            # cooldown no further API requests are made.
-            configure_ipinfo_api("rate-limited", probe=False)
+            # Any other non-2xx (e.g. 500, 503) falls back to the MMDB silently.
+            configure_ipinfo_api("fake-token", probe=False)
             with patch(
                 "parsedmarc.utils.requests.get",
-                return_value=_mock_response(429, headers={"Retry-After": "120"}),
+                return_value=_mock_response(500),
             ):
-                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
-                    record = get_ip_address_db_record("8.8.8.8")
+                record = get_ip_address_db_record("8.8.8.8")
             # MMDB fallback fills in Google's ASN from the bundled MMDB.
             self.assertEqual(record["asn"], 15169)
-            self.assertTrue(
-                any("rate limit" in line.lower() for line in cm.output),
-                f"expected a rate-limit warning, got: {cm.output}",
-            )
-            self.assertTrue(utils_module._IPINFO_API_RATE_LIMITED)
-            self.assertGreater(utils_module._IPINFO_API_COOLDOWN_UNTIL, 0.0)
-
-            # During cooldown: no API call; fall straight through to MMDB.
-            poisoned = {"asn": "AS1", "country_code": "ZZ"}
-            with patch(
-                "parsedmarc.utils.requests.get",
-                return_value=_mock_response(200, poisoned),
-            ) as mock_get:
-                record = get_ip_address_db_record("8.8.8.8")
-                mock_get.assert_not_called()
-
-            # Simulate the cooldown expiring, then a successful retry: the
-            # recovery is logged at INFO and API lookups resume.
-            utils_module._IPINFO_API_COOLDOWN_UNTIL = 0.0
-            with patch(
-                "parsedmarc.utils.requests.get",
-                return_value=_mock_response(200, api_json),
-            ):
-                with self.assertLogs("parsedmarc.log", level="INFO") as cm:
-                    record = get_ip_address_db_record("8.8.8.8")
-            self.assertEqual(record["as_domain"], "google.com")
-            self.assertTrue(
-                any("recovered" in line.lower() for line in cm.output),
-                f"expected a recovery info log, got: {cm.output}",
-            )
-            self.assertFalse(utils_module._IPINFO_API_RATE_LIMITED)
-        finally:
-            configure_ipinfo_api(None)
-
-    def testIPinfoAPIStartupLogsAccountQuota(self):
-        """``configure_ipinfo_api(..., probe=True)`` should hit the /me
-        endpoint and log plan/usage info at INFO level when available."""
-        from unittest.mock import patch, MagicMock
-
-        from parsedmarc.utils import configure_ipinfo_api
-
-        me_body = {
-            "plan": "Lite",
-            "month": 12345,
-            "limit": 50000,
-            "remaining": 37655,
-        }
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.ok = True
-        mock_resp.json.return_value = me_body
-        mock_resp.headers = {}
-
-        try:
-            with patch(
-                "parsedmarc.utils.requests.get", return_value=mock_resp
-            ) as mock_get:
-                with self.assertLogs("parsedmarc.log", level="INFO") as cm:
-                    configure_ipinfo_api("good-token", probe=True)
-                # /me is the first (and only) probe request when it succeeds.
-                called_urls = [args[0] for args, _ in mock_get.call_args_list]
-                self.assertIn("https://ipinfo.io/me", called_urls)
-            output = " ".join(cm.output)
-            self.assertIn("Lite", output)
-            self.assertIn("12345/50000", output)
-            self.assertIn("37655", output)
         finally:
             configure_ipinfo_api(None)
 
