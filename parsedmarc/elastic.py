@@ -79,6 +79,9 @@ class _AggregateReportDoc(Document):
     source_base_domain = Text()
     source_type = Text()
     source_name = Text()
+    source_asn = Integer()
+    source_asn_name = Text()
+    source_asn_domain = Text()
     message_count = Integer
     disposition = Text()
     dkim_aligned = Boolean()
@@ -173,6 +176,9 @@ class _ForensicReportDoc(Document):
     source_ip_address = Ip()
     source_country = Text()
     source_reverse_dns = Text()
+    source_asn = Integer()
+    source_asn_name = Text()
+    source_asn_domain = Text()
     source_authentication_mechanisms = Text()
     source_auth_failures = Text()
     dkim_domain = Text()
@@ -489,6 +495,9 @@ def save_aggregate_report_to_elasticsearch(
             source_base_domain=record["source"]["base_domain"],
             source_type=record["source"]["type"],
             source_name=record["source"]["name"],
+            source_asn=record["source"]["asn"],
+            source_asn_name=record["source"]["asn_name"],
+            source_asn_domain=record["source"]["asn_domain"],
             message_count=record["count"],
             disposition=record["policy_evaluated"]["disposition"],
             dkim_aligned=record["policy_evaluated"]["dkim"] is not None
@@ -673,6 +682,9 @@ def save_forensic_report_to_elasticsearch(
             source_country=forensic_report["source"]["country"],
             source_reverse_dns=forensic_report["source"]["reverse_dns"],
             source_base_domain=forensic_report["source"]["base_domain"],
+            source_asn=forensic_report["source"]["asn"],
+            source_asn_name=forensic_report["source"]["asn_name"],
+            source_asn_domain=forensic_report["source"]["asn_domain"],
             authentication_mechanisms=forensic_report["authentication_mechanisms"],
             auth_failure=forensic_report["auth_failure"],
             dkim_domain=forensic_report["dkim_domain"],

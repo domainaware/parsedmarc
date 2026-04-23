@@ -40,6 +40,9 @@ class IPSourceInfo(TypedDict):
     base_domain: Optional[str]
     name: Optional[str]
     type: Optional[str]
+    asn: Optional[int]
+    asn_name: Optional[str]
+    asn_domain: Optional[str]
 
 
 class AggregateAlignment(TypedDict):

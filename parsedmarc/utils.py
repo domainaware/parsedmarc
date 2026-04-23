@@ -151,6 +151,9 @@ class IPAddressInfo(TypedDict):
     base_domain: Optional[str]
     name: Optional[str]
     type: Optional[str]
+    asn: Optional[int]
+    asn_name: Optional[str]
+    asn_domain: Optional[str]
 
 
 def decode_base64(data: str) -> bytes:
@@ -457,20 +460,7 @@ def load_ip_db(
     logger.info("Using bundled IP database")
 
 
-def get_ip_address_country(
-    ip_address: str, *, db_path: Optional[str] = None
-) -> Optional[str]:
-    """
-    Returns the ISO code for the country associated
-    with the given IPv4 or IPv6 address
-
-    Args:
-        ip_address (str): The IP address to query for
-        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
-
-    Returns:
-        str: And ISO country code associated with the given IP address
-    """
+def _get_ip_database_path(db_path: Optional[str]) -> str:
     db_paths = [
         "ipinfo_lite.mmdb",
         "GeoLite2-Country.mmdb",
@@ -486,14 +476,13 @@ def get_ip_address_country(
         "dbip-country.mmdb",
     ]
 
-    if db_path is not None:
-        if not os.path.isfile(db_path):
-            logger.warning(
-                f"No file exists at {db_path}. Falling back to an "
-                "included copy of the IPinfo IP to Country "
-                "Lite database."
-            )
-            db_path = None
+    if db_path is not None and not os.path.isfile(db_path):
+        logger.warning(
+            f"No file exists at {db_path}. Falling back to an "
+            "included copy of the IPinfo IP to Country "
+            "Lite database."
+        )
+        db_path = None
 
     if db_path is None:
         for system_path in db_paths:
@@ -513,14 +502,37 @@ def get_ip_address_country(
     if db_age > timedelta(days=30):
         logger.warning("IP database is more than a month old")
 
-    db_reader = maxminddb.open_database(db_path)
+    return db_path
+
+
+class _IPDatabaseRecord(TypedDict):
+    country: Optional[str]
+    asn: Optional[int]
+    asn_name: Optional[str]
+    asn_domain: Optional[str]
+
+
+def get_ip_address_db_record(
+    ip_address: str, *, db_path: Optional[str] = None
+) -> _IPDatabaseRecord:
+    """Look up an IP in the configured MMDB and return country + ASN fields.
+
+    IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on
+    every record. MaxMind/DBIP country-only databases carry only country, so
+    ``asn_name`` / ``asn_domain`` come back None for those users.
+    """
+    resolved_path = _get_ip_database_path(db_path)
+    db_reader = maxminddb.open_database(resolved_path)
     record = db_reader.get(ip_address)
 
-    # Support both the IPinfo schema (flat top-level ``country_code``) and the
-    # MaxMind/DBIP schema (nested ``country.iso_code``) so users dropping in
-    # their own MMDB from any of these providers keeps working.
     country: Optional[str] = None
+    asn: Optional[int] = None
+    asn_name: Optional[str] = None
+    asn_domain: Optional[str] = None
     if isinstance(record, dict):
+        # Support both the IPinfo schema (flat top-level ``country_code``) and
+        # the MaxMind/DBIP schema (nested ``country.iso_code``) so users
+        # dropping in their own MMDB from any of these providers keeps working.
         code = record.get("country_code")
         if code is None:
             nested = record.get("country")
@@ -529,7 +541,52 @@ def get_ip_address_country(
         if isinstance(code, str):
             country = code
 
-    return country
+        # Normalize ASN to a plain integer. IPinfo stores it as a string like
+        # "AS15169"; MaxMind's ASN DB uses ``autonomous_system_number`` as an
+        # int. Integer form lets consumers do range queries and sort
+        # numerically; display-time formatting with an "AS" prefix is trivial.
+        raw_asn = record.get("asn")
+        if isinstance(raw_asn, int):
+            asn = raw_asn
+        elif isinstance(raw_asn, str) and raw_asn:
+            digits = raw_asn.removeprefix("AS").removeprefix("as")
+            if digits.isdigit():
+                asn = int(digits)
+        if asn is None:
+            mm_asn = record.get("autonomous_system_number")
+            if isinstance(mm_asn, int):
+                asn = mm_asn
+
+        name = record.get("as_name") or record.get("autonomous_system_organization")
+        if isinstance(name, str) and name:
+            asn_name = name
+        domain = record.get("as_domain")
+        if isinstance(domain, str) and domain:
+            asn_domain = domain.lower()
+
+    return {
+        "country": country,
+        "asn": asn,
+        "asn_name": asn_name,
+        "asn_domain": asn_domain,
+    }
+
+
+def get_ip_address_country(
+    ip_address: str, *, db_path: Optional[str] = None
+) -> Optional[str]:
+    """
+    Returns the ISO code for the country associated
+    with the given IPv4 or IPv6 address.
+
+    Args:
+        ip_address (str): The IP address to query for
+        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
+
+    Returns:
+        str: And ISO country code associated with the given IP address
+    """
+    return get_ip_address_db_record(ip_address, db_path=db_path)["country"]
 
 
 def load_reverse_dns_map(
@@ -723,6 +780,9 @@ def get_ip_address_info(
         "base_domain": None,
         "name": None,
         "type": None,
+        "asn": None,
+        "asn_name": None,
+        "asn_domain": None,
     }
     if offline:
         reverse_dns = None
@@ -733,9 +793,13 @@ def get_ip_address_info(
             timeout=timeout,
             retries=retries,
         )
-    country = get_ip_address_country(ip_address, db_path=ip_db_path)
-    info["country"] = country
+    db_record = get_ip_address_db_record(ip_address, db_path=ip_db_path)
+    info["country"] = db_record["country"]
+    info["asn"] = db_record["asn"]
+    info["asn_name"] = db_record["asn_name"]
+    info["asn_domain"] = db_record["asn_domain"]
     info["reverse_dns"] = reverse_dns
+
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
         if base_domain is not None:
@@ -750,12 +814,34 @@ def get_ip_address_info(
             info["base_domain"] = base_domain
             info["type"] = service["type"]
             info["name"] = service["name"]
-
-        if cache is not None:
-            cache[ip_address] = info
-            logger.debug(f"IP address {ip_address} added to cache")
     else:
         logger.debug(f"IP address {ip_address} reverse_dns not found")
+        # Fall back to ASN data for source attribution. ``reverse_dns`` and
+        # ``base_domain`` are left null so consumers can still tell an
+        # ASN-derived row apart from one resolved via a real PTR.
+        map_value: ReverseDNSMap = (
+            reverse_dns_map if reverse_dns_map is not None else {}
+        )
+        if len(map_value) == 0:
+            load_reverse_dns_map(
+                map_value,
+                always_use_local_file=always_use_local_files,
+                local_file_path=reverse_dns_map_path,
+                url=reverse_dns_map_url,
+                offline=offline,
+            )
+        if info["asn_domain"] and info["asn_domain"] in map_value:
+            service = map_value[info["asn_domain"]]
+            info["name"] = service["name"]
+            info["type"] = service["type"]
+        elif info["asn_name"]:
+            # ASN-domain not in the map: surface the raw AS name with no
+            # classification. Better than leaving the row unattributed.
+            info["name"] = info["asn_name"]
+
+    if cache is not None:
+        cache[ip_address] = info
+        logger.debug(f"IP address {ip_address} added to cache")
 
     return info
 

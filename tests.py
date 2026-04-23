@@ -223,6 +223,67 @@ class Test(unittest.TestCase):
             parsedmarc.parsed_smtp_tls_reports_to_csv(result["report"])
             print("Passed!")
 
+    def testIpAddressInfoSurfacesASNFields(self):
+        """ASN number, name, and domain from the bundled MMDB appear on every
+        IP info result, even when no PTR resolves."""
+        info = parsedmarc.utils.get_ip_address_info("8.8.8.8", offline=True)
+        self.assertEqual(info["asn"], 15169)
+        self.assertIsInstance(info["asn"], int)
+        self.assertEqual(info["asn_domain"], "google.com")
+        self.assertTrue(info["asn_name"])
+
+    def testIpAddressInfoFallsBackToASNMapEntryWhenNoPTR(self):
+        """When reverse DNS is absent, the ASN domain should be used as a
+        lookup into the reverse_dns_map so the row still gets attributed,
+        while reverse_dns and base_domain remain null."""
+        info = parsedmarc.utils.get_ip_address_info("8.8.8.8", offline=True)
+        self.assertIsNone(info["reverse_dns"])
+        self.assertIsNone(info["base_domain"])
+        self.assertEqual(info["name"], "Google (Including Gmail and Google Workspace)")
+        self.assertEqual(info["type"], "Email Provider")
+
+    def testIpAddressInfoFallsBackToRawASNameOnMapMiss(self):
+        """When neither PTR nor an ASN-map entry resolves, the raw AS name
+        is used as source_name with type left null — better than leaving
+        the row unattributed."""
+        # 204.79.197.100 is in an ASN whose as_domain is not in the map at
+        # the time of this test (msn.com); this exercises the asn_name
+        # fallback branch without depending on a specific map state.
+        from unittest.mock import patch
+
+        with patch(
+            "parsedmarc.utils.get_ip_address_db_record",
+            return_value={
+                "country": "US",
+                "asn": 64496,
+                "asn_name": "Some Unmapped Org, Inc.",
+                "asn_domain": "unmapped-for-this-test.example",
+            },
+        ):
+            # Bypass cache to avoid prior-test pollution.
+            info = parsedmarc.utils.get_ip_address_info(
+                "192.0.2.1", offline=True, cache=None
+            )
+        self.assertIsNone(info["reverse_dns"])
+        self.assertIsNone(info["base_domain"])
+        self.assertIsNone(info["type"])
+        self.assertEqual(info["name"], "Some Unmapped Org, Inc.")
+        self.assertEqual(info["asn_domain"], "unmapped-for-this-test.example")
+
+    def testAggregateCsvExposesASNColumns(self):
+        """The aggregate CSV output should include source_asn, source_asn_name,
+        and source_asn_domain columns."""
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            always_use_local_files=True,
+            offline=True,
+        )
+        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(result["report"])
+        header = csv_text.splitlines()[0].split(",")
+        self.assertIn("source_asn", header)
+        self.assertIn("source_asn_name", header)
+        self.assertIn("source_asn_domain", header)
+
     def testOpenSearchSigV4RequiresRegion(self):
         with self.assertRaises(opensearch_module.OpenSearchError):
             opensearch_module.set_hosts(
