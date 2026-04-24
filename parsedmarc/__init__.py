@@ -48,6 +48,7 @@ from parsedmarc.mail import (
     GmailConnection,
     IMAPConnection,
     MailboxConnection,
+    MaildirConnection,
     MSGraphConnection,
 )
 from parsedmarc.types import (
@@ -2041,6 +2042,9 @@ def get_dmarc_reports_from_mailbox(
             msg_content = connection.fetch_message(message_id)
         elif isinstance(connection, MSGraphConnection):
             message_id = str(msg_uid)
+            msg_content = connection.fetch_message(message_id, mark_read=not test)
+        elif isinstance(connection, MaildirConnection):
+            message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
             msg_content = connection.fetch_message(message_id, mark_read=not test)
         else:
             message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid

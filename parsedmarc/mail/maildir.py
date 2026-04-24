@@ -65,13 +65,18 @@ class MaildirConnection(MailboxConnection):
             self._active_folder = self._client
         return self._active_folder.keys()
 
-    def fetch_message(self, message_id: str) -> str:
+    def fetch_message(self, message_id: str, **kwargs) -> str:
         msg = self._active_folder.get(message_id)
-        if msg is not None:
-            msg = msg.as_string()
-            if msg is not None:
-                return msg
-        return ""
+        if msg is None:
+            return ""
+        msg_str = msg.as_string()
+        if kwargs.get("mark_read"):
+            # Maildir spec: a message is "read" once it has been moved out of
+            # new/ into cur/ with the "S" (Seen) flag set in its info field.
+            msg.set_subdir("cur")
+            msg.add_flag("S")
+            self._active_folder[message_id] = msg
+        return msg_str or ""
 
     def delete_message(self, message_id: str):
         self._active_folder.remove(message_id)
