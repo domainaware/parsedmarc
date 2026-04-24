@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 9.10.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 9.10.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=3c16008f"></script>
+      <script src="../../_static/documentation_options.js?v=af960efc"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -98,7 +98,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
@@ -599,31 +598,18 @@
 
 
 
-<span class="c1"># IPinfo Lite REST API. When ``_IPINFO_API_TOKEN`` is set, ``get_ip_address_db_record()``</span>
-<span class="c1"># queries the API first and falls through to the bundled/cached MMDB only on</span>
-<span class="c1"># rate-limit/quota/network errors. A 401/403 on any lookup propagates as</span>
-<span class="c1"># ``InvalidIPinfoAPIKey`` so the CLI exits fatally; callers of the library</span>
-<span class="c1"># should catch it.</span>
+<span class="c1"># IPinfo Lite REST API. When ``_IPINFO_API_TOKEN`` is set,</span>
+<span class="c1"># ``get_ip_address_db_record()`` queries the API first and falls back to the</span>
+<span class="c1"># bundled/cached MMDB on any non-2xx response or network error. A 401/403</span>
+<span class="c1"># propagates as ``InvalidIPinfoAPIKey`` so the CLI exits fatally.</span>
+<span class="c1">#</span>
+<span class="c1"># The IPinfo Lite API is documented as having no daily or monthly request</span>
+<span class="c1"># limit (&quot;unlimited access&quot;), so there is no rate-limit or quota handling</span>
+<span class="c1"># here — adding it would be inventing behavior the service doesn&#39;t document.</span>
+<span class="c1"># Authentication uses the documented ``?token=`` query parameter.</span>
 <span class="n">_IPINFO_API_URL</span> <span class="o">=</span> <span class="s2">&quot;https://api.ipinfo.io/lite&quot;</span>
-<span class="c1"># Account-info / quota endpoint. Separate from the lookup URL because ``/me``</span>
-<span class="c1"># lives at the ipinfo.io root, not under ``/lite``. Hitting it at startup</span>
-<span class="c1"># both validates the token and surfaces plan/usage details; IPinfo documents</span>
-<span class="c1"># it as a quota-free meta endpoint.</span>
-<span class="n">_IPINFO_ACCOUNT_URL</span> <span class="o">=</span> <span class="s2">&quot;https://ipinfo.io/me&quot;</span>
 <span class="n">_IPINFO_API_TOKEN</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">_IPINFO_API_TIMEOUT</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span>
-<span class="c1"># Default cooldowns when the API returns 429/402 without a ``Retry-After``</span>
-<span class="c1"># header. Rate limits are usually short; quota resets (402) are typically at a</span>
-<span class="c1"># day/month boundary, so we pick a longer default there.</span>
-<span class="n">_IPINFO_API_RATE_LIMIT_COOLDOWN_SECONDS</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">300.0</span>
-<span class="n">_IPINFO_API_QUOTA_COOLDOWN_SECONDS</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3600.0</span>
-<span class="c1"># Unix timestamp before which lookups skip the API and go straight to the</span>
-<span class="c1"># MMDB. ``0`` means the API is currently available.</span>
-<span class="n">_IPINFO_API_COOLDOWN_UNTIL</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="c1"># Latch for recovery logging: True while the API is in a rate-limited or</span>
-<span class="c1"># quota-exhausted state, so the next successful lookup can log &quot;recovered&quot;</span>
-<span class="c1"># exactly once per event.</span>
-<span class="n">_IPINFO_API_RATE_LIMITED</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="configure_ipinfo_api">
@@ -636,171 +622,51 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Configure the IPinfo Lite REST API as the primary source for IP lookups.</span>
 
 <span class="sd">    When a token is configured, ``get_ip_address_db_record()`` hits the API</span>
-<span class="sd">    first for every lookup and falls back to the MMDB on rate-limit, quota, or</span>
-<span class="sd">    network errors. An invalid token raises ``InvalidIPinfoAPIKey`` — the CLI</span>
-<span class="sd">    catches that and exits fatally.</span>
+<span class="sd">    first for every lookup and falls back to the MMDB on network errors. An</span>
+<span class="sd">    invalid token raises ``InvalidIPinfoAPIKey`` — the CLI catches that and</span>
+<span class="sd">    exits fatally.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        token: IPinfo API token. ``None`` or empty disables the API.</span>
-<span class="sd">        probe: If ``True``, verify the token by hitting ``/me`` (and, if that</span>
-<span class="sd">            is unreachable, by looking up ``1.1.1.1``). A 401/403 raises</span>
-<span class="sd">            ``InvalidIPinfoAPIKey``; other errors are logged and the token is</span>
-<span class="sd">            still accepted so per-request fallback can take over.</span>
+<span class="sd">        probe: If ``True``, verify the token by looking up ``1.1.1.1``. A</span>
+<span class="sd">            401/403 raises ``InvalidIPinfoAPIKey``; other errors are logged</span>
+<span class="sd">            and the token is still accepted so per-request fallback can take</span>
+<span class="sd">            over.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">_IPINFO_API_TOKEN</span>
-    <span class="k">global</span> <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span><span class="p">,</span> <span class="n">_IPINFO_API_RATE_LIMITED</span>
-
     <span class="n">_IPINFO_API_TOKEN</span> <span class="o">=</span> <span class="n">token</span> <span class="ow">or</span> <span class="kc">None</span>
-    <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">_IPINFO_API_RATE_LIMITED</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_TOKEN</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_TOKEN</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">probe</span><span class="p">:</span>
         <span class="k">return</span>
 
-    <span class="k">if</span> <span class="n">probe</span><span class="p">:</span>
-        <span class="c1"># Verify the token. Any network/quota failure here is non-fatal — we</span>
-        <span class="c1"># still accept the token and let per-request fallback handle it — but</span>
-        <span class="c1"># an invalid-key response must fail fast so operators notice</span>
-        <span class="c1"># immediately instead of seeing silent MMDB-only lookups all day.</span>
-        <span class="c1">#</span>
-        <span class="c1"># The /me meta endpoint doubles as a free-of-quota token check and a</span>
-        <span class="c1"># plan/usage lookup, so we try it first. If /me is unreachable, fall</span>
-        <span class="c1"># back to a lookup of 1.1.1.1 to validate the token.</span>
-        <span class="n">account</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">account</span> <span class="o">=</span> <span class="n">_ipinfo_api_account_info</span><span class="p">()</span>
-        <span class="k">except</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">:</span>
-            <span class="k">raise</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo account info fetch failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">account</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">summary</span> <span class="o">=</span> <span class="n">_format_ipinfo_account_summary</span><span class="p">(</span><span class="n">account</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API configured — </span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IPinfo API configured&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">_ipinfo_api_lookup</span><span class="p">(</span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">:</span>
-            <span class="k">raise</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API probe failed (will fall back per-request): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IPinfo API configured&quot;</span><span class="p">)</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_ipinfo_api_account_info</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fetch the IPinfo ``/me`` account endpoint.</span>
-
-<span class="sd">    Returns the parsed JSON dict on success, or ``None`` when the endpoint is</span>
-<span class="sd">    unreachable (network error, non-JSON body, non-2xx other than 401/403).</span>
-<span class="sd">    A 401/403 raises ``InvalidIPinfoAPIKey`` — this endpoint is the best way</span>
-<span class="sd">    to validate a token since it doesn&#39;t consume a lookup-quota unit.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_TOKEN</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">,</span>
-        <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Bearer </span><span class="si">{</span><span class="n">_IPINFO_API_TOKEN</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
-    <span class="p">}</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-        <span class="n">_IPINFO_ACCOUNT_URL</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">_IPINFO_API_TIMEOUT</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="mi">403</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;IPinfo API rejected the configured token (HTTP </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">)&quot;</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo /me returned HTTP </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">payload</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">payload</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">_ipinfo_api_lookup</span><span class="p">(</span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">:</span>
+        <span class="k">raise</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API probe failed (will fall back per-request): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IPinfo API configured&quot;</span><span class="p">)</span></div>
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_format_ipinfo_account_summary</span><span class="p">(</span><span class="n">account</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a short, log-friendly summary of the IPinfo /me response.</span>
-
-<span class="sd">    Field names in /me have varied across IPinfo plan generations, so we</span>
-<span class="sd">    probe a few aliases rather than commit to one schema. If nothing</span>
-<span class="sd">    useful is present we return ``None`` and the caller falls back to a</span>
-<span class="sd">    generic &quot;configured&quot; message.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">plan</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plan&quot;</span><span class="p">)</span>
-        <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tier&quot;</span><span class="p">)</span>
-        <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;token_type&quot;</span><span class="p">)</span>
-        <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">limit</span> <span class="o">=</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;limit&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;monthly_limit&quot;</span><span class="p">)</span>
-    <span class="n">remaining</span> <span class="o">=</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;remaining&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;requests_remaining&quot;</span><span class="p">)</span>
-    <span class="n">used</span> <span class="o">=</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;month&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;month_requests&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">account</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;used&quot;</span><span class="p">)</span>
-
-    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">plan</span><span class="p">:</span>
-        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;plan: </span><span class="si">{</span><span class="n">plan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">used</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">limit</span><span class="p">:</span>
-        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;usage: </span><span class="si">{</span><span class="n">used</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s2"> this month&quot;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">limit</span><span class="p">:</span>
-        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;monthly limit: </span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">remaining</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remaining</span><span class="si">}</span><span class="s2"> remaining&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="k">if</span> <span class="n">parts</span> <span class="k">else</span> <span class="kc">None</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_parse_retry_after</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">default_seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse an HTTP ``Retry-After`` header as seconds.</span>
-
-<span class="sd">    Supports the delta-seconds form. HTTP-date form is rare enough for an API</span>
-<span class="sd">    client to ignore; we just fall back to the default.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">raw</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Retry-After&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">raw</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()),</span> <span class="mf">1.0</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">pass</span>
-    <span class="k">return</span> <span class="n">default_seconds</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ipinfo_api_lookup</span><span class="p">(</span><span class="n">ip_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_IPDatabaseRecord</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Look up an IP via the IPinfo Lite REST API.</span>
 
-<span class="sd">    Returns the normalized record on success, or ``None`` when the API is</span>
-<span class="sd">    unavailable for any reason the caller should fall back from (network</span>
-<span class="sd">    error, 429 rate limit, 402 quota exhausted, malformed response).</span>
-
-<span class="sd">    On 429/402 the API is put in a cooldown (using ``Retry-After`` when</span>
-<span class="sd">    present) so we stop hammering it, and we log once per event at warning</span>
-<span class="sd">    level. After the cooldown expires the next lookup retries transparently;</span>
-<span class="sd">    a successful retry logs &quot;API recovered&quot; once at info level so operators</span>
-<span class="sd">    can see service came back.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        InvalidIPinfoAPIKey: on 401/403. Propagates to abort the run.</span>
+<span class="sd">    Returns the normalized record on success, or ``None`` on network error or</span>
+<span class="sd">    any non-2xx response (other than 401/403). 401/403 raises</span>
+<span class="sd">    ``InvalidIPinfoAPIKey``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">global</span> <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span><span class="p">,</span> <span class="n">_IPINFO_API_RATE_LIMITED</span>
-
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_TOKEN</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_IPINFO_API_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">,</span>
-        <span class="s2">&quot;Authorization&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Bearer </span><span class="si">{</span><span class="n">_IPINFO_API_TOKEN</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
-    <span class="p">}</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">_IPINFO_API_TOKEN</span><span class="p">}</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="n">USER_AGENT</span><span class="p">,</span> <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">}</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">_IPINFO_API_TIMEOUT</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">_IPINFO_API_TIMEOUT</span>
+        <span class="p">)</span>
     <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API request for </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -809,35 +675,6 @@
         <span class="k">raise</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;IPinfo API rejected the configured token (HTTP </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">)&quot;</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">429</span><span class="p">:</span>
-        <span class="n">cooldown</span> <span class="o">=</span> <span class="n">_parse_retry_after</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">_IPINFO_API_RATE_LIMIT_COOLDOWN_SECONDS</span><span class="p">)</span>
-        <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="n">cooldown</span>
-        <span class="c1"># First hit of a rate-limit event is visible at warning; subsequent</span>
-        <span class="c1"># 429s after cooldown-and-retry cycles stay at debug so we don&#39;t spam</span>
-        <span class="c1"># the log when a run spans a long quota reset.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_RATE_LIMITED</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;IPinfo API rate limit hit; falling back to the local MMDB &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;for </span><span class="si">{</span><span class="n">cooldown</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s before retrying&quot;</span>
-            <span class="p">)</span>
-            <span class="n">_IPINFO_API_RATE_LIMITED</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API still rate-limited; retry after </span><span class="si">{</span><span class="n">cooldown</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">402</span><span class="p">:</span>
-        <span class="n">cooldown</span> <span class="o">=</span> <span class="n">_parse_retry_after</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">_IPINFO_API_QUOTA_COOLDOWN_SECONDS</span><span class="p">)</span>
-        <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="n">cooldown</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_RATE_LIMITED</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;IPinfo API quota exhausted; falling back to the local MMDB &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;for </span><span class="si">{</span><span class="n">cooldown</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s before retrying&quot;</span>
-            <span class="p">)</span>
-            <span class="n">_IPINFO_API_RATE_LIMITED</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;IPinfo API quota still exhausted; retry after </span><span class="si">{</span><span class="n">cooldown</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s&quot;</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;IPinfo API returned HTTP </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -851,11 +688,6 @@
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>
-
-    <span class="k">if</span> <span class="n">_IPINFO_API_RATE_LIMITED</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IPinfo API recovered; resuming API lookups&quot;</span><span class="p">)</span>
-        <span class="n">_IPINFO_API_RATE_LIMITED</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">_IPINFO_API_COOLDOWN_UNTIL</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">return</span> <span class="n">_normalize_ip_record</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
 
@@ -1264,7 +1096,22 @@
             <span class="c1"># classification. Better than leaving the row unattributed.</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;as_name&quot;</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Don&#39;t cache weak-fallback attributions — rows where we had no PTR AND</span>
+    <span class="c1"># the ASN domain wasn&#39;t in the map, so ``name`` is just the raw ``as_name``</span>
+    <span class="c1"># from the MMDB. ``get_reverse_dns()`` swallows every ``DNSException`` as</span>
+    <span class="c1"># ``None``, so a transient PTR lookup failure (timeout, SERVFAIL, OSError)</span>
+    <span class="c1"># is indistinguishable from a real no-PTR case at this point. Caching the</span>
+    <span class="c1"># weak result would poison the 4-hour cache with a misattribution even</span>
+    <span class="c1"># after the PTR becomes resolvable again. Re-running on the next lookup</span>
+    <span class="c1"># is cheap and either produces a proper PTR-backed match or the same</span>
+    <span class="c1"># (still-best-effort) ASN attribution.</span>
+    <span class="n">weak_fallback</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">&quot;reverse_dns&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;as_name&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">weak_fallback</span><span class="p">:</span>
         <span class="n">cache</span><span class="p">[</span><span class="n">ip_address</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IP address </span><span class="si">{</span><span class="n">ip_address</span><span class="si">}</span><span class="s2"> added to cache&quot;</span><span class="p">)</span>
 

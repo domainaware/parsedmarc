@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 9.10.0 documentation</title>
+  <title>API reference &mdash; parsedmarc 9.10.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=3c16008f"></script>
+      <script src="_static/documentation_options.js?v=af960efc"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -1205,17 +1205,17 @@ to save in Splunk</p>
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.utils.</span></span><span class="sig-name descname"><span class="pre">configure_ipinfo_api</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/parsedmarc/utils.html#configure_ipinfo_api"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.utils.configure_ipinfo_api" title="Link to this definition"></a></dt>
 <dd><p>Configure the IPinfo Lite REST API as the primary source for IP lookups.</p>
 <p>When a token is configured, <code class="docutils literal notranslate"><span class="pre">get_ip_address_db_record()</span></code> hits the API
-first for every lookup and falls back to the MMDB on rate-limit, quota, or
-network errors. An invalid token raises <code class="docutils literal notranslate"><span class="pre">InvalidIPinfoAPIKey</span></code> — the CLI
-catches that and exits fatally.</p>
+first for every lookup and falls back to the MMDB on network errors. An
+invalid token raises <code class="docutils literal notranslate"><span class="pre">InvalidIPinfoAPIKey</span></code> — the CLI catches that and
+exits fatally.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>token</strong> – IPinfo API token. <code class="docutils literal notranslate"><span class="pre">None</span></code> or empty disables the API.</p></li>
-<li><p><strong>probe</strong> – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, verify the token by hitting <code class="docutils literal notranslate"><span class="pre">/me</span></code> (and, if that
-is unreachable, by looking up <code class="docutils literal notranslate"><span class="pre">1.1.1.1</span></code>). A 401/403 raises
-<code class="docutils literal notranslate"><span class="pre">InvalidIPinfoAPIKey</span></code>; other errors are logged and the token is
-still accepted so per-request fallback can take over.</p></li>
+<li><p><strong>probe</strong> – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, verify the token by looking up <code class="docutils literal notranslate"><span class="pre">1.1.1.1</span></code>. A
+401/403 raises <code class="docutils literal notranslate"><span class="pre">InvalidIPinfoAPIKey</span></code>; other errors are logged
+and the token is still accepted so per-request fallback can take
+over.</p></li>
 </ul>
 </dd>
 </dl>
