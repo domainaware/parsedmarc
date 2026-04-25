@@ -245,6 +245,12 @@ class _SMTPTLSReportDoc(Document):
     contact_info = Text()
     report_id = Text()
     policies = Nested(_SMTPTLSPolicyDoc)
+    total_successful_session_count = Integer()
+    total_failed_session_count = Integer()
+    policy_count = Integer()
+    sts_policy_count = Integer()
+    tlsa_policy_count = Integer()
+    no_policy_found_policy_count = Integer()
 
     def add_policy(
         self,
@@ -266,6 +272,55 @@ class _SMTPTLSReportDoc(Document):
             mx_host_patterns=mx_host_patterns,
             failure_details=failure_details,
         )
+
+
+_SMTP_TLS_KNOWN_POLICY_TYPES: frozenset[str] = frozenset(
+    {"sts", "tlsa", "no-policy-found"}
+)
+
+
+def _smtp_tls_policy_totals(policies: list[dict[str, Any]]) -> dict[str, int]:
+    """Sum per-policy session counts and tally policy-type counts.
+
+    Args:
+        policies (list): The ``policies`` list from a parsed SMTP TLS report.
+
+    Returns:
+        dict: Precomputed top-level totals to attach to ``_SMTPTLSReportDoc``:
+        ``total_successful_session_count``, ``total_failed_session_count``,
+        ``policy_count``, ``sts_policy_count``, ``tlsa_policy_count``, and
+        ``no_policy_found_policy_count``.
+
+    Missing or ``None`` count fields are treated as 0. Unknown ``policy_type``
+    values still contribute to ``policy_count`` but do not bump any
+    per-type counter; a debug log line is emitted for each.
+    """
+    totals = {
+        "total_successful_session_count": 0,
+        "total_failed_session_count": 0,
+        "policy_count": 0,
+        "sts_policy_count": 0,
+        "tlsa_policy_count": 0,
+        "no_policy_found_policy_count": 0,
+    }
+    if not policies:
+        return totals
+    totals["policy_count"] = len(policies)
+    for policy in policies:
+        successful = policy.get("successful_session_count") or 0
+        failed = policy.get("failed_session_count") or 0
+        totals["total_successful_session_count"] += int(successful)
+        totals["total_failed_session_count"] += int(failed)
+        policy_type = policy.get("policy_type")
+        if policy_type in _SMTP_TLS_KNOWN_POLICY_TYPES:
+            key = policy_type.replace("-", "_") + "_policy_count"
+            totals[key] += 1
+        else:
+            logger.debug(
+                "Ignoring unknown SMTP TLS policy_type %r for per-type counts",
+                policy_type,
+            )
+    return totals
 
 
 class AlreadySaved(ValueError):
@@ -889,6 +944,9 @@ def save_smtp_tls_report_to_opensearch(
                     failure_reason_code=failure_reason_code,
                 )
         smtp_tls_doc.policies.append(policy_doc)
+
+    for field, value in _smtp_tls_policy_totals(report["policies"]).items():
+        setattr(smtp_tls_doc, field, value)
 
     create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index

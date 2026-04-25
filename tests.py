@@ -447,6 +447,166 @@ class Test(unittest.TestCase):
                     aws_region="eu-west-1",
                 )
 
+    def testSMTPTLSPolicyTotalsNormalReport(self):
+        """A multi-policy report sums session counts and per-type tallies."""
+        totals = opensearch_module._smtp_tls_policy_totals(
+            [
+                {
+                    "policy_type": "sts",
+                    "successful_session_count": 10,
+                    "failed_session_count": 2,
+                },
+                {
+                    "policy_type": "sts",
+                    "successful_session_count": 3,
+                    "failed_session_count": 0,
+                },
+                {
+                    "policy_type": "no-policy-found",
+                    "successful_session_count": 5,
+                    "failed_session_count": 1,
+                },
+            ]
+        )
+        self.assertEqual(totals["total_successful_session_count"], 18)
+        self.assertEqual(totals["total_failed_session_count"], 3)
+        self.assertEqual(totals["policy_count"], 3)
+        self.assertEqual(totals["sts_policy_count"], 2)
+        self.assertEqual(totals["tlsa_policy_count"], 0)
+        self.assertEqual(totals["no_policy_found_policy_count"], 1)
+
+    def testSMTPTLSPolicyTotalsEmptyPolicies(self):
+        """An empty policies list produces zeros across the board."""
+        totals = opensearch_module._smtp_tls_policy_totals([])
+        self.assertEqual(
+            totals,
+            {
+                "total_successful_session_count": 0,
+                "total_failed_session_count": 0,
+                "policy_count": 0,
+                "sts_policy_count": 0,
+                "tlsa_policy_count": 0,
+                "no_policy_found_policy_count": 0,
+            },
+        )
+
+    def testSMTPTLSPolicyTotalsMissingCounts(self):
+        """Missing or None count fields are treated as zero."""
+        totals = opensearch_module._smtp_tls_policy_totals(
+            [
+                {"policy_type": "sts", "successful_session_count": 4},
+                {
+                    "policy_type": "sts",
+                    "successful_session_count": None,
+                    "failed_session_count": None,
+                },
+            ]
+        )
+        self.assertEqual(totals["total_successful_session_count"], 4)
+        self.assertEqual(totals["total_failed_session_count"], 0)
+        self.assertEqual(totals["policy_count"], 2)
+        self.assertEqual(totals["sts_policy_count"], 2)
+
+    def testSMTPTLSPolicyTotalsAllZero(self):
+        """Policies with explicit zero counts still get tallied per type."""
+        totals = opensearch_module._smtp_tls_policy_totals(
+            [
+                {
+                    "policy_type": "tlsa",
+                    "successful_session_count": 0,
+                    "failed_session_count": 0,
+                }
+            ]
+        )
+        self.assertEqual(totals["total_successful_session_count"], 0)
+        self.assertEqual(totals["total_failed_session_count"], 0)
+        self.assertEqual(totals["policy_count"], 1)
+        self.assertEqual(totals["tlsa_policy_count"], 1)
+
+    def testSMTPTLSPolicyTotalsAllThreeTypes(self):
+        """A single report can carry sts, tlsa, and no-policy-found at once."""
+        totals = opensearch_module._smtp_tls_policy_totals(
+            [
+                {
+                    "policy_type": "sts",
+                    "successful_session_count": 1,
+                    "failed_session_count": 0,
+                },
+                {
+                    "policy_type": "tlsa",
+                    "successful_session_count": 2,
+                    "failed_session_count": 1,
+                },
+                {
+                    "policy_type": "no-policy-found",
+                    "successful_session_count": 4,
+                    "failed_session_count": 0,
+                },
+            ]
+        )
+        self.assertEqual(totals["policy_count"], 3)
+        self.assertEqual(totals["sts_policy_count"], 1)
+        self.assertEqual(totals["tlsa_policy_count"], 1)
+        self.assertEqual(totals["no_policy_found_policy_count"], 1)
+        self.assertEqual(totals["total_successful_session_count"], 7)
+        self.assertEqual(totals["total_failed_session_count"], 1)
+
+    def testSMTPTLSPolicyTotalsUnknownType(self):
+        """Unknown policy_type values bump policy_count but no per-type
+        counter, and emit a debug log line."""
+        # The CLI tests reset parsedmarc.log to ERROR; force DEBUG locally.
+        from parsedmarc.log import logger as _parsedmarc_logger
+
+        previous_level = _parsedmarc_logger.level
+        _parsedmarc_logger.setLevel("DEBUG")
+        try:
+            with self.assertLogs(_parsedmarc_logger, level="DEBUG") as captured:
+                totals = opensearch_module._smtp_tls_policy_totals(
+                    [
+                        {
+                            "policy_type": "future-type",
+                            "successful_session_count": 7,
+                            "failed_session_count": 2,
+                        },
+                        {
+                            "policy_type": "sts",
+                            "successful_session_count": 1,
+                            "failed_session_count": 0,
+                        },
+                    ]
+                )
+        finally:
+            _parsedmarc_logger.setLevel(previous_level)
+        self.assertEqual(totals["policy_count"], 2)
+        self.assertEqual(totals["sts_policy_count"], 1)
+        self.assertEqual(totals["tlsa_policy_count"], 0)
+        self.assertEqual(totals["no_policy_found_policy_count"], 0)
+        self.assertEqual(totals["total_successful_session_count"], 8)
+        self.assertEqual(totals["total_failed_session_count"], 2)
+        self.assertTrue(
+            any("future-type" in record.getMessage() for record in captured.records),
+            "expected debug log line mentioning the unknown policy_type",
+        )
+
+    def testElasticSMTPTLSPolicyTotalsMatchesOpenSearch(self):
+        """The Elasticsearch helper is kept in lockstep with the OpenSearch one."""
+        policies = [
+            {
+                "policy_type": "sts",
+                "successful_session_count": 10,
+                "failed_session_count": 2,
+            },
+            {
+                "policy_type": "tlsa",
+                "successful_session_count": 5,
+                "failed_session_count": 0,
+            },
+        ]
+        self.assertEqual(
+            parsedmarc.elastic._smtp_tls_policy_totals(policies),
+            opensearch_module._smtp_tls_policy_totals(policies),
+        )
+
     @patch("parsedmarc.cli.opensearch.migrate_indexes")
     @patch("parsedmarc.cli.opensearch.set_hosts")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")

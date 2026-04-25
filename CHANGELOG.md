@@ -2,6 +2,11 @@
 
 ## 9.10.2
 
+### Changes
+
+- Added six precomputed top-level fields to the OpenSearch / Elasticsearch SMTP TLS report document (`_SMTPTLSReportDoc`): `total_successful_session_count`, `total_failed_session_count`, `policy_count`, `sts_policy_count`, `tlsa_policy_count`, and `no_policy_found_policy_count`. The `policies` array remains nested-mapped, but per-policy counts can no longer be reached from a simple `Sum` metric aggregation — bundled vizes had been working around this with KQL filters on a count metric, which silently counted reports rather than sessions / policies. The new fields are populated from the report's `policies[]` at save time (missing or `None` counts treated as 0; unknown `policy_type` values still bump `policy_count` and emit a debug log line).
+- Updated the bundled OpenSearch dashboards NDJSON (`opensearch/opensearch_dashboards.ndjson`) to use the new fields. The "SMTP TLS sessions" and "TLSRPT policies" pies were converted to multi-metric `metric` panels (single-vis, side-by-side numbers); "TLSRPT policies by domain" replaces its `count` metric with `Sum(total_successful_session_count)` + `Sum(total_failed_session_count)` so the value columns reflect sessions per `(policy_domain, policy_type)` instead of report counts. "SMTP TLS failures" is unchanged in this release. Existing TLS-RPT indices will report 0 for the new fields until reindexed; no automated backfill is included.
+
 ### Fixed
 
 - `MaildirConnection.fetch_message()` now marks messages as read after reading them (sets the `S` flag and moves the file from `new/` to `cur/`), unless `--test` is in effect. Previously, a message was processed but its on-disk maildir state was unchanged, so an MUA scanning the same maildir kept showing it as unread. Mirrors the existing `mark_read=not test` pattern used for `MSGraphConnection`.
