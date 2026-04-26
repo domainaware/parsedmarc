@@ -24,9 +24,11 @@ import argparse
 import csv
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 
@@ -57,6 +59,14 @@ USER_AGENT = (
     "Mozilla/5.0 (compatible; parsedmarc-domain-info/1.0; "
     "+https://github.com/domainaware/parsedmarc)"
 )
+# Used only by the curl fallback (when the polite UA above gets blocked or
+# the site ships a misconfigured TLS cert).
+BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+_CURL_PATH = shutil.which("curl")
 
 WHOIS_ORG_KEYS = (
     "registrant organization",
@@ -234,6 +244,95 @@ class _HeadParser(HTMLParser):
             self.title = _strip_field(data)
 
 
+def _parse_head(body: bytes, encoding: str) -> tuple:
+    try:
+        text = body.decode(encoding, errors="replace")
+    except LookupError:
+        text = body.decode("utf-8", errors="replace")
+    parser = _HeadParser()
+    try:
+        parser.feed(text)
+    except Exception:
+        pass
+    return parser.title, parser.description
+
+
+def _curl_fetch(url: str, timeout: float) -> dict:
+    """Fallback fetch via curl with a browser UA and ``-k`` (skip TLS verify).
+
+    Triggered when the primary requests-based fetch errors out or returns a
+    non-2xx status. Useful for sites that filter on User-Agent, ship
+    self-signed/misconfigured certs, or require TLS quirks (SNI variants,
+    older protocol versions) that the requests stack rejects. Best-effort —
+    returns the same shape as ``_fetch_homepage``; an empty title and
+    description means the fallback also failed.
+    """
+    out = {
+        "title": "",
+        "description": "",
+        "final_url": "",
+        "http_status": "",
+        "error": "",
+    }
+    if not _CURL_PATH:
+        out["error"] = "curl not available"
+        return out
+    body_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as body_f:
+            body_path = body_f.name
+        proc = subprocess.run(
+            [
+                _CURL_PATH,
+                "-sS",  # silent but show errors
+                "-L",  # follow redirects
+                "-k",  # skip TLS cert verification
+                "--max-time",
+                str(int(max(1, timeout))),
+                "--max-redirs",
+                "5",
+                # No --max-filesize: curl aborts with no body if the server
+                # advertises Content-Length > limit, costing us the title.
+                # --max-time bounds execution and the Python reader caps to
+                # MAX_BODY_BYTES regardless of file size on disk.
+                "-A",
+                BROWSER_UA,
+                "-w",
+                "%{http_code}\t%{url_effective}",
+                "-o",
+                body_path,
+                url,
+            ],
+            capture_output=True,
+            timeout=timeout + 2,
+            text=True,
+        )
+        if proc.returncode != 0:
+            err = (proc.stderr or "").strip() or f"curl rc={proc.returncode}"
+            out["error"] = err[:200]
+            return out
+        meta = (proc.stdout or "").split("\t", 1)
+        if len(meta) == 2:
+            out["http_status"] = meta[0].strip()
+            out["final_url"] = meta[1].strip()
+        with open(body_path, "rb") as f:
+            body = f.read(MAX_BODY_BYTES)
+        out["title"], out["description"] = _parse_head(body, "utf-8")
+    except subprocess.TimeoutExpired:
+        out["error"] = "curl subprocess timeout"
+    except FileNotFoundError:
+        out["error"] = "curl not available"
+    except OSError as e:
+        out["error"] = f"curl: {type(e).__name__}: {e}"[:200]
+    finally:
+        if body_path:
+            try:
+                os.unlink(body_path)
+            except OSError:
+                pass
+    return out
+
+
 def _fetch_homepage(domain: str, timeout: float) -> dict:
     out = {
         "title": "",
@@ -246,6 +345,11 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
     last_err = ""
     for scheme in ("https", "http"):
         url = f"{scheme}://{domain}/"
+        primary_status = ""
+        primary_url = ""
+        primary_title = ""
+        primary_description = ""
+        primary_err = ""
         try:
             with requests.get(
                 url,
@@ -254,32 +358,63 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
                 allow_redirects=True,
                 stream=True,
             ) as r:
-                out["http_status"] = str(r.status_code)
-                out["final_url"] = r.url
-                # read capped bytes
+                primary_status = str(r.status_code)
+                primary_url = r.url
                 body = b""
                 for chunk in r.iter_content(chunk_size=8192):
                     body += chunk
                     if len(body) >= MAX_BODY_BYTES:
                         break
-                encoding = r.encoding or "utf-8"
-                try:
-                    text = body.decode(encoding, errors="replace")
-                except LookupError:
-                    text = body.decode("utf-8", errors="replace")
-            parser = _HeadParser()
-            try:
-                parser.feed(text)
-            except Exception:
-                pass
-            out["title"] = parser.title
-            out["description"] = parser.description
+                primary_title, primary_description = _parse_head(
+                    body, r.encoding or "utf-8"
+                )
+        except requests.RequestException as e:
+            primary_err = f"{type(e).__name__}: {e}"
+        except socket.error as e:
+            primary_err = f"socket: {e}"
+
+        # Happy path: requests got a 2xx with parseable head metadata.
+        if primary_status.startswith("2") and (primary_title or primary_description):
+            out["title"] = primary_title
+            out["description"] = primary_description
+            out["final_url"] = primary_url
+            out["http_status"] = primary_status
             out["error"] = ""
             return out
-        except requests.RequestException as e:
-            last_err = f"{type(e).__name__}: {e}"
-        except socket.error as e:
-            last_err = f"socket: {e}"
+
+        # Curl fallback: trigger on errors or non-2xx. A 2xx with empty head
+        # is left alone (likely a parked page; retrying rarely helps).
+        non_success = primary_status and not primary_status.startswith("2")
+        if primary_err or non_success:
+            cf = _curl_fetch(url, timeout)
+            if cf["title"] or cf["description"]:
+                out["title"] = cf["title"]
+                out["description"] = cf["description"]
+                out["final_url"] = cf["final_url"] or primary_url
+                out["http_status"] = cf["http_status"] or primary_status
+                out["error"] = ""
+                return out
+            # Cap each error string before joining so a long primary error
+            # doesn't truncate the curl suffix out of the final 200-char field.
+            if primary_err:
+                last_err = primary_err[:150]
+            if cf.get("error"):
+                last_err = (last_err + " | curl: " + cf["error"][:80]).strip(" |")
+            # Carry forward any partial info from primary so a 4xx still
+            # shows up in the TSV when both attempts fail.
+            if primary_status and not out["http_status"]:
+                out["http_status"] = primary_status
+                out["final_url"] = primary_url
+            continue
+
+        # 2xx with empty head — accept whatever we got and stop.
+        out["title"] = primary_title
+        out["description"] = primary_description
+        out["final_url"] = primary_url
+        out["http_status"] = primary_status
+        out["error"] = ""
+        return out
+
     out["error"] = last_err[:200]
     return out
 
