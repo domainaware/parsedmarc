@@ -98,10 +98,10 @@ class _PermissiveSSLAdapter(HTTPAdapter):
             # Some OpenSSL builds reject SECLEVEL=0; fall through with the
             # default cipher list. Most cert-error sites work without it.
             pass
-        # OP_LEGACY_SERVER_CONNECT (0x4) — accept unsafe legacy renegotiation.
-        # Available as ssl.OP_LEGACY_SERVER_CONNECT on Python 3.12+; defined
-        # by raw value here for portability across stdlib versions.
-        ctx.options |= 0x4
+        # OP_LEGACY_SERVER_CONNECT — accept unsafe legacy TLS renegotiation.
+        # Exposed as a constant on Python 3.12+; fall back to its raw value
+        # (0x4) on older interpreters that the project still supports.
+        ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
         kwargs["ssl_context"] = ctx
         return super().init_poolmanager(*args, **kwargs)
 
