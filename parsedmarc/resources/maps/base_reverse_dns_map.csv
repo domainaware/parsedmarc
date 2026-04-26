@@ -343,11 +343,13 @@ aruba.it,Aruba.it,Web Host
 arvato-systems.de,Arvato Systems,MSP
 arvig.com,Arvig,ISP
 as1101.net,SURF,Education
+as29550.net,Simply Transit,ISP
 as42831.net,UK Dedicated Servers,Web Host
 as48500.net,Irpinia Net-Com,ISP
 as60011.net,Mythic Beasts,Web Host
 as979.net,NetLab Global,ISP
 asahi-net.jp,ASAHI Net,ISP
+asahi-net.or.jp,ASAHI Net,ISP
 asahikawa-med.ac.jp,Asahikawa Med,Healthcare
 asanetce.com.br,ASANET,ISP
 asavie.com,Akamai,Technology
@@ -818,6 +820,10 @@ cloudfilter.net,Proofpoint Cloudmark,Email Security
 cloudfirst.host,CloudFirst,Web Host
 cloudflare-email.com,Cloudflare,Email Security
 cloudflare-email.net,Cloudflare,Email Security
+cloudflare-email.org,Cloudflare,Email Security
+cloudflare-smtp.com,Cloudflare,Email Security
+cloudflare-smtp.net,Cloudflare,Email Security
+cloudflare-smtp.org,Cloudflare,Email Security
 cloudflare.com,Cloudflare,SaaS
 cloudflare.net,Cloudflare,SaaS
 cloudfront.net,Amazon AWS,Technology
@@ -1034,6 +1040,7 @@ cwmc.com.br,CWMC,ISP
 cwpanama.net,Cable & Wireless Panama,ISP
 cwru.edu,Case Western Reserve University,Education
 cybasp.com,CyberlinkASP,Web Host
+cyber-folks.pl,cyber_Folks,Web Host
 cyber.net.pk,Cybernet,ISP
 cybera.net,Cybera,ISP
 cyberfolks.pl,cyber_Folks,Web Host
@@ -1148,6 +1155,7 @@ digi.hu,DIGI Hungary,ISP
 digi.ro,DIGI Romania,ISP
 digicelbroadband.com,Digicel,ISP
 digicelgroup.com,Digicel,ISP
+digicelsr.com,Digicel,ISP
 digijadoo.net,Jadoo Digital,ISP
 digikabel.hu,One Hungary (Formerly DIGI),ISP
 digimobil.es,DIGI Spain,ISP
@@ -1333,6 +1341,7 @@ edion.co.jp,EDION,Retail
 edisglobal.com,EDIS Global,Web Host
 editorx.io,Wix,SaaS
 edpnet.be,EDPnet,ISP
+edpnet.net,EDPnet,ISP
 edu.com,InstructionalAssistant,SaaS
 eduneering.com,UL EHS training,SaaS
 ee.net,eNET,ISP
@@ -2516,6 +2525,7 @@ kyo.tech,KyoTech,Web Host
 kyoei-med.co.jp,Kyoei Medical Instruments,Healthcare
 kyoto-u.ac.jp,Kyoto University,Education
 l3harris.com,L3Harris,Defense
+la.net.ua,Lanet,ISP
 laboratoires-thea.fr,Laboratoires Théa,Healthcare
 laca.org,Licking Area Computer Association,Nonprofit
 lacoe.edu,Los Angeles County Office of Education,Education
@@ -2556,6 +2566,7 @@ lestetelecom.com.br,Leste,ISP
 letsrev.com,REV,ISP
 level-7.co.za,Level 7 Internet,ISP
 level3.com,Lumen,ISP
+level3.net,Lumen,ISP
 lexi.net,Lexicom,MSP
 lgcns.com,LG CNS,Technology
 lghealth.org,Penn Medicine Lancaster General Health,Healthcare
@@ -2825,6 +2836,7 @@ megafon.ru,MegaFon,ISP
 megalink.net.ru,Мегалинк,ISP
 megalinkinternet.com.br,MegaLink,ISP
 megamailservers.com,MegaMailServers,MSP
+megamailservers.eu,MegaMailServers,MSP
 meganetrj.com.br,Meganet,ISP
 megared.net.mx,Megared,ISP
 meinserver.io,Timme Hosting,Web Host
@@ -3264,6 +3276,7 @@ niosh.com.my,Malaysian National Institute of Occupational Safety and Health,Gove
 nip.io,nip.io,SaaS
 nipbr.com,NipBr Telecom,ISP
 nir-telecom.ru,NIR-Telecom,ISP
+nitelusa.com,Comcast,ISP
 nititancommercial.com,Niti Tan Commercial,Industrial
 nixihost.com,NixiHost,Web Host
 njedge.net,Edge,Nonprofit
@@ -3312,6 +3325,7 @@ notion.site,Notion,SaaS
 nova.gr,Nova Greece,ISP
 novaredenet.com.br,NovaRedeNet,ISP
 novelltelecom.com.br,Novell Internet,ISP
+novis.pt,NOS,ISP
 novotelecom.ru,Novo Telcom,ISP
 now-dns.net,Now-DNS,Web Host
 now-dns.org,Now-DNS,Web Host
@@ -3404,6 +3418,7 @@ omegatech.cz,Nordic Telecom,ISP
 ometria.email,Ometria,Marketing
 omkc.ru,Omskie Kabelnye Seti,ISP
 omni.lt,Omnitel,ISP
+omnicity.net,Watch Communications,ISP
 omnifiber.com,Omni Fiber,ISP
 omninet.co.nz,OmniNet,ISP
 omnis.com,Omnis,Web Host
@@ -3541,6 +3556,7 @@ ownprovider.com,OwnProvider,Web Host
 owt.com,One World Telecommunications,ISP
 ox.ac.uk,Education of Oxford,Education
 oxentenet.com,Oxente Net,ISP
+oxfordnetworks.net,FirstLight Fiber,ISP
 oxio.ca,oxio,ISP
 oxsus-vadesecure.net,Scaleway,Web Host
 p4net.com.br,P4NET,ISP
@@ -3554,6 +3570,7 @@ packetexchange.eu,Packet Exchange,Web Host
 packethub.net,PacketHub,IaaS
 pahsco.com.tw,Pacific Hospital Supply,Healthcare
 pair.com,Pair Networks,Web Host
+pair.net,Pair Networks,Web Host
 pairdomains.net,Pair Domains,Web Host
 pairvps.com,Pair Networks,Web Host
 pakendikeskus.ee,Pakendikeskus,Manufacturing
@@ -4018,6 +4035,7 @@ sarkor.uz,Sarkor,ISP
 sasktel.com,SaskTel,ISP
 satnet.net,Xtrim,ISP
 satorilabs.com,NextGen Healthcare,Healthcare
+saunalahti.fi,Elisa,ISP
 savecom.net.tw,SaveCom,ISP
 saveonhosting.com,Save On Hosting,Web Host
 savps.ru,SmartApe,Web Host
@@ -4110,6 +4128,7 @@ servebolt.cloud,Servebolt,Web Host
 servebyte.com,Servebyte,Web Host
 servehttp.com,No-IP,Web Host
 serveminecraft.net,No-IP,Web Host
+servercentral.net,Summit,Web Host
 serverdata.net,GoDaddy,Web Host
 serverhost.net,Server Host,Web Host
 serverhs.org,WebHS,Web Host
@@ -4849,6 +4868,7 @@ tvpublica.com.ar,TVP,ISP
 tvymas.co,TV&MÁS,ISP
 twinlakes.net,Twin Lakes Communications,ISP
 twl-kom.de,TWL-KOM,ISP
+twlakes.net,Twin Lakes Communications,ISP
 twmbroadband.com,Taiwan Mobile,ISP
 twnic.net.tw,Taiwan Mobile,ISP
 twnic.tw,Taiwan Mobile,ISP
@@ -5223,6 +5243,7 @@ waxcreative.com,Waxcreative Design,Marketing
 waypointcentre.ca,Waypoint Centre,Healthcare
 wbhcp.com,Williams Bros Pharmacy,Healthcare
 wbroadband.net.au,Wholesale Communications Group,ISP
+wcoil.com,Watch Communications,ISP
 wconect.com.br,WCONECT,ISP
 wcupa.edu,West Chester University,Education
 wdide.com.br,W.Dide Telecom,ISP

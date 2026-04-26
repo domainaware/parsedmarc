@@ -220,13 +220,11 @@ as15758.net
 as18186.com
 as262543.net.br
 as28220.net
-as29550.net
 as328576.net
 as55850.net
 as63182.net
 asahachimaru.com
 asahi-hp.jp
-asahi-net.or.jp
 asbaumhosting.com
 ascentlenses.com
 asd.tj.cn
@@ -555,10 +553,6 @@ cloud-box.shop
 cloud-edm.com
 cloud-mx-ns.net
 cloud4partner.net
-cloudflare-email.org
-cloudflare-smtp.com
-cloudflare-smtp.net
-cloudflare-smtp.org
 clouding.host
 cloudlogin.co
 cloudpap.com
@@ -687,7 +681,6 @@ cvci.com.ar
 cvinetworks.com
 cvsfibra.com.br
 cwj.ad.jp
-cyber-folks.pl
 cyberinternet.net.br
 cyberironclad.com
 cyberwaybd.net
@@ -761,7 +754,6 @@ dido.com
 dieupart.fr
 digi.net.my
 digiactif.net
-digicelsr.com
 digicom-al.net
 digitalcashtrack.com
 digitalsatinternet.com.br
@@ -875,7 +867,6 @@ ecuahosting.net
 edcor.com
 edit.ne.jp
 edmclain.com
-edpnet.net
 edu-kidz.com
 educaconigualdad.com
 edzone.net
@@ -1610,7 +1601,6 @@ kyivstar.net
 kyushu-u.ac.jp
 kzmn.ir
 l4email.com
-la.net.ua
 laayeartistry.shop
 laeg.net
 laketruste.org
@@ -1641,7 +1631,6 @@ lensesviking.com
 les-capucins-angers.fr
 lesauzines.com
 lestone.co
-level3.net
 levertechcentre.com
 levitasrl.it
 lexartfactory.com
@@ -1815,7 +1804,6 @@ meditong.com
 meetunearthed.de
 megalan.bg
 megalinkbandalarga.com.br
-megamailservers.eu
 meganetscm.net.br
 megasrv.de
 megaturbointernet.com.br
@@ -2030,7 +2018,6 @@ nikontalk.com
 nimaws.com
 niqi.live
 niqturbo.net.br
-nitelusa.com
 njp.co.id
 nlscanme.com
 nlstiam.info
@@ -2050,7 +2037,6 @@ northtelecom.com.br
 nossanettelecom.net.br
 novanetnp.net.br
 novast.com
-novis.pt
 novuscom.net
 nqntv.com.ar
 ns360.net
@@ -2098,7 +2084,6 @@ olivettilexikon.co.uk
 ollatelecom.net.br
 ololos.space
 omegabrasil.inf.br
-omnicity.net
 omnifibernet.net
 omprompt.net
 onbuden.shop
@@ -2148,12 +2133,10 @@ owgelsgroup.com
 owlwatch.com
 ows-networks.com
 ox28vgrurc.com
-oxfordnetworks.net
 pacbell.net
 paexam.com
 pagebg.com
 paginasamarillasdeutah.com
-pair.net
 paldenway.wiki
 palmasnet.com.br
 pampacom.com.ar
@@ -2429,7 +2412,6 @@ sante-lorraine.fr
 saransk.ru
 satirogluet.com
 sauk-rapids.mn.us
-saunalahti.fi
 scalabledns.com
 scapa.com
 scioncontacts.com
@@ -2475,7 +2457,6 @@ server342.com
 server3559.cc
 server44931.cb
 serveradd.com
-servercentral.net
 serverforhost.com
 serveri.org
 serverlicious.com
@@ -2842,7 +2823,6 @@ tvsecure.com
 twc1.net
 twincitiesdistinctivehomes.com
 twko.com.ar
-twlakes.net
 twohoax.info
 twp-capital.com
 txw-taishin.com
@@ -2986,7 +2966,6 @@ waywildweb.net
 wazlotcoy.org
 wcb.com.ph
 wcloud.ro
-wcoil.com
 wcoop.ne.jp
 wcs.net.br
 wd4us1.com
