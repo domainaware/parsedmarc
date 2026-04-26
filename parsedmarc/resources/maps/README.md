@@ -71,7 +71,19 @@ The `service_type` is based on the following rule precedence:
 - Utilities
 - Web Host
 
-The file currently contains over 1,400 mappings from a wide variety of email sending sources.
+The file currently contains over 5,000 mappings from a wide variety of email sending sources.
+
+### License
+
+`base_reverse_dns_map.csv` is a curated derivative work. Many entries
+are derived from the bundled IPinfo Lite MMDB (`as_domain` and
+`as_name` fields) by walking the database for unmapped operators and
+classifying them via the workflow described in [AGENTS.md](../../../AGENTS.md).
+Because IPinfo Lite is licensed under
+[Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/),
+this CSV is also distributed under **CC BY-SA 4.0** with attribution to
+[IPinfo](https://ipinfo.io/) for the underlying network identification
+data.
 
 ## known_unknown_base_reverse_dns.txt
 
