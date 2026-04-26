@@ -46,12 +46,14 @@ base_reverse_dns,name,type
 3m.com,3M,Manufacturing
 3rivers.net,3 Rivers Communications,ISP
 3s.com.tn,3S Tunisie,MSP
+3s.pl,Play,ISP
 3utilities.com,No-IP,Web Host
 3z.net,3z,MSP
 3zden.cloud,3z,MSP
 45ru.net.au,HostAway,Web Host
 47.pl,AfterMarket.pl,Web Host
 4gbhost.com,4GBHost,Web Host
+6dg.co.uk,Six Degrees,MSP
 6ptelecom.com.br,6P Telecom,ISP
 8x8.com,8x8,SaaS
 99cloudhosting.com,99CloudHosting,Web Host
@@ -59,6 +61,7 @@ a-hadar.co.il,Hadar Group,Real Estate
 a1.bg,A1,ISP
 a1.by,A1,ISP
 a1.hr,A1,ISP
+a1.mk,A1,ISP
 a1.net,A1,ISP
 a1.si,A1,ISP
 a2hosted.com,A2 Hosting,Web Host
@@ -67,6 +70,7 @@ a2mobile.pl,a2mobile,ISP
 a2telecomfibra.com.br,A2 Telecom Fibra,ISP
 a2webhosting.com,hosting.com,Web Host
 a2zcreatorz.ca,A2Z Creatorz,Technology
+aa.net.uk,Andrews & Arnold,ISP
 aaltoscientific.com,Aalto Scientific,Healthcare
 aamranetworks.com,Aamra Networks,ISP
 aams6.jp,"BroadBand Security, Inc",MSSP
@@ -74,19 +78,26 @@ aapt.com.au,AAPT,ISP
 aarnet.edu.au,AARNet,Education
 ab-group.biz,AsiaBell,ISP
 aba2net.com,ABA2Net,ISP
+abb.com,ABB,Industrial
+abbott.com,Abbott,Healthcare
+abc.net.au,ABC,Government Media
 abchk.net,ABCHK,Web Host
 ablbrasil.com.br,ABL Brasil,Healthcare
 abnormal-email.com,Abnormal AI,Email Security
 abogados.or.cr,Colegio de Abogados de Costa Rica,Legal
+ac-net.se,AC-Net,ISP
 academiasupport.org,Academia Support Japan,Education
 accenture.com,Accenture,Consulting
+accesshaiti.net,Access Haiti,ISP
 accessmedlab.com,Access Medical Labs,Healthcare
 accessnet.com.br,AccessNet,ISP
 accesstel.net,AccessTEL,ISP
 acedatacenter.com,Ace Data Centers,Web Host
+acedatacenters.com,Ace Data Centers,Web Host
 acelerate.net,AXS Bolivia S. A.,ISP
 acems2.com,ActiveCampaign,Marketing
 acemsa1.com,ActiveCampaign,Marketing
+acens.com,acens,Web Host
 acessecomunicacao.com.br,Acesse,ISP
 acessoline.net.br,Alt Telecom,ISP
 ach.or.jp,Ageo Central General Hospital,Healthcare
@@ -96,6 +107,7 @@ aco.net,ACOnet,Education
 acoe.org,Alameda County Office of Education,Education
 acornhost.com,Acorn Host,Web Host
 acquatelecom.com.br,Acqua Telecom,ISP
+acronymsolutions.com,Acronym Solutions,MSP
 acropolis.org,New Acropolis,Education
 act.gov.au,ACT Government,Government
 actcorp.in,ACT Fibernet,ISP
@@ -105,9 +117,11 @@ activetrail.biz,ActiveTrail,Marketing
 acuperfectwebsites.com,AcuPerfect Websites,Web Host
 adabank.com.tr,Dünya Katılım,Finance
 adairit.com,Adair IT,MSP
+adamo.es,Adamo,ISP
 adams.net,Adams Fiber,ISP
 adamthecomputerguy.com,Adam the Computer Guy,MSP
 additionnetworks.net,CherryRoad Technologies,MSP
+adelaide.edu.au,University of Adelaide,Education
 adista.fr,Adista,ISP
 admin.ch,Swiss Federal Government,Government
 admintek.net,Admintek,Web Host
@@ -122,14 +136,19 @@ adrz.nl,Adrz,Healthcare
 adsl-pool.sx.cn,China Unicom,ISP
 advancedhosters.com,Advanced Hosting,Web Host
 adventconstructions.co.tz,Advent Construction Limited,Industrial
+aebc.com,AEBC Internet,ISP
+aegon.com,Aegon,Finance
 aeneas.net,Aeneas Internet and Telephone,ISP
+aep.com,American Electric Power,Utilities
 aeroinc.net,The Areo Group,Industrial
 aesbg.net,AESNET,ISP
+aeza.net,Aeza,Web Host
 aeza.network,Aeza,Web Host
 af-k.de,I-NetPartner GmbH,ISP
 af.mil,U.S. Air Force,Defense
 afes.com,AFES Network Services,ISP
 afghan-wireless.com,Afghan Wireless,ISP
+afilias.info,Identity Digital (Afilias),Technology
 afinet.com.br,OnTelecom,ISP
 afnet.net,AFNET,ISP
 afrihost.com,Afrihost,ISP
@@ -151,6 +170,7 @@ aircleaningspecialists.com,"Air Cleaning Specialists, Inc.",Industrial
 aircomusa.com,FaxPipe (Formerly AirCom USA),SaaS
 airenetworks.es,AIRE Networks,ISP
 airgas.com,Airgas,Industrial
+airstreamcomm.net,Airstream Communications,ISP
 airtel.cd,Airtel,ISP
 airtel.co.rw,Airtel,ISP
 airtel.co.tz,Airtel,ISP
@@ -168,6 +188,7 @@ aiwacorp.co.jp,Aiwa,Industrial
 ajrmexico.net,AJR,Logistics
 ajusa.com,AJ-USA,Retail
 akadns.net,Akamai,Technology
+akado-telecom.ru,AKADO Telecom,ISP
 akamai.com,Akamai,Technology
 akamai.net,Akamai,Technology
 akamaiedge.net,Akamai,Technology
@@ -189,6 +210,7 @@ alconn.it,Alconn,ISP
 alembic.co.in,Alembic Pharmaceuticals,Healthcare
 alestra.com.mx,Alestra,ISP
 alestra.net.mx,Alestra,ISP
+alfatelecom.cz,Alfa Telecom,ISP
 alfenas.mg.gov.br,Prefeitura Municipal de Alfenas,Government
 algar.com.br,Algar Telecom,ISP
 algartelecom.com.br,Algar Telecom,ISP
@@ -209,8 +231,10 @@ alltecinternet.com.br,Alltec Internet,ISP
 alltradebusiness.it,AllTrade Business,Marketing
 almanet.net,Alma Communications,ISP
 almobile.com,AL Mobile,SaaS
+alorica.com,Alorica,Staffing
 alpha-mail.net,Otsuka Corporation,MSP
 alpha-prm.jp,Otsuka Corporation,MSP
+alphalink.fr,Alphalink,ISP
 alsatwireless.com,Air Link Rural Broadband,ISP
 alsk.com,Alaska Communications,ISP
 altafibra.mx,Altafibra,ISP
@@ -247,6 +271,7 @@ amplifyapp.com,Amazon AWS,PaaS
 amplitudo.me,Amplitudo,SaaS
 analabs.com.sg,ANALABS,Construction
 anet.net.th,ANET,ISP
+anexia-it.com,Anexia,Web Host
 anid.com.br,ANID,Nonprofit
 anl.gov,Argonne National Laboratory,Government
 anonet.in,Anonet,ISP
@@ -260,6 +285,7 @@ antispamcloud.com,N-able,Email Security
 antispameurope.com,Hornetsecurity,Email Security
 anylogic.com,AnyLogic,SaaS
 aopa.org,AOPA,Travel
+apa-it.at,APA-Tech,MSP
 apaudit.eu,Transparent,Finance
 apexsol.com,Apex Technology,Marketing
 aplusgroup.net,A Plus International,Healthcare
@@ -292,6 +318,7 @@ arenatelecom.net.br,Arena Telecom,ISP
 ariastelecom.com.br,Arias Telecom,ISP
 arij.org,ARIJ Institute,Nonprofit
 arikiinternet.com.br,Ariki Internet,ISP
+ariskisp.com,Arisk Communications,ISP
 aristotle.net,Aristotle Internet,ISP
 arizona.edu,University of Arizona,Education
 arkansas.gov,Arkansas Government,Government
@@ -304,10 +331,13 @@ artectelecom.net,Artec Telecom,ISP
 artehosting.com.mx,Artehosting,Web Host
 arteria-net.com,ARTERIA Networks,ISP
 aruba.it,Aruba.it,Web Host
+arvato-systems.de,Arvato Systems,MSP
+arvig.com,Arvig,ISP
 as1101.net,SURF,Education
 as42831.net,UK Dedicated Servers,Web Host
 as48500.net,Irpinia Net-Com,ISP
 as60011.net,Mythic Beasts,Web Host
+as979.net,NetLab Global,ISP
 asahi-net.jp,ASAHI Net,ISP
 asahikawa-med.ac.jp,Asahikawa Med,Healthcare
 asanetce.com.br,ASANET,ISP
@@ -321,6 +351,7 @@ asiaitserver.com,Asia IT Solution Co.,MSP
 asianet.co.th,Ttur Internet Corporation,ISP
 asianvision.ph,Asian Vision,ISP
 asiera.ie,Asiera,Education
+ask4.com,ASK4,ISP
 askbis.com,BIS,Web Host
 asl2.liguria.it,ASL2,Healthcare
 asmecal.it,ASMENET CALABRIA,Government
@@ -339,6 +370,7 @@ atextelecom.com.br,ATEX Telecom,ISP
 athleanx.com,ATHLEAN-X,Retail
 atiinternet.com.br,ATI Internet,ISP
 atlantic.net,Atlantic.Net,Web Host
+atlanticmetro.net,365 Data Centers,Web Host
 atmailcloud.com,atmail,Email Provider
 atmc.net,FOCUS Broadband,ISP
 atomic.ac,Atomic,ISP
@@ -373,6 +405,7 @@ avnam.net,VPS Argentina,Web Host
 awasr.om,Awasr,ISP
 awm.com.tr,Yöncü Bilişim Çözümleri Limited Şirketi,Web Host
 awsapprunner.com,Amazon AWS,PaaS
+axsbolivia.com,AXS Bolivia,ISP
 axspace.com,AXspase,Web Host
 axtel.mx,Axtel,ISP
 axtel.net,Axtel,ISP
@@ -381,7 +414,9 @@ ayera.com,Ayera,ISP
 azecom.com.br,Azecom Internet,ISP
 azeronline.com,Azeronline,ISP
 azmoves.com,Coldwell Banker,Real Estate
+azregents.edu,Arizona Board of Regents,Education
 azteca-comunicaciones.com,Aztec Communications Columbia,ISP
+aztelekom.az,Aztelekom,ISP
 azure.com,Microsoft Azure,PaaS
 azureedge.net,Microsoft Azure,Technology
 azurestaticapps.net,Microsoft Azure,PaaS
@@ -392,7 +427,9 @@ bahnhof.se,Bahnhof,ISP
 baidu.com,Baidu,Search Engine
 balifiber.id,BaliFiber,ISP
 baltcom.lv,Bite,ISP
+balticom.lv,Balticom,ISP
 banchero.org,Bancharo Disability Services,Healthcare
+bandwidth.co.uk,Bandwidth Technologies,ISP
 bangla.net,ISN Bangla,ISP
 bankofamerica.com,Bank of America,Finance
 barak-online.net,Netvision,ISP
@@ -404,6 +441,7 @@ bashtel.ru,Bashtel,ISP
 basicserver.io,Zitcom,Web Host
 basketnews.lt,BasketNews,Sports
 basmail.jp,TOKI Communications Corporation,ISP
+batelco.com,Batelco,ISP
 bayada.com,BAYADA Home Health Care,Healthcare
 bayer.de,Bayer,Healthcare
 bayoulandcs.com,Bayouland Computer Solutions,MSP
@@ -414,6 +452,7 @@ bc.net,BCNET,Education
 bcdtravelmexico.com.mx,BCD Travel Mexico,Travel
 bcnetsp.com.br,BC Net,ISP
 bcs.org,BCS,Nonprofit
+bcx.co.za,BCX,MSP
 bdcom.com,BDCOM Online,ISP
 bdconnectctg.net,BDconnect,ISP
 bdvco.com,Biodyne,Healthcare
@@ -429,6 +468,7 @@ beget.com,Beget,Web Host
 beget.ru,Beget,Web Host
 begetcdn.cloud,Beget,Web Host
 bektel.com,BEK Communications,ISP
+belairinternet.com,Zentro Internet,ISP
 bell.ca,Bell Canada,ISP
 bell.net,Bell Canada,ISP
 belnet.be,BELNET,Education
@@ -443,6 +483,7 @@ bernofarm.com,Bernofarm,Healthcare
 bestel.com.mx,Bestel,ISP
 bestwestern.com,Best Western,Travel
 betterhomeowners.com,InTouch Systems,Marketing
+bezeq.co.il,Bezeq,ISP
 bezeqint.net,Bezeq International,ISP
 bgctv.com.cn,Beijing Gehua CATV,ISP
 bhtelecom.ba,BH Telecom,ISP
@@ -453,21 +494,26 @@ biglobe.ne.jp,BIGLOBE,ISP
 bigpond.com,Telstra,ISP
 bigscoots.com,BigScoots,Web Host
 bilink.com.br,Bilink Telecomunicações,ISP
+binero.se,Binero,Web Host
+binghamton.edu,Binghamton University,Education
 biodose.com,BioDose,Healthcare
 biohost.de,BIOHOST,Web Host
 bionic.studio,Bionic Studio,Marketing
 biotika.sk,Biotika,Healthcare
 bisno1.co.jp,"Bis Co., Ltd.",Construction
+bisping.de,Bisping & Bisping,ISP
 bisv.ru,Bisv.ru,ISP
 bit-drive.ne.jp,NURO Biz,ISP
 bite.lt,Bite,ISP
 bitmail.com.br,Bitmail Telcom,ISP
+biznetnetworks.com,Biznet Networks,ISP
 bkup.com.br,Bkup Telecom,ISP
 blackfriarsam.com,Blackfriars Asset Management,Finance
 blacknight.com,Blacknight Solutions,Web Host
 blacksun.ca,MSP Corp,Web Host
 blanksoft.dev,BlankSoft,MSP
 bleucloud.fr,Bleu,IaaS
+blic.net,Supernova,ISP
 blickle.com,Blickle,Manufacturing
 blinktelecom.com.br,Blink Telecom,ISP
 blitzmediahosting.ca,Blitz Media,Web Host
@@ -488,15 +534,19 @@ bnet-bd.com,Business Network,ISP
 bnet.com.br,Bnet Telecom,ISP
 bnpparibas.com,BNP Paribas,Finance
 bnpparibas.fr,Banque BNP Paribas,Finance
+bnsf.com,BNSF Railway,Logistics
+bnymellon.com,BNY Mellon,Finance
 boavistanet.net.br,Boa Vista Net,ISP
 boeing.com,Boeing,Defense
 bohc.co.jp,Benefit One Inc.,Retail
 bol-online.com,Bangladesh Online,ISP
 bol.net.in,MTNL,ISP
+bond.edu.au,Bond University,Education
 bontechnologies.com,Bontechnologies,Consulting
 bookingtimes.com,BookingTimes,SaaS
 bookmyname.com,BookMyName,Web Host
 boostmobile.com,Boost Mobile,ISP
+boozallen.com,Booz Allen Hamilton,Consulting
 bostrad.com,Bostrad Supply Chain Ltd,Logistics
 bounceme.net,No-IP,Web Host
 bouyguestelecom.fr,Bouygues Telecom,ISP
@@ -526,13 +576,16 @@ brightspace.com,D2l Brightspace,SaaS
 brightspeed.com,Brightspeed,ISP
 brinkster.com,Brinkster,Web Host
 brisanet.net.br,Brisianet,ISP
+britishairways.com,British Airways,Travel
 brking.com.br,Brking,ISP
 brmaster.com.br,BRMaster,ISP
 broadband.hu,One Hungary,ISP
+broadbandidc.com,BROADBANDIDC,Web Host
 broadridge.com,Broadridge,Finance
 brownrice.com,Brownrice Internet,Web Host
 bs-telecom.net,БС-Телеком (BS-Telecom),ISP
 bsconect.com.br,BS Conect,ISP
+bse.ch,SolNet,ISP
 bsnews.com.br,BS News,ISP
 bsnl.co.in,BSNL,ISP
 bsnl.in,BSNL,ISP
@@ -540,7 +593,9 @@ bt.com,BT,ISP
 btc-net.bg,Viacom,ISP
 btcentralplus.com,BT,ISP
 btopenworld.com,BT,ISP
+bu.edu,Boston University,Education
 buckeyebroadband.com,Buckeye Broadband,ISP
+buffalo.edu,University at Buffalo,Education
 bugtusselwireless.com,Bug Tussel,ISP
 buildingmaterials.com.my,Building Materials,Construction
 bulsat.com,Bulsatcom,ISP
@@ -559,10 +614,12 @@ c-able.co.jp,Yamaguchi Cable Vision,ISP
 c3.net.pl,C3 NET,ISP
 ca.gov,State of California,Government
 cable.net.co,Cablenet,ISP
+cablebahamas.com,Cable Bahamas,ISP
 cablecom.ch,UPC,ISP
 cablecomm.ie,CableComm,ISP
 cablelink.at,Salzburg AG,Utilities
 cablelynx.com,Cablelynx,ISP
+cablenet.com.cy,Cablenet,ISP
 cableonda.com,Cable Onda,ISP
 cableonda.net,Cable Onda,ISP
 cableone.biz,Sparklight,ISP
@@ -570,6 +627,7 @@ cables.com.tw,Yueh Feng Industrial,Manufacturing
 cabletel.com.mk,A1,ISP
 cablevision.com,Cablevision,ISP
 cablevision.net.mx,Izzi Telecom,ISP
+cableworld.es,Cableworld,ISP
 cabonnet.com.br,Cabonnet,ISP
 cabotelecom.com.br,Alares,ISP
 cairohost.com,Black Host,Web Host
@@ -577,10 +635,12 @@ caiway.nl,Caiway,ISP
 caiweb.net.br,Caiweb,ISP
 calero.com,Calero,MSP
 calpoly.edu,Cal Poly,Education
+caltech.edu,California Institute of Technology,Education
 calvin.edu,Calvin University,Education
 cam.ac.uk,University of Cambridge,Education
 canadianwebhosting.com,Canadian Web Hosting,Web Host
 canalplustelecom.com,Canal+ Telecom,ISP
+cancom.de,CANCOM,MSP
 canonet.ne.jp,Canonet,MSP
 canonical.com,Canonical,Technology
 canspace.ca,CanSpace,Web Host
@@ -597,13 +657,16 @@ carleton.edu,Carlton College,Education
 carnet.hr,CARNET,Education
 carrd.co,Carrd,SaaS
 carrierzone.com,carrierzone,Email Security
+carrytel.ca,Carrytel,ISP
 carsforkids.org,Cars For Kids,Nonprofit
 case.edu,Case Western Reserve University,Education
 castrum.com.br,Castrum Internet,ISP
+cat.com,Caterpillar,Industrial
 cat.net.th,National Telecom (Thailand),ISP
 catnet.jp,Honjo Cable,ISP
 cbe.ae,CBE,Construction
 cbn.id,CBN Fiber,ISP
+cbsimaging.com,CBS Imaging,Retail
 cbssports.com,CBS Sports,Entertainment
 cbtel.net.ar,CBTEL,ISP
 cbwchc.org,Charles B. Wang Community Health,Healthcare
@@ -611,6 +674,7 @@ ccc-group.com,Canada Colors and Chemicals Limited (CCC),Industrial
 ccinternet.cz,CC Internet,ISP
 cdbhospital.com,CBD Hospital,Healthcare
 cdkglobal.com,CDK Global,SaaS
+cdn77.com,CDN77,Web Host
 cdsglobalcloud.com,CDS Global Cloud,Web Host
 cea.fr,CEA,Government
 celeo.net,Celeonet,Web Host
@@ -642,8 +706,11 @@ certto.com.br,Certto,ISP
 cesnet.cz,CESNET,Education
 cetin.cz,CETIN,ISP
 ceystel.com.ar,CeySTEL,ISP
+ceznet.cz,ČEZNET,ISP
+cfe.mx,CFE,Utilities
 cfolks.pl,cyber_Folks,Web Host
 cgates.lt,Cgates,ISP
+cgi.se,CGI,Consulting
 cgwic.com,China Great Wall Industry Corporation,Defense
 ch-saintcalais.fr,Centre Hospitalier du Mans,Healthcare
 chaiyohosting.com,Chaiy oHosting,Web Host
@@ -707,9 +774,11 @@ clarochile.cl,Claro,ISP
 claropr.com,Claro,ISP
 classicofficesystems.com,Classic Office Systems,MSP
 claytonindustries.com,Clayton Industries,Industrial
+cldin.eu,Yourhosting,Web Host
 clearwave.com,Clearwave Fiber,ISP
 clemson.edu,Clemson University,Education
 clermontcountyohio.gov,Clermont County Ohio,Government
+clevelandclinic.org,Cleveland Clinic,Healthcare
 clicfacilitb.com.br,Clicfacil Telecom,ISP
 clicknetpe.com.br,ClickNet PE,ISP
 clicktelecomunicacoes.com.br,Click Telecomunicações,ISP
@@ -743,6 +812,8 @@ clubexpress.com,ClubExpress,SaaS
 clubnet.mz,ClubNet,ISP
 cmaginet.com,Cmaginet,Marketing
 cmb.co.kr,CMB,ISP
+cmctelecom.vn,CMC Telecom,ISP
+cmich.edu,Central Michigan University,Education
 cmo.de,CMO,Web Host
 cmorlando.com.ar,Carpintería Metálica Orlando,Manufacturing
 cmtietong.com,China TieTong,ISP
@@ -778,6 +849,7 @@ colocationamerica.com,Colocation America,Web Host
 colocrossing.com,ColoCrossing,ISP
 cologix.com,Cologix,IaaS
 cologlobal.com,Cologlobal,Web Host
+colorado.edu,University of Colorado Boulder,Education
 colorkrew.com.br,Colorkrew,SaaS
 colos.kz,IFC COLOS,Logistics
 colostate.edu,Colorado State University,Education
@@ -804,6 +876,7 @@ compliancewebinars.com,ComplianceWebinars,Education
 comporium.com,Comporium,ISP
 compu-type.net,Compu-Type,MSP
 compusystems.com,CompuSystems,SaaS
+computacenter.com,Computacenter,MSP
 computerdoctor-usa.com,The Computer Doctor,MSP
 computerguyz.ca,Computer Guyz,MSP
 computerstlouis.com,Computer St. Louis,MSP
@@ -863,6 +936,8 @@ corblock.com,Corblock,Industrial
 cordialmail.net,Cordial,Marketing
 corephp.com,corePHP,Marketing
 coreserver.jp,CORESERVER,Web Host
+corespace.com,CoreSpace,Web Host
+coreweave.com,CoreWeave,IaaS
 corewellhealth.org,Corewell Health,Healthcare
 cornell.edu,Cornell University,Education
 corp-email.com,Shanghai Qingyu Computer Technology,Email Security
@@ -874,6 +949,7 @@ cotea.com.ar,COTEA,ISP
 cotecal.com.ar,Cotecal,ISP
 cotton-warehouse.com,Cotton Warehouse Classic Cars,Automotive
 coucou-networks.fr,Free Mobile,ISP
+covage.com,Covage,ISP
 cox.com,Cox Communications,ISP
 cox.net,Cox Communications,ISP
 cp247.net,M247,Web Host
@@ -884,6 +960,7 @@ cpi340b.com,Contract Pharmacy Insight,Healthcare
 cprapid.com,cPanel,Web Host
 cpserver.com,A2 Hosting,Web Host
 cpsinet.com,TruBridge,Healthcare
+cra.cz,České Radiokomunikace,Web Host
 crd.co,Carrd,SaaS
 creatingpossibilities.co.uk,Creating Possibilities,Marketing
 creaworld.com.sg,Creative eWorld,Marketing
@@ -913,9 +990,12 @@ ctctel.com,Consolidated Telcom,ISP
 ctedunet.net,Connecticut Education Network,Education
 ctl.one,CenturyLink,ISP
 ctm.net,CTM,ISP
+ctrls.in,CtrlS,Web Host
 cty-cns.jp,Suzuka Cable,ISP
 cubiespot.net.id,Cubiespot,ISP
 cuenote.jp,Cuenote,SaaS
+cuhk.edu.hk,Chinese University of Hong Kong,Education
+cumberlandconnect.org,Cumberland Connect,ISP
 cuny.edu,City University of New York,Education
 customer.speedpartner.de,SpeedPartner,Web Host
 cvent-planner.com,Cvent,SaaS
@@ -929,6 +1009,7 @@ cyberfolks.pl,cyber_Folks,Web Host
 cyberfolks.ro,cyber_Folks,Web Host
 cyberfuel.com,Cyberfuel.com,Web Host
 cyberia.net.sa,Cyberia,ISP
+cyberlink.ch,Cyberlink,ISP
 cyberlynk.net,CyberLynk,MSP
 cybermail.jp,CyberMail,Email Provider
 cybermesa.com,Cyber Mesa,ISP
@@ -936,6 +1017,7 @@ cybernextech.co.th,CYBER NEXTECH,Web Host
 cybersmart.co.za,Cybersmart,ISP
 cybertelecom.com.br,Cyber Telecom,ISP
 cybertelecom.net.br,Cyber Telecom,ISP
+cyfronet.pl,Cyfronet,Education
 cyfrowypolsat.pl,Polsat Box,ISP
 cynet.com.my,Cynet,Web Host
 cynethost.com,Cynet,Web Host
@@ -947,6 +1029,7 @@ cyrusone.com,CyrusOne,IaaS
 cyta.com.cy,Cyta,ISP
 d2s.cloud,d2s.cloud,Web Host
 daakbabu.com,Daak Babu,Email Provider
+dadabroadband.com,DaDa Broadband,ISP
 daemonmail.ner,DaemonMail,Email Provider
 daemonmail.net,TierraNet,Web Host
 dailyinvesthub.com,Daily Invest Hub,Finance
@@ -988,6 +1071,7 @@ ddnsking.com,No-IP,Web Host
 ddnss.de,DDNSS,Web Host
 ddnss.org,DDNSS,Web Host
 deadline.com,Deadline,News
+deakin.edu.au,Deakin University,Education
 dealerscloud.com,DealersCloud,SaaS
 deere.com,John Deere,Agriculture
 deerfieldhosting.net,Deerfield Hosting,Web Host
@@ -995,15 +1079,20 @@ default-host.net,INHOSTED LP,Web Host
 deic.dk,DeiC,Education
 delhitel.net,Delhi Telephone Company,ISP
 deliverychain.io,Delivery Chain,SaaS
+dell.com,Dell,Technology
+deloitte.com,Deloitte,Consulting
+delta.com,Delta Air Lines,Travel
 delta.nl,DELTA Fiber,ISP
 deltaativa.net.br,Delta Ativa,ISP
 deltahost-ptr,DeltaHost,Web Host
 deltainternet.net.br,Ired Internet,ISP
 demandware.net,Salesforce Commerce Cloud,SaaS
 democrats.com,Democrats.com,Nonprofit
+depaul.edu,DePaul University,Education
 designerstudio.it,Designer Studio,Marketing
 desktop.com.br,Desktop,ISP
 deskwing.net,DESKWING,Email Provider
+desy.de,DESY,Government
 deutschepost.de,Deutsche Post,Logistics
 dexanet.co.id,Dexanet,ISP
 deztelecom.net.br,Dez Telecom,ISP
@@ -1019,6 +1108,7 @@ diako-dresden.de,Diakonissenanstalt Dresden,Healthcare
 diakovere.de,DIAKOVERE,Healthcare
 dialego.de,Dialego,Marketing
 dialog.lk,Dialog Axiata,ISP
+didichuxing.com,DiDi,Travel
 digestivedaily.com,DigestiveDaily,Healthcare
 digi.com.my,DiGi,ISP
 digi.hu,DIGI Hungary,ISP
@@ -1044,6 +1134,7 @@ digiturunc.com,Digiturunc,Web Host
 digiweb.ie,Digiweb,ISP
 diltechnology.com,DIL Technology,ISP
 dimenoc.com,HostDime.com,Web Host
+dimensiondata.com,NTT DATA,Consulting
 dinamichosting.com,Dinamic Hosting,Web Host
 dinaserver.com,Dinahosting,Web Host
 dipelnet.com.br,Dipelnet,ISP
@@ -1077,14 +1168,18 @@ dnslinks.net,Bananic,Web Host
 dnsthai.com,Aptum Technologies,MSP
 dnsup.net,Now-DNS,Web Host
 do-reg.jp,IDC Frontier,Web Host
+dobson.net,Dobson Fiber,ISP
+docomopacific.com,DOCOMO Pacific,ISP
 doctors.org.uk,Doctors.net.uk,Healthcare
 docusign.com,Docusign,SaaS
 dogado.de,dogado,Web Host
+dokom21.de,DOKOM21,ISP
 domaincentral.com.au,Domain Central,Web Host
 domaineinternet.ca,Rapidenet Canada,Web Host
 domainit.com,DomainIt,Web Host
 domdom.hu,DomDom,Web Host
 domeneshop.no,Domeneshop,Web Host
+domru.ru,ER-Telecom,ISP
 domtel.com.pl,DOMTEL,ISP
 donotspam.de,indevis,MSSP
 donpac.ru,Rostelecom,ISP
@@ -1109,6 +1204,7 @@ dreamnet.su,Dreamnet,ISP
 drei.at,Drei,ISP
 drei.com,Drei,ISP
 drew.edu,Drew University,Education
+drexel.edu,Drexel University,Education
 drhc.on.ca,Dryden Regional Health Centre,Healthcare
 drive.ne.jp,Drive Network,Web Host
 drivepath.net,DrivePath Hosting,Web Host
@@ -1135,6 +1231,7 @@ duo-county.com,DUO Broadband,ISP
 duplexcleaning.au,Duplex Cleaning Machines,Manufacturing
 dvcotechnology.com,Cision,Marketing
 dvois.com,D-VoiS,ISP
+dwd.de,Deutscher Wetterdienst,Government
 dwgreen.com,DW Green Company,Marketing
 dwit.co.kr,Daewon Information Technology Co.,MSP
 dwmhosting.com,DWM Hosting,Web Host
@@ -1143,6 +1240,7 @@ dyn-ip24.de,DDNSS,Web Host
 dynadot.com,Dynadot,Web Host
 dynamic-mytachyon.in,Tachyon Communications,ISP
 dynamik.app,dynamik.app,SaaS
+dynanode.io,DynaNode,Web Host
 dyndns.biz,DynDNS,Web Host
 dyndns.info,DynDNS,Web Host
 dyndns.org,DynDNS,Web Host
@@ -1151,6 +1249,7 @@ dyndns.ws,DynDNS,Web Host
 dyndns1.de,DDNSS,Web Host
 dynv6.net,dynv6,Web Host
 dyspatchit.net,Dyspatchit,Marketing
+dyxnet.com,DYXnet,MSP
 e-kei.pl,Kei,Web Host
 e-mmunity.net,VIPRE,Email Security
 e2ma.net,Emma,Marketing
@@ -1172,6 +1271,7 @@ easyname.com,easyname,Web Host
 easyonnet.io,Easy on Net,Web Host
 easyseo.com.my,SEO Services Malaysia,Marketing
 easyweb.com,easyDNS,Web Host
+eatel.com,REV,ISP
 eaton.com,Eaton,Industrial
 eboundhost.com,eBoundhost,Web Host
 ebox.ca,EBOX,ISP
@@ -1193,8 +1293,10 @@ edgesuite.net,Akamai,Technology
 edion.co.jp,EDION,Retail
 edisglobal.com,EDIS Global,Web Host
 editorx.io,Wix,SaaS
+edpnet.be,EDPnet,ISP
 edu.com,InstructionalAssistant,SaaS
 eduneering.com,UL EHS training,SaaS
+ee.net,eNET,ISP
 eforw.com,Eforw,Email Provider
 egasolutions.com.br,EGA Solutions,Logistics
 egihosting.com,EGIHosting,Web Host
@@ -1244,6 +1346,7 @@ embratel.net.br,Embratel,ISP
 emeraldonion.net,Emerald Onion,Nonprofit
 emexinternet.com.br,Emex Internet,ISP
 emirates.net.ae,Etisalat,ISP
+emory.edu,Emory University,Education
 empaquesmundiales.com,Empaques Mundiales,Industrial
 emporiaresearch.com,Emporia,SaaS
 emsecure.net,Selligent,Marketing
@@ -1253,13 +1356,18 @@ enagroup.net,ENA Group,Construction
 encrypttitan.net,EncryptTitan,Email Security
 endurance.com,Endurance International,Web Host
 enecom.co.jp,Enecom,ISP
+enel.com,Enel,Utilities
 energy.gov,U.S. Department of Energy,Government
 energyhousedigital.co.uk,Digivate,Marketing
 enet.ie,Enet,ISP
+eng.it,Engineering,Consulting
 enginet.az,Birlink,ISP
 enguard.com,EnGuard,Email Security
+eni.com,Eni,Industrial
 eninetworks.com,ENI Networks,ISP
 enova.com,Enova International,Finance
+enreach.com,Enreach,SaaS
+ensono.com,Ensono,MSP
 entangledpublishing.com,Entangled Publishing,Publishing
 entel.bo,Entel Bolivia,ISP
 entel.cl,Entel,ISP
@@ -1272,9 +1380,11 @@ enternetprovedor.com.br,Enternet,ISP
 enterprisecloud.nu,Zitcom,Web Host
 entrata.com,Entrata,SaaS
 entrustedmail.net,EntrustedMail,Email Security
+enviatel.de,envia TEL,ISP
 eolo.it,EOLO,ISP
 eonemedia.com,eOneMedia,Photography
 epa.gov,U.S. Environmental Protection Agency,Government
+epb.net,EPB,ISP
 epbfi.com,EPB,ISP
 epbnet.com,Russellville Electric Plant Board,ISP
 epfl.ch,EPFL,Education
@@ -1285,6 +1395,7 @@ epsl1.com,Publicis Groupe,Marketing
 epsm-marne.fr,EPSM de la Marne,Healthcare
 eqservers.com,EqServers,Web Host
 equinix.com,Equinix,IaaS
+equinor.com,Equinor,Industrial
 eranyacloud.com,Eranyacloud,IaaS
 ereline.com.br,Ereline,ISP
 ericsson.com,Ericsson,Technology
@@ -1298,9 +1409,11 @@ esolutionsgroup.ca,Govstack (eSolutions Group),Technology
 esosoft.net,EcoSoft,Web Host
 esqsites123.com,ESQ Sites 123,Web Host
 esvacloud.com,Libraesva,Email Security
+etapa.net.ec,ETAPA EP,ISP
 etb.com,ETB,ISP
 etb.net.co,ETB,ISP
 etc.uz,East Telecom,ISP
+etcnow.com,ETC,ISP
 etecsa.cu,ETECSA,ISP
 eternet.cc,Eternet,ISP
 etex.net,Etex,ISP
@@ -1325,10 +1438,13 @@ evaair.com,EVA Air,Travel
 eventelecom.com.br,Even Telecom,ISP
 eventsairmail.com,EventsAir,SaaS
 evernet.net.co,Evernet,ISP
+eversource.com,Eversource Energy,Utilities
 evertecinc.com,Evertec,Finance
 evertecpr.com,Evertec,Finance
 everythere.com.au,Everythere,SaaS
 evicertia.com,Evicertia,SaaS
+eviden.com,Eviden,Consulting
+eviny.no,Eviny,Utilities
 evo-net.it,evonet,ISP
 evolus-it.com,Evolus IX,ISP
 evolus-ix.com,Evolus IX,ISP
@@ -1353,15 +1469,19 @@ explorernet.com.br,ExplorerNet,ISP
 explori.com,Explori,Event Planning
 exponential-e.com,Exponential-E,MSP
 expositltd.com,Exposit Ltd.,MSP
+express-scripts.com,Express Scripts,Healthcare
 express.com.ar,Express Telecomunicaciones,ISP
 expressinformatica.art.br,Express Fibra,ISP
 extendedcare.com,CarePort,Healthcare
 extrememt.com.br,Extreme Provedor de Internet,ISP
 extremeserv.net,extremeserv,Web Host
 ezecom.com.kh,EZECOM,ISP
+ezeefiber.com,Ezee Fiber,ISP
 ezhostingserver.com,Hostek,Web Host
 ezinternetsolutions.com,EZ Internet Solutions,Web Host
 ezorg.nl,E-Zorg,Healthcare
+f5.com,F5,Technology
+faa.gov,Federal Aviation Administration,Government
 facebook.com,Meta,Social Media
 fahrenheit88.com,fahrenheit88,Retail
 fap.mil.pe,La Fuerza Aérea del Perú (FAP),Government
@@ -1371,6 +1491,7 @@ farmerstelcom.com,Farmers Telephone (FTI),ISP
 fast.net.id,Linknet-Fastnet,ISP
 fast.net.kg,Skynet Telecom,ISP
 fast.net.uk,FASTNET,ISP
+fasternet.com.br,Desktop,ISP
 fastfortechnologies.com,FastForTechnologies,ISP
 fastly.com,Fastly,SaaS
 fastlylb.net,Fastly,Technology
@@ -1409,6 +1530,7 @@ fibranetdqx.com.br,Fibranet Telecom,ISP
 fibranett.net.br,Fibranett,ISP
 fibrativainternet.com.br,FibrAtiva,ISP
 fibrenoire.ca,fibrenorie,ISP
+fidium.com,Fidium Fiber,ISP
 figma.site,Figma,SaaS
 figueiredoprovedores.com.br,COMNET,ISP
 finanzaworld.net,FinanzaWorld,Finance
@@ -1418,6 +1540,7 @@ fireeyegov.com,FireEye (Government),Email Security
 firstcloudsecurity.net,CyberCision,Email Security
 firstcolo.net,firstcolo,Web Host
 firstcomm.com,FirstComm,ISP
+firstdigital.com,FirstDigital Communications,ISP
 firstlight.net,FirstLight Fiber,ISP
 firstmarketingservices.in,First Marketing Services,Marketing
 firstmedia.com,First Media,ISP
@@ -1468,7 +1591,9 @@ foxnetbrasil.com.br,FoxNet Brasil,ISP
 foxtelecominformatica.com.br,Grupo Fox Telecom,ISP
 foxtrothosting.com,Foxtrot Media,Web Host
 fphonline.com,Family Pet Hospital,Healthcare
+fpl.com,Florida Power & Light,Utilities
 fpt.vn,FPT Telecom,ISP
+fr.ch,Canton of Fribourg,Government
 francedns.com,Eurofiber France,ISP
 franchisemail.net,FranConnect,SaaS
 franet.com.br,Franet Telecom,ISP
@@ -1487,6 +1612,7 @@ freemediainternet.com,freemediainternet.com,Web Host
 freemyip.com,freemyip,Web Host
 freepro.com,Free Pro,ISP
 freetls.fastly.net,Fastly,Technology
+fregat.com,Fregat,ISP
 frgp.net,Front Range GigaPoP,Education
 frionline.com.br,FriOnline,ISP
 fronteirainternet.com.br,Fronteira Internet,ISP
@@ -1541,31 +1667,39 @@ gcore.com,Gcore,Web Host
 gcrcompany.com,GCR Company,MSP
 gctrials.com,GCT,Healthcare
 gd.gov.cn,Government of Guangdong Province,Government
+gda.pl,TASK (Gdansk Tech),Education
 gdnetfibra.com.br,GD Net Fibra,ISP
+ge.ch,Canton of Geneva,Government
 gearhost.com,GearHost,Web Host
 geckonet.pl,Geckonet,ISP
 gegnet.com.br,GGNet Telecomunicações,ISP
 gehirn.ne.jp,Gehirn,Web Host
 gen2fund.com,Gen II,Finance
+gencat.cat,Generalitat de Catalunya,Government
 gene.com,Genentech,Healthcare
 generalinformatix.net,General Informatix,Technology
+generalmills.com,General Mills,Food
 genie-networks.com,Genie Networks,Technology
 genoray.com,GENORAY,Healthcare
 genstarnetcable.com,Gennstar Network Solutions,ISP
 georgia.gov,State of Georgia,Government
+georgiasouthern.edu,Georgia Southern University,Education
 gerberlife.com,Gerber Life Insurance,Finance
 getkeepsafe.com,Keepsafe Software,SaaS
 getordained.org,Universal Life Church,Religion
 getresponse.com,GetResponse,Marketing
+getunwired.com,unWired Broadband,ISP
 gfiber.com,Google Fiber,ISP
 ggsv.jp,Techorus,Web Host
 ghm-grenoble.fr,Groupe hospitalier mutualiste de Grenoble,Healthcare
 ghnet.com.br,GHNet,ISP
 ghostnet.de,GHOSTnet,Web Host
 giantpartners.com,Giant Partners,Marketing
+gigaclear.com,Gigaclear,ISP
 gigahost.dk,GigaHost,Web Host
 gigahost.no,Gigahost,Web Host
 gigamaisempresas.com.br,Giga+ Fibra,ISP
+gigared.com.ar,Gigared,ISP
 git-repos.de,LCube,Web Host
 github.com,GitHub,SaaS
 github.io,GitHub,SaaS
@@ -1585,12 +1719,14 @@ globalconnect.net,GlobalConnect,ISP
 globalconnect.se,GlobalConnect,ISP
 globalhealthcareresearch.com,Global Healthcare Research,Healthcare
 globalit.com,Global IT,MSP
+globalsecurelayer.com,Global Secure Layer,ISP
 globaltelecom-mt.com.br,Global Telecom,ISP
 globconnex.com,Global Connectivity Solutions,ISP
 globe.com.ph,Globe Telecom,ISP
 gmailify.com,Gmailify,Email Provider
 gmdp.net.id,GMDP,ISP
 gmobb.jp,GMO BB,ISP
+gmogshd.com,GMO GlobalSign,Technology
 gmoserver.jp,GMO,Web Host
 gmu.edu,George Mason University,Education
 gmx.com,GMX,ISP
@@ -1609,6 +1745,7 @@ gol.com,Gol,Travel
 goldmedimport.com.br,Goldmed import,Healthcare
 gom.co.za,Graytown Office Machines,MSP
 gomailify.net,Gmailify,Email Provider
+gonetspeed.com,GoNetSpeed,ISP
 google.com,Google (Including Gmail and Google Workspace),Email Provider
 googlefiber.net,Google Fiber,ISP
 googleusercontent.com,Google Cloud Platform (GCP),PaaS
@@ -1651,7 +1788,10 @@ grvfibra.com.br,GRV Fibra,ISP
 gsbridge.com,Golden State Bridge,Industrial
 gss-security.ca,GSS Security,Physical Security
 gtd.cl,Gtd,ISP
+gthost.com,GTHost,Web Host
 gtnexus.com,Infor Nexus (Formerly GT Nexus),SaaS
+gtpl.net,GTPL,ISP
+gts.ro,GTS Telecom,ISP
 gts.sk,GTS Slovakia,ISP
 gtt.net,GTT Communications,ISP
 gturbo.com.br,G Turbo Telecom,ISP
@@ -1721,6 +1861,7 @@ heyflow.page,Heyflow,Marketing
 heyflow.site,Heyflow,Marketing
 heywoodhill.com,Heywood Hill,Retail
 hgc-intl.com,HGC,ISP
+hh.nm.cn,China Unicom,ISP
 hhs.gov,U.S. Department of Health & Human Services,Government
 hhsys.org,Huntsville Hospital,Healthcare
 hickorytech.net,Consolidated Communications,ISP
@@ -1776,6 +1917,7 @@ hostatom.com,hostatom,Web Host
 hostcrew.net,HostCrew,Web Host
 hostdent.com,HostNDent,Healthcare
 hostdepot.net,Host Depot,Web Host
+hostdime.com,HostDime,Web Host
 hosted-by-robovps.ru,RoboVPS,Web Host
 hostedemail.com,HostedEmail.com,Email Provider
 hostedexchange.asia,Hosted Exchange Asia,Web Host
@@ -1839,6 +1981,7 @@ hslda.org,Home School Legal Defense Association (HSLDA),Education
 hspherefilter.com,"DynamicNet, Inc. (DNI)",Web Host
 ht.hr,Hrvatski Telekom,ISP
 htc.net,HTC,ISP
+htcinc.net,HTC,ISP
 htmlservices.it,HTMLServices.it,MSP
 htp.net,htp,ISP
 huaweicloud.com,Huawei Cloud,IaaS
@@ -1851,11 +1994,17 @@ hugstelecom.com,Hugs Telecom,ISP
 hulum.iq,Hulum Almustakbal,ISP
 hushmail.com,Hushmail,Email Provider
 hvvc.us,Hivelocity,Web Host
+hydro.com,Norsk Hydro,Industrial
+hyosung.com,Hyosung,Conglomerate
 hypernode.io,Hypernode,Web Host
+hyperoptic.com,Hyperoptic,ISP
 i-cable.com,i-Cable,ISP
 i2ts.ne.jp,i2ts,Web Host
+i3d.net,i3D.net,IaaS
 i4i.com,i4i,Technology
+iadvantage.net,SUNeVision iAdvantage,Web Host
 iam.ma,Maroc Telecom,ISP
+iastate.edu,Iowa State University,Education
 ibindley.com,Cardinal Health,Healthcare
 ibm.com,IBM,Technology
 ice.co.cr,Grupo ICE,Industrial
@@ -1863,12 +2012,14 @@ icehosting.nl,IceHosting,Web Host
 icertis.com,Icertis,SaaS
 icewarpcloud.in,IceWrap,Email Provider
 icfre.org,Indian Council of Forestry Research and Education,Government
+ici.ro,ICI București,Government
 iclicktelecom.net.br,iClick Telecom,ISP
 iconnecttelecom.com.br,Connect Telecom,ISP
 icoremail.net,Coremail,Email Provider
 icosnet.com,ICOSNET,ISP
 icostelecom.com.br,ICOS Telecom,ISP
 ictk.com,ICTK,Technology
+ida.org,Institute for Defense Analyses,Defense
 idcf.jp,IDC Frontier,Web Host
 idealinsurancebrokersng.com,Ideal Insurance Brokers,Finance
 idealwebpiaui.com.br,Ideal Web,ISP
@@ -1884,6 +2035,7 @@ ifxnw.com.ve,IFX Networks,MSP
 iglou.com,IgLou Internet Services,ISP
 ignitedigital.com,Ignite Digital,Marketing
 igpfibra.com.br,IGP Fibra,ISP
+ihc.com,Intermountain Health,Healthcare
 ihor-hosting.ru,IHOR Hosting,Web Host
 ihug.co.nz,ihug,ISP
 iij.ad.jp,Internet Initiative Japan,ISP
@@ -1900,6 +2052,7 @@ ilimnet.ru,Telnet,ISP
 illinois.edu,University of Illinois,Education
 illinois.net,Illinois Century Network,Education
 imageonline.co.in,Image Online,Marketing
+imagine.ie,Imagine,ISP
 imanila.ph,iManila,Marketing
 imcconseil.fr,IMC Conseil,MSP
 imicro.com.br,IMICRO Telecom,ISP
@@ -1920,6 +2073,7 @@ indemed.com,Cardinal Health at-home (Formerly Independence Medical),Healthcare
 indiaaccess.com,IndiaAccess,Web Host
 indiana.edu,Indiana University Bloomington,Education
 indo.net.id,Indonet,ISP
+indonet.co.id,Indonet,ISP
 indosat.com,IM3,ISP
 indosatooredoo.com,IM3,ISP
 indra.com,Indra,Web Host
@@ -1930,6 +2084,7 @@ inet.co.th,INET,ISP
 inet.vn,INET,Web Host
 inetcom.ru,Inetcom,ISP
 inexa.com.br,Inexa,ISP
+inexio.net,inexio,ISP
 inext.co.th,INET,ISP
 infinityfiber.com.br,Infinity Fibra,ISP
 infinivan.com,InfiniVAN,ISP
@@ -1939,8 +2094,10 @@ infolinebandalarga.com.br,Infoline,ISP
 infolink.ru,Infolink,ISP
 infolinktelecom.com,Infolink Telecom,ISP
 infomaniak.ch,infomaniak,Web Host
+infomaniak.com,Infomaniak,Web Host
 infomir.com.ua,Infomir,ISP
 infonet-isp.com.br,Infonet Telecom,ISP
+infopact.nl,Infopact,ISP
 infor.com,Infor,SaaS
 inforang.com,Inforang,SaaS
 inforcloudsuite.com,Infor,SaaS
@@ -1951,7 +2108,10 @@ infosetetelecom.com.br,Info Sete,ISP
 infotrade.gr,INFO-TRADE,Technology
 ingenuitycloudservices.com,Ingenuity Cloud Services,Web Host
 ingenuityfilms.com,Ingenuity Films,Entertainment
+init.lt,INIT,ISP
+init7.net,Init7,ISP
 inkyphishfence.com,INKY,Email Security
+inl.gov,Idaho National Laboratory,Government
 inmicsnebula.fi,Telia,ISP
 inmotionhosting.com,InMotion Hosting,Web Host
 innline.net,innline,SaaS
@@ -1982,6 +2142,7 @@ interkam.pl,Interkam,ISP
 interlink.md,Interlink Comunicatii,ISP
 intermetalsa.co.mz,Intermetal,Construction
 internap.com,Internap,Web Host
+internationalpaper.com,International Paper,Industrial
 internet-webhosting.com,iWHOST,Web Host
 internet.co.za,Axxess,ISP
 internet.fo,Føroya Tele,ISP
@@ -1989,7 +2150,9 @@ internet.gmo,GMO Internet,ISP
 internet10.net.br,Internet 10,ISP
 internetlocal.com.ar,Internet Local,ISP
 internetmailserver.net,Internet Mail Server Networks,Email Provider
+internetnamesforbusiness.com,Internet Names For Business,Web Host
 internetsuper.com.br,Internet Super,ISP
+internetvikings.com,Internet Vikings,Web Host
 internetway.com.br,Internet Way,ISP
 internexa.com,InterNexa,ISP
 interra.ru,Interra,ISP
@@ -2001,6 +2164,7 @@ investinmiddlesex.ca,"Middlesex County, Canada",Government
 investpsp.ca,PSP Investments,Finance
 inwi.ma,Inwi,ISP
 inxserver.de,Inxmail,Marketing
+ioflood.com,IOFLOOD,Web Host
 ioflood.net,I/O Flood,Web Host
 ioh.co.id,IM3,ISP
 iomart.com,iomart,Web Host
@@ -2048,6 +2212,7 @@ iqcomputing.net,IQComputing,Web Host
 iqhive.com,IQ Hive,MSP
 iqon-global.com,IQON Global,Web Host
 irbr.ru,ИРБР,Web Host
+ironmountain.com,Iron Mountain,Technology
 ironwoodcrc.com,Ironwood Cancer & Research Centers,Healthcare
 is.co.za,Internet Solutions,ISP
 is74.ru,Intersvyaz,ISP
@@ -2071,11 +2236,14 @@ itanet.psi.br,ITANET,ISP
 itaon.net.br,ITAON,ISP
 ithostline.com,IT HOSTLINE,MSP
 iti-e.co.jp,ITI,Healthcare
+itility.co.uk,Itility,Web Host
 itmedia.co.jp,ITmedia,News
 itools.mn,iTools,MSP
 itop.net.br,iTop,ISP
 itscom.jp,its communications,ISP
 itscom.net,iTSCOM,ISP
+itstechnologygroup.com,ITS Technology Group,ISP
+itu.edu.tr,Istanbul Technical University,Education
 iu.edu,Indiana University,Education
 iucc.ac.il,IUCC,Education
 iuhw.ac.jp,International University of Health and Welfare,Education
@@ -2096,6 +2264,7 @@ jamescitycountyva.gov,"James City County, Virginia",Government
 japan-wirecable.com,Bell Denki,Industrial
 japnet.com.br,Japnet Telecom,ISP
 jaringanlintasartha.com,PT Jaringan Lintas Artha,ISP
+jastel.co.th,JasTel,Web Host
 jato64.com.br,Infortel,ISP
 javvara.com,javvara,Marketing
 jazz.com.pk,Jazz,ISP
@@ -2110,6 +2279,7 @@ jetcan.com.my,jetCan,Industrial
 jetflash.net.id,Jet-Flash,ISP
 jetz.com.br,Jetz Internet,ISP
 jewishnews.net.au,The Australian Jewish News,News
+jhu.edu,Johns Hopkins University,Education
 jhwebworksemail.com,jhWebWorks,Web Host
 jikei.ac.jp,The Jikei University,Education
 jino.ru,Jino,Web Host
@@ -2127,6 +2297,7 @@ jote.cloud,Jotelulu,Web Host
 jotelulu.cloud,Jotelulu,Web Host
 jotelulu.com,Jotelulu,Web Host
 jouwweb.site,JouwWeb,Web Host
+jpmchase.com,JPMorgan Chase,Finance
 jprdigital.in,JPR Digital,ISP
 jrnetdns.net.br,JRNET,ISP
 jrtelecom.com.br,JR Telecom,ISP
@@ -2161,6 +2332,7 @@ kaopucloud.com,Kaopu Cloud,IaaS
 kartelkomi.ru,Kartel,ISP
 kaspr-privacy.io,Kaspr,Marketing
 kasserver.com,all-inkl.com,Web Host
+katch.co.jp,KATCH Network,ISP
 kater.com.br,Kater Telecom,ISP
 kattare.com,Kattare,Web Host
 kazintercom.kz,Kaz InterCom,ISP
@@ -2215,12 +2387,14 @@ klimovsk.net,Klimovsk Network,ISP
 klinik-arlesheim.ch,Klinik Aresheim,Healthcare
 kliniken-es.net,Klinikum Esslingen,Healthcare
 klogixsecurity.com,K logix,MSSP
+kmd.dk,KMD,Consulting
 kmtn.ru,Kostrom City Telephone Network,ISP
 kmu.ac.jp,Kansai Medical University,Education
 kmv.ru,Post LTD,ISP
 knet.kg,Kyrgyztelecom,ISP
 knockdesign.com,Knock Design,Marketing
 kobe-u.ac.jp,Kobe University,Education
+kodak.com,Kodak,Technology
 kodiaksys.com,ARIOS,SaaS
 kogite.fr,KoGite,Web Host
 kolsitegroup.com,Kolsite Group,Industrial
@@ -2231,6 +2405,7 @@ korea.kr,Government of South Korea,Government
 koumbit.net,Koumbit.org,MSP
 kovacmed.com,KOVAC-MED,Healthcare
 kpchealth.com,KPC Healthcare,Healthcare
+kpmg.com,KPMG,Consulting
 kpn.com,KPN,ISP
 kpn.net,KPN,ISP
 kpu-m.ac.jp,Kyoto Prefectural University of Medicine,Education
@@ -2245,18 +2420,23 @@ ktc.kz,KTC Kazakhstan LLP,Industrial
 kthcn.co.kr,kt HCN,ISP
 ktis.net,Kingdom Networks,ISP
 ktk-sol.co.jp,KtK Solutions,Email Security
+ktnet.co.kr,Korea Trade Network,Government
 ktnet.kg,Кыргызтелеком,ISP
+ktu.edu,Kaunas University of Technology,Education
 kundenserver.de,domainfactory GmbH,Web Host
 kusunoki-hp.com,Kusunoki Hospital,Healthcare
 kyivstar.ua,Kyivstar,ISP
 kylos.pl,Kylos,Web Host
+kyndryl.com,Kyndryl,MSP
 kyo.tech,KyoTech,Web Host
 kyoei-med.co.jp,Kyoei Medical Instruments,Healthcare
 kyoto-u.ac.jp,Kyoto University,Education
 l3harris.com,L3Harris,Defense
 laboratoires-thea.fr,Laboratoires Théa,Healthcare
 laca.org,Licking Area Computer Association,Nonprofit
+lacoe.edu,Los Angeles County Office of Education,Education
 lacoste.com,Lacoste,Retail
+lacounty.gov,Los Angeles County,Government
 lanet.ua,Lanet,ISP
 lanl.gov,Los Alamos National Laboratory,Government
 lanoptic.ru,LAN-Optic,ISP
@@ -2271,6 +2451,7 @@ lauruslabs.com,Lasarus Labs,Healthcare
 lawtendo.com,Lawtendo,Legal
 lazernet.com.br,Lazernet,ISP
 lb.go.gov.br,Government of Goias State Brasil,Government
+lbl.gov,Lawrence Berkeley National Laboratory,Government
 lcmh.com,Lake Charles Memorial Health System,Healthcare
 lcube-server.de,LCube,Web Host
 lcv.ne.jp,LCV Corporation,ISP
@@ -2285,6 +2466,7 @@ leaseweb.com,Leaseweb,Web Host
 leftor.ba,Leftor,Web Host
 legenditsolutions.com,Legend IT Solutions,Web Host
 legroupeforget.com,Le Groupe Forget,Healthcare
+leidos.com,Leidos,Defense
 lestetelecom.com.br,Leste,ISP
 level-7.co.za,Level 7 Internet,ISP
 level3.com,Lumen,ISP
@@ -2303,6 +2485,7 @@ libertyglobal.com,Liberty Global,ISP
 libertyhospital.org,Liberty Hospital,Healthcare
 libertynet.com,Liberty Networks,ISP
 libertynetworks.com,Liberty Networks,ISP
+libertypr.com,Liberty,ISP
 library.on.ca,Ontario Libraries,Nonprofit
 lidernetfibra.com.br,Lidernet,ISP
 lifecell.ua,lifecell,ISP
@@ -2318,6 +2501,7 @@ liguriadigitale.it,Liguria Digitale,MSP
 likuid.com,Likuid,Web Host
 lilly.com,Eli Lilly,Healthcare
 limco-logistics.net,Limco Logistics,Logistics
+limestonenetworks.com,Limestone Networks,Web Host
 lindsaymunicipalhospital.com,Lindsay Municipal Hospital,Healthcare
 line-net.ru,LineNet,ISP
 linejet.net.br,LineJet,ISP
@@ -2331,6 +2515,7 @@ linkedin.com,LinkedIn,Social Media
 linkfire.com.br,Linkfire Telecom,ISP
 linknortetelecom.com.br,Link Norte,ISP
 linksul.com.br,LinkSul,ISP
+linkt.fr,Linkt,ISP
 linode.com,Linode,Web Host
 linodeusercontent.com,Linode,Web Host
 linqtelecom.com.br,LinQ Telecom,ISP
@@ -2351,6 +2536,7 @@ livenation.com,Live Nation,Entertainment
 liveperson.net,LivePerson,SaaS
 liwest.at,LIWEST,ISP
 llnl.gov,Lawrence Livermore National Laboratory,Government
+lloydsbankinggroup.com,Lloyds Banking Group,Finance
 llumc.edu,Loma Linda University Medical Center,Healthcare
 lmi.net,LMi.net,ISP
 loading.es,Loading,Web Host
@@ -2361,15 +2547,19 @@ locustwalk.cc,Locust Walk,Finance
 lodestonegroup.com,Loadstone Insurance,Finance
 loftsinc.com,"Lofts, Inc.",Retail
 loga.net.br,Loga,ISP
+logicweb.com,LogicWeb,Web Host
 logika.ro,Logika IT Solutions,MSP
 logisticintegrators.com,Logistics Integrators,Logistics
 logix.in,Logix InfoSecurity,MSP
 lokalonline.com.br,Lokal Online Telecom,ISP
 lolipop.jp,Lolipop,Web Host
+lomalindahealth.org,Loma Linda University Health,Healthcare
+loni.org,LONI,Education
 loopia.se,Loopia,Web Host
 losnettos.net,Los Nettos,Education
 louhi.net,Louhi,Web Host
 louisiana.gov,Louisiana Government,Government
+lounea.fi,Lounea,ISP
 lowesthosting.com,Lowest Hosting,Web Host
 lpages.co,Leadpages,Marketing
 lpcgov.org,La Plata County,Government
@@ -2389,9 +2579,11 @@ lugtel.com,Lugansk Telephone Company,ISP
 lumen.com,Lumen,ISP
 lumison.net,Pulsant,Web Host
 lumos.net,Lumos,ISP
+lumosfiber.com,Lumos,ISP
 lumosnetworks.com,Lumos,ISP
 luxoft.com,Luxoft,Consulting
 luxsci.com,LuxSci,Email Security
+lwlcom.net,LWLcom,ISP
 lws-hosting.com,LWS,Web Host
 lxcluster.at,LXCluster,Web Host
 lyntia.com,Lyntia,ISP
@@ -2407,12 +2599,15 @@ m2dtelecom.com.br,M2D Telecom,ISP
 m4w.at,M4W Kreativ,Marketing
 m9network.com,Volico Data Centers,Web Host
 machanet.com.br,Grupo Nordeste Telecom,ISP
+macquariedatacentres.com,Macquarie Data Centres,Web Host
 macrolan.co.za,SEACOM,MSP
 macrx.com,MAC Rx,Healthcare
+mada.ps,Mada,ISP
 maddock.net,Maddock Films,Entertainment
 maersk.com,Maersk,Logistics
 maestroit.com,Maestro IT Services,MSP
 magentosite.cloud,Adobe Magento,SaaS
+magnetplus.ie,Magnet Plus,ISP
 magnoliarental.com,Magnolia Rental,Retail
 magticom.ge,Magticom,ISP
 mail.com,Mail.com,Email Provider
@@ -2446,6 +2641,7 @@ mailsecure.jp,NTTPC Communications,Email Security
 mailspamprotection.com,SiteGround,Web Host
 mailwip.com,Mailwip,Email Provider
 maine.edu,University of Maine System,Education
+mainone.net,MainOne,ISP
 maisbandalarga.com,Mais Banda Larga,ISP
 maisinternet.net.br,Mais Internet,ISP
 majorcore.com,MajorCore,Web Host
@@ -2457,6 +2653,7 @@ mandrillapp.com,Mailchimp Transactional,SaaS
 manh.com,Manhattan,SaaS
 mapheadstart.org,Mississippi Action for Progress,Nonprofit
 mappsoluciones.com,MappS Soluciones,Web Host
+marcatel.com,Marcatel,ISP
 mark-itt.net,Point Internet,ISP
 mark-net.co.jp,Mark Co,Marketing
 marlink.com,Marlink,MSP
@@ -2486,6 +2683,7 @@ maximtech.com,Maximtech,Web Host
 maximweb.com,Maxim Management Services,Healthcare
 maxis.com.my,Maxis,ISP
 maxnet.ua,Maxnet,ISP
+maxxsouth.com,MaxxSouth Broadband,ISP
 mayernetworks.com,Mayer Networks,MSP
 mccooknet.com,McCookNet,Web Host
 mcdir.me,McHost,Web Host
@@ -2497,6 +2695,7 @@ mcgill.ca,McGill University,Education
 mchsi.com,MediacomCable,ISP
 mci.ir,MCI Iran,ISP
 mckesson.com,McKesson,Healthcare
+mclaut.com,McLaut,ISP
 mcmahonmed.com,McMahon Publishing,Publishing
 mcmaster.com,McMaster-Crr,Manufacturing
 mcnbd.com,Millennium Computer's & Networking,MSP
@@ -2544,6 +2743,7 @@ menlosecurity.com,Menlo Security,Email Security
 meo.pt,MEO,ISP
 mercedes-benz.com,Mercedes-Benz,Automotive
 mercranet.com,Mercranet,Web Host
+mercury.co.nz,Mercury NZ,Utilities
 mercurygate.net,MercuryGate,SaaS
 meric.net.tr,Meriç Hosting,Web Host
 merit.edu,Merit Network,Education
@@ -2564,9 +2764,11 @@ metronet.com,MetroNet,ISP
 metronetinc.net,Metronet,ISP
 metrored.com.mx,Metrored,ISP
 metrored.net.mx,Metrored,ISP
+mettel.net,MetTel,ISP
 mexxus.com,Mexxus Media,Marketing
 mezmotech.com,Mezmo,SaaS
 mfa-inc.com,MFA,Industrial
+mfeed.ad.jp,Internet Multifeed (JPNAP),ISP
 mgb.org,Mass General Brigham,Healthcare
 mgnettelecom.com.br,MG NET Telecom,ISP
 mgp.net.br,MGP Telecom,ISP
@@ -2591,6 +2793,7 @@ migadu.com,Migadu,Email Provider
 migracion.go.cr,Costa Rica Migration,Government
 migros.ch,Migros,Retail
 mihandns.com,Netmihan Communication,Web Host
+mila.is,Míla,ISP
 milkcratesdirect.com,FARMPLAST,Retail
 milleni.com.tr,Millenicom,ISP
 milton.ca,Town of Milton,Government
@@ -2600,18 +2803,22 @@ mindmoviesmail.com,Mind Movies,SaaS
 minebeamitsumi.com,MinebeaMitsumi,Manufacturing
 minigraphics.net,Mini Graphics,Print
 miniserver.com,Memset,Web Host
+minnstate.edu,Minnesota State Colleges and Universities,Education
 mir9.co.kr,Mir9,Marketing
 miralogic.ru,MiraLogic,ISP
 mirohost.net,MiroHost,Web Host
+missouri.edu,University of Missouri,Education
 mistral.co.uk,Nasstar,MSP
 mistral.net,Nasstar,MSP
 mit.edu,MIT,Education
 mitec.net,Mitec Solutions,MSP
+mitre.org,MITRE,Nonprofit
 mittwald.de,Mittwald,Web Host
 mittwald.info,Mittwald,Web Host
 mittwaldserver.info,Mittwald,Web Host
 mivamerchant.net,Mirva,SaaS
 mizban.com,Mizban,Web Host
+mk.de,MK Netzdienste,MSP
 mkc-net.ru,МКС (MKC-Net),ISP
 mknetwork.com.br,MkK Network Telecom,ISP
 mksnet.com.br,RazaoInfo,ISP
@@ -2649,6 +2856,7 @@ monitorsanywhere.com,Monitors AnyWhere,SaaS
 montana.edu,Montana State University,Education
 montanasky.net,MontanaSky,ISP
 montereybaydesign.com,Monterey Bay Design,Web Host
+montreal.ca,City of Montreal,Government
 moovik.com.ua,MooVik,Retail
 morarepublic.co.id,Mora Republic,ISP
 moratelindo.net.id,Moratelindo,ISP
@@ -2664,6 +2872,7 @@ movicel.co.ao,Movicel,ISP
 movilnet.com.ve,Movilnet,ISP
 movistar.cl,Moivestar Chlie,ISP
 movistar.com.co,Movistar,ISP
+movistar.com.uy,Tigo,ISP
 movistar.es,Movistar,ISP
 movitel.co.mz,Movitel,ISP
 mpi-iq.com,Al-Mansour,Healthcare
@@ -2679,8 +2888,10 @@ msu.edu,Michigan State University,Education
 msu.ru,Moscow State University,Education
 mtaroutes.com,N-able,Email Security
 mtasv.net,Postmark,SaaS
+mtc.com.na,MTC,ISP
 mtccomm.net,MTC Communications,ISP
 mtdtraining.co.uk,MTD Training Group,SaaS
+mtel.ba,Mtel,ISP
 mtel.me,Mtel,ISP
 mtn.ci,MTN,ISP
 mtn.cm,MTNL,ISP
@@ -2774,6 +2985,7 @@ mywhc.ca,Web Hosting Canada,Web Host
 myworkday.com,Workday,SaaS
 n4telecom.com.br,N4 Telecom,ISP
 na4u.ru,Netangles,Web Host
+nab.com.au,National Australia Bank,Finance
 nabthat.com,Nabthat,SaaS
 nacao.net.br,Net Nação,ISP
 nadracardcentre.co.uk,Nadra Card Centre,SaaS
@@ -2795,6 +3007,7 @@ nasstar.com,Nasstar,MSP
 nastech.bg,Nastech Plus,ISP
 nationalhha.com,National Home Health,Healthcare
 nationlanka.com,Nation Lanka Finance,Finance
+nationwide.co.uk,Nationwide Building Society,Finance
 navayuga.com,Navayuga,Industrial
 navercorp.com,Naver,Technology
 naviexp.jp,NaviExp,MSP
@@ -2806,13 +3019,17 @@ nbcb.cn,Bank of Ningbo,Finance
 nc.gov,State of North Carolina,Government
 ncbs.res.in,National Centre for Biological Sciences,Education
 ncell.com.np,Ncell,ISP
+nchc.org.tw,National Center for High-performance Computing,Government
 ncr.com,NCR,Technology
 ncsl.ca,Northern Computer Solutions,MSP
 ncsu.edu,NC State University,Education
 nctc.com,NCTC,ISP
 ncturbi.com.br,NetCom Brasil,ISP
+nd.gov,North Dakota Government,Government
 nearlyfreespeech.net,NearlyFreeSpeach.NET,Web Host
 nebraska.edu,University of Nebraska,Education
+nec.com.au,NEC,Technology
+necam.com,NEC,Technology
 need-link-eng.co.jp,Need Link Engineering,Technology
 needles.co.kr,Tae Chang Industrial,Healthcare
 neencloud.it,NEEN,MSP
@@ -2844,6 +3061,7 @@ netexpand.com.br,NetExpand,ISP
 netfinn.net,netFinn,Web Host
 netflix.com,Netflix,Entertainment
 netherlandsservers.org,Netherlands Servers,Web Host
+nethinks.com,NETHINKS,MSP
 nethosting.com,NetHosting,Web Host
 netia.pl,Netia,ISP
 netifox.com,NETIFOX,ISP
@@ -2858,6 +3076,8 @@ netnar.com.py,Netnar,ISP
 netnerd.com,NetNerd,Web Host
 netowl.jp,スターアカウント,ISP
 netpagedns.net,Netpage Internet Services,ISP
+netplus.ch,Net+,ISP
+netplus.co.in,Netplus Broadband,ISP
 netrax.pl,Netrax,ISP
 netregistry.net,Netregistry,Web Host
 netrevolution.com,NetRevolution,ISP
@@ -2874,6 +3094,7 @@ nettoday.co.th,Net Today,Web Host
 nettop.com.br,NetTop,ISP
 nettriangulo.com.br,NetTriânguloTelecom,ISP
 netturbo.com.br,Net Turbo Telecom,ISP
+netuse.de,NetUSE,MSP
 netventure.pl,Netventure,MSP
 netvigator.com,HKT,ISP
 netvisao.pt,NOWO Communications,ISP
@@ -2906,10 +3127,12 @@ nexcess.net,Nexcess,Web Host
 nexeon.com,Nexeon,IaaS
 nexg.net,KX NexG,ISP
 nexicom.net,Nexicom,ISP
+nexon.com.au,Nexon Asia Pacific,MSP
 nexsul.net.br,Nexsul Conectividade,ISP
 next-gen.ro,NextGen,ISP
 nexteratech.co,NexTeraTech,MSP
 nextgentel.no,NextGenTel,ISP
+nextlinkinternet.com,Nextlink,ISP
 nextnetworks.net,NextNetworks,MSP
 nexttelecom.net.br,Next Internet,ISP
 nfshost.com,NearlyFreeSpeech.NET,Web Host
@@ -2917,11 +3140,14 @@ ngloba.com,Ngloba Devices,MSP
 ngpweb.com,Bonterra,Marketing
 nh-serv.co.uk,Nimbus Hosting,Web Host
 nhisac.org,H-ISAC,Healthcare
+nhn-techorus.com,NHN Techorus,MSP
+nhncloud.com,NHN Cloud,IaaS
 nhs.net,NHSmail,MSP
 nic.ad.jp,JPNIC,Nonprofit
 nicknetwork.com.br,NickNetwork,ISP
 nicmail.ru,RU-CENTER,Email Provider
 nicnet.com.br,Nicnet,ISP
+nict.go.jp,NICT,Government
 nifty.com,@nifty,Web Host
 nih.gov,National Institutes of Health,Government
 niigata-u.ac.jp,Niigata University,Education
@@ -2933,6 +3159,7 @@ nipbr.com,NipBr Telecom,ISP
 nir-telecom.ru,NIR-Telecom,ISP
 nititancommercial.com,Niti Tan Commercial,Industrial
 nixihost.com,NixiHost,Web Host
+njedge.net,Edge,Nonprofit
 nktelco.net,NKTELCO,ISP
 nktele.com,NkTelecom,Web Host
 nmtrucking.com,TRC Solutions,Logistics
@@ -2961,9 +3188,12 @@ nordictelecom.cz,Nordic Telecom,ISP
 nordnet.com,Nordnet,ISP
 nordnet.fr,Nordnet,ISP
 nordstrom.com,Nordstrom,Retail
+noris.de,noris network,Web Host
 noroestenet.com,NoroesteNet,ISP
+norrnod.se,UMDAC (Umeå University),Education
 nortetelecom.net.br,Norte Telecom,ISP
 northcdatacenters.com,NorthC Datacenters,Web Host
+northeastern.edu,Northeastern University,Education
 northropgrumman.com,Northrop Grumman,Defense
 northshore.org,NorthShore University HealthSystem,Healthcare
 northwestern.edu,Northwestern University,Education
@@ -2985,17 +3215,21 @@ npsin.com,NP Foods Singapore,Food
 nrcki.ru,Kurchatov Institute,Government
 nrconexoes.com.br,NR Conexões,ISP
 nreca.coop,NRECA,Nonprofit
+nrk.no,NRK,Government Media
 nrtmexico.mx,Corporativo Núcleo Radio Televisión,News
 nsighttel.com,Nsight,ISP
 nsmailserv.com,Netcore,Marketing
 nsnparts.com,NSNParts,Defense
 nstplnet.com,Navkar Supertech,ISP
 nsupdate.info,nsupdate.info,Web Host
+nt.gov.au,Northern Territory Government,Government
+ntc.net.np,Nepal Telecom,ISP
 nte.no,NTE,ISP
 ntelecom.com.br,Vero,ISP
 ntelos.net,Lumos,ISP
 ntirety.com,Ntirety,MSP
 ntplc.co.th,National Telecom (Thailand),ISP
+ntt-east.co.jp,NTT East,ISP
 ntt-me.co.jp,NTT-ME,ISP
 ntt.com,NTT Communications,ISP
 nttdata.com,NTT DATA,Consulting
@@ -3015,6 +3249,7 @@ nxcli.net,Liquid Web,Web Host
 nyc.gov,City of New York,Government
 nychhc.org,NYC Health + Hospitals,Healthcare
 nycm.com,NYCM Insurance,Finance
+nycu.edu.tw,National Yang Ming Chiao Tung University,Education
 nyp.org,NewYork-Presbyterian,Healthcare
 nyspta.org,New York State PTA,Nonprofit
 nyu.edu,New York University,Education
@@ -3042,7 +3277,9 @@ oderland.com,Oderland,Web Host
 odido.nl,Odido,ISP
 odoo.com,Odoo,SaaS
 odu.edu,Ohio Dominican University,Education
+ogero.gov.lb,Ogero,ISP
 ohio.edu,Ohio University,Education
+ohsu.edu,Oregon Health & Science University,Education
 ojt.kz,ntustik Zharyk Transit,Industrial
 okanagan.net,Okanagan.net,Web Host
 okayama-u.ac.jp,Okayama University,Education
@@ -3054,7 +3291,9 @@ omantel.om,Omantel,ISP
 omeda.com,Omedia,Marketing
 omegatech.cz,Nordic Telecom,ISP
 ometria.email,Ometria,Marketing
+omkc.ru,Omskie Kabelnye Seti,ISP
 omni.lt,Omnitel,ISP
+omnifiber.com,Omni Fiber,ISP
 omninet.co.nz,OmniNet,ISP
 omnis.com,Omnis,Web Host
 omniscient.com,Omniscient Technologies,Technology
@@ -3076,13 +3315,16 @@ onedaysign.com,One Day Signs,Retail
 onenationuk.org,One Nation,Nonprofit
 onenet.net,OneNet,ISP
 oneoffice.jp,OneOffice,SaaS
+oneringnetworks.com,One Ring Networks,ISP
 onetechtelecom.net.br,Onetech Telecom,ISP
+oni.pt,ONI,ISP
 onice.io,IceWrap,Email Provider
 onitel.com.br,Onitel,ISP
 online-access.com,Online Access,Marketing
 online.com.kh,COGETEL,ISP
 online.kz,Kazakhtelecom,ISP
 online.net,Scaleway,Email Provider
+online.nl,Online.nl,ISP
 online.tj.cn,China Unicom,ISP
 onlineagency.com,Online Agency,SaaS
 onlinehome-server.info,IONOS,Web Host
@@ -3104,6 +3346,7 @@ ooredoo.tn,Ooredoo,ISP
 opalstack.com,Opalstack,Web Host
 openair.com,Oracle NetSuite OpenAir,SaaS
 opendns.com,Cisco OpenDNS,Email Security
+openfiber.it,Open Fiber,ISP
 opentext.com,OpenText,SaaS
 opentransit.net,Orange,ISP
 openwave.ai,Openwave Messaging,Email Provider
@@ -3111,6 +3354,7 @@ opnet.it,OpNet (WindTre),ISP
 optage.co.jp,Optage,ISP
 optimantra.com,OptiMantra,SaaS
 optimum.com,Optimum,ISP
+optimum.net,Optimum,ISP
 optimus.si,Optimus IT d.o.o.,MSP
 optimusmedia.com,Optimus Media,Marketing
 optipub.com,OptiPub,Publishing
@@ -3144,12 +3388,15 @@ oregon.gov,Oregon Government,Government
 oregonstate.edu,Oregon State University,Education
 ori.net,ORI,ISP
 orionnet.ru,Orion Telecom,ISP
+oriontelekom.rs,Orion Telekom,ISP
 oristelekom.com,ORIS Telekom,ISP
 orlandodiocese.org,Diocese of Orlando,Nonprofit
+ornl.gov,Oak Ridge National Laboratory,Government
 orthodoxws.com,Orthodox Web Solutions,Web Host
 osc.edu,OARnet,Education
 osconnect.com.br,OS Connect,ISP
 oser.com,Oser Comunications Group,Marketing
+oshean.org,OSHEAN,Education
 osir.net.br,Osirnet,ISP
 osnova.tv,Osnova,ISP
 osogrande.net,Oso Grande Technologies,ISP
@@ -3166,7 +3413,9 @@ outboundrelay.com,ForwardMX,SaaS
 outlook.cn,Outlook (China),Email Provider
 outlook.com,Outlook (Personal and Microsoft 365),Email Provider
 outreachratio.com,Outreach,SaaS
+outscale.com,Outscale,IaaS
 ovh.ca,OVH,Web Host
+ovh.fr,OVH,Web Host
 ovh.net,OVH,Web Host
 ovh.us,OVH,Web Host
 ovhcloud.com,OVH,Web Host
@@ -3184,6 +3433,7 @@ p4net.com.br,P4NET,ISP
 p4net.net.br,P4NET Telecom,ISP
 pa.gov,Commonwealth of Pennsylvania,Government
 pa.net.py,P.A. Networks,ISP
+pacificinternet.com,Pacific Internet,ISP
 pacificored.cl,Pacifico Cable,ISP
 pacificsource.com,PacificSource,Healthcare
 packetexchange.eu,Packet Exchange,Web Host
@@ -3233,6 +3483,7 @@ pd25.com,Salesforce Marketing Cloud (Formerly Pardot),Marketing
 peaknet.net,PeakNet,Industrial
 peapod.com,Peapod,Retail
 pearcebevill.com,"Pearce, Bevill, Leesburg, Moore, P.C.",Finance
+pennwest.edu,Pennsylvania Western University,Education
 penteledata.net,PenTeleData,ISP
 peopleanswers.com,Infor,SaaS
 peopleshostshared.com,PeoplesHost,Web Host
@@ -3241,17 +3492,21 @@ pepitrans02.com,Netcore (Formerly Pepipost),SaaS
 perception-point.io,Perception Point,Email Security
 perenso.com,Perenso,Marketing
 perfora.net,IONOS,Web Host
+performive.com,CloudFirst,Web Host
 perimeterwatch.com,PerimeterWatch,MSSP
 peteralan.co.uk,Peter Alan,Real Estate
 petroed.com,PetroEd,Education
 pfcloud.io,pfcloud,Web Host
+pfizer.com,Pfizer,Healthcare
 pfmsys.com,Professional Flight Management (PFM),Logistics
 pg.com,Procter & Gamble,Manufacturing
 pgcps.org,Prince George's County Public Schools,Education
+pge.com,PG&E,Utilities
 phpwebhosting.com,PHPWebHosting,Web Host
 piedmonteye.com,Piedmont Eye Center,Healthcare
 pif.co.uk,Pinnacle Freight,Logistics
 pilot-ipek.ru,Izhevsk Industrial-Economic College,Education
+pilotfiber.com,Pilot Fiber,ISP
 pink.co.rs,Mink Media Group,Marketing
 pinnaclecart.com,PinnacleCart,SaaS
 pioneer.co.th,Pioneer Transportation,Logistics
@@ -3271,6 +3526,7 @@ pldt.com,PLDT,ISP
 pldt.net,PLDT,ISP
 plesk.page,Plesk,Web Host
 plis.net.br,Plis Telecom,ISP
+plniconplus.co.id,PLN Icon Plus,MSP
 plugartelecom.net.br,Plugar Telecom,ISP
 plus.com,Plusnet,ISP
 plus.hr,Plus Hosting,Web Host
@@ -3281,7 +3537,9 @@ plusnet.de,Plusnet,ISP
 plusnetfoz.com.br,Plusnet Foz,ISP
 plusserver.com,PlusServer,Web Host
 plusvps.com,Plus Hosting,Web Host
+pmc.gov.au,Australian Department of PM and Cabinet,Government
 pmweb.com.br,pmweb,Marketing
+pnc.com,PNC Bank,Finance
 pobox.com,Pobox,Email Provider
 pocketinet.com,PocketiNet,ISP
 poda.cz,PODA,ISP
@@ -3314,6 +3572,7 @@ precisehotels.com,Precise Hotels and Resorts,Travel
 prempub.com,Premier Publishing,Marketing
 prgmr.com,prgmr.com,Web Host
 primed-halberstadt.de,Primed Halberstadt,Healthcare
+primetel.com.cy,PrimeTel,ISP
 primorye.ru,Rostelecom,ISP
 primustel.ca,Primus,ISP
 princeton.edu,Princeton University,Education
@@ -3352,11 +3611,13 @@ proventainternational.com,Proventa International,Healthcare
 providers.com.ar,Experon (Providers),ISP
 proxad.net,Free,ISP
 proximus.com,Proximus,ISP
+proximus.lu,Proximus,ISP
 proxxima.net,PROXXIMA,ISP
 prtcom.ru,Pokrovsky Radiotelefon,ISP
 prudential.com.sg,Prudential Singapore,Finance
 prudentpublishing.com,Prudent Publishing,Retail
 prw.net,Puerto Rico Webmasters,Web Host
+psc.edu,Pittsburgh Supercomputing Center,Education
 pserver.space,Profitserver,Web Host
 pskovline.ru,Pskovline,ISP
 pspinc.com,Pacific Software Publishing,Web Host
@@ -3367,6 +3628,7 @@ ptd.net,PTD,ISP
 ptp.net.id,Perdana Teknologi Persada,ISP
 ptrcloud.net,GMO GlobalSign,IaaS
 ptspb.ru,Severen-Telecom,ISP
+ptvtelecom.com,PTV Telecom,ISP
 pubnetplus.ne.kr,LG Uplus,ISP
 pubnix.net,PubNIX,Web Host
 puc-rio.br,PUC Rio,Education
@@ -3375,6 +3637,7 @@ pucp.edu.pe,Pontificia Universidad Católica del Perú,Education
 pulkco.com,Pulk & Co,ISP
 pulse.in,Pulse Telesystems,SaaS
 pulsetv.com,Pulse TV,Retail
+puntonet.ec,Puntonet,ISP
 purbanigroup.com,Purbani Group,Manufacturing
 purdue.edu,Purdue University,Education
 pwc.com,PwC,Consulting
@@ -3382,11 +3645,15 @@ pwtinternet.com.br,PWT Internet,ISP
 pwuhui.com.tw,Perfect Medical,Healthcare
 pxc.co.uk,TalkTalk,ISP
 pythonanywhere.com,PythonAnywhere,SaaS
+pyur.com,PŸUR,ISP
+qantas.com.au,Qantas,Travel
 qcell.gm,Qcell Gambia,ISP
 qemailserver.com,Qualtrics,SaaS
+qf.org.qa,Qatar Foundation,Education
 qhoster.net,QHoster,Web Host
 qindiafund.com,Q India Fund,Finance
 qlix.com.br,Qlix,Web Host
+qmul.ac.uk,Queen Mary University of London,Education
 qnsal.cn,Qn-Solar,Manufacturing
 qq.com,QQ,Email Provider
 qrc.ca,Quality Respiratory Care,Healthcare
@@ -3422,6 +3689,7 @@ rackmaze.net,Rackmaze,Web Host
 racknation.cr,RsckNation,Web Host
 rackspace.com,Rackspace,Web Host
 radarinternet.com.br,Radar Internet,ISP
+radiant.net,Telus,ISP
 radiantsolutions.net,Radient Solutions,Web Host
 radware.com,Radware,Email Security
 rafftechnologies.com,Raff Technologies,Web Host
@@ -3443,6 +3711,7 @@ raschig.de,Raschig,Manufacturing
 raycdjr.com,Ray Chrysler Dodge Jeep RAM,Automotive
 razaoinfo.com.br,RazaoInfo,ISP
 razaoinfo.net.br,RazaoInfo,ISP
+rbc.com,Royal Bank of Canada,Finance
 rcatelecom.com.br,RCA Telecom,ISP
 rccbi.com,Rural Computer Consultants,SaaS
 rch001.net,ReachMail,Marketing
@@ -3458,6 +3727,7 @@ realnet.kg,Realnet,ISP
 rebelnetworks.com,Rebel Networks,Web Host
 red-7.net,Red 7 Telecomunicaciones,ISP
 redbird.net,NexGenAccess (Formerly Redbird),ISP
+redcentricplc.com,Redcentric,MSP
 redcondor.net,Red Condor,Email Security
 redcotel.bo,Cotel Ltda.,ISP
 redeatel.com.br,Natel Telecom,ISP
@@ -3475,8 +3745,10 @@ rediffmailpro.com,Rediffmail Pro,Email Provider
 redirection.net,Redirectionet,Web Host
 redirectme.net,No-IP,Web Host
 rediris.es,RedIRIS,Education
+rednesp.br,rednesp,Education
 redtailtechnology.com,Redtail Technology,SaaS
 reef-guardian.com,Reef Guardian,Education
+reevo.it,ReeVo,MSP
 reg.ru,Reg.ru,Web Host
 reg365.net,register365,Web Host
 regentbranding.co.uk,Regent Branding,Marketing
@@ -3496,14 +3768,17 @@ renal-md.com,Renal-MD,Healthcare
 renater.fr,RENATER,Education
 render.com,Render,PaaS
 renet.ru,Renet Com,ISP
+renu.ac.ug,RENU,Education
 reportjourneyus.com,Report Journey US,News
 responselogix.com,Digital Air Strike,Marketing
 retarus.com,Retarus GmbH,SaaS
 retelit.it,Retelit,ISP
+reuna.cl,REUNA,Education
 reverse-mundo-r.com,R Cable y Telecomunicaciones,ISP
 rhcloud.com,Red Hat OpenShift,PaaS
 rheamedical.org,Rhea Medical Center,ISP
 rhein-it.de,RHEN IT,MSP
+rhnet.is,RHnet,Education
 rhsolutions.ca,RH Solutions,Web Host
 riberasaludmail.com,Ribera Salud,Healthcare
 rice.edu,Rice University,Education
@@ -3514,11 +3789,13 @@ rightside.ru,Telecoma,ISP
 rijksoverheid.nl,Government of the Netherlands,Government
 rijkswaterstaat.nl,Rijkswaterstaat,Government
 rima-tde.net,"TELEFONICA, S.A.",ISP
+ringsquared.com,RingSquared,ISP
 risetelecoms.co.za,Rise Telecoms,ISP
 riskonnectclearsight.com,Riskonnect ClearSight,SaaS
 risq.quebec,RISQ,Education
 rit.edu,Rochester Institute of Technology,Education
 ritternet.com,Ritter Communications,ISP
+rm.com,RM Education,Education
 rminet.com.br,RM Informática,ISP
 rmx.de,Retarus GmbH,SaaS
 rnp.br,RNP,Education
@@ -3540,6 +3817,7 @@ rqnet.com.br,RqNet,ISP
 rrinternettelecom.com.br,RR Internet Telecom,ISP
 rrtelecomrs.net.br,RR Telecom,ISP
 rsa.com,RSA,Technology
+rsaweb.co.za,RSAWEB,ISP
 rsgsv.net,Intuit Mailchimp,Marketing
 rssulnet.com.br,RS Sul Net,ISP
 rstp.org.sz,Royal Science and Technology Park,Government
@@ -3569,6 +3847,7 @@ safaricom.co.ke,Safaricom,ISP
 safaricombusiness.co.ke,Safaricom,ISP
 safeport.com,Safeport Network Services,Web Host
 safescreening.co.uk,The Access Group,SaaS
+safeway.com,Safeway,Retail
 safewebservices.com,NMI,SaaS
 sailthru.com,Sailthru,Marketing
 saimanet.kg,Saima Telecom,ISP
@@ -3580,6 +3859,7 @@ salary.com,Salary.com,SaaS
 salesforce.com,Salesforce,SaaS
 salom.uz,Salom Telecom,ISP
 salonlofts.com,Salon Lofts,Retail
+salt.ch,Salt,ISP
 saltechsystems.com,Saltech Systems,MSP
 salzburg-ag.at,Salzburg AG,Utilities
 samanage.com,SolarWinds Service Desk,SaaS
@@ -3610,12 +3890,14 @@ savps.ru,SmartApe,Web Host
 sawaisp.sy,Sawa,ISP
 sbb.rs,SBB,ISP
 sbcglobal.net,AT&T,ISP
+sc.gov,South Carolina Government,Government
 scaladatacenters.com,Scala Data Centers,Web Host
 scalaxy.com,Scalaxy,IaaS
 scaledsystems.com,SimpleNet,Web Host
 scaleway.com,Scaleway,Web Host
 scatair.com,Scatair,Manufacturing
 sccoast.net,Horry Telephone Cooperative,ISP
+sccoe.org,Santa Clara County Office of Education,Education
 sce.com,Southern California Edison,Utilities
 schmc.ac.kr,Soon Chun Hyang University Medical Center,Healthcare
 scinternet.net,South Central Communications,ISP
@@ -3665,11 +3947,13 @@ selnet.az,SelNet,ISP
 selulargroup.com,Selular,SaaS
 semfronteiras.net.br,Sem Fronteiras,ISP
 sempre.tec.br,Sempre Internet,ISP
+sencinet.com,Sencinet,ISP
 sendcloud.io,Sebdcloud,SaaS
 sendcloud.org,Aurora SendCloud,SaaS
 sendersbox.com,Senders.co,Marketing
 sendgrid.com,SendGrid (Twilio),Marketing
 sendgrid.net,Twilio SendGrid,Marketing
+sendinblue.com,Brevo (Sendinblue),Marketing
 sendio.com,Sendio,Email Security
 sendmetric.com,Sendmetric,Email Security
 sendnode.com,MAILINGWORK,Marketing
@@ -3677,6 +3961,7 @@ sendoso.com,Sendoso,Marketing
 sensaphone.com,Sensaphone,SaaS
 sentara.com,Sentara,Healthcare
 sentex.ca,Sentexx,ISP
+sentia.com,Sentia,MSP
 seqtek.net,SEQTEK,MSP
 sercomtel.com.br,Sercomtel,ISP
 serenitydayspaofmemphis.com,Serenity Day Spa,Beauty
@@ -3702,22 +3987,27 @@ serveroffer.net,Serveroffer,Web Host
 serverpanel.com,Shock Hosting,Web Host
 serverpoint.com,ServerPoint,Web Host
 servers.com,Servers.com,Web Host
+serversaustralia.com.au,Servers Australia,Web Host
 service-now.com,ServiceNow,SaaS
 service.one,One.com,Web Host
 servicehoster.ch,Green,Web Host
 servicemail24.de,Arvato Systems,MSP
+servicenow.com,ServiceNow,SaaS
 servicesennuage.ca,CDT Connexion,MSP
 servicios-nic.com.mx,NIC México,SaaS
 servidorcostarica.com,HostDime,Web Host
 servidoresdns.net,Arsys,Web Host
 servlinktelecom.com,Servlink Telecom,ISP
+servpac.com,Servpac,ISP
 ses-stiftung.de,Schwester Euthymia Stiftung,Healthcare
+severen.ru,Severen Telecom,ISP
 sevtelecom.ru,Servastopol Telecom,ISP
 sewan.fr,Sewan,ISP
 sezampro.rs,Orion Telekom,ISP
 sfr.fr,SFR,ISP
 sfr.net,SFR,ISP
 sfr.re,SFR,ISP
+sfu.ca,Simon Fraser University,Education
 sh27.com.br,SunHost,Web Host
 shalomnet.com.br,Shalomnet,ISP
 shamrog.com,Shamrog,Web Host
@@ -3725,9 +4015,11 @@ share-international.us,Share International USA,Nonprofit
 shared-server.net,GMO Cloud,Web Host
 sharehostserver.com,Sharehostserver,Web Host
 shareman.tv,Shareman,SaaS
+sharktech.net,Sharktech,Web Host
 shatel.ir,Shatel,ISP
 shaw.ca,Shaw,ISP
 sheffieldpharma.com,Sheffield Pharmaceuticals,Healthcare
+shell.com,Shell,Industrial
 shentel.com,Shentel,ISP
 sherwin.com,Sherwin-Williams,Retail
 shield.security,Mailprotector,Email Security
@@ -3754,17 +4046,20 @@ siemens.com,Siemens,Industrial
 sifycorp.com,Sify,ISP
 signal.no,Signal,ISP
 signalhire.com,SignalHire,SaaS
+signet.nl,Signet,ISP
 signium.co.jp,Signium,Consulting
 siho.org,Siho Insurance Services,Finance
 sileman.net.pl,Sileman,ISP
 silicanetworks.com,Silica Networks,ISP
 silknet.com,Silknet,ISP
 silpc.fr,SILPC,Healthcare
+simcentric.com,Simcentric,Web Host
 simplesite.com,One.com,Web Host
 simplesite.com.br,One.com,Web Host
 simplesite.gr,One.com,Web Host
 simplesite.pl,One.com,Web Host
 simplystamps.com,Simply Stamps,Retail
+simplytransit.net,Simply Transit,ISP
 simpro.com.br,Simpro,Healthcare
 simus.uz,Simus,ISP
 sina.com.cn,Sina,Email Provider
@@ -3802,6 +4097,7 @@ skybroadband.com,Sky,ISP
 skydsl.it,skyDSL,ISP
 skymail.com.br,Skymail,Email Provider
 skypoint.com,SkyPoint Communications,ISP
+skysdigital.net,SkyDigital,ISP
 sl-reverse.com,IBM Cloud,PaaS
 slb.com,Schlumberger,Industrial
 slgnt.eu,Selligent,Marketing
@@ -3824,18 +4120,22 @@ smartspb.net,Smart Telecom,ISP
 smcjbz.nl,Jeroen Bosch Ziekenhuis,Healthcare
 smcjpn.co.jp,SMC Corporation,Manufacturing
 smile.com.bd,DBCOM Online,ISP
+smile.com.ng,Smile,ISP
+smileserv.com,Smileserv,Web Host
 smithbucklin.com,Smithbucklin,Consulting
 smsmasivos.com.ar,SMS Masivos,SaaS
 smtp.com,SMTP.com,SaaS
 smtp.cz,Active24,Web Host
 smtp25.com,Zix,Email Security
 smtp2go.com,SMTP2GO,SaaS
+smu.edu,Southern Methodist University,Education
 snapengage.com,SnapEngage,SaaS
 snapfiles.com,SnapFiles,Technology
 sncc.co.kr,SNC Korea,Manufacturing
 snet.com,SNET,ISP
 snowflake.app,Snowflake,SaaS
 snthostings.com,SnTHostings,Web Host
+snu.ac.kr,Seoul National University,Education
 so-net.ne.jp,So-net,ISP
 so-net.net.tw,So-net,ISP
 socgen.com,Societe Generale,Finance
@@ -3849,6 +4149,7 @@ softbank.jp,SoftBank,ISP
 softbank.ne.jp,SoftBank,ISP
 softdreams.eu,Soft Dreams,Web Host
 softex.cz,Softex NCP,Retail
+softnet.si,SoftNET,ISP
 softvideo.ru,СОФТВИДЕО,ISP
 sogomail.eu,Alinto,Email Provider
 sol.com.py,Sol Internet,ISP
@@ -3870,15 +4171,18 @@ sosnc.gov,North Carolina Secretary of State,Government
 sougo-group.jp,Camcom Group,SaaS
 soui9.com.br,i9 Telecom,ISP
 soumaster.com.br,Master Internet,ISP
+southernco.com,Southern Company,Utilities
 southlandind.com,Southland Industries,Construction
 souuni.com,Uni Telecom,ISP
 soverin.net,Soverin,Email Provider
+space.net,SpaceNet,MSP
 spaceship.net,Spaceship,Web Host
 spaceweb.ru,SpaceWeb,Web Host
 spacex.com,Starlink,ISP
 spambusters.email,Spambusters,Email Security
 spamfiltering.com,Hosting UK,Web Host
 spamtitan.com,SpamTitan,Email Security
+spark.co.nz,Spark,ISP
 sparklight.com,Sparklight,ISP
 sparklight.net,Sparklight,ISP
 sparkmail.jp,U-netSURF,ISP
@@ -3887,6 +4191,7 @@ sparqnet.net,Sparqnet,ISP
 spcmail.jp,SPC Mail S.T.,Email Provider
 spd-mgts.ru,MGTS,ISP
 spd.co.il,SPD Hosting,Web Host
+spectra.co,Shyam Spectra,ISP
 spectranet.in,Spectra,ISP
 spectrum.com,Spectrum,ISP
 speedmax.inf.br,SpeedMax,ISP
@@ -3911,6 +4216,7 @@ spnetinternet.com.br,SP NET,ISP
 spoje.net,SPOJE.NET,ISP
 spok.com,Spok,Healthcare
 springernature.com,Springer Nature,Education
+spt.vn,Saigon Postel,ISP
 square7.ch,bplaced,Web Host
 square7.de,bplaced,Web Host
 square7.net,bplaced,Web Host
@@ -3940,16 +4246,20 @@ starnet.md,StarNet,ISP
 starnet.net.id,StarNet,ISP
 starnetcomunicacao.com.br,Starnet Comunicação,ISP
 starnetweb.com.br,Starnet,ISP
+starry.com,Starry,ISP
 start.ca,Start Communications,ISP
+state.ak.us,Alaska Government,Government
 state.al.us,The State of Alabama,Government
 state.az.us,Arizona Government,Government
 state.co.us,The State of Colorado,Government
+state.gov,U.S. Department of State,Government
 state.ky.us,Kentucky Government,Government
 state.lib.la.us,State Library of Louisiana,Government
 state.ma.us,The State of Massachusetts,Government
 state.mn.us,Minnesota Government,Government
 state.ms.us,The State of Missouri,Government
 state.or.us,The State of Oregon,Government
+state.sd.us,South Dakota Government,Government
 state.tn.us,Tennessee Government,Government
 station030.com,123eHost,Web Host
 staywellhealth.org,StayWell Health Center,Healthcare
@@ -3959,6 +4269,7 @@ stc.com.sa,STC,ISP
 stcable.net,ST Cable,ISP
 stellantis.com,Stellantis,Automotive
 stellarllc.net,Gardonville Cooperative Telephone Association,ISP
+stemconnect.net,Stem Connect,MSP
 stertec.co.jp,KUNIMORI-STAR Group,MSP
 stetnet.com.br,webby agora é alares,ISP
 stewarthowe.com,Newfold Digital,Web Host
@@ -3970,8 +4281,10 @@ stokes.nc.us,"Stokes County, North Carolina",Government
 stomabags.com,Stomabags.com,Healthcare
 stonybrook.edu,Stonybrook University,Education
 storesonlinepro.com,StoresOnline,SaaS
+stpi.in,STPI,Government
 stranzit.ru,Связьтранзит (Stranzit),ISP
 strategictreasurer.com,Strategic Treasurer,Finance
+strato.de,STRATO,Web Host
 stratoserver.net,STRATO,Web Host
 streamlit.app,Snowflake,SaaS
 streamlitapp.com,Snowflake,SaaS
@@ -3980,16 +4293,21 @@ streamsend.com,StreamSend Email Marketing,Marketing
 stu.edu.gh,Sunyani Technical University,Education
 studio4web.com,Studio4Web,Web Host
 succeed.net,Succeed.net,ISP
+sudatel.sd,Sudatel,ISP
 suddenlink.net,Suddenlink,ISP
 sulcatel.com.br,Sulcatel,ISP
 sulnettelecom.com.br,Sulnet Telecom,ISP
 sulonline.net,Sul Internet,ISP
 sumicity.net.br,Giga+ Fibra,ISP
+summit-broadband.com,Summit Broadband,ISP
 summithealthcare.net,Summit Healthcare,Healthcare
+summithq.com,Summit,Web Host
 sunet.se,SUNET,Education
 sungardas.com,11:11 Systems,MSP
 sunrise.ch,Sunrise,ISP
 sunway.com.br,Sunway,ISP
+suny.edu,State University of New York,Education
+sunypoly.edu,SUNY Polytechnic Institute,Education
 supabase.co,Supabase,PaaS
 supabase.in,Supabase,PaaS
 supabase.net,Supabase,PaaS
@@ -4033,6 +4351,7 @@ synccentric.com,Synccentric,SaaS
 synchronoss.net,Synchronoss,SaaS
 synthesys.live,Synthesys,SaaS
 synthite.co.uk,Synthite,Industrial
+syntura.io,Syntura,MSP
 syriantelecom.sy,Syrian Telecom,ISP
 syriatel.sy,Syriatel,ISP
 sysaid.com,SysAid,SaaS
@@ -4049,18 +4368,24 @@ t-mobile.com,T-Mobile USA,ISP
 t-mobile.cz,T-Mobile,ISP
 t-mobile.pl,T-Mobile,ISP
 t-online.hu,Magyar Telekom,ISP
+t-systems.at,T-Systems,MSP
+t-systems.de,T-Systems,MSP
 t2.ru,T2 Mobile,ISP
 tachc.org,Texas Association of Community Health Centers (TACHC),Healthcare
+tachus.com,Tachus Fiber,ISP
 taiwanmobile.com,Taiwan Mobile,ISP
 takeda.com,Takeda,Healthcare
 takethemameal.com,Take Them A Meal,SaaS
+talktalkbusiness.co.uk,TalkTalk Business,ISP
 talktalkplc.com,TalkTalk,ISP
 tami.pl,TAMI,MSP
 tamu.edu,Texas A&M University,Education
 tanglewoodhealth.com,Tanglewood Medical Supplies,Healthcare
 tanomail.com,Tanomail,Retail
 tanzaniaservers.com,Tanzania Servers,Web Host
+target.com,Target,Retail
 tarhely.eu,Tárhely.Eu,Web Host
+tarr.hu,Tarr,ISP
 tatacommunications.com,Tata Communications,ISP
 tataidc.co.in,Tata Tele Business Services (TTBS),ISP
 tatatelebusiness.com,Tata Teleservices,ISP
@@ -4081,6 +4406,7 @@ tdstelecom.com,TDS Telecom,ISP
 te.eg,Telecom Egypt,ISP
 teamglac.com,TeamGLAC,Healthcare
 tec.mx,Tecnológico de Monterrey,Education
+tech.ru,TECH.RU,Web Host
 tech4hosting.com,Tech 4 Hosting,Web Host
 teche.net,Uniti,MSP
 technolutions.net,Technolutions,SaaS
@@ -4096,6 +4422,7 @@ tele2.com,Tele2,ISP
 tele2.se,Tele2,ISP
 telebec.com,Telebec,ISP
 telebecinternet.com,Telebec,ISP
+telebras.com.br,Telebras,ISP
 telecab.com.br,Telecab,ISP
 telecablecr.com,Telecable,ISP
 telecall.com.br,Telecall,ISP
@@ -4111,6 +4438,7 @@ telecom.li,FL1 (Telecom Liechtenstein),ISP
 telecom.mu,Mauritius Telecom,ISP
 telecom.na,Telecom Namibia,ISP
 telecom.net.ar,Telecom Argentina,ISP
+telecomarmenia.am,Telecom Armenia (Team),ISP
 telecomitalia.com,TIM,ISP
 telecomitalia.it,TIM,ISP
 telecomprovider.com.br,Telecom Provider,ISP
@@ -4123,6 +4451,7 @@ telefonicachile.cl,Telefónica Chile,ISP
 telekom.at,A1,ISP
 telekom.de,Deutsche Telekom,ISP
 telekom.hu,Magyar Telekom,ISP
+telekom.me,Crnogorski Telekom,ISP
 telekom.mk,Makedonski Telekom,ISP
 telekom.rs,MTS,ISP
 telekom.si,Telekom Slovenije,ISP
@@ -4130,6 +4459,7 @@ telekom.sk,Slovak Telekom,ISP
 telemach.ba,Telemach,ISP
 telemach.hr,Telemach,ISP
 telemach.si,Telemach,ISP
+telemaxx.de,TelemaxX,Web Host
 telenet-ops.be,Telenet BV,ISP
 telenet.be,Telenet,ISP
 telenor.dk,Telenor,ISP
@@ -4147,6 +4477,7 @@ telia.dk,Norlys,ISP
 telia.ee,Telia,ISP
 telia.fi,Telia,ISP
 telia.lt,Telia,ISP
+telia.lv,Tet,ISP
 teliacompany.com,Telia,ISP
 teligraph.com.sg,Teligraph,MSP
 telin.net,Telkom Indonesia,ISP
@@ -4160,17 +4491,23 @@ tellas.gr,Nova Telecommunications,ISP
 telma.mg,Telma,ISP
 telmex.com,Telmex,ISP
 telmex.net.ar,Telmex Argentina,ISP
+telnyx.com,Telnyx,SaaS
 telstra.com.au,Telstra,ISP
 telstra.net,Telstra,ISP
 telstrainternational.com,Telstra Global,ISP
 telsur.cl,Telefónica del Sur,ISP
 telus.com,TELUS,ISP
 telus.net,TELUS,ISP
+telxius.com,Telxius,ISP
+temple.edu,Temple University,Education
 tencent.com,Tencent,Technology
 tenders.net,Tenders.net,SaaS
 tenet.ac.za,TENET,Education
+tenet.ua,TENET,ISP
+tennessee.edu,University of Tennessee,Education
 teol.net,mtel,ISP
 tera-byte.com,Tera-Byte,Web Host
+terago.ca,TeraGo,ISP
 teralinktelecom.com.br,Teralink,ISP
 terra.com,Terra Networks,Web Host
 terra.com.br,Terra Mail,Email Provider
@@ -4194,16 +4531,20 @@ thomsonreuters.com,Thomson Reuters,SaaS
 three.co.uk,Three,ISP
 three.ie,Three,ISP
 thunder.es,Thunder Creativos,Marketing
+thundernet.com.ve,Thundernet,ISP
 ti-sparkle.it,Telecom Italia Sparkle,ISP
 tical.com,Grupo Tical,Logistics
 ticketor.com,Ticketor,Entertainment
 tidewater.net,Tidewater Telecom,ISP
 tie.cl,Telefónica Internet Empresas S.A.,ISP
+tier.net,Tier.Net,Web Host
 tierpoint.com,TierPoint,Web Host
+tierzero.com,Tierzero,ISP
 tietoevry.com,Tietoevry,Consulting
 tigerconnect.com,TigerConnect,SaaS
 tigertech.net,Tiger Technologies,Web Host
 tigo.co.tz,Tigo,ISP
+tigo.com,Tigo,ISP
 tigo.com.co,Tigo Columbia,ISP
 tigo.com.gt,Tigo,ISP
 tigo.com.py,Tigo,ISP
@@ -4216,8 +4557,10 @@ tim.it,TIM,ISP
 time.com.my,TIME,ISP
 timeetc.com,Time Etc,SaaS
 timeweb.ru,Timeweb,Web Host
+timewebcloud.kz,Timeweb Cloud,Web Host
 timminsfht.ca,Timmins Family Health Team,Healthcare
 tinasnet.net.br,Tinasnet,ISP
+ting.com,Ting Internet,ISP
 tino.org,Tino Group,Web Host
 tiscali.it,Tiscali,ISP
 tisco.mx,TISCO Networks,MSP
@@ -4265,6 +4608,7 @@ toronto.edu,University of Toronto,Education
 tosis.co.jp,Tosoh Information Systems,MSP
 tosoh.co.jp,Tosoh,Industrial
 totalplay.com.mx,Totalplay,ISP
+towerstream.com,Towerstream,ISP
 toya.com.pl,Toya,ISP
 toyotasystems.com,Toyota Systems,Automotive
 tpgi.com.au,TPG,ISP
@@ -4285,6 +4629,7 @@ transsped.ro,Trans Sped,SaaS
 transtelco.net,Flō Networks,ISP
 transtelecom.net,Trans Telecom,ISP
 tre.se,Tre,ISP
+treasury.gov,U.S. Department of the Treasury,Government
 trendmicro.com,Trend Micro,Email Security
 trendmicro.com.sg,Trend Micro,Email Security
 trendmicro.eu,Trend Micro,Email Security
@@ -4306,6 +4651,7 @@ truemail.co.th,True Internet,ISP
 truman.edu,Trueman State University,Education
 trustifi.com,Trustifi,Email Security
 tsimages.net,TSImages,SaaS
+tstc.edu,Texas State Technical College,Education
 tstt.co.tt,TSTT,ISP
 tstt.net.tt,TSTT,ISP
 tsukuba.ac.jp,University of Tsukuba,Education
@@ -4326,6 +4672,8 @@ turkcell.com.tr,Turkcell,ISP
 turksat.com.tr,Türksat,ISP
 turktelekom.com.tr,Türk Telekom,ISP
 turkticaret.net,Turkticaret.Net,Web Host
+tuwien.ac.at,TU Wien,Education
+tva.gov,Tennessee Valley Authority,Utilities
 tvactelecom.com.br,TVAC Telecom,ISP
 tvcabo.ao,TV Cabo,ISP
 tvk.wroc.pl,TVK Telka,ISP
@@ -4346,36 +4694,51 @@ u-tokyo.ac.jp,University of Tokyo,Education
 u-toyama.ac.jp,University of Toyama,Education
 uab.edu,The University of Alabama at Birmingham,Education
 ualberta.ca,University of Alberta,Education
+uams.edu,UAMS,Education
 ubannet.com.br,Ubannet,ISP
 ubc.ca,The University of British Columbia,Education
 uber.space,Uberspace,Web Host
 ubxcloud.com,UBX Cloud,Web Host
 ucdavis.edu,UC Davis,Education
+ucdenver.edu,University of Colorado Denver,Education
 uchealth.com,UC Health,Healthcare
+uchicago.edu,University of Chicago,Education
 uci.edu,"University of California, Irvine",Education
 ucla.edu,UCLA,Education
 ucloud.cn,UCloud,IaaS
 uclouvain.be,UCLouvain,Healthcare
 ucom.am,Ucom LLC,ISP
 ucom.ne.jp,Tsunagu Network Communications Inc.,ISP
+uconn.edu,University of Connecticut,Education
 ucr.ac.cr,Universidad de Costa Rica,Education
+ucr.edu,"University of California, Riverside",Education
+ucsb.edu,"University of California, Santa Barbara",Education
+ucsc.edu,"University of California, Santa Cruz",Education
 ucsd.edu,University of California San Diego,Education
 ucsf.edu,"University of California, San Francisco",Education
+uct.ac.za,University of Cape Town,Education
 udag.de,United Domains,Web Host
+udayton.edu,University of Dayton,Education
+udc.hk,Hong Kong Communications,Web Host
+udel.edu,University of Delaware,Education
 uen.org,Utah Education Network,Education
 ufanet.ru,Ufanet,ISP
 ufinet.com,Ufinet,ISP
 ufl.edu,University of Florida,Education
+ufmg.br,UFMG,Education
 ufrgs.br,UFRGS,Education
 ufsc.br,UFSC,Education
+uga.edu,University of Georgia,Education
 uhc.com,United Healthcare,Healthcare
 uhs.edu.pk,University of Health Sciences,Education
 uhu.es,University of Huelva,Education
 uic.edu,University of Illinois Chicago,Education
+uiowa.edu,University of Iowa,Education
 uk0.bigv.io,Bytemark,Web Host
 uk2net.com,UK2.net,Web Host
 ukrtel.net,Ukrtelecom,ISP
 ukrtelecom.ua,Ukrtelecom,ISP
+ukservers.com,UK Servers,Web Host
 uky.edu,University of Kentucky,Education
 ulakbim.gov.tr,ULAKBIM,Education
 ultimate-guitar.com,Ultimate Guitar,Entertainment
@@ -4387,19 +4750,26 @@ ultravision.com.mx,Ultracel,ISP
 ultraweb.ca,Backland Communications,MSP
 ultrawebhosting.com,Ultra Web Hosting,Web Host
 ultraxx.com.br,Ultraxx,ISP
+umanitoba.ca,University of Manitoba,Education
 umass.edu,UMass Amherst,Education
 umbc.edu,"University of Maryland, Baltimore County",Education
 umd.edu,University of Maryland,Education
 umich.edu,University of Michigan,Education
 umin.ac.jp,University Hospital Medical Information Network (UHIN) of Japan,Healthcare
 umn.edu,University of Minnesota,Education
+umniah.com,Umniah,ISP
+umt.edu,University of Montana,Education
+unam.mx,Universidad Nacional Autónoma de México,Education
 unb.ca,University of New Brunswick,Education
 unc.edu,UNC Chapel Hill,Education
 une.com.co,UNE,ISP
 une.net.co,UNE,ISP
+unesp.br,UNESP,Education
 uni-halle.de,Martin Luther University Halle-Wittenberg,Education
 uni-mainz.de,Johannes Gutenberg University Mainz,Education
 uniabita.it,UniAbita,Real Estate
+unicaja.es,Unicaja,Finance
+unicamp.br,Unicamp,Education
 unicanetworking.com.br,Única Networking,ISP
 unidata.it,Unidata,ISP
 unifiedlayer.com,UnifiedLayers,Web Host
@@ -4409,12 +4779,14 @@ unimedjp.com.br,Unimed João Pessoa,SaaS
 unin.hr,Sveučilište Sjever,Education
 unina.it,University of Naples Federico II,Education
 uninet-ide.com.mx,Telmex,ISP
+uninet.az,Uninet,ISP
 uninett.no,Uninett,Education
 unionbank.com.bd,Union Bank,Finance
 unisnet.ru,ЮНИС Телеком (UNIS),ISP
 unitasglobal.com,Unitas Global,MSP
 United-domains.de,United Domains,Web Host
 united.net,United Communications,ISP
+unitedfiber.com,United Fiber,ISP
 unitedyacht.com,United Yacht Sales,Retail
 unitel.ao,Unitel Angola,ISP
 unitel.com.la,Unitel,ISP
@@ -4423,6 +4795,7 @@ unity-health.org,Unity Health,Healthcare
 univac.com.sg,Univac,Industrial
 universal-shoji.co.jp,Universal Shoji,Industrial
 univie.ac.at,University of Vienna,Education
+unm.edu,University of New Mexico,Education
 unpl.co.in,UN Broadband,ISP
 unr.edu,"University of Nevada, Reno",Education
 unsw.edu.au,University of New South Wales,Education
@@ -4434,11 +4807,13 @@ uovs.ac.za,University of the Free State,Education
 up.com,Union Pacific Railroad,Logistics
 up99plus.com,Up99Plus,Web Host
 upc.ie,Virgin Media Ireland,ISP
+upcloud.com,UpCloud,IaaS
 updowntelecom.com.br,UpDown Telecom,ISP
 upenn.edu,University of Pennsylvania,Education
 uplinkcrm.it,Uplink Web Agency Srl,SaaS
 upmc.com,UPMC,Healthcare
 upnetinformatica.com.br,UPNet,ISP
+uq.edu.au,University of Queensland,Education
 ural-net.ru,inetvdom,ISP
 urupesnet.com.br,UrupêsNet,ISP
 usanpedro.edu.pe,Universidad San Pedro,Education
@@ -4449,23 +4824,32 @@ user.fm,Fastmail,Email Provider
 usercontent.jp,Gehirn,Web Host
 usg.edu,University System of Georgia,Education
 usgs.gov,U.S. Geological Survey,Government
+usinternet.com,US Internet (USI Fiber),ISP
+usmd.edu,University System of Maryland,Education
 usnh.edu,University System of New Hampshire,Education
 usp.br,University of São Paulo,Education
 ussignal.com,US Signal,MSP
 ussignalcom.net,US Signal,MSP
 usssa.com,USSSA,Sports
 usu.edu,Utah State University,Education
+uta.fi,Tampere University,Education
 utah.edu,University of Utah,Education
 utah.gov,State of Utah,Government
 utclonline.co.ug,Uganda Telecom,ISP
 utelesup.edu.pe,Universidad privada Telesup,Education
 utexas.edu,University of Texas at Austin,Education
+uth.edu,UT Health Houston,Education
+uthsc.edu,University of Tennessee Health Science Center,Education
 utilprovedor.psi.br,Util Provedor,ISP
+utoledo.edu,University of Toledo,Education
 utopianet.com.br,Utopia,ISP
 utoronto.ca,University of Toronto,Education
+utsouthwestern.edu,UT Southwestern Medical Center,Education
 utsystem.edu,University of Texas System,Education
+uu.se,Uppsala universitet,Education
 uva.nl,Universiteit van Amsterdam,Education
 uvawise.edu,UVA Wise,Education
+uvic.ca,University of Victoria,Education
 uvm.edu,University of Vermont,Education
 uw.edu,University of Washington,Education
 uzpak.uz,uzpak.uz,Industrial
@@ -4474,12 +4858,14 @@ v2soft.com,V2Soft,MSP
 va.gov,U.S. Department of Veterans Affairs,Government
 vadesecure.com,Vade Secure,Email Security
 valenet.com.br,Valenet,ISP
+valero.com,Valero,Industrial
 vanwerthospital.org,Van Wert Health,Healthcare
 varzeanet.com.br,Varzea Net,ISP
 vck-gmbh.de,Vestische Caritas-Klinike,Healthcare
 vcn.com,Visionary Broadband,ISP
 vctelecom.com.br,Voce Telecomunicações,ISP
 vdonsk.ru,Microel,ISP
+vdsina.com,VDSina,Web Host
 vectra.pl,Vectra,ISP
 vectranet.pl,Vectra,ISP
 vedco.com,Vedco,Healthcare
@@ -4502,6 +4888,7 @@ verginia.edu,University of Virginia,Education
 veridyen.com,Veridyen,Web Host
 verizon.net,Verizon,ISP
 verizonbusiness.com,Verizon Business,ISP
+vermont.gov,Vermont Government,Government
 verointernet.com.br,Internet de Verdade,ISP
 versanet.de,1&1 Versatel,ISP
 veseli.cz,The city of Veseli nad Luznici,Government
@@ -4532,6 +4919,7 @@ viettel.com.vn,Viettel,ISP
 viettel.vn,Viettel,ISP
 vigban.com.br,Vigban,Physical Security
 vinahost.vn,VinaHost,Web Host
+vinakom.com,Vinakom,MSP
 vinedisposal.com,Vine Disposal,Logistics
 vip.hr,A1,ISP
 vipfibertelecom.com.br,VIP Fiber,ISP
@@ -4545,6 +4933,7 @@ virginmediabusiness.co.uk,Vergin Media Business,ISP
 virginmobile.ca,Virgin Plus,ISP
 virginplus.ca,Virgin Plus,ISP
 virgohosting.net,Virgo Hosting,Web Host
+virtela.net,NTT Communications,ISP
 virtex.com.br,Virtex Telecom,ISP
 virtrugateway.com,Virtu,Email Security
 virtua.com.br,Virtua Brizil,Marketing
@@ -4568,7 +4957,9 @@ vivatecnologia.com.br,Viva Tecnologia,ISP
 vivatele.com.br,Viva Telecom,ISP
 vivicta.com,Vivicta,Consulting
 vivozap.com.br,Vivo Mobile,ISP
+vk.company,VK,Social Media
 vm.bytemark.co.uk,Bytemark,Web Host
+vnpt.com.vn,VNPT,ISP
 vnpt.vn,VNPT,ISP
 vnr.de,VNR Group,SaaS
 vntelecom.com.br,VN Telecom,ISP
@@ -4601,14 +4992,17 @@ vodien.com,Vodien,Web Host
 voicehost.co.uk,VoiceHost,PaaS
 voith.com,Voith,Industrial
 volcengine.com,Volcengine (ByteDance),IaaS
+volia.com,Volia,ISP
 volstate.net,IT Voice,MSP
 vom.com,Valley of the Moon,ISP
 voo.be,VOO,ISP
 vootelecom.com.br,Voo Telecom,ISP
+vorboss.com,Vorboss,ISP
 vote4mentalhealth.org,NAMI,Healthcare
 votervoice.net,VoterVoice,SaaS
 voxdsl.co.za,Vox Telecom,ISP
 voxtelecom.co.za,Vox Telecom,ISP
+voyager.nz,Voyager,ISP
 vpath.co.za,Pathcare Vermaak,Healthcare
 vpls.com,VPLS,MSP
 vpndns.net,Now-DNS,Web Host
@@ -4641,6 +5035,7 @@ wanao.com,Wanao,SaaS
 warian.net,Warian,SaaS
 washington.edu,University of Washington,Education
 wasip.com,WASIP Ltd.,Healthcare
+watchcomm.net,Watch Communications,ISP
 wateen.com,Wateen,ISP
 waugi.cloud,Waugi Cloud,Web Host
 wavebroadband.com,Wave Broadband,ISP
@@ -4653,6 +5048,7 @@ waypointcentre.ca,Waypoint Centre,Healthcare
 wbhcp.com,Williams Bros Pharmacy,Healthcare
 wbroadband.net.au,Wholesale Communications Group,ISP
 wconect.com.br,WCONECT,ISP
+wcupa.edu,West Chester University,Education
 wdide.com.br,W.Dide Telecom,ISP
 wdstelecom.com.br,WDS Telecom,ISP
 we.bs,LiquidNet,Web Host
@@ -4701,6 +5097,7 @@ webzi.mx,Webzi,Web Host
 webzine1.com,Webzine Online,Web Host
 webzineonline.com,Webzine Online,Marketing
 weclix.com.br,Weclix,ISP
+welcomeitalia.it,Vianova,ISP
 well.com,The WELL,Email Provider
 wellsfargo.com,Wells Fargo,Finance
 wescor.com,Wescor Inc.,Healthcare
@@ -4718,10 +5115,12 @@ whatdev.com,What Development,Healthcare
 whitelighthost.net,Acklo,MSP
 whiteoakemail.com,MailEnable,Email Provider
 whmpanels.com,WHM Panels,Web Host
+wholesaleinternet.net,WholeSale Internet,ISP
 whplanet.com,WH Planet Web Hosting,Web Host
 wi.gov,The State of Wisconsin,Government
 wifeet.com.do,Wifeet,ISP
 wifire.ru,MegaFon,ISP
+wifirst.com,Wifirst,ISP
 wightman.ca,Wrightman Telecom,ISP
 wiit.cloud,WIIT,IaaS
 wikitelecom.com.br,Wki Telecom,ISP
@@ -4739,6 +5138,7 @@ wirenet.com.ar,El Cuatro,ISP
 wisc.edu,University of Wisconsin–Madison,Education
 wiscnet.net,WiscNet,Education
 wisconsin.edu,University of Wisconsin,Education
+wisdomisp.com,Wisdom ISP,ISP
 wise.net.lb,WISE,ISP
 wisperisp.com,Wisper,ISP
 wix.com,Wix,SaaS
@@ -4748,6 +5148,7 @@ wixstudio.io,Wix,SaaS
 wizmoworks.com,Wizmo,MSP
 wktelecom.net.br,WK Telecom,ISP
 wlink.com.np,WorldLink Communications,ISP
+wm.edu,College of William and Mary,Education
 wm.ru,Webmaster Agency,Marketing
 wmaker.net,WMaker,ISP
 wmatera.com.br,WMatera Telecom,ISP
@@ -4765,6 +5166,7 @@ workhorseirons.com,Workhorse Irons,Industrial
 workhuman.com,Workhuman,SaaS
 worksattelecom.net.br,Worksat Telecom,ISP
 worksmobile.com,Naver Works,SaaS
+worldbankgroup.org,World Bank Group,Nonprofit
 worldcall.net.pk,WorldCom Telecom,ISP
 wowway.com,WOW!,ISP
 wp.pl,Wirtualna Polska,Web Host
@@ -4777,9 +5179,13 @@ wsigenesis.com,Action Hosting,Web Host
 wsnetfibra.com.br,WSNET,ISP
 wstelecom.us,WS Telecom,ISP
 wustl.edu,Washington University in St. Louis,Education
+wvnet.edu,WVNET,Education
+wvu.edu,West Virginia University,Education
 wwwowww.co.za,wwwOwww,Marketing
+wwz.ch,WWZ,Utilities
 wylance.com,Emma Solutions (Formerly Wylance),MSP
 wyo.gov,State of Wyoming,Government
+wyyerd.com,Wyyerd Fiber,ISP
 x-com.kz,X-COM,ISP
 x-mailer.de,Power-Netz,Web Host
 xbiz.ne.jp,Xserver,Web Host
@@ -4791,6 +5197,7 @@ xen.prgmr.com,prgmr.com,Web Host
 xerox.com,Xerox,Technology
 xinet.com.mx,Xinet,MSP
 xipline.com,Ritter Communications,ISP
+xl.co.id,XL Axiata,ISP
 xmission.com,XMission,SaaS
 xmr3.com,OpenText,SaaS
 xneelo.co.za,Xneelo,Web Host
@@ -4800,8 +5207,10 @@ xrea.com,XREA,Web Host
 xserver.cloud,XServer,Web Host
 xserver.co.jp,Xserver,Web Host
 xserver.jp,Xserver,Web Host
+xserver.ua,XServer,Web Host
 xsinfosol.com,XS Infosol,SaaS
 xtfibra.com.br,XT Fibra,ISP
+xtom.com,xTom,IaaS
 xtrim.com.ec,Xtrim,ISP
 xturbo.com.br,Xturbo,ISP
 xyzservers.com,XYZ Servers,Web Host
@@ -4810,6 +5219,7 @@ yadtel.net,Zirrus,ISP
 yahoo.co.jp,Yahoo Japan,Email Provider
 yahoo.com,Yahoo,Email Provider
 yahooinc.com,Yahoo,Email Provider
+yale.edu,Yale University,Education
 yamaguchi-u.ac.jp,Yamaguchi University,Education
 yamanashi.ac.jp,Yamanashi University,Education
 yamaoka.co.jp,Yamaoka,Industrial
@@ -4841,9 +5251,11 @@ yuyama.co.jp,Yuyama,Manufacturing
 z.com,Z.com,Web Host
 zaansmc.nl,Zaans Medical Center,Healthcare
 zain.com,Zain,ISP
+zajil.com,KEMS,ISP
 zamtel.zm,Zamtel,ISP
 zap-hosting.com,ZAP-Hosting,Web Host
 zap.cloud,ZAP-Hosting,Web Host
+zap.co.ao,ZAP,ISP
 zapto.org,No-IP,Web Host
 zaq.ne.jp,ZAQ,Email Provider
 zare.com,Zare,Web Host
@@ -4853,6 +5265,7 @@ zcmail.net,Zoho Campaigns,Marketing
 zcom.it,Limitis,Technology
 zcsend.net,Zoho Campaigns,Marketing
 zdsys.com,Zendesk,SaaS
+zebra.com,Zebra Technologies,Technology
 zebra.lt,15min,News
 zecnet.com.br,ZEC-NET,ISP
 zedality.com,Zedality,Web Host
@@ -4867,6 +5280,7 @@ ziggozakelijk.nl,Ziggo,ISP
 ziplyfiber.com,Ziply Fiber,ISP
 zipweb.net,Zipweb,Web Host
 zirrus.com,Xirrus.com,ISP
+zitomedia.com,Zito Media,ISP
 zixcorp.com,Zix,Email Security
 zixsmbhosted.com,Zix,Email Security
 zixworks.com,Zix,Email Security
