@@ -33,18 +33,13 @@
       <title>Reporting organizations</title>
       <table>
         <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$
+          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
 | rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
-| rename policies{}.failure_details{}.failed_session_count as failed_sessions
 | rename policies{}.successful_session_count as successful_sessions
-| rename policies{}.failure_details{}.sending_mta_ip as sending_mta_ip
-| rename policies{}.failure_details{}.receiving_ip as receiving_ip
-| rename policies{}.failure_details{}.receiving_mx_hostname as receiving_mx_hostname
-| rename policies{}.failure_details{}.result_type as failure_type
-| fillnull value=0 failed_sessions
-| stats sum(failed_sessions) as failed_sessions sum(successful_sessions) as successful_sessions by organization_name
+| fillnull value=0 failed_sessions successful_sessions
+| stats sum(successful_sessions) as successful_sessions sum(failed_sessions) as failed_sessions by organization_name
 | sort -successful_sessions 0</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -57,18 +52,13 @@
       <title>Domains</title>
       <table>
         <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$
+          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
 | rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
-| rename policies{}.failure_details{}.failed_session_count as failed_sessions
 | rename policies{}.successful_session_count as successful_sessions
-| rename policies{}.failure_details{}.sending_mta_ip as sending_mta_ip
-| rename policies{}.failure_details{}.receiving_ip as receiving_ip
-| rename policies{}.failure_details{}.receiving_mx_hostname as receiving_mx_hostname
-| rename policies{}.failure_details{}.result_type as failure_type
-| fillnull value=0 failed_sessions
-| stats sum(failed_sessions) as failed_sessions sum(successful_sessions) as successful_sessions  by policy_domain
+| fillnull value=0 failed_sessions successful_sessions
+| stats sum(successful_sessions) as successful_sessions sum(failed_sessions) as failed_sessions by policy_domain, policy_type
 | sort -successful_sessions 0</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -83,19 +73,18 @@
       <title>Failure details</title>
       <table>
         <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.failure_details{}.result_type=*
+          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$ policies{}.failure_details{}.result_type=*
 | rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
-| rename policies{}.failed_session_count as failed_sessions
 | rename policies{}.failure_details{}.failed_session_count as failed_sessions
-| rename policies{}.successful_session_count as successful_sessions
 | rename policies{}.failure_details{}.sending_mta_ip as sending_mta_ip
 | rename policies{}.failure_details{}.receiving_ip as receiving_ip
 | rename policies{}.failure_details{}.receiving_mx_hostname as receiving_mx_hostname
-| fillnull value=0 failed_sessions
 | rename policies{}.failure_details{}.result_type as failure_type
-| table _time organization_name policy_domain policy_type failed_sessions successful_sessions sending_mta_ip receiving_ip receiving_mx_hostname failure_type
-| sort by -_time 0</query>
+| fillnull value=0 failed_sessions
+| stats sum(failed_sessions) as failed_sessions by organization_name, policy_domain, policy_type, failure_type, sending_mta_ip, receiving_ip, receiving_mx_hostname
+| where failed_sessions>0
+| sort -failed_sessions 0</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
