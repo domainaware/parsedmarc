@@ -729,6 +729,12 @@ def parse_aggregate_report_xml(
 
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
+        if isinstance(report_metadata.get("email"), dict):
+            logger.debug(
+                "Discarding malformed <email> in report_metadata: %r",
+                report_metadata["email"],
+            )
+            report_metadata["email"] = None
         schema = "draft"
         if "version" in report:
             schema = report["version"]
