@@ -270,8 +270,6 @@
         <option name="mapping.type">choropleth</option>
       </map>
     </panel>
-  </row>
-  <row>
     <panel>
       <title>Message sources by country</title>
       <table>
