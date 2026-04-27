@@ -10,6 +10,20 @@
         "reveal": "always",
         "panel": "new"
       }
+    },
+    {
+      "label": "Dev Dashboard: Bootstrap (compose up + import dashboards + sample data)",
+      "type": "shell",
+      "command": "./dashboard-dev-bootstrap.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "clear": true
+      }
     }
   ]
 }
