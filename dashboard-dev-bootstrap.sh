@@ -246,7 +246,7 @@ fi
 log "Importing Kibana dashboards"
 curl -sS -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
     -H 'kbn-xsrf: true' \
-    --form file=@dashboards/kibana/export.ndjson | sed 's/^/  /'
+    --form file=@dashboards/opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
 
 log "Importing OpenSearch Dashboards saved objects"
 # OSD with the security plugin enabled stores saved objects per tenant. Without

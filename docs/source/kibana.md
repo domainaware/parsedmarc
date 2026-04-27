@@ -4,10 +4,13 @@
 The Kibana DMARC dashboards are a human-friendly way to understand the
 results from incoming DMARC reports.
 
-The bundled Kibana dashboards are kept byte-identical to the
-OpenSearch Dashboards exports — Kibana's saved-object migration handlers
-accept the OpenSearch Dashboards format directly, and using a single source
-keeps the two backends in lockstep.
+There is no separate Kibana export — Kibana 8.x's saved-object migration
+handlers accept the OpenSearch Dashboards format directly, so Kibana
+users import the bundled
+[`dashboards/opensearch/opensearch_dashboards.ndjson`](https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/opensearch/opensearch_dashboards.ndjson)
+in *Stack Management → Saved Objects → Import*. A CI check imports the
+same file into a Kibana 8.x container on every change so this stays
+compatible.
 
 :::{note}
 The default dashboard is DMARC aggregate reports. To switch between
