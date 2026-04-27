@@ -4,12 +4,17 @@
 The Kibana DMARC dashboards are a human-friendly way to understand the
 results from incoming DMARC reports.
 
+The bundled Kibana dashboards are kept byte-identical to the
+OpenSearch Dashboards exports — Kibana's saved-object migration handlers
+accept the OpenSearch Dashboards format directly, and using a single source
+keeps the two backends in lockstep.
+
 :::{note}
-The default dashboard is DMARC Summary. To switch between dashboards,
-click on the Dashboard link on the left side menu of Kibana.
+The default dashboard is DMARC aggregate reports. To switch between
+dashboards, click on the Dashboard link on the left side menu of Kibana.
 :::
 
-## DMARC Summary
+## DMARC aggregate reports
 
 As the name suggests, this dashboard is the best place to start
 reviewing your aggregate DMARC data.
@@ -66,22 +71,30 @@ Tables showing SPF and DKIM alignment details are located under the IP address
 table.
 
 :::{note}
-Previously, the alignment tables were included in a separate dashboard
-called DMARC Alignment Failures. That dashboard has been consolidated into
-the DMARC Summary dashboard. To view failures only, use the pie chart.
+The alignment tables (SPF details, DKIM details) and the per-IP source
+table live on the same dashboard, further down. To view failures only,
+use the pie chart at the top of the page as a filter.
 :::
 
 Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.
 
-## DMARC Forensic Samples
+## DMARC failure reports
 
-The DMARC Forensic Samples dashboard contains information on DMARC forensic
-reports (also known as failure reports or ruf reports). These reports contain
-samples of emails that have failed to pass DMARC.
+The DMARC failure reports dashboard (formerly DMARC Forensic Samples) contains
+information on DMARC failure reports (also known as forensic or ruf reports).
+These reports contain samples of emails that have failed to pass DMARC.
 
 :::{note}
 Most recipients do not send forensic/failure/ruf reports at all to avoid
 privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.
 :::
+
+## SMTP TLS reporting
+
+The SMTP TLS reporting dashboard surfaces aggregate counts of TLS-RPT
+reporting organizations, the policy domains they report on, and the
+specific failure types — certificate expiry, STARTTLS not supported,
+STS policy fetch errors, validation failures, and similar — together with
+the sending and receiving MTA addresses involved.
