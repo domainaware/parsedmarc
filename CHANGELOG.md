@@ -1,5 +1,22 @@
 # Changelog
 
+## 9.10.3
+
+### Fixed
+
+- The OpenSearch Dashboards aggregate-DMARC dashboard has been reporting distinct source-IP counts as message volume on 13 of its 15 panels since the dashboard was first shipped in 9.4.0. Each parsedmarc OS document represents one (source_ip, auth_results) tuple from the XML aggregate report and carries an integer `message_count` field that can be greater than 1 — a single record can describe many messages from one source. The pies, tables, and choropleth aggregated with `count` (number of OS documents) when they should have been summing `message_count`. Panels titled "Message volume by header from", "Message sources by IP address", "Reporting organizations", etc. were therefore showing how many distinct sources reported on a domain rather than how many emails were sent. Affected panels: SPF/DKIM/Passed-DMARC pies, Reporting organizations, Sources by reverse DNS / header from / name+type / ASN / country / IP, Map of sources by country, SPF details, DKIM details. Fixed by changing the metric aggregation to `sum(message_count)` on every aggregate panel. The line-chart timeseries (`DMARC passage over time`, `Message disposition over time`) were already correct. SMTP TLS panels (sum of per-policy session counts) and the forensic-samples panel (one OS document per RUF sample) were also already correct.
+- The Splunk aggregate-DMARC dashboard had the same metric bug on its "Map of message sources by country" widget — `stats count by Country` instead of `stats sum(message_count) by Country` — so the choropleth shaded by record count rather than message volume. Fixed.
+- Splunk forensic-samples table dropped events with null `From`/`To`/`Subject` headers because the base search used `parsed_sample.headers.From=*` etc., which Splunk evaluates as "field must exist". The LinkedIn RUF sample (and any RUF with header-only privacy redaction) was therefore invisible in the dashboard. Replaced with the `(field=$token$ OR NOT field=*)` pattern so events with missing optional headers are no longer dropped.
+- Splunk SMTP TLS Failure details panel returned no rows because `policies{}.failure_details{}.failed_session_count>0` doesn't evaluate against multivalued JSON-array paths in Splunk's search command (it returns zero hits even when the underlying multivalues include both 0 and >0 entries). Replaced with `policies{}.failure_details{}.result_type=*` for presence at search time plus `where failed_sessions>0` after stats — semantically equivalent to the OSD KQL filter `policies.failure_details.failed_session_count > 0`, but with predicates Splunk actually evaluates.
+
+### Changes
+
+- Aligned the Splunk dashboards with the OSD source-of-truth: added the "Message sources by Autonomous System" panel (matches the OSD addition from 9.9.0); added the missing `dkim_aligned` column to the DKIM details table; reordered SPF details columns to OSD order; matched panel titles ("Map of message sources by country" / "Message sources by country"); added `charting.fieldColors` so `true`→green / `false`→red on the SPF/DKIM/Passed-DMARC pies and the DMARC-passage timechart; restructured the forensic dashboard to OSD's two-panel layout (markdown + samples table); reordered SMTP TLS metric columns to OSD order (successful → failed); added `policy_type` as a second bucket on the SMTP TLS Domains panel; wired the existing `policy_type` input filter into all three SMTP TLS searches.
+
+### Upgrade notes
+
+- **Re-import the dashboards to apply the metric fix to existing installations.** Stored OSD saved objects and Splunk dashboard XML do not auto-update when parsedmarc is upgraded — they live in OpenSearch and the Splunk app respectively, separate from the parsedmarc package. Anyone running parsedmarc 9.4.0 through 9.10.2 with the bundled OSD aggregate dashboard has been viewing source-row counts in pies and tables instead of actual message volume; the Splunk choropleth has had the same bug. To apply the OSD fix: download the new `opensearch/opensearch_dashboards.ndjson` and import it via Stack Management → Saved Objects → Import with "Automatically overwrite conflicts" enabled. To apply the Splunk fix: re-paste each XML from `splunk/` into the corresponding dashboard's Source editor. Saved-object IDs are unchanged in both cases, so existing links to dashboards keep working.
+
 ## 9.10.2
 
 ### Fixed
