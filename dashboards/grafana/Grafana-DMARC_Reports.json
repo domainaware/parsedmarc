@@ -403,27 +403,27 @@
       "valueName": "total"
     },
     {
-      "aliasColors": {
-        "Pass": "dark-green",
-        "fail": "dark-red",
-        "false": "dark-yellow",
-        "neutral": "super-light-blue",
-        "none": "dark-yellow",
-        "pass": "dark-green",
-        "permerror": "dark-orange",
-        "softfail": "super-light-green",
-        "temperror": "semi-dark-yellow",
-        "true": "dark-green"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
-      "decimals": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": [
             {
               "title": "",
@@ -431,47 +431,180 @@
             }
           ]
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pass"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fail"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "neutral"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "super-light-blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "none"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pass"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "permerror"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "softfail"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "super-light-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperror"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
         "y": 11
       },
-      "hiddenSeries": false,
       "id": 33,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -514,111 +647,194 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "SPF Results Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {
-        "Pass": "dark-green",
-        "fail": "dark-red",
-        "false": "dark-yellow",
-        "neutral": "super-light-blue",
-        "none": "dark-yellow",
-        "pass": "dark-green",
-        "permerror": "dark-orange",
-        "temperror": "semi-dark-yellow",
-        "true": "dark-green"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
-      "decimals": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pass"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fail"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "neutral"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "super-light-blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "none"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pass"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "permerror"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperror"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
         "y": 11
       },
-      "hiddenSeries": false,
       "id": 19,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -661,104 +877,89 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "DKIM Results Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {
-        "false": "dark-yellow",
-        "true": "dark-green"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
-      "decimals": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
         "y": 20
       },
-      "hiddenSeries": false,
       "id": 18,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -803,104 +1004,89 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "SPF Alignment Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {
-        "false": "dark-yellow",
-        "true": "dark-green"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
-      "decimals": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
         "y": 20
       },
-      "hiddenSeries": false,
       "id": 34,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -945,104 +1131,89 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "DKIM Alignment Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {
-        "false": "dark-red",
-        "true": "dark-green"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
-      "decimals": null,
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "false"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "true"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
         "y": 29
       },
-      "hiddenSeries": false,
       "id": 7,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -1087,102 +1258,104 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "DMARC Passage Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "none",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
-      "aliasColors": {
-        "none": "dark-green",
-        "quarantine": "semi-dark-orange",
-        "reject": "red"
-      },
-      "bars": false,
       "cacheTimeout": null,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": "$datasourceag",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "lineInterpolation": "linear"
+          },
           "links": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "none"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "quarantine"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reject"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "fill": 2,
-      "fillGradient": 6,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 12,
         "y": 29
       },
-      "hiddenSeries": false,
       "id": 8,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
       "pluginVersion": "7.4.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "bucketAggs": [
@@ -1225,46 +1398,10 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": [],
       "timeFrom": null,
-      "timeRegions": [],
       "timeShift": null,
       "title": "Message Disposition Over Time",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
       "cacheTimeout": null,
@@ -1816,19 +1953,32 @@
       "type": "table"
     },
     {
-      "circleMaxSize": 30,
-      "circleMinSize": 2,
-      "colors": [
-        "#37872D",
-        "#FA6400",
-        "#C4162A"
-      ],
       "datasource": "$datasourceag",
-      "decimals": 0,
-      "esMetric": "Count",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "legend": false,
+              "viz": false
+            }
+          }
         },
         "overrides": []
       },
@@ -1838,26 +1988,8 @@
         "x": 0,
         "y": 53
       },
-      "hideEmpty": true,
-      "hideZero": true,
       "id": 12,
-      "initialZoom": "1",
       "links": [],
-      "locationData": "countries",
-      "mapCenter": "(0\u00b0, 0\u00b0)",
-      "mapCenterLatitude": 0,
-      "mapCenterLongitude": 0,
-      "maxDataPoints": 1,
-      "mouseWheelZoom": true,
-      "showLegend": true,
-      "stickyLabels": true,
-      "tableQueryOptions": {
-        "geohashField": "geohash",
-        "latitudeField": "latitude",
-        "longitudeField": "longitude",
-        "metricField": "metric",
-        "queryType": "geohash"
-      },
       "targets": [
         {
           "bucketAggs": [
@@ -1873,18 +2005,6 @@
                 "size": "0"
               },
               "type": "terms"
-            },
-            {
-              "$$hashKey": "object:711",
-              "fake": true,
-              "field": "date_range",
-              "id": "6",
-              "settings": {
-                "fixed_interval": "auto",
-                "min_doc_count": 0,
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
             }
           ],
           "hide": false,
@@ -1903,15 +2023,65 @@
           "timeField": "date_range"
         }
       ],
-      "thresholds": "10,500",
       "timeFrom": null,
       "timeShift": null,
       "title": "Map of Message Source Countries",
-      "type": "grafana-worldmap-panel",
-      "unitPlural": "",
-      "unitSingle": "",
-      "unitSingular": "",
-      "valueName": "total"
+      "type": "geomap",
+      "options": {
+        "view": {
+          "id": "zero",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 1,
+          "padding": 0
+        },
+        "basemap": {
+          "type": "default",
+          "name": "Layer 0",
+          "config": {}
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Sources",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.5,
+                "size": {
+                  "fixed": 5,
+                  "min": 2,
+                  "max": 30
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                }
+              }
+            },
+            "location": {
+              "mode": "lookup",
+              "lookup": "source_country.keyword",
+              "gazetteer": "public/gazetteer/countries.json"
+            },
+            "tooltip": true
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showScale": false,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      }
     },
     {
       "datasource": "$datasourceag",
@@ -3784,19 +3954,32 @@
       "type": "table"
     },
     {
-      "circleMaxSize": 30,
-      "circleMinSize": 2,
-      "colors": [
-        "#C4162A",
-        "#FA6400",
-        "#37872D"
-      ],
       "datasource": "$datasourcefo",
-      "decimals": 0,
-      "esMetric": "Count",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "legend": false,
+              "viz": false
+            }
+          }
         },
         "overrides": []
       },
@@ -3806,27 +3989,8 @@
         "x": 0,
         "y": 118
       },
-      "hideEmpty": true,
-      "hideZero": true,
       "id": 22,
-      "initialZoom": "1",
       "links": [],
-      "locationData": "countries",
-      "mapCenter": "(0\u00b0, 0\u00b0)",
-      "mapCenterLatitude": 0,
-      "mapCenterLongitude": 0,
-      "maxDataPoints": 1,
-      "mouseWheelZoom": true,
-      "showLegend": true,
-      "stickyLabels": true,
-      "tableQueryOptions": {
-        "geohashField": "geohash",
-        "labelField": "",
-        "latitudeField": "latitude",
-        "longitudeField": "longitude",
-        "metricField": "metric",
-        "queryType": "geohash"
-      },
       "targets": [
         {
           "bucketAggs": [
@@ -3842,18 +4006,6 @@
                 "size": "10"
               },
               "type": "terms"
-            },
-            {
-              "$$hashKey": "object:61",
-              "fake": true,
-              "field": "arrival_date",
-              "id": "7",
-              "settings": {
-                "fixed_interval": "auto",
-                "min_doc_count": 0,
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
             }
           ],
           "hide": false,
@@ -3872,14 +4024,65 @@
           "timeField": "arrival_date"
         }
       ],
-      "thresholds": "100,0",
       "timeFrom": null,
       "timeShift": null,
       "title": "Forensic Sample Sources by Country",
-      "type": "grafana-worldmap-panel",
-      "unitPlural": "",
-      "unitSingle": "",
-      "valueName": "total"
+      "type": "geomap",
+      "options": {
+        "view": {
+          "id": "zero",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 1,
+          "padding": 0
+        },
+        "basemap": {
+          "type": "default",
+          "name": "Layer 0",
+          "config": {}
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Sources",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.5,
+                "size": {
+                  "fixed": 5,
+                  "min": 2,
+                  "max": 30
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                }
+              }
+            },
+            "location": {
+              "mode": "lookup",
+              "lookup": "source_country.keyword",
+              "gazetteer": "public/gazetteer/countries.json"
+            },
+            "tooltip": true
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showScale": false,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      }
     },
     {
       "datasource": "$datasourcefo",
