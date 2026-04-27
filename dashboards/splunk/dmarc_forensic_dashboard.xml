@@ -1,0 +1,74 @@
+<form theme="dark" version="1.1">
+  <label>Forensic DMARC Data</label>
+  <search id="base_search">
+    <query>
+      index="email" sourcetype="dmarc:forensic"
+      (parsed_sample.headers.From=$header_from$ OR NOT parsed_sample.headers.From=*)
+      (parsed_sample.headers.To=$header_to$ OR NOT parsed_sample.headers.To=*)
+      (parsed_sample.headers.Subject=$header_subject$ OR NOT parsed_sample.headers.Subject=*)
+      (source.ip_address=$source_ip_address$ OR NOT source.ip_address=*)
+      (source.reverse_dns=$source_reverse_dns$ OR NOT source.reverse_dns=*)
+      (source.country=$source_country$ OR NOT source.country=*)
+      | table *
+    </query>
+    <earliest>$time_range.earliest$</earliest>
+    <latest>$time_range.latest$</latest>
+  </search>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="text" token="header_from" searchWhenChanged="true">
+      <label>Message header from</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="header_to" searchWhenChanged="true">
+      <label>Message header to</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="header_subject" searchWhenChanged="true">
+      <label>Message header subject</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_ip_address" searchWhenChanged="true">
+      <label>Source IP address</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_reverse_dns" searchWhenChanged="true">
+      <label>Source reverse DNS</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_country" searchWhenChanged="true">
+      <label>Source country ISO code</label>
+      <default>*</default>
+    </input>
+    <input type="time" token="time_range" searchWhenChanged="true">
+      <label>Time range</label>
+      <default>
+        <earliest>-90d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <h2>About DMARC failure reports (RUF)</h2>
+        <p>DMARC failure reports (RUF) contain an email sample that failed DMARC. These can be very useful for DMARC troubleshooting and phishing investigations. However, <b>most email providers</b> do not send failure reports, or may only supply the message headers for privacy reasons.</p>
+        <p>If you want to ensure that email samples are not saved here, <b>do not</b> set a <code>ruf</code> address in your domain's DMARC record.</p>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>DMARC failure email samples</title>
+      <table>
+        <search base="base_search">
+          <query>| rename parsed_sample.headers.From as "from", parsed_sample.headers.Subject as subject, "parsed_sample.headers.In-Reply-To" as reply_to
+| table arrival_date_utc, source.ip_address, "from", subject, reply_to, authentication_results
+| sort -arrival_date_utc</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">false</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -231,6 +231,6 @@ retention regulations such as GDPR. For more information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
 
 [elasticsearch]: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
-[export.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/kibana/export.ndjson
+[export.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/kibana/export.ndjson
 [kibana]: https://www.elastic.co/guide/en/kibana/current/rpm.html
 [x-pack]: https://www.elastic.co/products/x-pack

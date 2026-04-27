@@ -1,5 +1,25 @@
 # Changelog
 
+## 9.10.3
+
+### Fixed
+
+- **Bundled OSD aggregate dashboard reported source-row counts as message volume.** Pies, tables, and the choropleth aggregated with `count` instead of `sum(message_count)`, so panels titled "Message volume…", "Reporting organizations", etc. counted distinct sources rather than emails. Bug present since the dashboard shipped in 9.4.0. Line-chart timeseries, SMTP TLS, and forensic panels were already correct.
+- Splunk aggregate "Map of message sources by country" widget had the same `count`-instead-of-`sum(message_count)` bug.
+- Splunk forensic-samples table dropped events with null `From`/`To`/`Subject` because the base search required those fields to exist (`field=*`). Replaced with a null-tolerant filter pattern.
+- Splunk SMTP TLS Failure details panel returned no rows; Splunk doesn't evaluate `field>0` against multivalued JSON-array paths at search time. Switched to a presence filter plus post-stats `where failed_sessions>0`.
+
+### Changes
+
+- Aligned the Splunk dashboards with the OSD source-of-truth: new "Message sources by Autonomous System" panel; added missing `dkim_aligned` column to DKIM details; green/red colors for `true`/`false` on alignment pies and the DMARC-passage timechart; forensic dashboard simplified to OSD's two-panel layout (markdown + samples table); `policy_type` bucket added to SMTP TLS Domains; minor column / title alignments throughout.
+
+### Upgrade notes
+
+**Action required — re-import the dashboards.** Stored saved objects don't auto-update on parsedmarc upgrade.
+
+- **OSD:** *Stack Management → Saved Objects → Import* the new `dashboards/opensearch/opensearch_dashboards.ndjson`. **Switch the import mode from the default *"Create new objects with unique IDs"* to *"Check for existing objects"*** and enable *"Automatically overwrite conflicts"*. The default mode would import the corrected viz under fresh UUIDs and leave the buggy originals in place, so the dashboards would keep rendering the wrong numbers.
+- **Splunk:** paste each XML in `dashboards/splunk/` into the corresponding dashboard's Source editor.
+
 ## 9.10.2
 
 ### Fixed

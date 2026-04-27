@@ -1,0 +1,348 @@
+#!/usr/bin/env bash
+# Bring up docker-compose.dashboard-dev.yml, import the latest parsedmarc
+# dashboards into each viz system, and seed each backend with sample data so
+# the dashboards have something to render. Idempotent — safe to re-run.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$REPO_ROOT"
+
+COMPOSE=(docker compose -f docker-compose.dashboard-dev.yml --env-file .env)
+
+# Load .env so this script can use the same secrets compose injects.
+set -a
+# shellcheck disable=SC1091
+. .env
+set +a
+
+GRAFANA_USER="${GRAFANA_USER:-admin}"
+GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
+
+log() { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
+
+wait_for() {
+    local name="$1"; shift
+    local max="${WAIT_TIMEOUT:-180}"
+    local i=0
+    printf 'Waiting for %s' "$name"
+    while ! "$@" >/dev/null 2>&1; do
+        printf '.'
+        i=$((i + 1))
+        if [ "$i" -ge "$max" ]; then
+            printf '\n'
+            echo "ERROR: $name not ready after ${max}s" >&2
+            return 1
+        fi
+        sleep 1
+    done
+    printf ' ready\n'
+}
+
+# ---------------------------------------------------------------------------
+# 1. Bring up the stack
+# ---------------------------------------------------------------------------
+log "Starting docker compose dashboard-dev stack"
+"${COMPOSE[@]}" up -d
+
+# ---------------------------------------------------------------------------
+# 2. Wait for each service
+# ---------------------------------------------------------------------------
+log "Waiting for backends and UIs"
+wait_for "Elasticsearch" \
+    curl -sf 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s'
+wait_for "OpenSearch" \
+    curl -ksf -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+    'https://localhost:9201/_cluster/health?wait_for_status=yellow&timeout=1s'
+wait_for "Kibana" curl -sf http://localhost:5601/api/status
+wait_for "OpenSearch Dashboards" \
+    curl -ksf -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+    http://localhost:5602/api/status
+wait_for "Grafana" curl -sf http://localhost:3000/api/health
+# Splunk's HEC port is healthy once management API is up too.
+wait_for "Splunk HEC" curl -ksf https://localhost:8088/services/collector/health
+# Splunkd management API (used for dashboard imports) lives inside the container.
+wait_for "Splunk management API" \
+    "${COMPOSE[@]}" exec -T splunk \
+    curl -ksf -u "admin:${SPLUNK_PASSWORD}" https://localhost:8089/services/server/info
+
+# ---------------------------------------------------------------------------
+# 3. Provision Splunk: index, app, HEC token allow-list
+#    Must run before sample-data ingestion. The Splunk image auto-creates a
+#    HEC token from SPLUNK_HEC_TOKEN, but with `indexes=[]` and
+#    `index=default` — writes to the parsedmarc-dev.ini `email` index will
+#    silently drop until both the index exists and the token allows it.
+# ---------------------------------------------------------------------------
+log "Provisioning Splunk index, app, and HEC token"
+splunk_curl() {
+    "${COMPOSE[@]}" exec -T splunk \
+        curl -ksS -u "admin:${SPLUNK_PASSWORD}" "$@"
+}
+splunk_exists() {
+    # 200 if the named entity exists, 404 if not.
+    local code
+    code=$(splunk_curl -o /dev/null -w "%{http_code}" -X GET "$1") || true
+    [ "$code" = "200" ]
+}
+
+if splunk_exists https://localhost:8089/services/data/indexes/email; then
+    echo "  index 'email' already exists — skipping"
+else
+    splunk_curl -X POST https://localhost:8089/services/data/indexes \
+        -d name=email -d datatype=event >/dev/null
+    echo "  created index 'email'"
+fi
+
+if splunk_exists https://localhost:8089/services/apps/local/DMARC; then
+    echo "  app 'DMARC' already exists — skipping"
+else
+    splunk_curl -X POST https://localhost:8089/services/apps/local \
+        -d name=DMARC -d label=DMARC -d visible=true >/dev/null
+    echo "  created app 'DMARC'"
+fi
+
+# The auto-created HEC token is named "splunk_hec_token". Allow the email
+# index and set it as the token default so parsedmarc-dev.ini's `index = email`
+# is honoured. Skip the rewrite if the token already allows email and
+# defaults to it.
+HEC_STATE=$(splunk_curl -X GET \
+    "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/splunk_hec_token?output_mode=json" \
+    2>/dev/null \
+    | python3 -c '
+import json, sys
+e = json.load(sys.stdin)["entry"][0]["content"]
+indexes = e.get("indexes") or []
+disabled = "1" if e.get("disabled") else "0"
+print("|".join([e.get("index") or "", disabled, ",".join(indexes)]))
+' 2>/dev/null || echo "||")
+HEC_DEFAULT_INDEX="${HEC_STATE%%|*}"
+HEC_REST="${HEC_STATE#*|}"
+HEC_DISABLED="${HEC_REST%%|*}"
+HEC_INDEXES=",${HEC_REST#*|},"
+if [ "$HEC_DEFAULT_INDEX" = "email" ] && [ "$HEC_DISABLED" = "0" ] && [[ "$HEC_INDEXES" == *,email,* ]]; then
+    echo "  HEC token 'splunk_hec_token' already configured — skipping"
+else
+    splunk_curl -X POST \
+        "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/splunk_hec_token" \
+        -d "indexes=email,main" \
+        -d "index=email" \
+        -d "disabled=0" \
+        >/dev/null
+    echo "  reconfigured HEC token 'splunk_hec_token' (index=email, indexes=email,main)"
+fi
+
+# Make sure the HEC listener itself is enabled. Splunk treats this as a no-op
+# if it's already enabled, so just send it once each run — no point checking.
+splunk_curl -X POST \
+    "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/http" \
+    -d "disabled=0" \
+    >/dev/null 2>&1 || true
+
+# Splunk ships an in-product announcement view ("Scheduled export is now
+# available for Dashboard Studio") in the search app with sharing=global, so
+# it appears in the dashboards list of every app — including DMARC. Views
+# don't support a `disabled` flag, but narrowing the sharing from `global` to
+# `app` keeps it scoped to the search app only.
+SCHED_SHARING=$(splunk_curl -X GET \
+    "https://localhost:8089/servicesNS/-/search/data/ui/views/scheduled_export_dashboard?output_mode=json" \
+    2>/dev/null \
+    | python3 -c '
+import json, sys
+print(json.load(sys.stdin)["entry"][0]["acl"].get("sharing", ""))
+' 2>/dev/null || echo "")
+if [ "$SCHED_SHARING" = "global" ]; then
+    splunk_curl -X POST \
+        "https://localhost:8089/servicesNS/nobody/search/data/ui/views/scheduled_export_dashboard/acl" \
+        -d "sharing=app" -d "owner=nobody" \
+        >/dev/null
+    echo "  scoped 'scheduled_export_dashboard' to search app (was global)"
+elif [ -n "$SCHED_SHARING" ]; then
+    echo "  'scheduled_export_dashboard' already scoped (sharing=${SCHED_SHARING}) — skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Seed sample data via parsedmarc -> ES, OS, Splunk HEC
+#    Skipped when ES already has aggregate docs from a prior run. Set
+#    RESEED=1 to wipe ES/OS/Splunk parsedmarc data first and re-seed.
+# ---------------------------------------------------------------------------
+log "Seeding sample data with parsedmarc-dev.ini"
+ES_AGG_COUNT=$(curl -sf 'http://localhost:9200/dmarc_aggregate*/_count' 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("count", 0))' 2>/dev/null \
+    || echo 0)
+if [ "${RESEED:-0}" != "1" ] && [ "$ES_AGG_COUNT" -gt 0 ]; then
+    echo "  ES already has $ES_AGG_COUNT aggregate docs — skipping seed (RESEED=1 to force)"
+else
+    if [ "${RESEED:-0}" = "1" ] && [ "$ES_AGG_COUNT" -gt 0 ]; then
+        echo "  RESEED=1: wiping existing parsedmarc data from all backends"
+        # ES 8.x rejects wildcard DELETEs by default
+        # (action.destructive_requires_name=true). Enumerate the daily indexes
+        # parsedmarc rolls (dmarc_aggregate-YYYY-MM-DD, dmarc_forensic-...,
+        # smtp_tls-...) and DELETE each one explicitly.
+        for prefix in dmarc_aggregate dmarc_forensic smtp_tls; do
+            for idx in $(curl -sf "http://localhost:9200/_cat/indices/${prefix}*?h=index" 2>/dev/null); do
+                curl -sS -X DELETE "http://localhost:9200/${idx}" >/dev/null 2>&1 || true
+            done
+            for idx in $(curl -ksf -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" "https://localhost:9201/_cat/indices/${prefix}*?h=index" 2>/dev/null); do
+                curl -ksS -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+                    -X DELETE "https://localhost:9201/${idx}" >/dev/null 2>&1 || true
+            done
+        done
+        # Splunk has no clean-in-place REST endpoint for live indexes. The
+        # standard pattern is to delete and recreate. Settings carry over from
+        # the recreate POST below — datatype=event is what parsedmarc HEC needs.
+        splunk_curl -X DELETE \
+            "https://localhost:8089/services/data/indexes/email" >/dev/null 2>&1 || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            splunk_exists https://localhost:8089/services/data/indexes/email || break
+            sleep 1
+        done
+        splunk_curl -X POST https://localhost:8089/services/data/indexes \
+            -d name=email -d datatype=event >/dev/null
+        # Recreate forces the HEC token allow-list to re-resolve against the
+        # new index. Re-apply the token config so the next seed lands.
+        splunk_curl -X POST \
+            "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/splunk_hec_token" \
+            -d "indexes=email,main" -d "index=email" -d "disabled=0" >/dev/null
+    fi
+
+    PARSEDMARC_BIN="${PARSEDMARC_BIN:-$REPO_ROOT/venv/bin/parsedmarc}"
+    if [ ! -x "$PARSEDMARC_BIN" ]; then
+        PARSEDMARC_BIN="$(command -v parsedmarc || true)"
+    fi
+    if [ -z "$PARSEDMARC_BIN" ] || [ ! -x "$PARSEDMARC_BIN" ]; then
+        echo "ERROR: parsedmarc CLI not found. Install with 'pip install -e .[build]' or set PARSEDMARC_BIN." >&2
+        exit 1
+    fi
+
+    # Live DNS lookups (no --offline) so source_reverse_dns / source_base_domain
+    # are populated. Many samples carry synthetic IPs (10.x, 198.51.100.x,
+    # 2001:db8::, etc.) that won't resolve, so cap retries/timeout to bound
+    # the cost of those NXDOMAIN-bound lookups. Intentionally invalid samples
+    # (empty_reason.xml, invalid_xml.xml, etc.) are skipped from the list.
+    SAMPLE_FILES=(
+        samples/aggregate/!example.com!1538204542!1538463818.xml
+        samples/aggregate/!large-example.com!1711897200!1711983600.xml
+        'samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml'
+        samples/aggregate/addisonfoods.com!example.com!1536105600!1536191999.xml
+        samples/aggregate/estadocuenta1.infonacot.gob.mx!example.com!1536853302!1536939702!2940.xml.zip
+        samples/aggregate/example.net!example.com!1529366400!1529452799.xml
+        samples/aggregate/fastmail.com!example.com!1516060800!1516147199!102675056.xml.gz
+        samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml
+        samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml
+        samples/aggregate/usssa.com!example.com!1538784000!1538870399.xml
+        samples/aggregate/veeam.com!example.com!1530133200!1530219600.xml
+        samples/forensic/*.eml
+        samples/smtp_tls/*.json
+        samples/smtp_tls/google.com_smtp_tls_report.eml
+    )
+    "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Import dashboards. Always re-imported on every run — that's the point of
+#    invoking this script after editing a dashboard. Datasources are checked
+#    first and skipped when already present.
+# ---------------------------------------------------------------------------
+log "Importing Kibana dashboards"
+curl -sS -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
+    -H 'kbn-xsrf: true' \
+    --form file=@dashboards/kibana/export.ndjson | sed 's/^/  /'
+
+log "Importing OpenSearch Dashboards saved objects"
+# OSD with the security plugin enabled stores saved objects per tenant. Without
+# a securitytenant header the import lands in the API user's *private* tenant,
+# which is invisible to anyone else (and to the same user when their browser
+# session is on a different tenant). Target global_tenant — the shared
+# workspace every user has access to and where public dashboards conventionally
+# live. To send the import elsewhere set OSD_TENANT=admin_tenant (or any other
+# tenant name) before running.
+OSD_TENANT="${OSD_TENANT:-global_tenant}"
+curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true' \
+    -H 'osd-xsrf: true' \
+    -H "securitytenant: ${OSD_TENANT}" \
+    -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+    --form file=@dashboards/opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
+echo "  (imported into OSD tenant: ${OSD_TENANT})"
+
+log "Configuring Grafana datasources"
+# Two Elasticsearch datasources, one per index family, matching the dashboard's
+# template variables (dmarc-ag and dmarc-fo). Skipped when already present.
+declare -a GF_DS_NAMES=("dmarc-ag" "dmarc-fo")
+declare -a GF_DS_INDEX=("dmarc_aggregate*" "dmarc_forensic*")
+declare -a GF_DS_TIME=("date_range" "arrival_date")
+for i in 0 1; do
+    name="${GF_DS_NAMES[$i]}"
+    code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -o /dev/null -w "%{http_code}" \
+        "http://localhost:3000/api/datasources/name/${name}")
+    if [ "$code" = "200" ]; then
+        echo "  datasource '${name}' already exists — skipping"
+        continue
+    fi
+    body=$(cat <<EOF
+{
+  "name": "${name}",
+  "type": "elasticsearch",
+  "url": "http://elasticsearch:9200",
+  "access": "proxy",
+  "database": "${GF_DS_INDEX[$i]}",
+  "isDefault": false,
+  "jsonData": {
+    "esVersion": "8.0.0",
+    "timeField": "${GF_DS_TIME[$i]}",
+    "maxConcurrentShardRequests": 5
+  }
+}
+EOF
+    )
+    curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -H 'Content-Type: application/json' \
+        -X POST "http://localhost:3000/api/datasources" \
+        -d "$body" | sed 's/^/  /'
+    echo
+    echo "  created datasource '${name}'"
+done
+
+log "Importing Grafana dashboard"
+GF_BODY=$(python3 -c '
+import json, sys
+with open("dashboards/grafana/Grafana-DMARC_Reports.json") as f:
+    d = json.load(f)
+# Setting id=None lets Grafana create or replace by uid+overwrite.
+d["id"] = None
+print(json.dumps({"dashboard": d, "overwrite": True, "folderUid": ""}))
+')
+curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -H 'Content-Type: application/json' \
+    -X POST "http://localhost:3000/api/dashboards/db" \
+    -d "$GF_BODY" | sed 's/^/  /'
+
+log "Importing Splunk dashboard views into the DMARC app"
+splunk_import_view() {
+    local name="$1"
+    local file="$2"
+    # DELETE-then-POST is the only path that survives both first-run and
+    # re-run; POST to an existing view returns 409.
+    splunk_curl -X DELETE \
+        "https://localhost:8089/servicesNS/admin/DMARC/data/ui/views/${name}" \
+        >/dev/null 2>&1 || true
+    splunk_curl -X POST \
+        "https://localhost:8089/servicesNS/admin/DMARC/data/ui/views" \
+        -d "name=${name}" \
+        --data-urlencode "eai:data@-" \
+        < "$file" >/dev/null
+    echo "  imported splunk view: ${name}"
+}
+
+splunk_import_view dmarc_aggregate dashboards/splunk/dmarc_aggregate_dashboard.xml
+splunk_import_view dmarc_forensic  dashboards/splunk/dmarc_forensic_dashboard.xml
+splunk_import_view smtp_tls        dashboards/splunk/smtp_tls_dashboard.xml
+
+cat <<EOF
+
+== Done. UIs available at:
+  Kibana                  http://localhost:5601/
+  OpenSearch Dashboards   http://localhost:5602/   (admin / ${OPENSEARCH_INITIAL_ADMIN_PASSWORD})
+  Grafana                 http://localhost:3000/   (${GRAFANA_USER} / ${GRAFANA_PASSWORD})
+  Splunk                  http://localhost:8000/   (admin / ${SPLUNK_PASSWORD})
+EOF
