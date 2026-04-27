@@ -17,8 +17,8 @@
 
 **Action required — re-import the dashboards.** Stored saved objects don't auto-update on parsedmarc upgrade.
 
-- **OSD:** *Stack Management → Saved Objects → Import* the new `opensearch/opensearch_dashboards.ndjson`. Leave the default *"Check for existing objects"* mode and enable *"Automatically overwrite conflicts"*. **Do not pick *"Create new objects with unique IDs"*** — that imports duplicates under fresh UUIDs and leaves the buggy originals in place.
-- **Splunk:** paste each XML in `splunk/` into the corresponding dashboard's Source editor.
+- **OSD:** *Stack Management → Saved Objects → Import* the new `dashboards/opensearch/opensearch_dashboards.ndjson`. Leave the default *"Check for existing objects"* mode and enable *"Automatically overwrite conflicts"*. **Do not pick *"Create new objects with unique IDs"*** — that imports duplicates under fresh UUIDs and leaves the buggy originals in place.
+- **Splunk:** paste each XML in `dashboards/splunk/` into the corresponding dashboard's Source editor.
 
 ## 9.10.2
 

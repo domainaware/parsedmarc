@@ -246,7 +246,7 @@ fi
 log "Importing Kibana dashboards"
 curl -sS -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
     -H 'kbn-xsrf: true' \
-    --form file=@kibana/export.ndjson | sed 's/^/  /'
+    --form file=@dashboards/kibana/export.ndjson | sed 's/^/  /'
 
 log "Importing OpenSearch Dashboards saved objects"
 # OSD with the security plugin enabled stores saved objects per tenant. Without
@@ -261,7 +261,7 @@ curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true
     -H 'osd-xsrf: true' \
     -H "securitytenant: ${OSD_TENANT}" \
     -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
-    --form file=@opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
+    --form file=@dashboards/opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
 echo "  (imported into OSD tenant: ${OSD_TENANT})"
 
 log "Configuring Grafana datasources"
@@ -306,7 +306,7 @@ done
 log "Importing Grafana dashboard"
 GF_BODY=$(python3 -c '
 import json, sys
-with open("grafana/Grafana-DMARC_Reports.json") as f:
+with open("dashboards/grafana/Grafana-DMARC_Reports.json") as f:
     d = json.load(f)
 # Setting id=None lets Grafana create or replace by uid+overwrite.
 d["id"] = None
@@ -334,9 +334,9 @@ splunk_import_view() {
     echo "  imported splunk view: ${name}"
 }
 
-splunk_import_view dmarc_aggregate splunk/dmarc_aggregate_dashboard.xml
-splunk_import_view dmarc_forensic  splunk/dmarc_forensic_dashboard.xml
-splunk_import_view smtp_tls        splunk/smtp_tls_dashboard.xml
+splunk_import_view dmarc_aggregate dashboards/splunk/dmarc_aggregate_dashboard.xml
+splunk_import_view dmarc_forensic  dashboards/splunk/dmarc_forensic_dashboard.xml
+splunk_import_view smtp_tls        dashboards/splunk/smtp_tls_dashboard.xml
 
 cat <<EOF
 
