@@ -458,6 +458,7 @@ au-net.ne.jp,KDDI,ISP
 au.com,au,ISP
 auckland.ac.nz,University of Auckland,Education
 auone-net.jp,KDDI,ISP
+aup.edu.pk,"University of Agriculture, Peshawar",Education
 aura.dk,AURA Fiber,ISP
 aureon.com,Aureon,ISP
 auriga.com,Auriga,Technology
@@ -535,6 +536,7 @@ baxetgroup.com,Baxet Group,Web Host
 bayada.com,BAYADA Home Health Care,Healthcare
 bayer.com,Bayer,Healthcare
 bayer.de,Bayer,Healthcare
+baykonur.ru,Baykonur Svyazinform,ISP
 baylor.edu,Baylor University,Education
 bayoulandcs.com,Bayouland Computer Solutions,MSP
 bbbell.it,BBBell,ISP
@@ -789,6 +791,7 @@ capgemini.com,Capgemini,Consulting
 capinfo.com.cn,CAPNET,Government
 carandainet.com.br,CN Internet,ISP
 cardhealth.com,Cardinal Health,Healthcare
+cardinal-health.com,Cardinal Health,Healthcare
 cardinal.com,Cardinal Health,Healthcare
 cardinalhealth.com,Cardinal Health,Healthcare
 cardinalscriptnet.com,Cardinal Health,Healthcare
@@ -1213,6 +1216,7 @@ cty-cns.jp,Suzuka Cable,ISP
 cubiespot.net.id,Cubiespot,ISP
 cuenote.jp,Cuenote,SaaS
 cuhk.edu.hk,Chinese University of Hong Kong,Education
+cultureamp.com,Culture Amp,SaaS
 cumberlandconnect.org,Cumberland Connect,ISP
 cuny.edu,City University of New York,Education
 customer.speedpartner.de,SpeedPartner,Web Host
@@ -1665,6 +1669,7 @@ enginet.az,Birlink,ISP
 enguard.com,EnGuard,Email Security
 eni.com,Eni,Industrial
 eninetworks.com,ENI Networks,ISP
+enivest.net,Enivest,ISP
 enova.com,Enova International,Finance
 enreach.com,Enreach,SaaS
 ensono.com,Ensono,MSP
@@ -1710,6 +1715,7 @@ erie.gov,"Erie County, New York",Government
 erlabrunn.de,Kliniken Erlabrunn,Healthcare
 ertelecom.ru,ER-Telecom,ISP
 es.net,ESnet,Education
+esavezone.co.kr,SaveZone,Retail
 esited.com,eSited,Web Host
 eskerondemand.com,Esker,SaaS
 esolutionsgroup.ca,Govstack (eSolutions Group),Technology
@@ -3000,6 +3006,7 @@ lcube-server.de,LCube,Web Host
 lcv.ne.jp,LCV Corporation,ISP
 lds.online,Luganskie Domashnie Seti,ISP
 ldw.com,Last Day of Work,Entertainment
+leaderdrug.com,Cardinal Health,Healthcare
 leadpages.co,Leadpages,Marketing
 leadsystemsmarketing.com,Lead Systems Marketing,Marketing
 leaguelineup.com,LeagueLineup,Sports
@@ -3589,6 +3596,7 @@ mygrande.com,Grande Communications,ISP
 myhome-server.de,DDNSS,Web Host
 myhost.ie,MyHost.ie,Web Host
 myhosting.com,MyHosting,Web Host
+myleader.com,Cardinal Health,Healthcare
 mylinkline.com,MyLinkLine,SaaS
 mymailcheap.com,Mailcheap,Email Provider
 mymailhosting.com,Doteasy,Web Host
@@ -4138,6 +4146,8 @@ outlook.cn,Outlook (China),Email Provider
 outlook.com,Outlook (Personal and Microsoft 365),Email Provider
 outreachratio.com,Outreach,SaaS
 outscale.com,Outscale,IaaS
+oversight.com,Oversight,SaaS
+oversightsystems.com,Oversight,SaaS
 ovh.ca,OVH,Web Host
 ovh.fr,OVH,Web Host
 ovh.net,OVH,Web Host
@@ -4211,7 +4221,9 @@ pcc.in.th,President Chemical,Manufacturing
 pccwglobal.com,PCCW Global,ISP
 pccwglobalinc.com,PCCW Global,ISP
 pchosp.org,Putnam County Hospital,Healthcare
+pci.com,PCI Pharma Services,Healthcare
 pcinfo.net.br,PC Info Telecom,ISP
+pciservices.com,PCI Pharma Services,Healthcare
 pcp.by,Pinsk Central Polyclinic,Healthcare
 pd25.com,Salesforce Marketing Cloud (Formerly Pardot),Marketing
 pdx.edu,Portland State University,Education
@@ -4702,6 +4714,7 @@ sattrakt.com,Sat-Trakt,ISP
 saunalahti.fi,Elisa,ISP
 savecom.net.tw,SaveCom,ISP
 saveonhosting.com,Save On Hosting,Web Host
+savezone.co.kr,SaveZone,Retail
 savps.ru,SmartApe,Web Host
 sawaisp.sy,Sawa,ISP
 sbaedge.com,SBA Edge,IaaS
@@ -4952,6 +4965,7 @@ skybroadband.com,Sky,ISP
 skydsl.eu,skyDSL,ISP
 skydsl.it,skyDSL,ISP
 skymail.com.br,Skymail,Email Provider
+skynet.kg,Skynet Telecom,ISP
 skynet.ru,Skynet,ISP
 skypoint.com,SkyPoint Communications,ISP
 skysdigital.net,SkyDigital,ISP
@@ -5032,6 +5046,7 @@ sonatel.sn,Sonatel,ISP
 sonic.com,Sonic,ISP
 sonic.net,Sonic,ISP
 sonichealthcareusa.com,Sonic Healthcare USA,Healthcare
+sonicwall.com,SonicWall,Email Security
 sonygs.co.jp,Sony Global Solutions,MSP
 sonynetwork.co.jp,So-net,ISP
 sooner.com,Sooner Technology,ISP
@@ -5165,6 +5180,7 @@ stertec.co.jp,KUNIMORI-STAR Group,MSP
 stetnet.com.br,webby agora é alares,ISP
 stewarthowe.com,Newfold Digital,Web Host
 sti.net,Sierra Tel,ISP
+stibo.com,Stibo,SaaS
 stjansdal.nl,Hospital St Jansdal,Healthcare
 stjohns.edu,St. John's University,Education
 stjude.org,St. Jude Children's Research Hospital,Healthcare
