@@ -253,6 +253,7 @@
         <option name="charting.chart.nullValueMode">zero</option>
         <option name="charting.chart.showDataLabels">none</option>
         <option name="charting.drilldown">none</option>
+        <option name="charting.fieldColors">{"none":0x65a637,"quarantine":0xf2b134,"reject":0xd93f3c}</option>
         <option name="refresh.display">progressbar</option>
       </chart>
     </panel>
