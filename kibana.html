@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using the Kibana dashboards &mdash; parsedmarc 9.10.3 documentation</title>
+  <title>Using the Kibana dashboards &mdash; parsedmarc 9.11.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=0bee8ae5"></script>
+      <script src="_static/documentation_options.js?v=4dc34ad6"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -50,8 +50,9 @@
 <li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a></li>
 <li class="toctree-l1"><a class="reference internal" href="opensearch.html">OpenSearch and Grafana</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using the Kibana dashboards</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#dmarc-summary">DMARC Summary</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dmarc-forensic-samples">DMARC Forensic Samples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dmarc-aggregate-reports">DMARC aggregate reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dmarc-failure-reports">DMARC failure reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#smtp-tls-reporting">SMTP TLS reporting</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="splunk.html">Splunk</a></li>
@@ -89,13 +90,20 @@
 <h1>Using the Kibana dashboards<a class="headerlink" href="#using-the-kibana-dashboards" title="Link to this heading"></a></h1>
 <p>The Kibana DMARC dashboards are a human-friendly way to understand the
 results from incoming DMARC reports.</p>
+<p>There is no separate Kibana export — Kibana 8.x’s saved-object migration
+handlers accept the OpenSearch Dashboards format directly, so Kibana
+users import the bundled
+<a class="reference external" href="https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/opensearch/opensearch_dashboards.ndjson"><code class="docutils literal notranslate"><span class="pre">dashboards/opensearch/opensearch_dashboards.ndjson</span></code></a>
+in <em>Stack Management → Saved Objects → Import</em>. A CI check imports the
+same file into a Kibana 8.x container on every change so this stays
+compatible.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The default dashboard is DMARC Summary. To switch between dashboards,
-click on the Dashboard link on the left side menu of Kibana.</p>
+<p>The default dashboard is DMARC aggregate reports. To switch between
+dashboards, click on the Dashboard link on the left side menu of Kibana.</p>
 </div>
-<section id="dmarc-summary">
-<h2>DMARC Summary<a class="headerlink" href="#dmarc-summary" title="Link to this heading"></a></h2>
+<section id="dmarc-aggregate-reports">
+<h2>DMARC aggregate reports<a class="headerlink" href="#dmarc-aggregate-reports" title="Link to this heading"></a></h2>
 <p>As the name suggests, this dashboard is the best place to start
 reviewing your aggregate DMARC data.</p>
 <p>Across the top of the dashboard, three pie charts display the percentage of
@@ -144,24 +152,32 @@ address.</p>
 table.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Previously, the alignment tables were included in a separate dashboard
-called DMARC Alignment Failures. That dashboard has been consolidated into
-the DMARC Summary dashboard. To view failures only, use the pie chart.</p>
+<p>The alignment tables (SPF details, DKIM details) and the per-IP source
+table live on the same dashboard, further down. To view failures only,
+use the pie chart at the top of the page as a filter.</p>
 </div>
 <p>Any other filters work the same way. You can also add your own custom temporary
 filters by clicking on Add Filter at the upper right of the page.</p>
 </section>
-<section id="dmarc-forensic-samples">
-<h2>DMARC Forensic Samples<a class="headerlink" href="#dmarc-forensic-samples" title="Link to this heading"></a></h2>
-<p>The DMARC Forensic Samples dashboard contains information on DMARC forensic
-reports (also known as failure reports or ruf reports). These reports contain
-samples of emails that have failed to pass DMARC.</p>
+<section id="dmarc-failure-reports">
+<h2>DMARC failure reports<a class="headerlink" href="#dmarc-failure-reports" title="Link to this heading"></a></h2>
+<p>The DMARC failure reports dashboard (formerly DMARC Forensic Samples) contains
+information on DMARC failure reports (also known as forensic or ruf reports).
+These reports contain samples of emails that have failed to pass DMARC.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Most recipients do not send forensic/failure/ruf reports at all to avoid
 privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.</p>
 </div>
+</section>
+<section id="smtp-tls-reporting">
+<h2>SMTP TLS reporting<a class="headerlink" href="#smtp-tls-reporting" title="Link to this heading"></a></h2>
+<p>The SMTP TLS reporting dashboard surfaces aggregate counts of TLS-RPT
+reporting organizations, the policy domains they report on, and the
+specific failure types — certificate expiry, STARTTLS not supported,
+STS policy fetch errors, validation failures, and similar — together with
+the sending and receiving MTA addresses involved.</p>
 </section>
 </section>
 
