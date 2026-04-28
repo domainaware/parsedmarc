@@ -43,12 +43,12 @@ from parsedmarc import (
 )
 from parsedmarc.log import logger
 from parsedmarc.mail import (
+    AuthMethod,
     GmailConnection,
     IMAPConnection,
     MaildirConnection,
     MSGraphConnection,
 )
-from parsedmarc.mail.graph import AuthMethod
 from parsedmarc.types import ParsingResults
 from parsedmarc.utils import (
     InvalidIPinfoAPIKey,
@@ -2150,6 +2150,7 @@ def _main():
                 token_file=opts.graph_token_file,
                 allow_unencrypted_storage=bool(opts.graph_allow_unencrypted_storage),
                 graph_url=opts.graph_url,
+                token_cache_name="parsedmarc",
             )
 
         except Exception:
