@@ -1,5 +1,13 @@
 # Changelog
 
+## 9.11.0
+
+### Changes
+
+- **Mailbox backends now live in `mailsuite>=2.0.0`.** The `IMAPConnection`, `MSGraphConnection`, `GmailConnection`, `MaildirConnection`, and `MailboxConnection` implementations were extracted into [mailsuite 2.0.0](https://github.com/seanthegeek/mailsuite/releases/tag/2.0.0) so other projects can reuse the same provider-agnostic interface. parsedmarc's `parsedmarc.mail` package is now a thin re-export of `mailsuite.mailbox`; existing imports (`from parsedmarc.mail import IMAPConnection`, etc.) continue to work unchanged. The CLI passes `token_cache_name="parsedmarc"` and forwards the existing `[msgraph] graph_url` config knob so cached `AuthenticationRecord`s and tokens carry over without re-prompting.
+- **MSGraph backend rewritten on `msgraph-sdk` (kiota-based).** mailsuite 2.0 replaces the retired `msgraph-core==0.2.2` REST wrapper with the supported `msgraph-sdk` client. End-user behavior is unchanged.
+- **Direct dependencies on `msgraph-core`, `imapclient`, `google-api-core`, `google-api-python-client`, `google-auth-httplib2`, `google-auth-oauthlib`, and `google-auth` removed.** They are now installed transitively via `mailsuite[gmail,msgraph]>=2.0.0`, which is included as a non-optional dependency so Gmail and Microsoft Graph support remain available out of the box.
+
 ## 9.10.3
 
 ### Fixed
