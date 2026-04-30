@@ -1,4 +1,4 @@
-__version__ = "9.11.0"
+__version__ = "9.11.1"
 
 USER_AGENT = f"parsedmarc/{__version__}"
 

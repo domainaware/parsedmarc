@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.11.1
+
+### Fixed
+
+- Bump required `mailsuite` version to `>=2.0.2` to address `RuntimeError: Event loop is closed` failures in the Microsoft Graph mailbox backend (#742).
+
 ## 9.11.0
 
 ### Changes
