@@ -1,7 +1,20 @@
 <form version="1.1" theme="dark">
   <label>SMTP TLS Reporting</label>
+  <search id="base_search">
+    <query>
+      index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
+| rename policies{}.policy_domain as policy_domain
+| rename policies{}.policy_type as policy_type
+| rename policies{}.failed_session_count as failed_sessions
+| rename policies{}.successful_session_count as successful_sessions
+| fillnull value=0 failed_sessions successful_sessions
+      | table *
+    </query>
+    <earliest>$time_range.earliest$</earliest>
+    <latest>$time_range.latest$</latest>
+  </search>
   <fieldset submitButton="false" autoRun="true">
-    <input type="time" token="time">
+    <input type="time" token="time_range">
       <label></label>
       <default>
         <earliest>-7d@h</earliest>
@@ -32,17 +45,10 @@
     <panel>
       <title>Reporting organizations</title>
       <table>
-        <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
-| rename policies{}.policy_domain as policy_domain
-| rename policies{}.policy_type as policy_type
-| rename policies{}.failed_session_count as failed_sessions
-| rename policies{}.successful_session_count as successful_sessions
-| fillnull value=0 failed_sessions successful_sessions
+        <search base="base_search">
+          <query>
 | stats sum(successful_sessions) as successful_sessions sum(failed_sessions) as failed_sessions by organization_name
 | sort -successful_sessions 0</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -51,17 +57,10 @@
     <panel>
       <title>Domains</title>
       <table>
-        <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
-| rename policies{}.policy_domain as policy_domain
-| rename policies{}.policy_type as policy_type
-| rename policies{}.failed_session_count as failed_sessions
-| rename policies{}.successful_session_count as successful_sessions
-| fillnull value=0 failed_sessions successful_sessions
+        <search base="base_search">
+          <query>
 | stats sum(successful_sessions) as successful_sessions sum(failed_sessions) as failed_sessions by policy_domain, policy_type
 | sort -successful_sessions 0</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -72,21 +71,11 @@
     <panel>
       <title>Failure details</title>
       <table>
-        <search>
-          <query>index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$ policies{}.failure_details{}.result_type=*
-| rename policies{}.policy_domain as policy_domain
-| rename policies{}.policy_type as policy_type
-| rename policies{}.failure_details{}.failed_session_count as failed_sessions
-| rename policies{}.failure_details{}.sending_mta_ip as sending_mta_ip
-| rename policies{}.failure_details{}.receiving_ip as receiving_ip
-| rename policies{}.failure_details{}.receiving_mx_hostname as receiving_mx_hostname
-| rename policies{}.failure_details{}.result_type as failure_type
-| fillnull value=0 failed_sessions
+        <search base="base_search">
+          <query>
 | stats sum(failed_sessions) as failed_sessions by organization_name, policy_domain, policy_type, failure_type, sending_mta_ip, receiving_ip, receiving_mx_hostname
-| where failed_sessions>0
+| where failed_sessions&gt;0
 | sort -failed_sessions 0</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
