@@ -6,7 +6,7 @@
       index="email" sourcetype="dmarc:aggregate" spf_aligned=$spf_aligned$ dkim_aligned=$dkim_aligned$ passed_dmarc=$passed_dmarc$ org_name=$org_name$ source_reverse_dns=$source_reverse_dns$ header_from=$header_from$ envelope_from=$envelope_from$ disposition=$disposition$ source_ip_address=$source_ip_address$ source_base_domain=$source_base_domain$ source_country=$source_country$
       | rename spf_results{}.domain as envelope_domain spf_results{}.result as spf_result spf_results{}.scope as spf_scope dkim_results{}.selector as dkim_selector dkim_results{}.domain as dkim_domain dkim_results{}.result as dkim_result
       | fillnull value=null source_reverse_dns source_base_domain dkim_selector dkim_domain dkim_result source_type source_name
-      | search dkim_selector=$dkim_selector$ dkim_domain=$dkim_domain$ source_type="$source_type$" source_name="$source_name$"
+      | search dkim_selector=$dkim_selector$ dkim_domain=$dkim_domain$ source_type="$source_type$" source_name="$source_name$" source_as_name="$source_as_name$"
       | table *
     </query>
     <earliest>$time_range.earliest$</earliest>
@@ -54,17 +54,17 @@
       <choice value="reject">reject</choice>
       <default>*</default>
     </input>
-    <input type="text" token="source_ip_address" searchWhenChanged="true">
-      <label>Source IP address</label>
+    <input type="dropdown" token="source_name" searchWhenChanged="true">
+      <label>Source name</label>
       <default>*</default>
-    </input>
-    <input type="text" token="source_reverse_dns" searchWhenChanged="true">
-      <label>Source reverse DNS</label>
-      <default>*</default>
-    </input>
-    <input type="text" token="source_base_domain" searchWhenChanged="true">
-      <label>Source base domain</label>
-      <default>*</default>
+      <choice value="*">any</choice>
+      <initialValue>*</initialValue>
+      <fieldForLabel>source_name</fieldForLabel>
+      <fieldForValue>source_name</fieldForValue>
+      <search>
+        <query>index="email" sourcetype="dmarc:aggregate" source_type="$source_type$"
+        | stats count by source_name</query>
+      </search>
     </input>
     <input type="dropdown" token="source_type" searchWhenChanged="true">
       <label>Source type</label>
@@ -78,17 +78,31 @@
         | stats count by source_type</query>
       </search>
     </input>
-    <input type="dropdown" token="source_name" searchWhenChanged="true">
-      <label>Source name</label>
-      <default>*</default>
+    <input type="dropdown" token="source_as_name" searchWhenChanged="true">
+      <label>Source AS name</label>
       <choice value="*">any</choice>
+      <default>*</default>
       <initialValue>*</initialValue>
-      <fieldForLabel>source_name</fieldForLabel>
-      <fieldForValue>source_name</fieldForValue>
+      <fieldForLabel>source_as_name</fieldForLabel>
+      <fieldForValue>source_as_name</fieldForValue>
       <search>
-        <query>index="email" sourcetype="dmarc:aggregate" source_type="$source_type$"
-        | stats count by source_name</query>
+        <query>index="email" sourcetype="dmarc:aggregate" 
+        | stats count by source_as_name</query>
+        <earliest>0</earliest>
+        <latest></latest>
       </search>
+    </input>
+    <input type="text" token="source_ip_address" searchWhenChanged="true">
+      <label>Source IP address</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_reverse_dns" searchWhenChanged="true">
+      <label>Source reverse DNS</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="source_base_domain" searchWhenChanged="true">
+      <label>Source base domain</label>
+      <default>*</default>
     </input>
     <input type="text" token="source_country" searchWhenChanged="true">
       <label>Source country ISO code</label>
