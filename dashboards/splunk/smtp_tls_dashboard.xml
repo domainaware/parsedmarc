@@ -2,12 +2,17 @@
   <label>SMTP TLS Reporting</label>
   <search id="base_search">
     <query>
-      index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
+index=email sourcetype=smtp:tls organization_name=$organization_name$ policies{}.policy_domain=$policy_domain$ policies{}.policy_type=$policy_type$
 | rename policies{}.policy_domain as policy_domain
 | rename policies{}.policy_type as policy_type
 | rename policies{}.failed_session_count as failed_sessions
 | rename policies{}.successful_session_count as successful_sessions
+| rename policies{}.failure_details{}.receiving_mx_hostname as receiving_mx_hostname
+| rename policies{}.failure_details{}.result_type as failure_type
+| rename policies{}.failure_details{}.sending_mta_ip as sending_mta_ip
+| rename policies{}.failure_details{}.receiving_ip as receiving_mta_ip
 | fillnull value=0 failed_sessions successful_sessions
+| table *
       | table *
     </query>
     <earliest>$time_range.earliest$</earliest>
@@ -73,9 +78,9 @@
       <table>
         <search base="base_search">
           <query>
-| stats sum(failed_sessions) as failed_sessions by organization_name, policy_domain, policy_type, failure_type, sending_mta_ip, receiving_ip, receiving_mx_hostname
-| where failed_sessions&gt;0
-| sort -failed_sessions 0</query>
+where failed_sessions &gt; 0
+| stats sum(failed_sessions) as failed_sessions by organization_name, policy_domain, policy_type, failure_type, sending_mta_ip, receiving_mta_ip, receiving_mx_hostname
+         </query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
