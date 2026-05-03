@@ -93,6 +93,10 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 - Token file writes must create parent directories before opening for write.
 - Store natively numeric values as numbers, not pre-formatted strings. Example: ASN is stored as `int 15169`, not `"AS15169"`; Elasticsearch / OpenSearch mappings for such fields use `Integer()` so consumers can do range queries and numeric sorts. Display layers format with a prefix at render time.
 
+## Local dev secrets
+
+If a config file is listed in `.gitignore`, treat its contents as secret. Do not paste its literal values into any tracked file — READMEs, docs, code comments, commit messages, PR descriptions, sample/test fixtures. Reference the variable name (e.g. `$SOME_PASSWORD`) or show a placeholder (`...`) instead, and tell the reader to pick their own values. This is both a real-leak hedge and a way to keep secret scanners (GitHub secret scanning, push protection, third-party scanners) from firing false positives on the repo. Defer to `.gitignore` as the source of truth on what's secret — the rule applies to any gitignored config file the project ever adds, not just the ones present today (currently `.env` and `parsedmarc*.ini`).
+
 ## Editing tracked data files
 
 Before rewriting a tracked list/data file from freshly-generated content (anything under `parsedmarc/resources/maps/`, CSVs, `.txt` lists), check the existing file first — `git show HEAD:<path> | wc -l`, `git log -1 -- <path>`, `git diff --stat`. Files like `known_unknown_base_reverse_dns.txt` and `base_reverse_dns_map.csv` accumulate manually-curated entries across many sessions, and a "fresh" regeneration that drops the row count is almost certainly destroying prior work. If the new content is meant to *add* rather than *replace*, use a merge/append pattern. Treat any unexpected row-count drop in the pending diff as a red flag.
