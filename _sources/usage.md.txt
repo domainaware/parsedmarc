@@ -690,18 +690,19 @@ When configured correctly, if ParseDMARC finds that a report is related to a dom
 Use systemd to run `parsedmarc` as a service and process reports as
 they arrive.
 
-Create a dedicated system user and group for the service to run as
+Create a dedicated system user and group, with `/opt/parsedmarc` as
+its home directory so the directory is created with the correct
+ownership in the same step
 
 ```bash
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin parsedmarc
+sudo useradd --system --create-home --home-dir /opt/parsedmarc \
+    --shell /usr/sbin/nologin --skel /dev/null parsedmarc
 ```
 
-Create `/opt/parsedmarc` owned by the new user, then create a
-virtualenv and install `parsedmarc` into it as that user so any files
-created later are also owned by `parsedmarc`
+Create a virtualenv and install `parsedmarc` into it as that user so
+any files created later are also owned by `parsedmarc`
 
 ```bash
-sudo install -d -o parsedmarc -g parsedmarc /opt/parsedmarc
 sudo -u parsedmarc python3 -m venv /opt/parsedmarc/venv
 sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade pip
 sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade parsedmarc
