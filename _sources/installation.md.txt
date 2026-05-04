@@ -41,102 +41,17 @@ least:
 - Exchange Server 2013 Cumulative Update 21 ([KB4099855])
 - Exchange Server 2016 Cumulative Update 11 ([KB4134118])
 
-### geoipupdate setup
+### IP-to-country database
 
-:::{note}
-Starting in `parsedmarc` 9.8.0, a static copy of the
-[IPinfo Lite] database is distributed with `parsedmarc`, under the
-terms of the [Creative Commons Attribution-ShareAlike 4.0 License],
-as a fallback if the [MaxMind GeoLite2 Country database] is not
-installed. Prior versions bundled the DB-IP Country Lite database
-instead; both share the same MMDB format, so users who have installed
-either (or a MaxMind GeoLite2) database locally will continue to work
-without changes.
+`parsedmarc` ships with a copy of the [IPinfo Lite] database (under
+the terms of the [Creative Commons Attribution-ShareAlike 4.0
+License]), which is automatically refreshed from GitHub at startup
+(and on `SIGHUP` in watch mode) unless the `offline` flag is set. No
+IP database setup is required for the default configuration.
 
-The bundled database is automatically updated at startup by downloading
-the latest copy from GitHub, unless the `offline` flag is set. The
-database is cached locally and refreshed on each run (or on `SIGHUP`
-in watch mode). If the download fails, a previously cached copy or the
-bundled database is used as a fallback.
-
-The download URL can be overridden with the `ip_db_url` setting, and
-the location of a local database file can be overridden with the
-`ip_db_path` setting.
-:::
-
-On Debian 10 (Buster) or later, run:
-
-```bash
-sudo apt-get install -y geoipupdate
-```
-
-:::{note}
-[Component "contrib"] is required in your apt sources.
-:::
-
-On Ubuntu systems run:
-
-```bash
-sudo add-apt-repository ppa:maxmind/ppa
-sudo apt update
-sudo apt install -y geoipupdate
-```
-
-On CentOS or RHEL systems, run:
-
-```bash
-sudo dnf install -y geoipupdate
-```
-
-The latest builds for Linux, macOS, and Windows can be downloaded
-from the [geoipupdate releases page on GitHub].
-
-On December 30th, 2019, MaxMind started requiring free accounts to
-access the free Geolite2 databases, in order 
-[to comply with various privacy regulations].
-
-Start by [registering for a free GeoLite2 account], and signing in.
-
-Then, navigate to the [License Keys] page under your account,
-and create a new license key for the version of
-`geoipupdate` that was installed.
-
-:::{warning}
-The configuration file format is different for older (i.e. \<=3.1.1) and newer (i.e. >=3.1.1) versions
-of `geoipupdate`. Be sure to select the correct version for your system.
-:::
-
-:::{note}
-To check the version of `geoipupdate` that is installed, run:
-
-```bash
-geoipupdate -V
-```
-
-:::
-
-You can use `parsedmarc` as the description for the key.
-
-Once you have generated a key, download the config pre-filled
-configuration file. This file should be saved at `/etc/GeoIP.conf`
-on Linux or macOS systems, or at
-`%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf` on
-Windows systems.
-
-Then run
-
-```bash
-sudo geoipupdate
-```
-
-To download the databases for the first time.
-
-The GeoLite2 Country, City, and ASN databases are updated weekly,
-every Tuesday. `geoipupdate` can be run weekly by adding a cron
-job or scheduled task.
-
-More information about `geoipupdate` can be found at the
-[MaxMind geoipupdate page].
+If you would prefer to use MaxMind's GeoLite2 Country database
+instead, see [Using MaxMind GeoLite2](#using-maxmind-geolite2-optional)
+below.
 
 ## Installing parsedmarc
 
@@ -146,7 +61,7 @@ On Debian or Ubuntu systems, run:
 sudo apt-get install -y python3-pip python3-venv python3-dev libxml2-dev libxslt-dev
 ```
 
-On CentOS or RHEL systems, run:
+On CentOS, RHEL, oR Rocky Linux systems, run:
 
 ```bash
 sudo dnf install -y python3 python3-pip python3-devel libxml2-devel libxslt-devel
@@ -191,10 +106,67 @@ On Debian or Ubuntu systems, run:
 sudo apt-get install libemail-outlook-message-perl
 ```
 
+On CentOS, RHEL, or Rocky Linux, the `Email::Outlook::Message` Perl
+module is not packaged in the base repositories or EPEL, so install
+it from CPAN:
+
+```bash
+sudo dnf install -y perl perl-CPAN make gcc
+sudo cpan -i Email::Outlook::Message
+```
+
+This installs the `msgconvert` script to `/usr/local/bin/msgconvert`.
+
+## Using MaxMind GeoLite2 (optional)
+
+`parsedmarc` will pick up the [MaxMind GeoLite2 Country database] if
+it is installed at one of the standard system paths (e.g.
+`/usr/share/GeoIP/GeoLite2-Country.mmdb`,
+`/var/lib/GeoIP/GeoLite2-Country.mmdb`, or the equivalent location on
+Windows). **Use this only if you specifically prefer MaxMind data over
+the bundled IPinfo Lite database — most users do not need it.**
+
+Install [geoipupdate] for your platform:
+
+```bash
+# Debian 10+ (requires the contrib component in apt sources)
+sudo apt-get install -y geoipupdate
+
+# Ubuntu
+sudo add-apt-repository ppa:maxmind/ppa
+sudo apt update
+sudo apt install -y geoipupdate
+
+# CentOS, RHEL, or Rocky Linux
+sudo dnf install -y geoipupdate
+```
+
+Builds for Linux, macOS, and Windows are also available on the
+[geoipupdate releases page on GitHub].
+
+Since December 2019, MaxMind has required a free account to download
+the GeoLite2 databases ([to comply with various privacy regulations]).
+[Register for a free GeoLite2 account][registering for a free
+geolite2 account], sign in, then create a new key on the [License
+Keys] page (you can use `parsedmarc` as the description). Download the
+pre-filled config file and save it to `/etc/GeoIP.conf` on Linux/macOS
+or `%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf` on
+Windows.
+
+Then run
+
+```bash
+sudo geoipupdate
+```
+
+to download the databases for the first time. The GeoLite2 databases
+are updated weekly (every Tuesday); add a cron job or scheduled task
+to re-run `geoipupdate` weekly. More detail at the [MaxMind
+geoipupdate page].
+
 [KB4295699]: https://support.microsoft.com/KB/4295699
 [KB4099855]: https://support.microsoft.com/KB/4099855
 [KB4134118]: https://support.microsoft.com/kb/4134118
-[Component "contrib"]: https://wiki.debian.org/SourcesList#Component
 [geoipupdate]: https://github.com/maxmind/geoipupdate
 [geoipupdate releases page on github]: https://github.com/maxmind/geoipupdate/releases
 [ipinfo lite]: https://ipinfo.io/lite

@@ -49,11 +49,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#testing-multiple-report-analyzers">Testing multiple report analyzers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#using-a-web-proxy">Using a web proxy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#using-microsoft-exchange">Using Microsoft Exchange</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#geoipupdate-setup">geoipupdate setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ip-to-country-database">IP-to-country database</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#installing-parsedmarc">Installing parsedmarc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#optional-dependencies">Optional dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-maxmind-geolite2-optional">Using MaxMind GeoLite2 (optional)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Using parsedmarc</a></li>
@@ -131,82 +132,16 @@ least:</p>
 <li><p>Exchange Server 2016 Cumulative Update 11 (<a class="reference external" href="https://support.microsoft.com/kb/4134118">KB4134118</a>)</p></li>
 </ul>
 </section>
-<section id="geoipupdate-setup">
-<h3>geoipupdate setup<a class="headerlink" href="#geoipupdate-setup" title="Link to this heading"></a></h3>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Starting in <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> 9.8.0, a static copy of the
-<a class="reference external" href="https://ipinfo.io/lite">IPinfo Lite</a> database is distributed with <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, under the
-terms of the <a class="reference external" href="https://creativecommons.org/licenses/by-sa/4.0/deed.en">Creative Commons Attribution-ShareAlike 4.0 License</a>,
-as a fallback if the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> is not
-installed. Prior versions bundled the DB-IP Country Lite database
-instead; both share the same MMDB format, so users who have installed
-either (or a MaxMind GeoLite2) database locally will continue to work
-without changes.</p>
-<p>The bundled database is automatically updated at startup by downloading
-the latest copy from GitHub, unless the <code class="docutils literal notranslate"><span class="pre">offline</span></code> flag is set. The
-database is cached locally and refreshed on each run (or on <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code>
-in watch mode). If the download fails, a previously cached copy or the
-bundled database is used as a fallback.</p>
-<p>The download URL can be overridden with the <code class="docutils literal notranslate"><span class="pre">ip_db_url</span></code> setting, and
-the location of a local database file can be overridden with the
-<code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> setting.</p>
-</div>
-<p>On Debian 10 (Buster) or later, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><a class="reference external" href="https://wiki.debian.org/SourcesList#Component">Component “contrib”</a> is required in your apt sources.</p>
-</div>
-<p>On Ubuntu systems run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>ppa:maxmind/ppa
-sudo<span class="w"> </span>apt<span class="w"> </span>update
-sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
-</pre></div>
-</div>
-<p>On CentOS or RHEL systems, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
-</pre></div>
-</div>
-<p>The latest builds for Linux, macOS, and Windows can be downloaded
-from the <a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
-<p>On December 30th, 2019, MaxMind started requiring free accounts to
-access the free Geolite2 databases, in order
-<a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to comply with various privacy regulations</a>.</p>
-<p>Start by <a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">registering for a free GeoLite2 account</a>, and signing in.</p>
-<p>Then, navigate to the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License Keys</a> page under your account,
-and create a new license key for the version of
-<code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that was installed.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>The configuration file format is different for older (i.e. &lt;=3.1.1) and newer (i.e. &gt;=3.1.1) versions
-of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code>. Be sure to select the correct version for your system.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>To check the version of <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> that is installed, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>geoipupdate<span class="w"> </span>-V
-</pre></div>
-</div>
-</div>
-<p>You can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description for the key.</p>
-<p>Once you have generated a key, download the config pre-filled
-configuration file. This file should be saved at <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code>
-on Linux or macOS systems, or at
-<code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on
-Windows systems.</p>
-<p>Then run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>geoipupdate
-</pre></div>
-</div>
-<p>To download the databases for the first time.</p>
-<p>The GeoLite2 Country, City, and ASN databases are updated weekly,
-every Tuesday. <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be run weekly by adding a cron
-job or scheduled task.</p>
-<p>More information about <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> can be found at the
-<a class="reference external" href="https://dev.maxmind.com/geoip/updating-databases/">MaxMind geoipupdate page</a>.</p>
+<section id="ip-to-country-database">
+<h3>IP-to-country database<a class="headerlink" href="#ip-to-country-database" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> ships with a copy of the <a class="reference external" href="https://ipinfo.io/lite">IPinfo Lite</a> database (under
+the terms of the <a class="reference external" href="https://creativecommons.org/licenses/by-sa/4.0/deed.en">Creative Commons Attribution-ShareAlike 4.0
+License</a>), which is automatically refreshed from GitHub at startup
+(and on <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code> in watch mode) unless the <code class="docutils literal notranslate"><span class="pre">offline</span></code> flag is set. No
+IP database setup is required for the default configuration.</p>
+<p>If you would prefer to use MaxMind’s GeoLite2 Country database
+instead, see <a class="reference internal" href="#using-maxmind-geolite2-optional">Using MaxMind GeoLite2</a>
+below.</p>
 </section>
 </section>
 <section id="installing-parsedmarc">
@@ -215,7 +150,7 @@ job or scheduled task.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python3-pip<span class="w"> </span>python3-venv<span class="w"> </span>python3-dev<span class="w"> </span>libxml2-dev<span class="w"> </span>libxslt-dev
 </pre></div>
 </div>
-<p>On CentOS or RHEL systems, run:</p>
+<p>On CentOS, RHEL, oR Rocky Linux systems, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>python3<span class="w"> </span>python3-pip<span class="w"> </span>python3-devel<span class="w"> </span>libxml2-devel<span class="w"> </span>libxslt-devel
 </pre></div>
 </div>
@@ -249,6 +184,53 @@ Outlook (i.e. OLE .msg files), install <code class="docutils literal notranslate
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libemail-outlook-message-perl
 </pre></div>
 </div>
+<p>On CentOS, RHEL, or Rocky Linux, the <code class="docutils literal notranslate"><span class="pre">Email::Outlook::Message</span></code> Perl
+module is not packaged in the base repositories or EPEL, so install
+it from CPAN:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>perl<span class="w"> </span>perl-CPAN<span class="w"> </span>make<span class="w"> </span>gcc
+sudo<span class="w"> </span>cpan<span class="w"> </span>-i<span class="w"> </span>Email::Outlook::Message
+</pre></div>
+</div>
+<p>This installs the <code class="docutils literal notranslate"><span class="pre">msgconvert</span></code> script to <code class="docutils literal notranslate"><span class="pre">/usr/local/bin/msgconvert</span></code>.</p>
+</section>
+<section id="using-maxmind-geolite2-optional">
+<h2>Using MaxMind GeoLite2 (optional)<a class="headerlink" href="#using-maxmind-geolite2-optional" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> will pick up the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> if
+it is installed at one of the standard system paths (e.g.
+<code class="docutils literal notranslate"><span class="pre">/usr/share/GeoIP/GeoLite2-Country.mmdb</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/var/lib/GeoIP/GeoLite2-Country.mmdb</span></code>, or the equivalent location on
+Windows). <strong>Use this only if you specifically prefer MaxMind data over
+the bundled IPinfo Lite database — most users do not need it.</strong></p>
+<p>Install <a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> for your platform:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Debian 10+ (requires the contrib component in apt sources)</span>
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
+
+<span class="c1"># Ubuntu</span>
+sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>ppa:maxmind/ppa
+sudo<span class="w"> </span>apt<span class="w"> </span>update
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
+
+<span class="c1"># CentOS, RHEL, or Rocky Linux</span>
+sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate
+</pre></div>
+</div>
+<p>Builds for Linux, macOS, and Windows are also available on the
+<a class="reference external" href="https://github.com/maxmind/geoipupdate/releases">geoipupdate releases page on GitHub</a>.</p>
+<p>Since December 2019, MaxMind has required a free account to download
+the GeoLite2 databases (<a class="reference external" href="https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases/">to comply with various privacy regulations</a>).
+<a class="reference external" href="https://www.maxmind.com/en/geolite2/signup">Register for a free GeoLite2 account</a>, sign in, then create a new key on the <a class="reference external" href="https://www.maxmind.com/en/accounts/current/license-key">License
+Keys</a> page (you can use <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as the description). Download the
+pre-filled config file and save it to <code class="docutils literal notranslate"><span class="pre">/etc/GeoIP.conf</span></code> on Linux/macOS
+or <code class="docutils literal notranslate"><span class="pre">%SystemDrive%\ProgramData\MaxMind\GeoIPUpdate\GeoIP.conf</span></code> on
+Windows.</p>
+<p>Then run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>geoipupdate
+</pre></div>
+</div>
+<p>to download the databases for the first time. The GeoLite2 databases
+are updated weekly (every Tuesday); add a cron job or scheduled task
+to re-run <code class="docutils literal notranslate"><span class="pre">geoipupdate</span></code> weekly. More detail at the <a class="reference external" href="https://dev.maxmind.com/geoip/updating-databases/">MaxMind
+geoipupdate page</a>.</p>
 </section>
 </section>
 
