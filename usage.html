@@ -852,6 +852,21 @@ high-volume mailbox processing.</p>
 <h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Link to this heading"></a></h2>
 <p>Use systemd to run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> as a service and process reports as
 they arrive.</p>
+<p>Create a dedicated system user and group for the service to run as</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>useradd<span class="w"> </span>--system<span class="w"> </span>--no-create-home<span class="w"> </span>--shell<span class="w"> </span>/usr/sbin/nologin<span class="w"> </span>parsedmarc
+</pre></div>
+</div>
+<p>Create <code class="docutils literal notranslate"><span class="pre">/opt/parsedmarc</span></code> owned by the new user, then create a
+virtualenv and install <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> into it as that user so any files
+created later are also owned by <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>install<span class="w"> </span>-d<span class="w"> </span>-o<span class="w"> </span>parsedmarc<span class="w"> </span>-g<span class="w"> </span>parsedmarc<span class="w"> </span>/opt/parsedmarc
+sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>/opt/parsedmarc/venv
+sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>/opt/parsedmarc/venv/bin/pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+sudo<span class="w"> </span>-u<span class="w"> </span>parsedmarc<span class="w"> </span>/opt/parsedmarc/venv/bin/pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>parsedmarc
+</pre></div>
+</div>
+<p>To upgrade <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> later, re-run the last <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--upgrade</span></code>
+command above and then restart the service.</p>
 <p>Protect the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> configuration file from prying eyes</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chown<span class="w"> </span>root:parsedmarc<span class="w"> </span>/etc/parsedmarc.ini
 sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</span><span class="o">=</span>rw,g<span class="o">=</span>r,o<span class="o">=</span><span class="w"> </span>/etc/parsedmarc.ini
