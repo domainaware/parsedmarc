@@ -143,49 +143,42 @@ More information about `geoipupdate` can be found at the
 On Debian or Ubuntu systems, run:
 
 ```bash
-sudo apt-get install -y python3-pip python3-virtualenv python3-dev libxml2-dev libxslt-dev
+sudo apt-get install -y python3-pip python3-venv python3-dev libxml2-dev libxslt-dev
 ```
 
 On CentOS or RHEL systems, run:
 
 ```bash
-sudo dnf install -y python39 python3-virtualenv python3-setuptools python3-devel libxml2-devel libxslt-devel
+sudo dnf install -y python3 python3-pip python3-devel libxml2-devel libxslt-devel
 ```
 
 Python 3 installers for Windows and macOS can be found at
 <https://www.python.org/downloads/>.
 
-Create a system user
+`parsedmarc` requires Python 3.10 or newer. If your distribution's
+default `python3` is older, install a newer interpreter (e.g.
+`python3.12`) and substitute it for `python3` in the commands below.
+
+Create a dedicated system user, with `/opt/parsedmarc` as its home
+directory so the directory is created with the correct ownership in
+the same step
 
 ```bash
-sudo mkdir /opt
-sudo useradd parsedmarc -r -s /bin/false -m -b /opt
+sudo useradd --system --create-home --home-dir /opt/parsedmarc \
+    --shell /usr/sbin/nologin --skel /dev/null parsedmarc
 ```
 
-Install parsedmarc in a virtualenv
+Create a virtualenv and install `parsedmarc` into it as that user, so
+any files created later are also owned by `parsedmarc`
 
 ```bash
-sudo -u parsedmarc virtualenv /opt/parsedmarc/venv
+sudo -u parsedmarc python3 -m venv /opt/parsedmarc/venv
+sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade pip
+sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade parsedmarc
 ```
 
-CentOS/RHEL 8 systems use Python 3.6 by default, so on those systems
-explicitly tell `virtualenv` to use `python3.10` instead
-
-```bash
-sudo -u parsedmarc virtualenv -p python3.10  /opt/parsedmarc/venv
-```
-
-Activate the virtualenv
-
-```bash
-source /opt/parsedmarc/venv/bin/activate
-```
-
-To install or upgrade `parsedmarc` inside the virtualenv, run:
-
-```bash
-sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install -U parsedmarc
-```
+To upgrade `parsedmarc` later, re-run the last command above and then
+restart the service.
 
 ## Optional dependencies
 

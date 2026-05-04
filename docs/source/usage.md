@@ -690,6 +690,10 @@ When configured correctly, if ParseDMARC finds that a report is related to a dom
 Use systemd to run `parsedmarc` as a service and process reports as
 they arrive.
 
+This assumes `parsedmarc` has been installed into
+`/opt/parsedmarc/venv` under a `parsedmarc` system user, as described
+in [Installing parsedmarc](installation.md#installing-parsedmarc).
+
 Protect the `parsedmarc` configuration file from prying eyes
 
 ```bash
