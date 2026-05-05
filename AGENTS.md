@@ -222,7 +222,7 @@ When `unknown_base_reverse_dns.csv` has new entries, follow this order rather th
 
 ### Related utility scripts (all in `parsedmarc/resources/maps/`)
 
-- `find_unknown_base_reverse_dns.py` — regenerates `unknown_base_reverse_dns.csv` from `base_reverse_dns.csv` by subtracting what is already mapped or known-unknown. Enforces the no-full-IP privacy rule at ingest. Run after merging a batch.
+- `find_unknown_base_reverse_dns.py` — regenerates `unknown_base_reverse_dns.csv` from `base_reverse_dns.csv` by subtracting what is already mapped or known-unknown. Enforces the no-full-IP privacy rule at ingest. Translates non-domain-shaped `source_name` rows (raw MMDB `as_name` strings surfaced by the ASN-fallback path in `utils.py:get_ip_address_info` when the IP had no PTR and the `as_domain` was uncategorized) to their corresponding `as_domain` via the bundled MMDB, so the row enters the pipeline as a researchable domain (and drops out automatically if that `as_domain` is already mapped). Run after merging a batch.
 - `detect_psl_overrides.py` — scans the lists for clustered IP-containing patterns, auto-adds brand suffixes to `psl_overrides.txt`, folds affected entries to their base, and removes any remaining full-IP entries. Run before the collector on any new batch.
 - `collect_domain_info.py` — the bulk enrichment collector described above. Respects `psl_overrides.txt` and skips full-IP entries.
 - `find_bad_utf8.py` — locates invalid UTF-8 bytes (used after past encoding corruption).
