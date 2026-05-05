@@ -1,4 +1,3 @@
-1-grid.com
 1001darknights.com
 103-sbcplindia.com
 119-pbb.net.pk
@@ -71,6 +70,7 @@ aceville.net
 achnet.am
 acinternet.net.br
 acrsolutions.com
+acs-hartmann.de
 actcapitaledge.com
 activaicon.com
 active-ns.com
@@ -84,7 +84,6 @@ adlucrumnewsletter.com
 admin.corpivensa.gob.ve
 admincomp.com
 adriadns.com
-adsl.cat
 adslplus.ch
 adsnet-telecom.net.br
 advance.com.ar
@@ -157,11 +156,12 @@ ambyrenodes.net
 americanannex.com
 americaneagle.com
 americanstorageca.com
-americatelnet.com.pe
 amfm.live
 amik.net.ru
+amis.hr
 amointernet.net.br
 amplusserver.info
+ampr.be
 amtcyemens.com
 anavcloudsoftwaresolutions.com
 ancel.net.uy
@@ -181,7 +181,6 @@ anwrgrp.lat
 anythingemail.com
 anzamanagement.com
 aogss.ru
-aoiot.ru
 aosau.net
 aparadiserental.com
 apexihl.com
@@ -225,9 +224,9 @@ asahi-hp.jp
 asbaumhosting.com
 ascentlenses.com
 asd.tj.cn
+aseva.com
 ashrapidslodge.com
 asiaituhost.com
-asianaidt.com
 asiawhere.com
 asicontrols.com
 asj.ne.jp
@@ -369,7 +368,6 @@ botngot.com
 bouten.shop
 boyersbuilding.com
 bpaserver.net
-br.digital
 brackenly.live
 brainity.com
 braintel.net.pk
@@ -425,6 +423,7 @@ bzconcept.com
 c53dw7m24rj.com
 c5ace.com
 ca-expressive.site
+cableatlantico.com
 cablecolor.com.sv
 caccaweb.com
 caem-it.co
@@ -439,7 +438,6 @@ camellenses.com
 campmicha.com
 canaatelecom.net.br
 canal13.cl
-canon-its.co.jp
 capacivolley.com
 capitaldeni.com
 capitalfibra.com.br
@@ -480,9 +478,9 @@ ccstv.com.br
 cda.gov.bd
 cdcservices.com
 cdn1000.com
-cdt.cz
 cegalvez.com.ar
 ceiausa.com
+ceniai.inf.cu
 centralmalaysia.com
 centralnic.net
 centrum.dk
@@ -496,6 +494,7 @@ ch-dns.net
 ch-tournon.fr
 chacoonline.net
 chamberscc.com
+chaney.net
 chantiernavalducapfagnet.com
 chauffeurplan.co.uk
 chcnev.com
@@ -585,6 +584,7 @@ collegespherecollege.com
 collibra.com
 colliersar.com
 colman.net.nz
+colocationguard.com
 colombiaceropapel.org
 colorcodedlabels.com
 coloriuris.net
@@ -616,15 +616,18 @@ contactsacademy.com
 contactsglamour.info
 contactssafari.com
 contenucredit.com
+conterra-inc.com
 conxxus.net
 cookingartsnetwork.com
 coolblaze.com
 coollink.us
+coolnet.ps
 coop-oliva.com.ar
 coop5.com.ar
 coopservluque.com.ar
 coowo.com
 copixa.com
+coralnet.or.jp
 corklink.com
 corpemail.net
 corpivensa.gob.ve
@@ -656,10 +659,8 @@ crownaku.com
 crt.fr
 crystallations.com
 csii.com.hk
-csl.de
 cspirefiber.net
 ct.co.cr
-ctc-g.co.jp
 ctinets.com
 ctla.co.kr
 ctstelecom.net
@@ -689,6 +690,7 @@ dallerton.cloud
 danceusa-services.com
 danisstabilizer.com
 dansdungeon.com
+dansknet.dk
 danspharmacy.com
 das-vierte-portal.de
 dashersdugout.com
@@ -761,6 +763,7 @@ dipelnetfoz.com.br
 directcom.com
 directlan.net.br
 directorysecure.com
+directv.com.ar
 directvnet.cl
 directvnet.com.ar
 direkt-domains.de
@@ -818,13 +821,11 @@ dr.com.tr
 draffin-tucker.com
 draimsecurevavlt.com
 draycottia.digital
-drc.gov.cn
 dream-mark1.co.kr
 dream.jp
 dreampox.fun
 dreamtechmedia.com
 drhinternet.net
-drpeng.com.cn
 ds.network
 dsi.ru
 dsl.net
@@ -843,7 +844,6 @@ dxmusicstudio.com
 dynamic-wiretel.in
 dynamicanalojix.net.bd
 dyntcorp.com
-e-catv.ne.jp
 e-gia.com
 e-shops.jp
 e-tiger.net
@@ -872,6 +872,7 @@ educaconigualdad.com
 edzone.net
 efibre.net.za
 efzapps.com
+eggcrane.net
 egosimail.com
 eilopu.iki.fi
 einbecker-buergerspital.de
@@ -905,6 +906,7 @@ enetnube.com
 enetworksgy.com
 enfasysco.com
 enhancebeautytanning.com
+enivest.no
 enjoygreekislands.com
 enlacesrss.com
 enmail.co
@@ -913,7 +915,6 @@ entelpcs.cl
 entendercopilot.com
 enticingofdisadvantage.com
 entretothom.net
-enzu.com
 epaycontrol.com
 epchd.org
 epectelco.com.ar
@@ -988,7 +989,6 @@ fastcloudpr.net
 faster.com.br
 fastestgrowthreview.com
 fastnet.net.br
-fastnetdata.com
 fastsecurehost.com
 fastweb360.it
 fastwebnet.it
@@ -1007,6 +1007,7 @@ fgvtelecom.com.br
 fiberalley.com
 fibercorp.com.ar
 fiberlinkpe.net.br
+fiberstate.com
 fibramaxbandalarga.com.br
 fibranetbrasil.net.br
 fibravip.net
@@ -1051,7 +1052,6 @@ formedic.com
 formicidaehunt.net
 fornex.cloud
 forteline.net.br
-fortressitx.com
 fosterheap.com
 fotographix.com
 fotomaury.com
@@ -1091,7 +1091,6 @@ galeforcewebpros.com
 galop.online
 gamersprotectionvpn.online
 gangbild.net
-gaoland.net
 gaplan.shop
 garbinc.com
 gardengrovephotographer.com
@@ -1101,8 +1100,8 @@ gavdavison.com
 gaysino.net
 gbmooneybooks.com
 gcplearning.com
-gcs.co.kr
 gdigitalindia.in
+gds.vn
 geekcommerce.net
 geisenhainer.net
 gendns.com
@@ -1193,7 +1192,6 @@ gs-bates.com
 gsbb.com
 gstackhosting.com
 gstsoft.in
-gtdmanquehue.com
 gtt.co.gy
 guardiandigital.com
 guardianswipe.net
@@ -1247,6 +1245,7 @@ hgnbroken.us.com
 hhost.eg
 hi-ag.com
 highspeedbb.bn
+highspeedweb.net
 hightemperatureceramics.com
 highwey-diesel.com
 hilltop.net
@@ -1255,7 +1254,6 @@ hipernet.inf.br
 hirofactory.com
 hitachi.eu
 hjd.asso.fr
-hkglobalnetwork.com
 hlogin.net
 hmplaza.net
 hnnet.com.br
@@ -1270,7 +1268,6 @@ hongchenggco.pro
 hongkongtaxi.co
 hongoudai-jibika.com
 hoosierpc.com
-hopone.net
 hopsinthehanger.com
 hori-kazu.com
 hospital.nagano.nagano.jp
@@ -1333,7 +1330,6 @@ huntndogsestates.com
 hurleyspace.net
 hwccustomers.com
 hwclouds-dns.com
-hya.com.tw
 hybridinternet.co
 hypericine.com
 hypointfarms.com
@@ -1365,7 +1361,6 @@ ientc.mx
 ientc.net.mx
 ife.co.th
 iffc.com.br
-iforte.co.id
 igamma.ru
 igmohji.com
 igppevents.org.uk
@@ -1386,7 +1381,6 @@ imazu-chemical.co.jp
 imjtmn.cn
 immenzaces.com
 imobie.com
-imp.ch
 impey.shop
 improvation.us
 in-addr-arpa
@@ -1436,6 +1430,7 @@ interfarma.kz
 interflixtelecom.com.br
 interiordesignersyonkers.com
 interlink.com.br
+intermanaged.com
 internet-corporativa.com.br
 internet-service.be
 internetvox.net.br
@@ -1470,7 +1465,6 @@ iranita.com
 irapture.com
 ireo-perigord.com
 irrestal.com
-ishantechnologies.com
 isidors.net
 isiline.org
 ismtj.co
@@ -1479,15 +1473,16 @@ isomedia.com
 ispconecta.com.br
 ispguatemala.com.gt
 ispservices.us
-isu.net.sa
 iswhatpercent.com
 isx.net.nz
 itc.net.il
+itcng.net
 ite.bg
 itelcel.com
 itelsa.com.ar
 ithinc.net
 itourismlimited.com
+itproximus.com
 itsidc.com
 itsweb.com.br
 itv-3.com
@@ -1508,7 +1503,6 @@ japbuk.com
 jarmuloviktazone.com
 jasarekber.id
 jatimnet.com.br
-jaxa.jp
 jazhostingco.com
 jcis.ca
 jcps.com.tw
@@ -1548,7 +1542,6 @@ k2telecom.net.br
 kabsi.at
 kadastr.ru
 kadimconnect.com.br
-kagoya.com
 kahlaa.com
 kanarick.com
 karensilverbloom.com
@@ -1559,7 +1552,6 @@ kazusaohara-church.com
 kbrnet.ru
 kbronet.com.tw
 kcmc.jp
-kctvjeju.com
 kdnursing.org
 kdsaccessories.com
 kemri-rctp.org
@@ -1603,7 +1595,6 @@ kula.co.mz
 kulttsolutions.co.in
 kuritzen.net
 kvartal-net.ru
-kvhasia.com
 kyivstar.net
 kyushu-u.ac.jp
 kzmn.ir
@@ -1691,7 +1682,6 @@ longwoodmgmt.com
 looppose.com
 loopus.co.jp
 lostmall.net
-lotteinnovate.com
 lotusbirth.info
 lowafraid.net
 lowcostpetvaccinations.net
@@ -1705,6 +1695,7 @@ lstnetworks.com
 lucky7powersports.com
 luckysrv.de
 lumiserver.com
+lumosnet.com
 lunami.life
 lunanode.net
 lunberjack.com.br
@@ -1715,7 +1706,6 @@ luxebidet.com
 luxemburtij.net
 lwegatech.info
 lwl-puehringer.at
-lycorp.co.jp
 lynx.net.lb
 lyse.net
 m-sender.com.ua
@@ -1724,6 +1714,7 @@ m-sia.com
 m12solutions.net
 m2.ist
 m2tel.net.br
+mabnatelecom.com
 mabnet.net.br
 macarrltd.com
 machaikapps.net
@@ -1820,10 +1811,8 @@ memphissewingmachine.com
 meowly.org
 meqlobal.com
 mercian.space
-metanet.co.kr
 metasecure.net
 metro86.ru
-metrotel.net.co
 meuip.tv.br
 mgn.ru
 mgts.by
@@ -1854,11 +1843,9 @@ mjchotoku.com
 mjinn.com
 mkegs.shop
 mmhosp.com
-moack.co.kr
 mobius.fr
 model-ac.ink
 moderntradingnews.com
-moe.go.th
 molderly.world
 moldex.com
 molecullesoft.com
@@ -1943,6 +1930,7 @@ name-servers.gr
 name.tools
 namethatserver.com
 nanshenqfurniture.com
+nationwideinc.com
 nationwidenotaryregistry.com
 natomsvete.ru
 natrohost.com
@@ -1970,24 +1958,25 @@ netbuild.net
 netcarrier.net
 netcell.inf.br
 netcentertelecom.net.br
-netcom-bw.de
 netcom.host
 netcom.psi.br
 netdoor.com
 netfiber.inf.br
 netfibra.com.br
 netflexbr.com
+netglobal.it
 netglowstudios.pl
 neti.ee
 netkl.org
+netkom.de
 netlatin.net.ar
 netlilfy.com
 netlinebahia.net.br
 netminasfibra.net.br
 netorn.ru
-netsat.in
 netscan.hu
 netsky.net.br
+netstartech.sg
 netsystemrn.com.br
 networkiowa.com
 networkship.com
@@ -2012,7 +2001,6 @@ nexuserver.net
 ngoinhamang.com
 ngvcv.cn
 nhpil-ng.com
-nibtv.co.kr
 nic.name
 nicehealthtoday.top
 nicesrv.de
@@ -2032,6 +2020,7 @@ nmeuh.cn
 nobuyuki.ninja
 nocrctelecomnet.com.br
 nodevm.com
+nodosud.com.ar
 nofrillscloud.com
 nohasslejr.com
 noisndametal.com
@@ -2039,6 +2028,8 @@ nojabrsk.ru
 nokissing.shop
 nongyu.live
 nonxtutti.com
+nordstorm.com
+nortech.com.ar
 northbayle.xyz
 northeyphotography.com
 northtelecom.com.br
@@ -2049,12 +2040,10 @@ novuscom.net
 npbnl.net
 nqntv.com.ar
 ns360.net
-nsk-kk.com
 nssonline.com
 nstelecablecr.com
 nt-isp.net
 ntesmail.com
-nthu.edu.tw
 nty.uy
 nucleusemail.com
 nuendel.de
@@ -2086,6 +2075,7 @@ offerslatedeals.com
 office365.us
 ogicom.net
 ogreserve.com
+okbprogress.ru
 okweb3.jp
 olb-access.net
 olbitx.network
@@ -2109,7 +2099,9 @@ onlineaccount.net
 onlineconsumernews.com
 onlinecorp.me
 onlinetelecom.ir
+only.yt
 onumubunumu.com
+opcaonet.com.br
 openaccessjrnl.info
 opentouch.site
 oppt-ac.fit
@@ -2133,7 +2125,6 @@ otmprint.com
 ourhosted.com
 outinmarbella.com
 outlandishnews.com
-outremer-telecom.fr
 outsidences.com
 outsource-philippines.com
 ovaapart.com
@@ -2213,6 +2204,7 @@ planurevents.com
 plateautel.net
 playamedia.io
 plazanote.com
+pld.com
 plugarinternet.net.br
 pmf.hr
 pmnhost.net
@@ -2228,6 +2220,7 @@ polytechnique.org
 pombonet.net.br
 pomeroysports.com
 pontocomnet.net.br
+pop-i.de
 popiup.com
 porar.net
 portal-r4c.com
@@ -2278,6 +2271,7 @@ psnm.ru
 pstconnect.net.br
 pt-panjunan.com
 ptempresas.pt
+ptl.ru
 puls.net
 pvcwindowsprices.live
 qontenciplc.autos
@@ -2295,13 +2289,12 @@ qxyxab44njd.com
 r75.info
 rack1host.com
 rackspeed-cloud.de
-racsa.co.cr
 radcom.hosting
 radianthealthrenaissance.com
 radicaltechreveal.com
 radioactive.name
 radiodays.jp
-railtelindia.com
+radius.ph
 raimax.com.br
 ranchesmontana.com
 rapidanet.com
@@ -2309,6 +2302,7 @@ rapidns.com
 ratikka.iki.fi
 raxa.host
 rcncustomer.com
+rcp.pe
 rdock.ru
 reachesbeast.com.de
 readyidc.com
@@ -2347,17 +2341,20 @@ researchpulseusa.com
 resellerex.com
 reso-tech.ca
 restocarpediem.com
+reston.va.us
 resurrectioncatholic.church
 retemetis.net
 rethos.com.mx
 retirementconcepts.com
 retroflect.shop
+rettigicc.com
 rev0telecablecr.com
 reverearea.com
 reverse-network.de
 revnomix.local
 rezzultat.com
 rgb365.eu
+rialcom.ru
 richworks.com
 riddlecamera.net
 riddletrends.com
@@ -2365,6 +2362,7 @@ rifnet.jp
 rillcrestly.xyz
 rioaccess.com
 rippecloud.com
+rittercommunications.com
 rivencroft.space
 riverwindy.xyz
 rmeniaa.net
@@ -2374,7 +2372,6 @@ robertstevens.co.uk
 roboneri.shop
 robs-journeys.co.uk
 roccopugliese.com
-roedu.net
 ropocapital.fi
 rose.net
 royal-gallery.com
@@ -2382,6 +2379,7 @@ rpgwebserver.com
 rpnet.net.br
 rscb.org.in
 rsconnection.net.br
+rtat.net
 rtpgiga33.site
 rubypluspl.us
 rudyguerra.com
@@ -2420,7 +2418,6 @@ samsales.site
 sandhilldealerservices.com
 sanluisctv.com.ar
 santa-fe.nm.us
-santandergto.com
 sante-lorraine.fr
 saransk.ru
 satirogluet.com
@@ -2434,7 +2431,6 @@ scotnet.net
 scripcorp.com
 scrolldesigning.com
 scs-net.org
-scs.co.kr
 sdcc.my
 sdf.org
 sdssoftltd.co.uk
@@ -2505,6 +2501,7 @@ shot05.accesscam.org
 siditelecom-isp.com.br
 sify.net
 sigmapharm.com
+signalx.cloud
 signofthewhaleonline.com
 sih09.fr
 silverforda.store
@@ -2539,6 +2536,7 @@ sltelecom.net.br
 smallvillages.com
 smart9.net.br
 smartape-vps.com
+smartcity.com
 smartfindslive.com
 smartstockboost.com
 smewell.com
@@ -2548,6 +2546,7 @@ smswetten.com
 smtinfo.net
 smtpi.com
 smunion.biz
+sni.ne.jp
 snorkledwint.org
 snositesaso2.com
 socialflag.net
@@ -2561,7 +2560,6 @@ sollutium.com
 solucija.eu
 solusoftware.com
 solutionspal.com
-soon.com.ar
 sopricom.fr
 soultelecom.net.br
 sounditaly.com
@@ -2587,7 +2585,6 @@ spiritualtechnologies.io
 spkrl.com
 sporthotelalacati.com
 sportsimpressionsonline.com
-sprious.com
 sprout.org
 srhc.com
 srshta.in
@@ -2664,7 +2661,7 @@ swissbluetopaz.com
 switer.shop
 swmhosting.in
 symbolhost.com
-symphony.net.th
+synterra.ru
 sysop4.com
 sysscan.com.hk
 system.eu.com
@@ -2681,7 +2678,6 @@ taosend.com
 taquaranet.com.br
 tascom.com.br
 tataidc.com
-tataindicom.com
 taunus-auto.de
 tbkinternet.net.br
 tcdsb.org
@@ -2719,7 +2715,6 @@ tenet.odessa.ua
 tenkids.net
 tenriyorozu.jp
 tenten.vn
-teraswitch.com
 terawiz.com
 terminavalley.com
 tetrocapital.com
@@ -2730,7 +2725,6 @@ tgchosting.com
 thaicloudsolutions.com
 thaikinghost.com
 thaimonster.com
-the.hosting
 thebeantownphotobooth.com
 thebitcoincode.site
 thebits.biz
@@ -2754,7 +2748,6 @@ threembb.co.uk
 threembb.ie
 throughputclimb.com
 tiagosilvaprovedores.com.br
-tic.ir
 ticdns.com
 ticowebsite.com
 tietoenator.com
@@ -2771,8 +2764,8 @@ tmg.md
 tmndesign.com
 tnetsolucoes.com.br
 tnnet.com.br
+tocochannel.jp
 todaytechupdates.com
-tohknet.co.jp
 tokushukai.or.jp
 tokyorinkai.jp
 toledofibra.net.br
@@ -2788,7 +2781,6 @@ toservers.com
 toshosting.com
 totaal.net
 totalplay.net
-totidc.net
 totisp.net
 totonline.net
 toumail.com
@@ -2834,7 +2826,6 @@ turbonetminas.com.br
 turbonetwifi.net.br
 turbosportis.store
 turbotech.com
-tuve.fi
 tveps.net
 tvetcdacc.go.ke
 tvkompass.de
@@ -2848,7 +2839,6 @@ twp-capital.com
 txw-taishin.com
 tylerfordonline.com
 tymtalk.com
-tzulo.com
 u-ikoi.co.jp
 u-team.by
 uaehostings.com
@@ -2874,6 +2864,7 @@ unaxus.net
 undersilence.net
 uneedacollie.com
 unetelecom.psi.br
+uni-mb.si
 uni.net.th
 unicornbulletin.com
 unified.services
@@ -2881,6 +2872,7 @@ unifiedregistration-2026.com
 unipharm.com
 uniredes.net.br
 unite.services
+unitedrdc.com
 untexklante.org
 unwiredbb.net
 urawasl.com
@@ -2940,6 +2932,7 @@ virginmedia.net
 virtualalim.org
 virtualine.org
 virtualsolution.net
+vision.net
 visit.docotor
 viszontelado-tarhely.hu
 vivatranquilo.com.br
@@ -2960,7 +2953,6 @@ vovantan.com
 vpeipics.com
 vrns.net
 vs-ukraine.com
-vsenet.de
 vsi.ru
 vst-adler.com
 vst.net.br
@@ -2979,6 +2971,7 @@ wan55.co.jp
 wanekoohost.com
 warriorofzen.life
 wateen.net
+watercorporation.com.au
 wavecable.com
 way-interactive.com
 waylink.pk
@@ -2996,8 +2989,6 @@ web-hosting.tech
 web-life.co.jp
 web-login.eu
 web-profit.com.pl
-web2objects.de
-webair.com
 webalias.net
 webcountry.com.au
 webhostingserver.nl
@@ -3032,7 +3023,6 @@ westongraphics.net
 westparkcom.com
 westsidelenses.info
 wetransfer-eu.com
-weverfastfiber.com
 wginfor.com.br
 whatstools.com
 wheelch.me
@@ -3054,6 +3044,7 @@ wilks.shop
 willardstreetcollision.com
 willcoxmedia.net
 willsit.jp
+winde.jp
 winempresas.pe
 wingerslikane.com
 winstonsalemmuseum.com
@@ -3073,14 +3064,14 @@ wordpresshosting.xyz
 workoutchronic.com
 worktual.net
 worldclassdevelop.com
+worldcom.ch
 worldnetparaiso.com.br
-worria.com
 wowamazing.shop
 wpdns.com
 wpgdedihost7.com
-wroc.pl
 wsiph2.com
 wspfibra.com.br
+wsr.ac.at
 wszz.torun.pl
 wtcks.net
 wtutelecom.com.br
@@ -3127,7 +3118,6 @@ zainagroup.ltd
 zanob.nl
 zazzinternet.com
 zcn-c7c7app.com
-zcolo.com
 zdravkniga.net
 zelenaya.net
 zencha-club.com
@@ -3137,7 +3127,6 @@ zetadns.net
 zetanet.com.br
 zgtwhite.org
 zh-with-leisu.com
-zillion.network
 zimbramail.cl
 zmml.uk
 znlc.jp
