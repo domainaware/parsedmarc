@@ -290,7 +290,15 @@ assert get_base_domain("host01.netlify.app") == "netlify.app"
 
 ### Starting the next batch
 
-Each batch gets its own branch off `origin/master`. Before starting a new batch:
+Before starting a new batch, **check for open PRs that already touch the maps**. Someone else (or another session) may already have a pending batch in flight; running a fresh batch on top duplicates work and splits attention across two competing PRs.
+
+```bash
+gh pr list --state open --search 'base_reverse_dns OR "reverse DNS map"'
+```
+
+If anything comes back, read its diff before starting — wait for it to merge, or coordinate with whoever opened it. Only proceed once the queue is clear.
+
+Each batch then gets its own branch off `origin/master`:
 
 ```bash
 git fetch origin
