@@ -288,6 +288,26 @@ load_psl_overrides(offline=True)
 assert get_base_domain("host01.netlify.app") == "netlify.app"
 ```
 
+### Starting the next batch
+
+Each batch gets its own branch off `origin/master`. Before starting a new batch:
+
+```bash
+git fetch origin
+git checkout -b <new-batch-name> origin/master
+```
+
+Do not reuse a previous batch's branch — even if it looks like the previous batch is "still pending". If the previous batch's commit has already merged via a PR pushed from elsewhere (a co-worker's session, an unsynced laptop, an earlier Claude session), your local copy of that commit is still sitting on the old branch, and stacking new commits on top makes the new PR conflict with master: the merged commit and your local copy both insert the same map rows at the same sorted positions, so the same lines collide.
+
+If you discover this after the fact (PR shows conflicts and `git diff <local-stale-commit> <upstream-merged-commit> --stat` is empty), recover with:
+
+```bash
+git rebase --onto origin/master <stale-commit> <branch>
+git push --force-with-lease
+```
+
+then trim the PR title and description to reflect just the surviving batch.
+
 ### After a batch merge
 
 - Re-sort `base_reverse_dns_map.csv` alphabetically (case-insensitive) by the first column and write it out with CRLF line endings.
