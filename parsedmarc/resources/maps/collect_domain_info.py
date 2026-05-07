@@ -158,17 +158,30 @@ _FULL_IP_RE = re.compile(
 # Rebrand-signal scan. Triggered phrases are followed by a captured brand name
 # (capitalized, non-noise word). The reviewer ultimately judges whether a hit
 # is a real rebrand banner — the regex's job is to not miss the obvious ones.
-# Real cases: "now Navanta", "is now part of Lumen", "formerly known as
-# Symantec Email Security", "we became Newfold Digital".
+# Real cases: "BankOnIT is now Navanta", "is now part of Lumen", "we are now
+# Cencora", "formerly known as Symantec Email Security", "we became Newfold
+# Digital".
+#
+# A bare leading "now <Capital>" was tried and dropped — modern marketing
+# pages saturate the body text with CTA fragments like "Buy Now PROMO",
+# "Order Now Free Shipping", "Apply Now Who We Are", which all match a bare
+# `now <Capital>` and are 95%+ false positives. Requiring a copular verb
+# (`is/are/was/were/am now`) keeps the linguistic shape of an actual
+# announcement and rules out CTA buttons. The same is true in reverse for
+# bare "formerly <Capital>" — kept because "formerly" virtually never
+# appears in a CTA context, but the same noise list catches the residual
+# "Formerly Available" / "Formerly Open" cases.
 REBRAND_RE = re.compile(
-    r"(?:"
-    r"(?:now|formerly(?: known as)?) "
+    r"\b(?:"
+    r"formerly(?: known as)? "
+    r"|"
+    r"(?:is|are|was|were|am) now (?:(?:a )?part of )?"
     r"|"
     r"(?:we became|rebranded(?: as| to)?|merged with|"
     r"acquired by|previously known as|previously operated as|"
-    r"is now (?:a )?part of|new name for|joined the) "
+    r"new name for) "
     r")"
-    r"([A-Za-z][A-Za-z0-9&]+)",
+    r"([A-Za-z][A-Za-z0-9&]+)\b",
     re.IGNORECASE,
 )
 
@@ -182,14 +195,11 @@ REBRAND_RE = re.compile(
 # change / etc. by a space, dash, or underscore, which virtually never
 # occurs outside a rebrand context.
 REBRAND_PATH_RE = re.compile(
-    r"(?:"
-    r"rebrand"
-    r"|brand[ _-](?:launch|announcement|reveal|refresh|change|update)"
-    r"|name[ _-]change"
+    r"\b(?:"
+    r"brand[ _-](?:launch|announcement|reveal)"
     r"|our[ _-]new[ _-](?:name|brand)"
-    r"|new[ _-]name[ _-]for"
     r"|(?:acquisition|merger)[ _-]announcement"
-    r")",
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -199,35 +209,62 @@ REBRAND_PATH_RE = re.compile(
 # narrow so real one-word brand names (Navanta, Lumen, Sykt, etc.) survive.
 _REBRAND_NOISE = frozenset(
     {
-        "Available",
-        "Accepting",
-        "Active",
-        "Booking",
-        "Closed",
-        "Complete",
-        "Enrolling",
-        "Expanding",
-        "Free",
-        "Hiring",
-        "Live",
-        "Loading",
-        "Offering",
-        "Online",
-        "Open",
-        "Operating",
-        "Pending",
-        "Playing",
-        "Powered",
-        "Selling",
-        "Serving",
-        "Shipping",
-        "Showing",
-        "Streaming",
-        "Supporting",
-        "Trending",
-        "Underway",
-        "You",
-        "Your",
+        # Past-participles / present-participles that the "are now <Cap>"
+        # / "is now <Cap>" pattern picks up from ordinary marketing prose.
+        # Compared case-insensitively against the captured brand, so a
+        # single entry covers any casing the page emits ("LIVE", "Live",
+        # "live"). Add lowercase forms here.
+        "available",
+        "accepting",
+        "active",
+        "booking",
+        "closed",
+        "complete",
+        "enrolling",
+        "expanding",
+        "free",
+        "hiring",
+        "installed",
+        "live",
+        "loading",
+        "offering",
+        "online",
+        "open",
+        "operating",
+        "part",  # "is now Part of [our family]" already filtered by structure;
+        # this catches inverted phrasing where "Part" is the captured token.
+        "pending",
+        "playing",
+        "powered",
+        "secure",  # "is now Secure Managed Wi-Fi" / "is now Secure Login"
+        "selling",
+        "serving",
+        "shipping",
+        "showing",
+        "streaming",
+        "supporting",
+        "trending",
+        "underway",
+        # Short prepositions / pronouns that grammatically follow the verb
+        # but are not brand names: "are now In Control", "is now On the air".
+        "down",
+        "in",
+        "off",
+        "on",
+        "out",
+        "up",
+        "you",
+        "your",
+        # Standards / certifications that follow "is now <CERT> certified"
+        # in marketing copy (compliance announcements).
+        "iso",
+        # Social-media platform rebrands that ubiquitously appear in
+        # footers as "X (formerly Twitter)", "Meta (formerly Facebook)",
+        # "Block (formerly Square)". The mention is real but it's almost
+        # never about the page operator's own rebrand.
+        "twitter",
+        "facebook",
+        "square",
     }
 )
 
@@ -349,7 +386,7 @@ def _rebrand_signal(*texts: str) -> str:
             # post-trigger noise like "now hiring" / "formerly available".
             if not brand or not brand[0].isupper():
                 continue
-            if brand in _REBRAND_NOISE:
+            if brand.lower() in _REBRAND_NOISE:
                 continue
             start = max(0, m.start() - 30)
             end = min(len(text), m.end() + 80)
