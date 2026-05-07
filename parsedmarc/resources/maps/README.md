@@ -140,6 +140,8 @@ The output of `collect_domain_info.py`. Tab-separated, one row per researched do
 
 ## detect_rebrands.py
 
+**Cadence: run roughly once a year.** Not part of the standard mapping workflow — operator rebrands and acquisitions accumulate slowly, and a yearly sweep is sufficient to keep `base_reverse_dns_map.csv` from drifting out of date. There is no benefit to running it more often.
+
 Drift sweep that re-fetches every key in `base_reverse_dns_map.csv` with the same machinery as `collect_domain_info.py` and writes a TSV (`rebrand_drift.tsv` by default) of rows where a drift signal fired. Two signals are flagged by default:
 
 - `rebrand_signal` — the collector's body-text and path/alt-text regexes (see above) matched.
