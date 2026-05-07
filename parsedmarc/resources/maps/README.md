@@ -129,9 +129,29 @@ Scans `unknown_base_reverse_dns.csv` for full-IP-containing entries that share a
 
 Bulk enrichment collector. For every domain in `unknown_base_reverse_dns.csv` that is not already in `base_reverse_dns_map.csv`, runs `whois` on the domain, fetches a size-capped `https://` GET, resolves A/AAAA records, and runs `whois` on the first resolved IP. Writes a TSV (`domain_info.tsv` by default) with the registrant org/country/registrar, page `<title>`/`<meta description>`, resolved IPs, and IP-WHOIS org/netname/country — the compact metadata a classifier needs to decide each domain in one pass. Respects `psl_overrides.txt`, skips full-IP entries, and is resume-safe (re-running only fetches domains missing from the output file).
 
+The TSV also carries two derived columns that surface drift signals (and double as classification hints when a homepage explicitly names its operator):
+
+- `rebrand_signal` — first ~120-char excerpt of the page where one of two regexes hit. (a) Body-text phrases: *now X*, *is now part of X*, *formerly known as X*, *we became X*, *rebranded as X*, *acquired by X*, *merged with X*, *joined the X*. Common false-positive trailing words (`Now Available`, `Now Hiring`, etc.) are filtered, and the captured brand must start with an uppercase letter. (b) Path / alt-text phrases: `rebrand`, `brand-launch`, `brand-announcement`, `brand-change`, `name-change`, `our-new-name`, `new-name-for`, `acquisition-announcement`, `merger-announcement`. The path scan runs against the JSON-unescaped page bytes, so it sees URL slugs and image alt attributes embedded in script blobs. Real-world case: bankonitusa.com's "now Navanta" banner is image-only — `<a href="https://navanta.com/brand-launch-..."><img alt="Brand announcement"></a>` — and pure body-text scanning misses it; the path regex matches via the `brand-launch` slug and `Brand announcement` alt attribute.
+- `external_links` — comma-separated list of up to 5 distinct outbound link hosts, after stripping the input domain (and its subdomains) and a small noise list (social, CDN, analytics, app stores). Useful as context when reviewing a flagged row, but a noisy *flag* — most external links are to partners / customers / vendors that have no operator relationship — so `detect_rebrands.py` does not treat this column as a flag trigger by default. Pass `--flag-external-links` for a thorough sweep.
+
 ## domain_info.tsv
 
 The output of `collect_domain_info.py`. Tab-separated, one row per researched domain. Not tracked by Git — it is regenerated on demand and contains transient third-party WHOIS/HTML data.
+
+## detect_rebrands.py
+
+Drift sweep that re-fetches every key in `base_reverse_dns_map.csv` with the same machinery as `collect_domain_info.py` and writes a TSV (`rebrand_drift.tsv` by default) of rows where a drift signal fired. Two signals are flagged by default:
+
+- `rebrand_signal` — the collector's body-text and path/alt-text regexes (see above) matched.
+- `redirect_changed` — the homepage's final URL host is not the input domain or a subdomain of it (typical case-1 acquisition redirect, e.g. vodafone.is → syn.is).
+
+`external_links` is captured into the output for context but is not a default trigger — most outbound links are to partners / customers / vendors and would generate noise. Pass `--flag-external-links` to also flag on this column during a thorough sweep where missing an image-only banner that lacks a rebrand-themed slug or alt text is worse than the noise.
+
+The output is for periodic review, not automated map mutation. Each hit is one corroborating source; promoting a flagged row into the map still requires a second source per the two-corroborating-sources rule in [AGENTS.md](../../../AGENTS.md). Resume-safe: re-running only re-fetches keys not already in the output file. Use `--limit N` to spot-check a slice and `--include-clean` to also write non-flagged rows for inspection of the no-signal majority.
+
+## rebrand_drift.tsv
+
+The output of `detect_rebrands.py`. Tab-separated, one row per flagged map key. Not tracked by Git — regenerated on demand.
 
 ## sortlists.py
 

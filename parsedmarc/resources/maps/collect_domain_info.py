@@ -6,7 +6,15 @@ Reads a list of domains (defaults to the unmapped entries in
 useful for classifying an unknown sender:
 
     domain, whois_org, whois_country, registrar, title, description,
-    final_url, http_status, error
+    rebrand_signal, external_links, final_url, http_status, ips,
+    ip_whois_org, ip_whois_netname, ip_whois_country, error
+
+`rebrand_signal` flags rows whose page text matches a phrase like "now X" or
+"formerly known as X" — useful both for classifying an unknown sender ("we
+became Newfold Digital") and as a drift signal when re-run against existing
+map keys via `detect_rebrands.py`. `external_links` carries the homepage's
+non-self, non-social outbound link hosts; it catches image-only acquisition
+banners that text scanning misses (e.g. bankonitusa.com → navanta.com).
 
 The output is resume-safe: re-running the script only fetches domains that are
 not already in the output file. Designed to produce a small file that an LLM
@@ -30,6 +38,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
+from urllib.parse import urlparse
 
 import requests
 import urllib3
@@ -52,6 +61,8 @@ FIELDS = [
     "registrar",
     "title",
     "description",
+    "rebrand_signal",
+    "external_links",
     "final_url",
     "http_status",
     "ips",
@@ -135,6 +146,7 @@ IP_WHOIS_NETNAME_KEYS = ("netname", "network-name")
 IP_WHOIS_COUNTRY_KEYS = ("country",)
 
 MAX_BODY_BYTES = 256 * 1024  # truncate responses so a hostile page can't blow up RAM
+MAX_BODY_TEXT_CHARS = 100 * 1024  # cap on extracted visible body text
 
 # Privacy filter: drop entries containing a full IPv4 address (four dotted or
 # dashed octets). Full IPs in a reverse-DNS base domain reveal a specific
@@ -142,6 +154,227 @@ MAX_BODY_BYTES = 256 * 1024  # truncate responses so a hostile page can't blow u
 _FULL_IP_RE = re.compile(
     r"(?<![\d])(\d{1,3})[-.](\d{1,3})[-.](\d{1,3})[-.](\d{1,3})(?![\d])"
 )
+
+# Rebrand-signal scan. Triggered phrases are followed by a captured brand name
+# (capitalized, non-noise word). The reviewer ultimately judges whether a hit
+# is a real rebrand banner — the regex's job is to not miss the obvious ones.
+# Real cases: "now Navanta", "is now part of Lumen", "formerly known as
+# Symantec Email Security", "we became Newfold Digital".
+REBRAND_RE = re.compile(
+    r"(?:"
+    r"(?:now|formerly(?: known as)?) "
+    r"|"
+    r"(?:we became|rebranded(?: as| to)?|merged with|"
+    r"acquired by|previously known as|previously operated as|"
+    r"is now (?:a )?part of|new name for|joined the) "
+    r")"
+    r"([A-Za-z][A-Za-z0-9&]+)",
+    re.IGNORECASE,
+)
+
+# Path-style rebrand markers that appear in URL slugs and image alt text.
+# Real-world image-only rebrand banners (the typical "we got acquired"
+# treatment) put the announcement in a slug like
+# `/brand-launch-frequently-asked-questions/` and an alt like
+# "Brand announcement – Learn more", neither of which the body-text
+# REBRAND_RE can see. Phrasing here is deliberately narrow — "brand"
+# alone is far too common; we require it joined to launch / announcement /
+# change / etc. by a space, dash, or underscore, which virtually never
+# occurs outside a rebrand context.
+REBRAND_PATH_RE = re.compile(
+    r"(?:"
+    r"rebrand"
+    r"|brand[ _-](?:launch|announcement|reveal|refresh|change|update)"
+    r"|name[ _-]change"
+    r"|our[ _-]new[ _-](?:name|brand)"
+    r"|new[ _-]name[ _-]for"
+    r"|(?:acquisition|merger)[ _-]announcement"
+    r")",
+    re.IGNORECASE,
+)
+
+# Words that commonly follow "now"/"formerly" outside a rebrand context. The
+# regex would otherwise hit "Now Available", "Formerly Open", etc. Add to
+# this set if review surfaces a recurring false positive — keep the set
+# narrow so real one-word brand names (Navanta, Lumen, Sykt, etc.) survive.
+_REBRAND_NOISE = frozenset(
+    {
+        "Available",
+        "Accepting",
+        "Active",
+        "Booking",
+        "Closed",
+        "Complete",
+        "Enrolling",
+        "Expanding",
+        "Free",
+        "Hiring",
+        "Live",
+        "Loading",
+        "Offering",
+        "Online",
+        "Open",
+        "Operating",
+        "Pending",
+        "Playing",
+        "Powered",
+        "Selling",
+        "Serving",
+        "Shipping",
+        "Showing",
+        "Streaming",
+        "Supporting",
+        "Trending",
+        "Underway",
+        "You",
+        "Your",
+    }
+)
+
+
+# Hostnames that overwhelmingly appear as outbound links on virtually every
+# homepage and carry no signal about the operator's identity. Keeping these
+# out of `external_links` means the column is dominated by hosts that
+# actually tell us something — e.g. an outbound link to navanta.com from
+# bankonitusa.com (the rebrand's banner is an image-only `<a href>` with
+# no visible "Navanta" text, so href scanning is the only cheap way to
+# catch it without rendering JavaScript).
+_NOISE_LINK_HOSTS = frozenset(
+    {
+        "facebook.com",
+        "fb.com",
+        "twitter.com",
+        "x.com",
+        "linkedin.com",
+        "instagram.com",
+        "youtube.com",
+        "youtu.be",
+        "tiktok.com",
+        "pinterest.com",
+        "vimeo.com",
+        "reddit.com",
+        "medium.com",
+        "github.com",
+        "gitlab.com",
+        "bitbucket.org",
+        "google.com",
+        "googleapis.com",
+        "googletagmanager.com",
+        "googleadservices.com",
+        "google-analytics.com",
+        "gstatic.com",
+        "doubleclick.net",
+        "play.google.com",
+        "apps.apple.com",
+        "apple.com",
+        "microsoft.com",
+        "office.com",
+        "cloudflare.com",
+        "jsdelivr.net",
+        "unpkg.com",
+        "bootstrapcdn.com",
+        "fontawesome.com",
+        "wp.com",
+        "w.org",
+        "wordpress.org",
+        "schema.org",
+        "ogp.me",
+    }
+)
+
+_HREF_RE = re.compile(
+    r"""href\s*=\s*['"]https?://([^/'"\s>]+)""",
+    re.IGNORECASE,
+)
+
+
+def _hostname_from_url(url: str) -> str:
+    try:
+        return (urlparse(url).hostname or "").lower()
+    except Exception:
+        return ""
+
+
+def _is_noise_host(host: str) -> bool:
+    for noise in _NOISE_LINK_HOSTS:
+        if host == noise or host.endswith("." + noise):
+            return True
+    return False
+
+
+def _external_link_hosts(self_domain: str, text: str, limit: int = 5) -> list:
+    """Return up to `limit` distinct external hostnames found in <a href> URLs.
+
+    Skips hosts that match the input domain (or any of its subdomains) and
+    common social/CDN/analytics/utility hosts that appear on practically every
+    page. Hosts are returned in first-appearance order; a host whose
+    registered domain matches the input but happens to be a different
+    subdomain (e.g. login.example.com on example.com's homepage) is treated
+    as self.
+    """
+    self_domain = (self_domain or "").lower()
+    seen = []
+    seen_set = set()
+    for m in _HREF_RE.finditer(text):
+        host = m.group(1).lower()
+        if not host or host in seen_set:
+            continue
+        if self_domain and (host == self_domain or host.endswith("." + self_domain)):
+            continue
+        if _is_noise_host(host):
+            continue
+        seen_set.add(host)
+        seen.append(host)
+        if len(seen) >= limit:
+            break
+    return seen
+
+
+def _rebrand_signal(*texts: str) -> str:
+    """Return first ~120-char context of a rebrand-keyword hit, or ''.
+
+    Scans each input text in order. Returns the first hit whose captured
+    brand-name token is not on the noise list — keeps the surrounding
+    sentence so a reviewer can decide at a glance whether the match is a
+    real banner ("BankOnIT is now Navanta") or residual noise.
+    """
+    for text in texts:
+        if not text:
+            continue
+        for m in REBRAND_RE.finditer(text):
+            brand = m.group(1)
+            # Real brand names in rebrand banners are virtually always written
+            # with an initial capital. Filtering on case lets us match the
+            # trigger phrase case-insensitively while still rejecting common
+            # post-trigger noise like "now hiring" / "formerly available".
+            if not brand or not brand[0].isupper():
+                continue
+            if brand in _REBRAND_NOISE:
+                continue
+            start = max(0, m.start() - 30)
+            end = min(len(text), m.end() + 80)
+            return _strip_field(text[start:end])
+    return ""
+
+
+def _rebrand_path_signal(text: str) -> str:
+    """Return first ~120-char context of a rebrand-themed path/alt-text hit.
+
+    Runs ``REBRAND_PATH_RE`` against the unescaped page text — the same
+    blob ``_external_link_hosts`` consumes — so URL slugs (`href=
+    "https://navanta.com/brand-launch-..."`) and image alt attributes
+    (`alt="Brand announcement"`) are both visible. The regex's phrasing
+    is narrow enough that hitting it almost always corresponds to a real
+    rebrand artifact rather than ordinary marketing copy.
+    """
+    if not text:
+        return ""
+    m = REBRAND_PATH_RE.search(text)
+    if not m:
+        return ""
+    start = max(0, m.start() - 40)
+    end = min(len(text), m.end() + 80)
+    return _strip_field(text[start:end])
 
 
 def _has_full_ip(s: str) -> bool:
@@ -243,20 +476,32 @@ def _lookup_ip(ip: str, timeout: float) -> dict:
     return _parse_ip_whois(_run_whois(ip, timeout))
 
 
-class _HeadParser(HTMLParser):
-    """Extract <title> and the first description-like meta tag."""
+class _PageParser(HTMLParser):
+    """Extract <title>, the first description-like meta tag, and body text.
+
+    Body text excludes the contents of <script>/<style>/<noscript>/<template>
+    elements — those rarely correspond to anything visible and routinely
+    contain large embedded JSON blobs that would crowd out the actual page
+    text under the body-text cap. Whitespace is collapsed at join time.
+    """
+
+    _SKIP_TAGS = ("script", "style", "noscript", "template")
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.title = ""
         self.description = ""
+        self._body_parts = []
+        self._body_chars = 0
         self._in_title = False
-        self._stop = False
+        self._in_body = False
+        self._skip_depth = 0
 
     def handle_starttag(self, tag, attrs):
-        if self._stop:
-            return
         tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+            return
         if tag == "title":
             self._in_title = True
         elif tag == "meta":
@@ -270,29 +515,72 @@ class _HeadParser(HTMLParser):
             ):
                 self.description = _strip_field(a.get("content", ""))
         elif tag == "body":
-            # everything useful is in <head>; stop parsing once we hit <body>
-            self._stop = True
+            self._in_body = True
 
     def handle_endtag(self, tag):
-        if tag.lower() == "title":
+        tag = tag.lower()
+        if tag in self._SKIP_TAGS:
+            if self._skip_depth:
+                self._skip_depth -= 1
+            return
+        if tag == "title":
             self._in_title = False
+        elif tag == "body":
+            self._in_body = False
 
     def handle_data(self, data):
+        if self._skip_depth:
+            return
         if self._in_title and not self.title:
             self.title = _strip_field(data)
+        if self._in_body and self._body_chars < MAX_BODY_TEXT_CHARS:
+            self._body_parts.append(data)
+            self._body_chars += len(data)
+
+    @property
+    def body_text(self) -> str:
+        return re.sub(r"\s+", " ", " ".join(self._body_parts)).strip()
 
 
-def _parse_head(body: bytes, encoding: str) -> tuple:
+def _extract_metadata(domain: str, body: bytes, encoding: str) -> dict:
+    """Decode the response body once and extract every per-page signal.
+
+    Returns ``title``, ``description``, ``rebrand_signal``, ``external_links``.
+    Decoding once and running both the HTML parser and the href regex on the
+    same string avoids paying the decode cost twice.
+    """
+    out = {
+        "title": "",
+        "description": "",
+        "rebrand_signal": "",
+        "external_links": "",
+    }
     try:
         text = body.decode(encoding, errors="replace")
     except LookupError:
         text = body.decode("utf-8", errors="replace")
-    parser = _HeadParser()
+    parser = _PageParser()
     try:
         parser.feed(text)
     except Exception:
         pass
-    return parser.title, parser.description
+    out["title"] = parser.title
+    out["description"] = parser.description
+    # Many sites embed serialized HTML inside <script> blocks (block-editor /
+    # Elementor templates, JSON-LD, hydration payloads) where quotes and
+    # slashes are JSON-escaped: `href=\"https:\/\/...\"`. The parser already
+    # skipped that content for body_text, but the URLs and alt-text inside
+    # it still signal where the page is pointing — bankonitusa.com's "now
+    # Navanta" banner is image-only `<a href>` with `alt="Brand
+    # announcement"` and slug `/brand-launch-.../`, all sitting inside an
+    # escaped Elementor blob. Unescape so the path-style rebrand regex and
+    # the link-host regex both see them.
+    unescaped = text.replace('\\"', '"').replace("\\/", "/").replace("\\'", "'")
+    text_signal = _rebrand_signal(parser.title, parser.description, parser.body_text)
+    path_signal = _rebrand_path_signal(unescaped)
+    out["rebrand_signal"] = text_signal or path_signal
+    out["external_links"] = ",".join(_external_link_hosts(domain, unescaped))
+    return out
 
 
 def _browser_fallback_fetch(url: str, timeout: float) -> dict:
@@ -317,6 +605,8 @@ def _browser_fallback_fetch(url: str, timeout: float) -> dict:
     out = {
         "title": "",
         "description": "",
+        "rebrand_signal": "",
+        "external_links": "",
         "final_url": "",
         "http_status": "",
         "error": "",
@@ -342,7 +632,13 @@ def _browser_fallback_fetch(url: str, timeout: float) -> dict:
                 body += chunk
                 if len(body) >= MAX_BODY_BYTES:
                     break
-            out["title"], out["description"] = _parse_head(body, r.encoding or "utf-8")
+            meta = _extract_metadata(
+                _hostname_from_url(url), body, r.encoding or "utf-8"
+            )
+            out["title"] = meta["title"]
+            out["description"] = meta["description"]
+            out["rebrand_signal"] = meta["rebrand_signal"]
+            out["external_links"] = meta["external_links"]
     except requests.RequestException as e:
         out["error"] = f"{type(e).__name__}: {e}"[:200]
     except (ssl.SSLError, OSError) as e:
@@ -356,6 +652,8 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
     out = {
         "title": "",
         "description": "",
+        "rebrand_signal": "",
+        "external_links": "",
         "final_url": "",
         "http_status": "",
         "error": "",
@@ -366,8 +664,12 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
         url = f"{scheme}://{domain}/"
         primary_status = ""
         primary_url = ""
-        primary_title = ""
-        primary_description = ""
+        primary_meta = {
+            "title": "",
+            "description": "",
+            "rebrand_signal": "",
+            "external_links": "",
+        }
         primary_err = ""
         try:
             with requests.get(
@@ -384,18 +686,17 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
                     body += chunk
                     if len(body) >= MAX_BODY_BYTES:
                         break
-                primary_title, primary_description = _parse_head(
-                    body, r.encoding or "utf-8"
-                )
+                primary_meta = _extract_metadata(domain, body, r.encoding or "utf-8")
         except requests.RequestException as e:
             primary_err = f"{type(e).__name__}: {e}"
         except socket.error as e:
             primary_err = f"socket: {e}"
 
         # Happy path: requests got a 2xx with parseable head metadata.
-        if primary_status.startswith("2") and (primary_title or primary_description):
-            out["title"] = primary_title
-            out["description"] = primary_description
+        if primary_status.startswith("2") and (
+            primary_meta["title"] or primary_meta["description"]
+        ):
+            out.update(primary_meta)
             out["final_url"] = primary_url
             out["http_status"] = primary_status
             out["error"] = ""
@@ -409,6 +710,8 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
             if cf["title"] or cf["description"]:
                 out["title"] = cf["title"]
                 out["description"] = cf["description"]
+                out["rebrand_signal"] = cf.get("rebrand_signal", "")
+                out["external_links"] = cf.get("external_links", "")
                 out["final_url"] = cf["final_url"] or primary_url
                 out["http_status"] = cf["http_status"] or primary_status
                 out["error"] = ""
@@ -427,8 +730,7 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
             continue
 
         # 2xx with empty head — accept whatever we got and stop.
-        out["title"] = primary_title
-        out["description"] = primary_description
+        out.update(primary_meta)
         out["final_url"] = primary_url
         out["http_status"] = primary_status
         out["error"] = ""
