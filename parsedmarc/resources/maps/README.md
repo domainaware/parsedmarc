@@ -138,6 +138,23 @@ The TSV also carries two derived columns that surface drift signals (and double 
 
 The output of `collect_domain_info.py`. Tab-separated, one row per researched domain. Not tracked by Git — it is regenerated on demand and contains transient third-party WHOIS/HTML data.
 
+## classify_unknown_domains.py
+
+Regex-based multilingual classifier that consumes a `domain_info.tsv` (from `collect_domain_info.py`) and emits two outputs: a CSV of map additions (`domain,name,type` rows) and a text file of known-unknown additions. Run it from this directory:
+
+```bash
+python classify_unknown_domains.py \
+    -i /tmp/batch_info.tsv \
+    --map-out /tmp/additions.csv \
+    --ku-out /tmp/ku_additions.txt
+```
+
+Detectors cover all 44 industry types listed in [base_reverse_dns_map.csv](#base_reverse_dns_mapcsv) above. Multilingual coverage is broadest for the high-volume detectors — Healthcare, Travel, Government, Retail, Finance, ISP, Web Host, Manufacturing, Logistics, Real Estate, Automotive, Legal, Agriculture have concept-translation parity across ~30 languages with multiple synonyms per language. Smaller detectors (Photography, Sports, MSSP, Conglomerate, Search Engine, Social Media, Defense, IaaS, PaaS, SaaS, Beauty, Print, Publishing, Religion, Science, Event Planning, Staffing, Email Security, Email Provider, Marketing, Construction, Industrial, Utilities, Energy, Government Media, Physical Security, News, Nonprofit, Entertainment, Technology, Consulting) have ~10–20 languages with 1–3 keywords each. Each successive batch is expected to refine multilingual coverage as new patterns surface in the unclassified pool.
+
+Brand-name selection prefers (in order): the MMDB `as_name` for the domain; the page title's first segment; non-redacted WHOIS registrant org; domain-derived fallback. A `clean_brand` step strips common legal-form suffixes (LLC / GmbH / Ltda / EIRELI / sp. z o.o. / etc.) and prefixes (PT, OOO). When the title has multiple segments separated by `|` / `-` / `—` etc., the segment whose simplified form contains the domain root is preferred — so e.g. accessmontana.com whose `as_name` is "MONTANA WEST, L.L.C." but whose title is "Internet, Phone & TV Bundles | Access Montana" maps to "Access Montana", not "Montana West".
+
+The classifier is the regex baseline of step 4 of the [Workflow for classifying unknown domains](../../../AGENTS.md#workflow-for-classifying-unknown-domains) — it catches obvious cases at scale and leaves only the genuinely ambiguous to manual / LLM review. The empty `HAND` dict at the top of the script is an extension point for batch-specific overrides (e.g. acquisition aliases, brand-name corrections that don't fit any detector); each `domain → ("Brand", "Type")` entry wins over the auto-classifier.
+
 ## detect_rebrands.py
 
 **Cadence: run roughly once a year.** Not part of the standard mapping workflow — operator rebrands and acquisitions accumulate slowly, and a yearly sweep is sufficient to keep `base_reverse_dns_map.csv` from drifting out of date. There is no benefit to running it more often.
