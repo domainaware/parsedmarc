@@ -140,7 +140,14 @@ The output of `collect_domain_info.py`. Tab-separated, one row per researched do
 
 ## classify_unknown_domains.py
 
-Regex-based multilingual classifier that consumes a `domain_info.tsv` (from `collect_domain_info.py`) and emits two outputs: a CSV of map additions (`domain,name,type` rows) and a text file of known-unknown additions. Run it from this directory:
+Regex-based multilingual classifier that consumes a `domain_info.tsv` (from `collect_domain_info.py`) and emits two outputs: a CSV of map additions (`domain,name,type` rows) and a text file of known-unknown additions.
+
+Useful for either lookup path that reads `base_reverse_dns_map.csv`:
+
+- The original PTR-side flow that classifies reverse-DNS base domains derived from DMARC report source IPs (`base_reverse_dns.csv` → `unknown_base_reverse_dns.csv` → `domain_info.tsv` → this classifier).
+- The MMDB-coverage flow that classifies ASN domains lifted from the bundled IPinfo Lite MMDB (the b5–b13 batches that drove distinct AS-domain coverage from ~10% to ~50% used this classifier as their regex baseline).
+
+Run it from this directory:
 
 ```bash
 python classify_unknown_domains.py \

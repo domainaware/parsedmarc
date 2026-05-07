@@ -6,11 +6,23 @@ multilingual classifier to each row's WHOIS, page title, page description,
 and MMDB `as_name` to choose a `(name, type)` tuple — or send the domain to
 the known-unknown list if no detector fires.
 
-The classifier was originally built up in `/tmp/classify_b<N>.py` across
-the b5–b13 batches that brought the bundled MMDB AS-domain coverage from
-~10% to ~50% of distinct domains. Committing it lets future batches inherit
-the multilingual keyword work rather than re-deriving it from scratch each
-session. Per AGENTS.md the historical workflow is "feed the TSV to an LLM
+The classifier serves both lookup paths into `base_reverse_dns_map.csv`:
+
+- The original purpose — classifying reverse-DNS *base domains* derived
+  from the source IPs of DMARC reports (the `base_reverse_dns.csv` →
+  `unknown_base_reverse_dns.csv` flow described in
+  `find_unknown_base_reverse_dns.py`). These are PTR-side keys; the regex
+  detectors fire equally on a residential ISP's PTR base or a SaaS
+  provider's PTR base.
+- The MMDB-coverage flow — classifying ASN domains lifted from the
+  bundled IPinfo Lite MMDB to populate the ASN-fallback lookup path.
+  The classifier was originally built up in `/tmp/classify_b<N>.py`
+  across the b5–b13 batches that brought distinct AS-domain coverage
+  from ~10% to ~50%; committing it lets future batches inherit the
+  multilingual keyword work rather than re-deriving it from scratch
+  each session.
+
+Per AGENTS.md the historical workflow is "feed the TSV to an LLM
 classifier (or skim it by hand)" — this script is the regex baseline that
 catches obvious cases at scale and leaves only the genuinely ambiguous to
 manual / LLM review.
@@ -473,8 +485,7 @@ HEALTHCARE_RE = re.compile(
     r")\b"
 )
 
-# Retail / e-commerce — online shop, marketplace, store-style sites that
-# happen to have ASN registrations. Common in long-tail batches.
+# Retail / e-commerce — online shop, marketplace, store-style sites.
 RETAIL_RE = re.compile(
     r"(?i)\b("
     # Core concepts: online store / e-commerce / retailer / department store /
