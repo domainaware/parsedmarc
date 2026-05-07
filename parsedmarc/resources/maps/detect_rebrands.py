@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 """Re-fetch mapped reverse-DNS base domains and surface possible rebrand signals.
 
+Cadence: run roughly once a year. Operator rebrands and acquisitions
+accumulate slowly, and a yearly sweep is sufficient to keep the map current
+without spending review effort on near-empty diffs. This is not part of the
+standard per-batch mapping workflow — that workflow uses the related
+`collect_domain_info.py` for unmapped domains. Use this script when you want
+to revisit the *already-mapped* set for drift.
+
 Walks `base_reverse_dns_map.csv`, fetches each domain's homepage with the same
 machinery used by `collect_domain_info.py`, and writes a TSV listing rows where
 one of two default drift signals fired:
