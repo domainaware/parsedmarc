@@ -749,6 +749,24 @@ def _fetch_homepage(domain: str, timeout: float) -> dict:
             out["error"] = ""
             return out
 
+        # Self-signed-cert detection: TLS-intercepting firewalls present
+        # their own self-signed cert specifically when *blocking* a
+        # request. The verify=False browser fallback would succeed but
+        # return the firewall's block page, not the real operator's
+        # content — that block page would then poison the row's title /
+        # description and mislead the classifier. Skip the fallback for
+        # this row so `_looks_bot_blocked` returns True (empty meta) and
+        # the search-fallback path can recover real content.
+        # Cert errors NOT covered here (hostname mismatch, weak DH,
+        # legacy renegotiation) keep the existing fallback path because
+        # they're typically real operators with misconfigured TLS rather
+        # than firewall interception.
+        if primary_err and (
+            "self-signed" in primary_err.lower() or "self signed" in primary_err.lower()
+        ):
+            last_err = (primary_err + " | firewall-blocked, skipped fallback")[:200]
+            continue
+
         # Curl fallback: trigger on errors or non-2xx. A 2xx with empty head
         # is left alone (likely a parked page; retrying rarely helps).
         non_success = primary_status and not primary_status.startswith("2")
@@ -800,6 +818,15 @@ _SEARCH_FALLBACK_TRIGGER_RE = re.compile(
     r"just a moment|are you a robot|checking your browser|"
     r"please enable javascript|"
     r"ddos[- ]guard|px-captcha|vercel security checkpoint|"
+    r"\bcaptcha\b|"
+    # Local firewall / DNS-filter block pages — corporate firewalls (Fortinet,
+    # Palo Alto, Cisco Umbrella, Sophos, etc.) typically present a generic
+    # block page with one of these phrases. The page is the *firewall's*,
+    # not the operator's, so search-fallback is the only way to recover.
+    r"web filter violation|web filter block|fortinet secure dns service|"
+    r"this site has been blocked|access blocked by|"
+    r"blocked by your network|blocked by administrator|"
+    r"this content is blocked|"
     # Generic blocked / unavailable
     r"access denied|access to this page has been denied|"
     r"site is not available|page is not available|"
