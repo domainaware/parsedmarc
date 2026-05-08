@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **`base_reverse_dns_types.txt` removed; `sortlists.py` now reads the authoritative `type` list directly from `parsedmarc/resources/maps/README.md`.** The README's industry list (between new `<!-- types-list:start -->` / `<!-- types-list:end -->` HTML-comment markers) is now the single source of truth, eliminating the drift risk between the data file and the documented list. Also fixes a pre-existing typo in the precedence rules where rule 4 said `Web Hosting` but the canonical type used in 4,176 map rows is `Web Host`.
+
 ## 9.11.1
 
 ### Fixed

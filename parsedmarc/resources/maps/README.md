@@ -19,11 +19,12 @@ The `service_type` is based on the following rule precedence:
 1. All email security services are identified as `Email Security`, no matter how or where they are hosted.
 2. All marketing services are identified as `Marketing`, no matter how or where they are hosted.
 3. All telecommunications providers that offer internet access are identified as `ISP`, even if they also offer other services, such as web hosting or email hosting.
-4. All web hosting providers are identified as `Web Hosting`, even if the service also offers email hosting.
+4. All web hosting providers are identified as `Web Host`, even if the service also offers email hosting.
 5. All email account providers are identified as `Email Provider`, no matter how or where they are hosted
 6. All legitimate platforms offering their Software as a Service (SaaS) are identified as `SaaS`, regardless of industry. This helps simplify metrics.
 7. All other senders that use their own domain as a Reverse DNS base domain should be identified based on their industry
 
+<!-- types-list:start -->
 - Agriculture
 - Automotive
 - Beauty
@@ -70,6 +71,9 @@ The `service_type` is based on the following rule precedence:
 - Travel
 - Utilities
 - Web Host
+<!-- types-list:end -->
+
+The list above is the authoritative set of allowed `type` values; `sortlists.py` parses the bullet items between the `<!-- types-list:start -->` and `<!-- types-list:end -->` HTML comment markers and uses them to validate every row's `type` column. Keep the markers intact when editing.
 
 The file currently contains over 5,000 mappings from a wide variety of email sending sources.
 
@@ -96,10 +100,6 @@ A CSV with the fields `source_name` and optionally `message_count`. This CSV can
 ## unknown_base_reverse_dns.csv
 
 A CSV file with the fields `source_name` and `message_count`. This file is not tracked by Git.
-
-## base_reverse_dns_types.txt
-
-A plaintext list (one per line) of the allowed `type` values. Should match the industry list in this README; used by `sortlists.py` as the authoritative set for validation.
 
 ## psl_overrides.txt
 
@@ -181,4 +181,4 @@ The output of `detect_rebrands.py`. Tab-separated, one row per flagged map key. 
 
 ## sortlists.py
 
-Validation and sorting helper invoked as a module. Alphabetically sorts `base_reverse_dns_map.csv` (case-insensitive by first column, preserving CRLF line endings), deduplicates entries, validates that every `type` appears in `base_reverse_dns_types.txt`, and warns on names that contain unescaped commas or stray whitespace. Run it after any batch merge before committing.
+Validation and sorting helper invoked as a module. Alphabetically sorts `base_reverse_dns_map.csv` (case-insensitive by first column, preserving CRLF line endings), deduplicates entries, validates that every `type` appears in this README's authoritative type list (parsed from the `<!-- types-list:start -->` / `<!-- types-list:end -->` block above), and warns on names that contain unescaped commas or stray whitespace. Run it after any batch merge before committing.

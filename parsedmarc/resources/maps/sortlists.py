@@ -4,8 +4,44 @@ from __future__ import annotations
 
 import os
 import csv
+import re
 from pathlib import Path
 from typing import Mapping, Iterable, Optional, Collection, Union, List, Dict
+
+
+_TYPES_LIST_RE = re.compile(
+    r"<!--\s*types-list:start\s*-->(.*?)<!--\s*types-list:end\s*-->",
+    re.DOTALL,
+)
+
+
+def load_types_from_readme(readme_path: Union[str, Path]) -> List[str]:
+    """Read the authoritative `type` list out of README.md.
+
+    Parses the bullet items between the `<!-- types-list:start -->` and
+    `<!-- types-list:end -->` HTML comment markers. Each non-blank line
+    inside the markers must start with `- ` followed by the type name.
+    """
+    path = Path(readme_path)
+    text = path.read_text(encoding="utf-8")
+    m = _TYPES_LIST_RE.search(text)
+    if not m:
+        raise ValueError(
+            f"{path}: missing <!-- types-list:start --> / <!-- types-list:end --> markers"
+        )
+    types: List[str] = []
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if not line.startswith("- "):
+            raise ValueError(
+                f"{path}: unexpected line inside types-list block: {line!r}"
+            )
+        types.append(line[2:].strip())
+    if not types:
+        raise ValueError(f"{path}: types-list block is empty")
+    return types
 
 
 class CSVValidationError(Exception):
@@ -153,10 +189,16 @@ def _main():
     map_file = "base_reverse_dns_map.csv"
     map_key = "base_reverse_dns"
     list_files = ["known_unknown_base_reverse_dns.txt", "psl_overrides.txt"]
-    types_file = "base_reverse_dns_types.txt"
+    readme_file = "README.md"
 
-    with open(types_file) as f:
-        types = [line.strip() for line in f if line.strip()]
+    if not os.path.exists(readme_file):
+        print(f"Error: {readme_file} does not exist")
+        exit(1)
+    try:
+        types = load_types_from_readme(readme_file)
+    except ValueError as e:
+        print(f"Error: {e}")
+        exit(1)
 
     map_allowed_values = {"type": types}
 
@@ -165,10 +207,6 @@ def _main():
             print(f"Error: {list_file} does not exist")
             exit(1)
         sort_list_file(list_file)
-    if not os.path.exists(types_file):
-        print(f"Error: {types_file} does not exist")
-        exit(1)
-    sort_list_file(types_file, lowercase=False)
     if not os.path.exists(map_file):
         print(f"Error: {map_file} does not exist")
         exit(1)
