@@ -9775,6 +9775,16 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
                     hand += 1
                 continue
             r = auto_classify(row, domain, as_name)
+            # When `collect_domain_info.py --use-search-fallback` followed
+            # a "Link to <hostname>" / bare-hostname search snippet to a
+            # different host, that host is recorded in `link_target_domain`.
+            # The classifier emits two map rows (input + target) under the
+            # same `(name, type)` so both keys can be looked up. The user
+            # who introduced this calls the original input the "og domain"
+            # and the target the operator's actual content host — both
+            # belong in the map. Skipped when the target matches the input
+            # exactly (no new information) or the row didn't classify.
+            link_target = (row.get("link_target_domain") or "").strip().lower()
             if r is None:
                 ku.append(domain)
             elif r == ("DROP", None):
@@ -9785,11 +9795,19 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
             elif len(r) == 2:
                 adds.append((domain, r[0], r[1]))
                 auto += 1
+                if link_target and link_target != domain:
+                    adds.append((link_target, r[0], r[1]))
+                    auto += 1
             else:
                 # (brand, primary, alternatives) — multi-category match.
                 title = (row.get("title") or "").strip()
                 ambiguous.append((domain, r[0], r[1], r[2], title))
                 ambig += 1
+                # Surface the target alongside the input so the human
+                # reviewer can adjudicate both with one decision.
+                if link_target and link_target != domain:
+                    ambiguous.append((link_target, r[0], r[1], r[2], title))
+                    ambig += 1
     return (
         adds,
         ambiguous,

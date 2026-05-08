@@ -79,6 +79,7 @@ FIELDS = [
     "ip_whois_country",
     "error",
     "title_source",
+    "link_target_domain",
 ]
 
 USER_AGENT = (
@@ -907,6 +908,44 @@ def _search_fallback_fetch(domain: str, max_results: int = 5) -> dict:
     return out
 
 
+# When a DDG search result's title is just a hostname pointer — either
+# the literal "Link to <hostname>" snippet DDG sometimes emits for
+# subdomains it has indexed, or a bare hostname with no other words —
+# the title has no classifier signal. The right move is to follow the
+# pointer: fetch the target hostname directly and use *its* content.
+# These two regexes recognize the patterns.
+_LINK_TO_TITLE_RE = re.compile(r"^link to\s+(\S+?)\s*$", re.IGNORECASE)
+_BARE_HOSTNAME_RE = re.compile(
+    r"^([a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+)\.?$",
+    re.IGNORECASE,
+)
+
+
+def _extract_link_target(title: str) -> str:
+    """Return target hostname when the title is just a link/domain pointer.
+
+    Two patterns:
+    - "Link to <hostname>" — DDG's literal snippet for some subdomain
+      results, e.g. "Link to fcs.health.gov.il".
+    - Just a hostname — the entire title *is* the hostname, e.g.
+      "yangon.mfa.gov.il".
+
+    Returns "" when neither pattern matches (the search snippet has
+    real classifier-relevant content and we should use it as-is).
+    """
+    title = (title or "").strip()
+    if not title:
+        return ""
+    m = _LINK_TO_TITLE_RE.match(title)
+    if m:
+        candidate = m.group(1).rstrip(".")
+        if _BARE_HOSTNAME_RE.match(candidate):
+            return candidate.lower()
+    if _BARE_HOSTNAME_RE.match(title):
+        return title.rstrip(".").lower()
+    return ""
+
+
 def _looks_bot_blocked(meta: dict) -> bool:
     """Decide whether a homepage-fetch result warrants a search-fallback.
 
@@ -954,6 +993,29 @@ def _collect_one(
             if not row.get("final_url"):
                 row["final_url"] = sf["final_url"]
             row["title_source"] = "search"
+        # Link-following: if the search snippet is just a hostname pointer
+        # ("Link to fcs.health.gov.il" or bare "yangon.mfa.gov.il") it
+        # carries no classifier signal — the snippet is DDG's placeholder
+        # for a subdomain it indexed but didn't fully snapshot. Fetch the
+        # target hostname directly and replace title/desc with its real
+        # content. The link target is recorded in `link_target_domain` so
+        # downstream tooling can emit alias map rows when the target is on
+        # a different registrable domain than the input.
+        target = _extract_link_target(row.get("title", ""))
+        if target and target != domain:
+            row["link_target_domain"] = target
+            target_meta = _fetch_homepage(target, http_timeout)
+            if (
+                target_meta.get("title") or target_meta.get("description")
+            ) and not _looks_bot_blocked(target_meta):
+                row["title"] = target_meta["title"]
+                row["description"] = target_meta["description"]
+                row["rebrand_signal"] = target_meta.get("rebrand_signal", "")
+                row["external_links"] = target_meta.get("external_links", "")
+                row["final_url"] = target_meta.get("final_url") or row.get(
+                    "final_url", ""
+                )
+                row["title_source"] = f"search→{target}"
     ips = _resolve_ips(domain)
     row["ips"] = ",".join(ips[:4])
     # WHOIS the first resolved IP — usually reveals the hosting ASN / provider,
