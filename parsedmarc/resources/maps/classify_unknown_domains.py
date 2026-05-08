@@ -106,14 +106,34 @@ _MOJIBAKE = [
     ("Ã§", "ç"),
     ("Ã ", "à"),
     ("Ã¨", "è"),
+    ("Ã£", "ã"),
+    ("Ã¢", "â"),
+    ("Ãª", "ê"),
+    ("Ã®", "î"),
+    ("Ã´", "ô"),
+    ("Ã£o", "ão"),
+    ("Ãµ", "õ"),
     ("Ã”", "Ô"),
     ("Ã“", "Ó"),
     ("Ã‘", "Ñ"),
     ("Ã‰", "É"),
+    ("Ãƒ", "Ã"),
+    ("Ã‚", "Â"),
+    ("ÃŠ", "Ê"),
+    ("Ã€", "À"),
+    ("Ã‡", "Ç"),
+    ("Ã–", "Ö"),
+    ("Ã„", "Ä"),
+    ("Ãœ", "Ü"),
 ]
 
 
 def fix_text(s: str) -> str:
+    # Targeted replacements for the most common Western-European mojibake
+    # cases. Cyrillic / CJK mojibake reaching this stage typically already
+    # has continuation bytes lost during the homepage fetch, which makes a
+    # round-trip recovery impossible — we accept that those rows won't
+    # keyword-match and rely on as_name / WHOIS instead.
     for bad, good in _MOJIBAKE:
         if bad in s:
             s = s.replace(bad, good)
@@ -139,6 +159,14 @@ ISP_RE = re.compile(
     r"internet, phone|phone, internet|"
     r"mobile network|cellular network|cellular service provider|"
     r"satellite internet|fixed wireless|"
+    r"unified communications|cloud communications|"
+    r"managed ucaas|ucaas\b|"
+    r"cloud (?:voice|telephony|pbx)|hosted pbx|hosted voice|"
+    r"sip trunk(?:ing)?|"
+    r"autonomous system|asn (?:owner|operator)|"
+    r"network operator|network presence|"
+    r"interconnect provider|peering exchange|internet exchange point|"
+    r"\bixp\b|carrier[- ]neutral exchange|"
     # Spanish
     r"proveedor de internet|servicio de internet|"
     r"banda ancha|fibra (?:óptica|optica)|fibra|"
@@ -304,7 +332,7 @@ ISP_RE = re.compile(
     # Cebuano
     r"tighatag sa internet|internet nga taas og bilis|"
     r"telekomunikasyon|cable tv"
-    r")\b"
+    r")s?\b"
 )
 
 WEB_HOST_RE = re.compile(
@@ -316,6 +344,12 @@ WEB_HOST_RE = re.compile(
     r"cloud hosting|cloud server|cloud solutions?|cloud platform|"
     r"offshore hosting|"
     r"reseller hosting|wordpress hosting|"
+    r"icann registrar|icann[- ]accredited registrar|"
+    r"domain (?:name )?registrar|domain reseller|"
+    r"domain name platform|"
+    r"\bcdn\b|content delivery network|"
+    r"\bwaf\b|web application firewall|"
+    r"anti[- ]ddos|ddos protection|"
     # Spanish
     r"hospedaje (?:web|de )|alojamiento web|"
     r"alojamiento de dominios|servidor dedicado|"
@@ -577,7 +611,7 @@ WEB_HOST_RE = re.compile(
     # Cebuano
     r"web hosting|sentro sa datos|"
     r"dedicated server|virtual server"
-    r")\b"
+    r")s?\b"
 )
 
 EDUCATION_RE = re.compile(
@@ -732,7 +766,7 @@ EDUCATION_RE = re.compile(
     # Cebuano
     r"unibersidad|eskwelahan|kolehiyo|"
     r"hayskul|elementarya"
-    r")\b"
+    r")s?\b"
 )
 
 GOV_RE = re.compile(
@@ -747,6 +781,7 @@ GOV_RE = re.compile(
     r"\.gov\.|public sector|civil service|"
     # Spanish
     r"ministerio de|gobierno de|alcaldía|ayuntamiento|municipio de|"
+    r"agencia estatal|boletín oficial del estado|consejería de|"
     r"departamento de gobierno|prefectura de|"
     r"administración pública|secretaría de|"
     # Portuguese
@@ -968,7 +1003,7 @@ GOV_RE = re.compile(
     # Cebuano
     r"gobyerno|munisipyo|"
     r"kagawaran|departamento sa gobyerno"
-    r")\b"
+    r")s?\b"
 )
 
 HEALTHCARE_RE = re.compile(
@@ -978,6 +1013,9 @@ HEALTHCARE_RE = re.compile(
     r"healthcare|health system|health network|health care|"
     r"pharmaceutical|pharmacy|pharmaceuticals|"
     r"life sciences|biotech|biopharma|biotechnology|"
+    r"genetic sequencing|next[- ]generation sequencing|"
+    r"clinical diagnostic|diagnostic genetic|"
+    r"clinical trial|"
     r"medical group|physicians group|specialty care|"
     r"long[- ]term care|skilled nursing|aged care|senior care|"
     r"medical practice|nursing home|surgical center|surgical centre|"
@@ -1139,7 +1177,7 @@ HEALTHCARE_RE = re.compile(
     r"rumah sakit|apotek|klinik|"
     # Cebuano
     r"ospital|botika|klinika|sentro medikal"
-    r")\b"
+    r")s?\b"
 )
 
 # Retail / e-commerce — online shop, marketplace, store-style sites.
@@ -1170,6 +1208,7 @@ RETAIL_RE = re.compile(
     r"détaillant|chaîne de distribution|"
     # Italian
     r"negozio online|grande magazzino|catena di negozi|"
+    r"punto vendita|punti vendita|"
     r"commercio elettronico|supermercato|"
     r"rivenditore|catena di vendita al dettaglio|"
     # German
@@ -1396,7 +1435,7 @@ RETAIL_RE = re.compile(
     r"online nga tindahan|tindahan sa internet|"
     r"e-commerce|supermarket|"
     r"tindahan sa retail"
-    r")\b"
+    r")s?\b"
 )
 
 # Manufacturing / industrial — factories, OEMs, equipment makers
@@ -1699,7 +1738,7 @@ MANUFACTURING_RE = re.compile(
     # Cebuano
     r"prodyuser|pabrika|"
     r"pasilidad sa produksyon|kagamitang industriyal"
-    r")\b"
+    r")s?\b"
 )
 
 # Travel / hospitality — hotels, airlines, tourism, travel agencies.
@@ -1721,6 +1760,8 @@ TRAVEL_RE = re.compile(
     # Portuguese
     r"agência de viagens|operadora turística|"
     r"hotel|pousada|albergue|aluguel de temporada|"
+    r"aeroporto(?:s)? de|passagem de ônibus|passagens aéreas|"
+    r"locadora de veículos|"
     r"companhia aérea|linha aérea|cruzeiro|"
     # French
     r"hôtel|hôtellerie|complexe touristique|"
@@ -1886,7 +1927,7 @@ TRAVEL_RE = re.compile(
     r"hotel|ahensya sa pagbiyahe|"
     r"motel|resort|kompaniya sa eroplano|"
     r"krus|abang sa awto"
-    r")\b"
+    r")s?\b"
 )
 
 # Food — restaurants, food production, beverage. Common ASN owners are
@@ -2193,7 +2234,7 @@ FOOD_RE = re.compile(
     r"restawran|panaderya|"
     r"kapehan|industriya sa pagkaon|"
     r"serbisyo sa pagkaon"
-    r")\b"
+    r")s?\b"
 )
 
 # Legal — law firms, legal services
@@ -2440,7 +2481,7 @@ LEGAL_RE = re.compile(
     # Cebuano
     r"law firm|opisina sa abogado|"
     r"serbisyo nga ligal|konsultasyon ligal"
-    r")\b"
+    r")s?\b"
 )
 
 # Real estate
@@ -2696,7 +2737,7 @@ REAL_ESTATE_RE = re.compile(
     # Cebuano
     r"real estate|ahensya sa real estate|"
     r"pagdumala sa propyedad"
-    r")\b"
+    r")s?\b"
 )
 
 # Finance — body-text detector that catches insurance, investment firms,
@@ -2719,6 +2760,11 @@ FINANCE_RE = re.compile(
     r"securities firm|broker[- ]?dealer|stock brokerage|"
     r"capital management|fund management|"
     r"credit union|credit cooperative|building society|"
+    r"credit (?:scores?|reports?|cards?|comparison|bureau)|"
+    r"credit reporting agency|"
+    r"stock and commodity market|stock and commodity exchange|"
+    r"commodity (?:broker|exchange|market)|"
+    r"investor education|"
     r"financial services|financial group|financial planning|"
     r"banking group|retail bank|commercial bank|"
     r"payment processor|payment platform|payments company|"
@@ -2729,8 +2775,12 @@ FINANCE_RE = re.compile(
     r"servicios financieros|sociedad de inversión|"
     r"cooperativa de crédito|gestión patrimonial|"
     r"corredor de bolsa|casa de bolsa|"
+    r"bolsas y mercados|mercado financiero|"
+    r"empresa de pagos|servicio de pagos|"
     # Portuguese
     r"seguradora|fundo de investimento|investimentos|"
+    r"empréstimo consignado|crédito consignado|"
+    r"financiamento (?:imobiliário|de veículos|estudantil)|"
     r"serviços financeiros|gestão de ativos|"
     r"corretora|corretora de seguros|cooperativa de crédito|"
     r"banco comercial|banco de varejo|"
@@ -2747,11 +2797,13 @@ FINANCE_RE = re.compile(
     r"banca commerciale|cooperativa di credito|"
     # German
     r"versicherung|versicherungsgesellschaft|"
+    r"versicherungsanstalt|versicherungsverein|"
     r"vermögensverwaltung|kapitalverwaltung|"
     r"sparkasse|volksbank|raiffeisenbank|finanzdienstleistung|"
     r"investmentfonds|kreditgenossenschaft|"
     # Dutch
     r"verzekeringsmaatschappij|spaarbank|verzekeraar|"
+    r"pensioen[ -]en[ -]verzekeringen|pensioenfonds|verzekeringen|"
     r"vermogensbeheer|financiële dienstverlening|"
     # Polish
     r"ubezpieczenia|towarzystwo ubezpieczeń|"
@@ -2784,6 +2836,7 @@ FINANCE_RE = re.compile(
     r"kompani sigurimesh|bankë|fond investimi|"
     # Turkish
     r"sigorta şirketi|sigortacılık|"
+    r"katılım bankası|ticari bankası|merkez bankası|"
     r"yatırım şirketi|yatırım fonu|finansal hizmet|"
     r"banka|kredi kooperatifi|varlık yönetimi|"
     # Slovenian
@@ -2952,7 +3005,7 @@ FINANCE_RE = re.compile(
     # Luxembourgish
     r"bank|versécherungsgesellschaft|"
     r"investmentfong|finanzdéngschtleeschtungen|"
-    r"kreditgenossenschaft|verméigensverwaltung|broker|"
+    r"kreditgenossenschaft|verméigensverwaltung|"
     # Haitian Creole
     r"bank|konpayi asirans|"
     r"fon envèstisman|sèvis finansye|"
@@ -2979,7 +3032,7 @@ FINANCE_RE = re.compile(
     r"bangko|kompaniya sa insyurans|"
     r"pondo sa pamuhunan|serbisyo sa panalapi|"
     r"unyon sa kredito"
-    r")\b"
+    r")s?\b"
 )
 
 # Automotive — dealers, auto manufacturers, auto parts
@@ -3258,7 +3311,7 @@ AUTOMOTIVE_RE = re.compile(
     # Cebuano
     r"dealer sa awto|abang sa awto|"
     r"piyesa sa awto|talyer sa awto"
-    r")\b"
+    r")s?\b"
 )
 
 # Entertainment — TV/film production, music labels, gaming, streaming
@@ -3270,7 +3323,12 @@ ENTERTAINMENT_RE = re.compile(
     r"music label|record label|recording studio|"
     r"video games?|gaming studio|game development|"
     r"streaming service|on-demand video|"
+    r"online radio|internet radio|radio station|"
+    r"podcast network|esports organization|"
     r"animation studio|post[- ]?production|"
+    r"movie streaming|video streaming (?:platform|service|site)|"
+    r"streaming platform|tv channel|television channel|"
+    r"culture channel|entertainment channel|"
     # Spanish
     r"productora cinematográfica|productora audiovisual|"
     r"sello discográfico|casa discográfica|discográfica|"
@@ -3524,7 +3582,7 @@ ENTERTAINMENT_RE = re.compile(
     # Cebuano
     r"produksyon sa pelikula|estudyo sa rekord|"
     r"video games|serbisyo sa streaming"
-    r")\b"
+    r")s?\b"
 )
 
 # Higher-precedence categories per README (these win over ISP / Web Host /
@@ -3667,7 +3725,7 @@ EMAIL_SECURITY_RE = re.compile(
     r"keamanan email|perlindungan phishing|"
     # Cebuano
     r"seguridad sa email|proteksyon batok phishing"
-    r")\b"
+    r")s?\b"
 )
 
 # Marketing — agencies, marketing platforms, ad tech
@@ -3896,7 +3954,7 @@ MARKETING_RE = re.compile(
     # Cebuano
     r"ahensya sa marketing|ahensya sa pag-anunsyo|"
     r"digital nga marketing"
-    r")\b"
+    r")s?\b"
 )
 
 # Email Provider
@@ -4036,7 +4094,7 @@ EMAIL_PROVIDER_RE = re.compile(
     r"penyedia email|email bisnis|"
     # Cebuano
     r"tighatag sa email|email sa negosyo"
-    r")\b"
+    r")s?\b"
 )
 
 # Lower-precedence (industry-tier) categories. Each detector below has its
@@ -4287,7 +4345,7 @@ AGRICULTURE_RE = re.compile(
     # Cebuano
     r"agrikultura|pagpananom|pag-alima sa hayop|"
     r"kooperatiba sa agrikultura|produkto sa uma"
-    r")\b"
+    r")s?\b"
 )
 
 BEAUTY_RE = re.compile(
@@ -4512,7 +4570,7 @@ BEAUTY_RE = re.compile(
     # Cebuano
     r"saluna sa kaanyag|saluna sa buhok|"
     r"kosmetiko|pag-atiman sa panit"
-    r")\b"
+    r")s?\b"
 )
 
 CONSTRUCTION_RE = re.compile(
@@ -4734,7 +4792,7 @@ CONSTRUCTION_RE = re.compile(
     # Cebuano
     r"kompaniya sa konstruksyon|kontraktor sa konstruksyon|"
     r"serbisyo sa konstruksyon"
-    r")\b"
+    r")s?\b"
 )
 
 CONSULTING_RE = re.compile(
@@ -4896,7 +4954,7 @@ CONSULTING_RE = re.compile(
     r"perusahaan konsultan|"
     # Cebuano
     r"kompaniya sa konsultasyon"
-    r")\b"
+    r")s?\b"
 )
 
 DEFENSE_RE = re.compile(
@@ -5046,7 +5104,7 @@ DEFENSE_RE = re.compile(
     r"industri pertahanan|peralatan militer|"
     # Cebuano
     r"industriya sa depensa|kagamitang militar"
-    r")\b"
+    r")s?\b"
 )
 
 EVENT_PLANNING_RE = re.compile(
@@ -5210,13 +5268,14 @@ EVENT_PLANNING_RE = re.compile(
     r"penyelenggara acara|"
     # Cebuano
     r"organisasyon sa mga panghitabo|paghikay sa kasal"
-    r")\b"
+    r")s?\b"
 )
 
 LOGISTICS_RE = re.compile(
     r"(?i)\b("
     # English
     r"logistics|freight forwarding|freight forwarder|"
+    r"freight solutions?|freight management|freight broker(?:age)?|"
     r"shipping and logistics|supply chain|"
     r"customs brokerage|express shipping|"
     r"trucking|cargo services|warehousing|"
@@ -5477,7 +5536,7 @@ LOGISTICS_RE = re.compile(
     # Cebuano
     r"kompaniya sa logistics|kadena sa suplay|"
     r"broker sa customs"
-    r")\b"
+    r")s?\b"
 )
 
 MSSP_RE = re.compile(
@@ -5486,7 +5545,11 @@ MSSP_RE = re.compile(
     r"mssp\b|managed security services|"
     r"managed security service provider|"
     r"managed detection and response|mdr\b|"
-    r"managed cybersecurity|security operations center|security operations centre|soc\b|"
+    r"managed cybersecurity|cyber security for business|"
+    r"cybersecurity company|cyber security company|"
+    r"cybersecurity firm|cyber security firm|"
+    r"cybersecurity solutions|cyber security solutions|"
+    r"security operations center|security operations centre|soc\b|"
     # Spanish
     r"servicios de seguridad gestionados|"
     r"servicios de ciberseguridad gestionados|"
@@ -5560,7 +5623,7 @@ MSSP_RE = re.compile(
     r"layanan keamanan terkelola|"
     # Cebuano
     r"managed security services"
-    r")\b"
+    r")s?\b"
 )
 
 NEWS_RE = re.compile(
@@ -5774,7 +5837,7 @@ NEWS_RE = re.compile(
     # Cebuano
     r"mantalaan|ahensya sa balita|"
     r"website sa balita"
-    r")\b"
+    r")s?\b"
 )
 
 NONPROFIT_RE = re.compile(
@@ -5950,7 +6013,7 @@ NONPROFIT_RE = re.compile(
     r"organisasi nirlaba|yayasan amal|"
     # Cebuano
     r"non[- ]profit nga organisasyon|charitable nga organisasyon"
-    r")\b"
+    r")s?\b"
 )
 
 PHOTOGRAPHY_RE = re.compile(
@@ -6097,7 +6160,7 @@ PHOTOGRAPHY_RE = re.compile(
     r"studio foto|fotografer pernikahan|"
     # Cebuano
     r"estudyo sa litrato|magkukuha sa litrato sa kasal"
-    r")\b"
+    r")s?\b"
 )
 
 PHYSICAL_SECURITY_RE = re.compile(
@@ -6181,7 +6244,7 @@ PHYSICAL_SECURITY_RE = re.compile(
     r"vartiointiliike|hälytysjärjestelmä|"
     r"valvontakamerat|kulunvalvonta|"
     # Swedish
-    r"säkerhetsbolag|larmsystem|"
+    r"säkerhetsbolag|larmsystem|säkerhetslösningar|bevakning|"
     r"kameraövervakning|passersystem|"
     # Norwegian
     r"vakttjeneste|alarmsystem|"
@@ -6270,7 +6333,7 @@ PHYSICAL_SECURITY_RE = re.compile(
     r"perusahaan keamanan|sistem alarm|"
     # Cebuano
     r"kompaniya sa seguridad|sistema sa alarma"
-    r")\b"
+    r")s?\b"
 )
 
 PRINT_RE = re.compile(
@@ -6414,7 +6477,7 @@ PRINT_RE = re.compile(
     r"perusahaan percetakan|"
     # Cebuano
     r"kompaniya sa pag-imprenta"
-    r")\b"
+    r")s?\b"
 )
 
 PUBLISHING_RE = re.compile(
@@ -6556,7 +6619,7 @@ PUBLISHING_RE = re.compile(
     r"penerbit|penerbit buku|"
     # Cebuano
     r"magmamantala|kompaniya sa pagmantala"
-    r")\b"
+    r")s?\b"
 )
 
 RELIGION_RE = re.compile(
@@ -6789,7 +6852,7 @@ RELIGION_RE = re.compile(
     r"komunità reliġjuża|organizzazzjoni reliġjuża|"
     # Luxembourgish
     r"kierch|moschee|sinagog|kapell|"
-    r"kathedral|por|bistum|klouschter|"
+    r"kathedral|bistum|klouschter|"
     r"reliéis gemeinschaft|reliéis organisatioun|"
     # Haitian Creole
     r"legliz|moske|"
@@ -6811,17 +6874,17 @@ RELIGION_RE = re.compile(
     r"синагога|монастырь|"
     r"дини җәмгыять|дини оешма|"
     # Javanese
-    r"gereja|masjid|pura|"
+    r"gereja|masjid|"
     r"sinagoga|wihara|biara|"
     r"komunitas keagamaan|"
     # Sundanese
     r"masjid|gareja|"
-    r"pura|wihara|biara|"
+    r"wihara|biara|"
     # Cebuano
     r"simbahan|moske|"
     r"sinagoga|templo|monasteryo|"
     r"komunidad nga relihiyoso"
-    r")\b"
+    r")s?\b"
 )
 
 SCIENCE_RE = re.compile(
@@ -6992,7 +7055,7 @@ SCIENCE_RE = re.compile(
     r"lembaga penelitian|riset ilmiah|"
     # Cebuano
     r"institute sa pagsiksik|siyentipikong pagsiksik"
-    r")\b"
+    r")s?\b"
 )
 
 SEARCH_ENGINE_RE = re.compile(
@@ -7115,7 +7178,7 @@ SEARCH_ENGINE_RE = re.compile(
     r"mesin pencari|"
     # Cebuano
     r"makina sa pagpangita"
-    r")\b"
+    r")s?\b"
 )
 
 SOCIAL_MEDIA_RE = re.compile(
@@ -7254,7 +7317,7 @@ SOCIAL_MEDIA_RE = re.compile(
     r"jaringan sosial|"
     # Cebuano
     r"social network|social media nga plataporma"
-    r")\b"
+    r")s?\b"
 )
 
 SPORTS_RE = re.compile(
@@ -7265,6 +7328,9 @@ SPORTS_RE = re.compile(
     r"sports league|athletic association|"
     r"sports federation|sporting goods|"
     r"rugby club|cricket club|tennis club|"
+    r"football team|nfl team|nba team|nhl team|mlb team|"
+    r"basketball franchise|baseball franchise|hockey franchise|"
+    r"esports team|esports organization|"
     r"national team|olympic committee|"
     # Spanish
     r"club deportivo|equipo de fútbol|"
@@ -7302,6 +7368,7 @@ SPORTS_RE = re.compile(
     r"športová liga|športová federácia|olympijský výbor|"
     # Russian
     r"спортивный клуб|футбольный клуб|"
+    r"футбольного клуба|футбольному клубу|футбольным клубом|"
     r"спортивная лига|спортивная федерация|"
     r"спортивные товары|олимпийский комитет|"
     # Ukrainian
@@ -7502,7 +7569,7 @@ SPORTS_RE = re.compile(
     # Cebuano
     r"sports club|football club|"
     r"liga sa sports|federasyon sa sports"
-    r")\b"
+    r")s?\b"
 )
 
 STAFFING_RE = re.compile(
@@ -7596,6 +7663,7 @@ STAFFING_RE = re.compile(
     # Chinese (Simplified and Traditional)
     r"人力资源公司|人力資源公司|招聘公司|"
     r"猎头公司|獵頭公司|劳务派遣|勞務派遣|"
+    r"人力銀行|人才招募|職涯|"
     # Japanese
     r"人材紹介|人材派遣|"
     r"ヘッドハンティング|転職エージェント|"
@@ -7652,7 +7720,7 @@ STAFFING_RE = re.compile(
     r"agensi rekrutmen|agensi tenaga kerja|"
     # Cebuano
     r"ahensya sa trabaho|ahensya sa rekrutment"
-    r")\b"
+    r")s?\b"
 )
 
 TECHNOLOGY_RE = re.compile(
@@ -7663,6 +7731,8 @@ TECHNOLOGY_RE = re.compile(
     r"app development|mobile app development|"
     r"systems integrator|systems integration|"
     r"it services|information technology services|"
+    r"it solutions|information technology solutions|"
+    r"managed it services|it support services|"
     # Spanish
     r"empresa de tecnología|desarrollo de software|"
     r"consultoría tecnológica|integrador de sistemas|"
@@ -7681,6 +7751,7 @@ TECHNOLOGY_RE = re.compile(
     r"sviluppo di applicazioni|servizi informatici|"
     # German
     r"technologieunternehmen|softwareentwicklung|"
+    r"it[- ]systemhaus|it[- ]dienstleistungen|"
     r"technologieberatung|systemintegrator|"
     r"app[- ]?entwicklung|it[- ]dienstleister|"
     # Dutch
@@ -7710,6 +7781,7 @@ TECHNOLOGY_RE = re.compile(
     r"integrator de sisteme|servicii it|"
     # Hungarian
     r"technológiai cég|szoftverfejlesztés|"
+    r"informatika kft|it infrastruktúra megoldás|"
     r"rendszerintegrátor|alkalmazásfejlesztés|"
     # Croatian / Serbian / Bosnian
     r"tehnološka kompanija|razvoj softvera|"
@@ -7721,6 +7793,7 @@ TECHNOLOGY_RE = re.compile(
     r"υπηρεσίες πληροφορικής|ολοκληρωτής συστημάτων|"
     # Turkish
     r"teknoloji şirketi|yazılım geliştirme|"
+    r"bilişim şirketi|bilişim hizmetleri|"
     r"sistem entegratörü|uygulama geliştirme|bt hizmetleri|"
     # Albanian
     r"kompani teknologjie|zhvillim softueri|"
@@ -7845,7 +7918,7 @@ TECHNOLOGY_RE = re.compile(
     r"perusahaan teknologi|pengembangan perangkat lunak|"
     # Cebuano
     r"kompaniya sa teknolohiya|pag-uswag sa software"
-    r")\b"
+    r")s?\b"
 )
 
 UTILITIES_RE = re.compile(
@@ -8019,7 +8092,7 @@ UTILITIES_RE = re.compile(
     r"perusahaan listrik|perusahaan air|"
     # Cebuano
     r"kompaniya sa elektrisidad|kompaniya sa tubig"
-    r")\b"
+    r")s?\b"
 )
 
 # Energy — non-utility energy companies (gas distributors, oil & gas
@@ -8031,6 +8104,7 @@ ENERGY_RE = re.compile(
     r"(?i)\b("
     # English
     r"energy company|energy services|energy solutions|"
+    r"hydrogen energy|green hydrogen|electrolyser|electrolyzer|"
     r"energy provider|gas distribution|natural gas distribution|"
     r"renewable energy company|solar energy company|"
     r"wind energy company|"
@@ -8201,7 +8275,7 @@ ENERGY_RE = re.compile(
     r"perusahaan energi|energi terbarukan|"
     # Cebuano
     r"kompaniya sa enerhiya|enerhiya nga gibag-o"
-    r")\b"
+    r")s?\b"
 )
 
 # Government Media — state-owned broadcasters / press agencies
@@ -8330,7 +8404,7 @@ GOV_MEDIA_RE = re.compile(
     r"media negara|penyiaran publik|"
     # Cebuano
     r"media sa estado"
-    r")\b"
+    r")s?\b"
 )
 
 # Industrial — broader than Manufacturing; chemicals, mining, metals,
@@ -8357,6 +8431,7 @@ INDUSTRIAL_RE = re.compile(
     r"produits chimiques industriels|industrie chimique|"
     # Italian
     r"industria pesante|petrolchimica|"
+    r"acciai speciali|acciaio inossidabile|laminati (?:piani|in acciaio)|"
     r"azienda mineraria|gruppo industriale|"
     r"prodotti chimici industriali|industria chimica|"
     # German
@@ -8540,7 +8615,7 @@ INDUSTRIAL_RE = re.compile(
     r"industri beurat|"
     # Cebuano
     r"industriya nga bug-at|kompaniya sa pagmina"
-    r")\b"
+    r")s?\b"
 )
 
 # IaaS — explicit infrastructure clouds (compute, storage). Bare "cloud"
@@ -8607,7 +8682,7 @@ IAAS_RE = re.compile(
     r"hạ tầng dưới dạng dịch vụ|đám mây công cộng|"
     # Indonesian
     r"infrastruktur sebagai layanan|cloud publik"
-    r")\b"
+    r")s?\b"
 )
 
 # PaaS — explicit platforms-as-a-service
@@ -8672,7 +8747,7 @@ PAAS_RE = re.compile(
     r"nền tảng dưới dạng dịch vụ|nền tảng ứng dụng|"
     # Indonesian
     r"platform sebagai layanan"
-    r")\b"
+    r")s?\b"
 )
 
 # SaaS — explicit software platforms / verticalized SaaS
@@ -8684,6 +8759,19 @@ SAAS_RE = re.compile(
     r"crm platform|erp platform|hrm platform|hcm platform|"
     r"workflow automation platform|workforce management platform|"
     r"saas company|saas solution|"
+    r"bpm[ -](?:system|platform|software)|"
+    r"ecm platform|cxm platform|"
+    r"customer experience management|"
+    r"business intelligence platform|"
+    r"low[- ]code platform|no[- ]code platform|"
+    r"ccaas\b|contact[- ]center[- ]as[- ]a[- ]service|"
+    r"contact center platform|contact center software|"
+    r"omnichannel contact cent(?:er|re) (?:solutions?|platform|software)|"
+    r"cpaas\b|communications[- ]platform[- ]as[- ]a[- ]service|"
+    r"compliance software|regulatory (?:management )?software|"
+    # Russian SaaS-class compounds
+    r"bpm[- ]система|crm[- ]система|erp[- ]система|"
+    r"hcm[- ]система|"
     # Spanish
     r"software como servicio|plataforma todo en uno|"
     r"plataforma crm|plataforma erp|"
@@ -8745,7 +8833,7 @@ SAAS_RE = re.compile(
     r"phần mềm dưới dạng dịch vụ|"
     # Indonesian
     r"perangkat lunak sebagai layanan"
-    r")\b"
+    r")s?\b"
 )
 
 # Conglomerate — diversified holding companies. Hard to detect well from
@@ -8835,7 +8923,7 @@ CONGLOMERATE_RE = re.compile(
     r"perusahaan induk|grup konglomerasi|"
     # Malay
     r"syarikat induk|kumpulan korporat"
-    r")\b"
+    r")s?\b"
 )
 
 PRIVACY_ORG_RE = re.compile(
@@ -9024,60 +9112,296 @@ def pick_brand(row: dict, domain: str, as_name: str) -> str:
     return derive_brand_from_domain(domain)
 
 
+# TLD tuples used by `auto_classify` to seed bare-TLD classifications. Each
+# TLD here is restricted by its registry (only schools, only government bodies,
+# only military) so the suffix is itself a corroborating source — the brand
+# derived from the leftmost label can stand alone without homepage / WHOIS
+# corroboration.
+_EDU_TLDS = (
+    # English-style edu / academic TLDs
+    ".edu",
+    ".edu.au",
+    ".edu.ar",
+    ".edu.bd",
+    ".edu.bh",
+    ".edu.bo",
+    ".edu.br",
+    ".edu.cn",
+    ".edu.co",
+    ".edu.do",
+    ".edu.ec",
+    ".edu.eg",
+    ".edu.gh",
+    ".edu.gt",
+    ".edu.hk",
+    ".edu.iq",
+    ".edu.jm",
+    ".edu.jo",
+    ".edu.kh",
+    ".edu.kw",
+    ".edu.lb",
+    ".edu.ly",
+    ".edu.mk",
+    ".edu.mn",
+    ".edu.mt",
+    ".edu.mx",
+    ".edu.my",
+    ".edu.ng",
+    ".edu.np",
+    ".edu.om",
+    ".edu.pa",
+    ".edu.pe",
+    ".edu.ph",
+    ".edu.pk",
+    ".edu.pl",
+    ".edu.pr",
+    ".edu.ps",
+    ".edu.qa",
+    ".edu.rs",
+    ".edu.sa",
+    ".edu.sg",
+    ".edu.sl",
+    ".edu.sn",
+    ".edu.sv",
+    ".edu.tr",
+    ".edu.tt",
+    ".edu.tw",
+    ".edu.uy",
+    ".edu.ve",
+    ".edu.vn",
+    ".edu.ye",
+    ".edu.zw",
+    ".edu.la",
+    ".edu.mg",
+    # ac.* academic TLDs (UK-style)
+    ".ac.uk",
+    ".ac.in",
+    ".ac.jp",
+    ".ac.kr",
+    ".ac.za",
+    ".ac.nz",
+    ".ac.id",
+    ".ac.th",
+    ".ac.ir",
+    ".ac.il",
+    ".ac.cn",
+    ".ac.cy",
+    ".ac.lk",
+    ".ac.bd",
+    ".ac.cr",
+    ".ac.ma",
+    ".ac.mu",
+    ".ac.mw",
+    ".ac.mz",
+    ".ac.ng",
+    ".ac.pa",
+    ".ac.pk",
+    ".ac.rs",
+    ".ac.rw",
+    ".ac.sn",
+    ".ac.tz",
+    ".ac.ug",
+    ".ac.uz",
+    ".ac.zm",
+    ".ac.zw",
+)
+_GOV_TLDS = (
+    # English / generic government TLDs
+    ".gov",
+    ".gov.uk",
+    ".gov.au",
+    ".gov.in",
+    ".gov.br",
+    ".gov.cn",
+    ".gov.za",
+    ".gov.tr",
+    ".gov.it",
+    ".gov.pl",
+    ".gov.ua",
+    ".gov.vn",
+    ".gov.bd",
+    ".gov.ar",
+    ".gov.sa",
+    ".gov.lv",
+    ".gov.ge",
+    ".gov.ph",
+    ".gov.kw",
+    ".gov.sg",
+    ".gov.pt",
+    ".gov.ng",
+    ".gov.kh",
+    ".gov.il",
+    ".gov.co",
+    ".gov.pk",
+    ".gov.my",
+    ".gov.ir",
+    ".gov.ae",
+    ".gov.al",
+    ".gov.gr",
+    ".gov.cy",
+    ".gov.mt",
+    ".gov.ie",
+    ".gov.bg",
+    ".gov.hu",
+    ".gov.ro",
+    ".gov.sk",
+    ".gov.si",
+    ".gov.hr",
+    ".gov.rs",
+    ".gov.mk",
+    ".gov.uz",
+    ".gov.kz",
+    ".gov.kg",
+    ".gov.tj",
+    ".gov.tm",
+    ".gov.eg",
+    ".gov.et",
+    ".gov.gh",
+    ".gov.lk",
+    ".gov.np",
+    ".gov.bh",
+    ".gov.jo",
+    ".gov.lb",
+    ".gov.ye",
+    ".gov.qa",
+    ".gov.om",
+    ".gov.iq",
+    ".gov.sd",
+    ".gov.dz",
+    ".gov.ma",
+    ".gov.tn",
+    ".gov.ke",
+    ".gov.bm",
+    ".gov.ky",
+    ".gov.tt",
+    ".gov.jm",
+    ".gov.bb",
+    ".gov.fj",
+    ".gov.ws",
+    ".gov.az",
+    ".gov.ba",
+    # gob.* (Spanish/Latin American government)
+    ".gob.mx",
+    ".gob.cl",
+    ".gob.ar",
+    ".gob.gt",
+    ".gob.es",
+    ".gob.pe",
+    ".gob.ec",
+    ".gob.hn",
+    ".gob.ni",
+    ".gob.pa",
+    ".gob.do",
+    ".gob.cu",
+    ".gob.ve",
+    ".gob.bo",
+    ".gob.sv",
+    # go.* (Asian / African government)
+    ".go.kr",
+    ".go.id",
+    ".go.th",
+    ".go.jp",
+    ".go.tz",
+    ".go.ug",
+    ".go.ke",
+    # gouv.* (French-style government)
+    ".gouv.fr",
+    ".gouv.qc.ca",
+    ".gouv.ci",
+    ".gouv.sn",
+    ".gouv.bj",
+    ".gouv.ht",
+    ".gouv.mg",
+    # National-specific government TLDs
+    ".gv.at",
+    ".admin.ch",
+    ".bund.de",
+    ".government.is",
+    # Judicial-branch TLDs (Brazil, Mexico, etc.) — restricted to courts.
+    ".jus.br",
+    ".jus.mx",
+    ".pjbf.gob.ar",
+    # Legislative branch
+    ".leg.br",
+)
+_MIL_TLDS = (
+    ".mil",
+    ".mil.ar",
+    ".mil.bd",
+    ".mil.br",
+    ".mil.co",
+    ".mil.do",
+    ".mil.ec",
+    ".mil.fj",
+    ".mil.gh",
+    ".mil.gt",
+    ".mil.id",
+    ".mil.iq",
+    ".mil.jo",
+    ".mil.kg",
+    ".mil.kh",
+    ".mil.km",
+    ".mil.kz",
+    ".mil.lb",
+    ".mil.lv",
+    ".mil.my",
+    ".mil.ng",
+    ".mil.no",
+    ".mil.nz",
+    ".mil.pe",
+    ".mil.ph",
+    ".mil.pl",
+    ".mil.py",
+    ".mil.qa",
+    ".mil.rs",
+    ".mil.ru",
+    ".mil.sa",
+    ".mil.sd",
+    ".mil.tj",
+    ".mil.tr",
+    ".mil.tw",
+    ".mil.tz",
+    ".mil.ua",
+    ".mil.uk",
+    ".mil.uy",
+    ".mil.uz",
+    ".mil.vc",
+    ".mil.ve",
+    ".mil.ye",
+    ".mil.zm",
+    ".mil.zw",
+)
+
+
 def auto_classify(row: dict, domain: str, as_name: str) -> tuple | None:
     title = fix_text(row.get("title", ""))
     desc = fix_text(row.get("description", ""))
     text = f"{title} {desc}"
+    is_edu_tld = domain.endswith(_EDU_TLDS) or bool(
+        # US K-12 school suffix: <something>.k12.<state>.us. The k12 segment
+        # is restricted to public school districts and individual schools, so
+        # the suffix on its own is enough signal for Education.
+        re.search(r"\.k12\.[a-z]{2}\.us$", domain)
+    )
+    is_gov_tld = domain.endswith(_GOV_TLDS)
+    is_mil_tld = domain.endswith(_MIL_TLDS)
 
-    # Need *some* signal to classify (text or as_name)
-    if not (title or desc) and not as_name:
+    # Need *some* signal to classify (text, as_name, or one of the
+    # category-signaling TLDs handled below). A bare-TLD classification is
+    # acceptable on its own — gov.kh / ac.id / mil.bd don't get registered
+    # without going through their respective registry's eligibility check,
+    # so the TLD is itself a corroborating source.
+    if (
+        not (title or desc)
+        and not as_name
+        and not (is_edu_tld or is_gov_tld or is_mil_tld)
+    ):
         return None
 
     is_isp = bool(ISP_RE.search(text)) or bool(ISP_RE.search(as_name))
     is_host = bool(WEB_HOST_RE.search(text)) or bool(WEB_HOST_RE.search(as_name))
-    is_edu = bool(EDUCATION_RE.search(text)) or domain.endswith(
-        (
-            ".edu",
-            ".edu.au",
-            ".ac.uk",
-            ".ac.in",
-            ".ac.jp",
-            ".ac.kr",
-            ".ac.za",
-            ".ac.nz",
-            ".edu.mx",
-            ".edu.br",
-            ".edu.tr",
-            ".edu.cn",
-            ".edu.tw",
-            ".edu.sg",
-            ".edu.my",
-            ".edu.ph",
-            ".edu.eg",
-        )
-    )
-    is_gov = bool(GOV_RE.search(text)) or any(
-        domain.endswith(s)
-        for s in (
-            ".gov",
-            ".gov.uk",
-            ".gov.au",
-            ".gov.in",
-            ".gov.br",
-            ".go.kr",
-            ".go.id",
-            ".go.th",
-            ".gob.mx",
-            ".gob.cl",
-            ".gob.ar",
-            ".gob.gt",
-            ".gov.cn",
-            ".gov.za",
-            ".gov.tr",
-            ".gv.at",
-            ".admin.ch",
-        )
-    )
+    is_edu = bool(EDUCATION_RE.search(text)) or is_edu_tld
+    is_gov = bool(GOV_RE.search(text)) or is_gov_tld
     is_health = bool(HEALTHCARE_RE.search(text))
     is_retail = bool(RETAIL_RE.search(text))
     is_manuf = bool(MANUFACTURING_RE.search(text))
@@ -9096,7 +9420,7 @@ def auto_classify(row: dict, domain: str, as_name: str) -> tuple | None:
     is_beauty = bool(BEAUTY_RE.search(text))
     is_construction = bool(CONSTRUCTION_RE.search(text))
     is_consulting = bool(CONSULTING_RE.search(text))
-    is_defense = bool(DEFENSE_RE.search(text))
+    is_defense = bool(DEFENSE_RE.search(text)) or is_mil_tld
     is_event = bool(EVENT_PLANNING_RE.search(text))
     is_logistics = bool(LOGISTICS_RE.search(text))
     is_mssp = bool(MSSP_RE.search(text))
@@ -9177,111 +9501,79 @@ def auto_classify(row: dict, domain: str, as_name: str) -> tuple | None:
         elif re.search(r"(?i)\b(bank|banca|banco|banque)\b", as_name):
             return (brand, "Finance")
 
-    # Per README precedence: Email Security > Marketing > ISP > Web Host >
-    # Email Provider > SaaS > industry. The first three win over network
-    # operator types when matched.
-    if is_email_security:
-        return (brand, "Email Security")
-    if is_marketing:
-        return (brand, "Marketing")
-    # Healthcare wins over Education when both match (e.g. "University Health Network")
-    if is_health:
-        return (brand, "Healthcare")
-    if is_isp:
-        return (brand, "ISP")
-    if is_host:
-        return (brand, "Web Host")
-    # IaaS / PaaS / SaaS sit between Web Host and Email Provider — explicit
-    # cloud-tier matches before falling to industry.
-    if is_iaas:
-        return (brand, "IaaS")
-    if is_paas:
-        return (brand, "PaaS")
-    if is_saas:
-        return (brand, "SaaS")
-    if is_email_provider:
-        return (brand, "Email Provider")
-    if is_edu:
-        return (brand, "Education")
-    if is_gov:
-        return (brand, "Government")
-    if is_gov_media:
-        return (brand, "Government Media")
-    if is_mssp:
-        return (brand, "MSSP")
-    # Finance via body text catches insurance, investment, asset mgmt, etc.
-    # — categories that the narrow as_name `bank|banca|...` fallback misses.
-    if is_finance:
-        return (brand, "Finance")
-    # Industry-tier — order by signal specificity / typical false-positive
-    # risk. More-specific keywords first; broader / fuzzier last.
-    if is_defense:
-        return (brand, "Defense")
-    if is_legal:
-        return (brand, "Legal")
-    if is_news:
-        return (brand, "News")
-    if is_publishing:
-        return (brand, "Publishing")
-    if is_print:
-        return (brand, "Print")
-    if is_photography:
-        return (brand, "Photography")
-    if is_physical_security:
-        return (brand, "Physical Security")
-    if is_religion:
-        return (brand, "Religion")
-    if is_science:
-        return (brand, "Science")
-    if is_search:
-        return (brand, "Search Engine")
-    if is_social:
-        return (brand, "Social Media")
-    if is_sports:
-        return (brand, "Sports")
-    if is_staffing:
-        return (brand, "Staffing")
-    if is_event:
-        return (brand, "Event Planning")
-    if is_travel:
-        return (brand, "Travel")
-    if is_realestate:
-        return (brand, "Real Estate")
-    if is_logistics:
-        return (brand, "Logistics")
-    if is_food:
-        return (brand, "Food")
-    if is_auto:
-        return (brand, "Automotive")
-    if is_beauty:
-        return (brand, "Beauty")
-    if is_construction:
-        return (brand, "Construction")
-    if is_agriculture:
-        return (brand, "Agriculture")
-    if is_utilities:
-        return (brand, "Utilities")
-    if is_energy:
-        # README does not yet define an "Energy" type; map non-utility
-        # energy companies to Utilities until that's added.
-        return (brand, "Utilities")
-    if is_nonprofit:
-        return (brand, "Nonprofit")
-    if is_ent:
-        return (brand, "Entertainment")
-    if is_manuf:
-        return (brand, "Manufacturing")
-    if is_industrial:
-        return (brand, "Industrial")
-    if is_consulting:
-        return (brand, "Consulting")
-    if is_tech:
-        return (brand, "Technology")
-    if is_retail:
-        return (brand, "Retail")
-    if is_conglomerate:
-        return (brand, "Conglomerate")
-    return None
+    # Per README precedence: Email Security > Marketing > Healthcare > ISP >
+    # Web Host > IaaS / PaaS / SaaS > Email Provider > industry. We collect
+    # ALL detector hits in priority order so the caller can detect when more
+    # than one distinct category fired and surface the row for human review
+    # rather than auto-promoting the highest-precedence guess. Industry-tier
+    # detectors are ordered by signal specificity / false-positive risk —
+    # more-specific keywords first; broader / fuzzier last.
+    candidates_in_priority = [
+        (is_email_security, "Email Security"),
+        (is_marketing, "Marketing"),
+        # Healthcare wins over Education when both match
+        # (e.g. "University Health Network").
+        (is_health, "Healthcare"),
+        (is_isp, "ISP"),
+        (is_host, "Web Host"),
+        (is_iaas, "IaaS"),
+        (is_paas, "PaaS"),
+        (is_saas, "SaaS"),
+        (is_email_provider, "Email Provider"),
+        (is_edu, "Education"),
+        (is_gov, "Government"),
+        (is_gov_media, "Government Media"),
+        (is_mssp, "MSSP"),
+        # Finance via body text catches insurance, investment, asset mgmt,
+        # etc. — categories the narrow as_name `bank|banca|...` fallback
+        # misses.
+        (is_finance, "Finance"),
+        (is_defense, "Defense"),
+        (is_legal, "Legal"),
+        (is_news, "News"),
+        (is_publishing, "Publishing"),
+        (is_print, "Print"),
+        (is_photography, "Photography"),
+        (is_physical_security, "Physical Security"),
+        (is_religion, "Religion"),
+        (is_science, "Science"),
+        (is_search, "Search Engine"),
+        (is_social, "Social Media"),
+        (is_sports, "Sports"),
+        (is_staffing, "Staffing"),
+        (is_event, "Event Planning"),
+        (is_travel, "Travel"),
+        (is_realestate, "Real Estate"),
+        (is_logistics, "Logistics"),
+        (is_food, "Food"),
+        (is_auto, "Automotive"),
+        (is_beauty, "Beauty"),
+        (is_construction, "Construction"),
+        (is_agriculture, "Agriculture"),
+        (is_utilities, "Utilities"),
+        # README has no "Energy" type yet — non-utility energy maps to
+        # Utilities until that's added.
+        (is_energy, "Utilities"),
+        (is_nonprofit, "Nonprofit"),
+        (is_ent, "Entertainment"),
+        (is_manuf, "Manufacturing"),
+        (is_industrial, "Industrial"),
+        (is_consulting, "Consulting"),
+        (is_tech, "Technology"),
+        (is_retail, "Retail"),
+        (is_conglomerate, "Conglomerate"),
+    ]
+    matched = []
+    for fired, label in candidates_in_priority:
+        if fired and label not in matched:
+            matched.append(label)
+    if not matched:
+        return None
+    primary = matched[0]
+    alternatives = matched[1:]
+    if alternatives:
+        return (brand, primary, alternatives)
+    return (brand, primary)
 
 
 def _load_mmdb_as_names(mmdb_path: str) -> dict:
@@ -9308,14 +9600,26 @@ def _load_mmdb_as_names(mmdb_path: str) -> dict:
 def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
     """Classify every row of a collect_domain_info.py TSV.
 
-    Returns ``(adds, ku, stats)`` where ``adds`` is a list of
-    ``(domain, name, type)`` tuples for the map, ``ku`` is the list of
-    domains that didn't classify, and ``stats`` is a dict of counters.
+    Returns ``(adds, ambiguous, ku, stats)``:
+
+    - ``adds`` — ``(domain, name, type)`` tuples where the classifier matched
+      exactly one category and the row can be promoted into the map without
+      review.
+    - ``ambiguous`` — ``(domain, name, primary_type, alternatives, title)``
+      rows where two or more distinct detector categories fired. The
+      classifier won't auto-promote these — the operator-typology question
+      is "does this domain belong to category A or category B?", and that's
+      a judgement call the classifier shouldn't make on its own (per
+      AGENTS.md). The output file is a worklist: a human picks one of the
+      candidates (or a different category, or rejects the row to KU).
+    - ``ku`` — domains where no detector fired.
+    - ``stats`` — counters.
     """
     asn = _load_mmdb_as_names(mmdb_path)
     adds: list = []
+    ambiguous: list = []
     ku: list = []
-    auto = hand = 0
+    auto = hand = ambig = 0
     with open(input_path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
@@ -9332,12 +9636,22 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
                     hand += 1
                 continue
             r = auto_classify(row, domain, as_name)
-            if r:
+            if r is None:
+                ku.append(domain)
+            elif len(r) == 2:
                 adds.append((domain, r[0], r[1]))
                 auto += 1
             else:
-                ku.append(domain)
-    return adds, ku, {"auto": auto, "hand": hand, "ku": len(ku)}
+                # (brand, primary, alternatives) — multi-category match.
+                title = (row.get("title") or "").strip()
+                ambiguous.append((domain, r[0], r[1], r[2], title))
+                ambig += 1
+    return (
+        adds,
+        ambiguous,
+        ku,
+        {"auto": auto, "hand": hand, "ambig": ambig, "ku": len(ku)},
+    )
 
 
 def main():
@@ -9359,13 +9673,25 @@ def main():
         help="Output text file for known-unknown additions. Default: %(default)s",
     )
     p.add_argument(
+        "--ambiguous-out",
+        default="/tmp/ambiguous_additions.tsv",
+        help=(
+            "Output TSV for rows where two or more distinct detector categories "
+            "fired. Columns: domain, name, primary_type, alternatives "
+            "(pipe-separated), title. These are NOT auto-promoted — a human "
+            "must pick one of the candidates (or assign a different category, "
+            "or send the row to KU) before the row enters the map. "
+            "Default: %(default)s"
+        ),
+    )
+    p.add_argument(
         "--mmdb",
         default=DEFAULT_MMDB,
         help="Path to ipinfo_lite.mmdb. Default: bundled MMDB",
     )
     args = p.parse_args()
 
-    adds, ku, stats = classify_tsv(args.input, args.mmdb)
+    adds, ambiguous, ku, stats = classify_tsv(args.input, args.mmdb)
 
     with open(args.map_out, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f, lineterminator="\r\n")
@@ -9374,18 +9700,21 @@ def main():
     with open(args.ku_out, "w", encoding="utf-8") as f:
         for d in sorted(set(ku)):
             f.write(d + "\n")
+    with open(args.ambiguous_out, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f, delimiter="\t", lineterminator="\n")
+        w.writerow(["domain", "name", "primary_type", "alternatives", "title"])
+        for domain, name, primary, alts, title in sorted(ambiguous):
+            w.writerow([domain, name, primary, "|".join(alts), title])
 
     print(
         f"auto: {stats['auto']}, hand: {stats['hand']}, "
+        f"ambig: {stats['ambig']}, "
         f"ku: {stats['ku']} (unique: {len(set(ku))})",
         file=sys.stderr,
     )
-    print(f"  map adds -> {args.map_out}")
-    print(f"  ku adds  -> {args.ku_out}")
-
-
-if __name__ == "__main__":
-    main()
+    print(f"  map adds   -> {args.map_out}")
+    print(f"  ku adds    -> {args.ku_out}")
+    print(f"  ambiguous  -> {args.ambiguous_out}")
 
 
 if __name__ == "__main__":
