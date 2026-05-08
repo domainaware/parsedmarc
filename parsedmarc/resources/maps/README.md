@@ -73,7 +73,7 @@ The `service_type` is based on the following rule precedence:
 - Web Host
 <!-- types-list:end -->
 
-The list above is the authoritative set of allowed `type` values; `sortlists.py` parses the bullet items between the `<!-- types-list:start -->` and `<!-- types-list:end -->` HTML comment markers and uses them to validate every row's `type` column. Keep the markers intact when editing.
+The list above is the authoritative set of allowed `type` values; `sortlists.py` parses the bullet items between the `<!-- types-list:start -->` and `<!-- types-list:end -->` HTML comment markers and uses them to validate every row's `type` column. Before validating the map, it also normalizes the block in place: trims whitespace, deduplicates case-insensitively, and sorts the entries alphabetically — so adding a new type is just a matter of inserting a `- New Type` line anywhere inside the markers, and `sortlists.py` will tidy it on the next run. Keep the markers themselves intact when editing.
 
 The file currently contains over 5,000 mappings from a wide variety of email sending sources.
 

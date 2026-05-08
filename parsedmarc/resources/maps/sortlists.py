@@ -15,12 +15,31 @@ _TYPES_LIST_RE = re.compile(
 )
 
 
-def load_types_from_readme(readme_path: Union[str, Path]) -> List[str]:
-    """Read the authoritative `type` list out of README.md.
+def _parse_types_block(block: str, source: str) -> List[str]:
+    """Extract type names from the raw text between the marker comments."""
+    types: List[str] = []
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not stripped.startswith("- "):
+            raise ValueError(
+                f"{source}: unexpected line inside types-list block: {line!r}"
+            )
+        types.append(stripped[2:].strip())
+    return types
 
-    Parses the bullet items between the `<!-- types-list:start -->` and
-    `<!-- types-list:end -->` HTML comment markers. Each non-blank line
-    inside the markers must start with `- ` followed by the type name.
+
+def normalize_types_in_readme(readme_path: Union[str, Path]) -> List[str]:
+    """Validate, normalize, and load the authoritative `type` list from README.md.
+
+    Trims leading/trailing whitespace from each item, deduplicates
+    case-insensitively (preserving first-seen casing), and sorts the list
+    case-insensitively. If the on-disk list differs from the normalized
+    form, the README is rewritten in place. Returns the normalized list.
+
+    Raises ValueError if the markers are missing, the block is empty, a
+    line doesn't start with `- `, or two entries differ only by casing.
     """
     path = Path(readme_path)
     text = path.read_text(encoding="utf-8")
@@ -29,16 +48,44 @@ def load_types_from_readme(readme_path: Union[str, Path]) -> List[str]:
         raise ValueError(
             f"{path}: missing <!-- types-list:start --> / <!-- types-list:end --> markers"
         )
-    types: List[str] = []
-    for line in m.group(1).splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        if not line.startswith("- "):
+    raw_types = _parse_types_block(m.group(1), str(path))
+    if not raw_types:
+        raise ValueError(f"{path}: types-list block is empty")
+
+    seen: Dict[str, str] = {}
+    for t in raw_types:
+        key = t.lower()
+        if key in seen and seen[key] != t:
             raise ValueError(
-                f"{path}: unexpected line inside types-list block: {line!r}"
+                f"{path}: types-list contains case-conflicting entries: "
+                f"{seen[key]!r} and {t!r}"
             )
-        types.append(line[2:].strip())
+        seen.setdefault(key, t)
+    normalized = sorted(seen.values(), key=str.lower)
+
+    if normalized != raw_types:
+        new_block = "\n".join(f"- {t}" for t in normalized)
+        replacement = f"<!-- types-list:start -->\n{new_block}\n<!-- types-list:end -->"
+        new_text = text[: m.start()] + replacement + text[m.end() :]
+        path.write_text(new_text, encoding="utf-8")
+    return normalized
+
+
+def load_types_from_readme(readme_path: Union[str, Path]) -> List[str]:
+    """Read the authoritative `type` list out of README.md without rewriting.
+
+    Use `normalize_types_in_readme` to additionally sort, dedupe, and
+    rewrite the block in place. This thin wrapper is kept for callers
+    that only want to read the list (e.g. tests, downstream tools).
+    """
+    path = Path(readme_path)
+    text = path.read_text(encoding="utf-8")
+    m = _TYPES_LIST_RE.search(text)
+    if not m:
+        raise ValueError(
+            f"{path}: missing <!-- types-list:start --> / <!-- types-list:end --> markers"
+        )
+    types = _parse_types_block(m.group(1), str(path))
     if not types:
         raise ValueError(f"{path}: types-list block is empty")
     return types
@@ -195,7 +242,7 @@ def _main():
         print(f"Error: {readme_file} does not exist")
         exit(1)
     try:
-        types = load_types_from_readme(readme_file)
+        types = normalize_types_in_readme(readme_file)
     except ValueError as e:
         print(f"Error: {e}")
         exit(1)
