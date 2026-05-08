@@ -1,5 +1,12 @@
 # Changelog
 
+## 9.11.2
+
+### Changes
+
+- **`base_reverse_dns_types.txt` removed; `sortlists.py` now reads the authoritative `type` list directly from `parsedmarc/resources/maps/README.md`.** The README's industry list (between new `<!-- types-list:start -->` / `<!-- types-list:end -->` HTML-comment markers) is now the single source of truth, eliminating the drift risk between the data file and the documented list. Before validating the map, `sortlists.py` also normalizes the README block in place: trims whitespace, deduplicates case-insensitively (errors on case-conflicting entries), and sorts entries alphabetically — so adding a new type is just inserting a `- New Type` line anywhere inside the markers. Also fixes a pre-existing typo in the precedence rules where rule 4 said `Web Hosting` but the canonical type used in 4,176 map rows is `Web Host`.
+- **Maintenance tooling no longer ships in the wheel/sdist.** The Python scripts under `parsedmarc/resources/maps/` (`collect_domain_info.py`, `classify_unknown_domains.py`, `detect_psl_overrides.py`, `detect_rebrands.py`, `sortlists.py`, plus the previously-already-excluded `find_bad_utf8.py` and `find_unknown_base_reverse_dns.py`) are maintainer-only batch tooling, not parsedmarc runtime code. They have always been in the repository for convenience but were unnecessarily included in distributions, pulling reviewer attention and contributing nothing to end-user functionality. The build now excludes any `.py` file under `parsedmarc/resources/maps/` whose name doesn't start with an underscore via a single glob pattern (`parsedmarc/resources/maps/[!_]*.py`), so future maintainer scripts added to that directory are excluded automatically while `__init__.py` continues to ship. The directory's `__init__.py` and the runtime data files (`base_reverse_dns_map.csv`, `known_unknown_base_reverse_dns.txt`, `psl_overrides.txt`) continue to ship — they're loaded at runtime via `importlib.resources.files(parsedmarc.resources.maps)`.
+
 ## 9.11.1
 
 ### Fixed

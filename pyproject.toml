@@ -88,10 +88,11 @@ include = [
 [tool.hatch.build]
 exclude = [
     "base_reverse_dns.csv",
-    "find_bad_utf8.py",
-    "find_unknown_base_reverse_dns.py",
     "unknown_base_reverse_dns.csv",
-    "sortmaps.py",
     "README.md",
-    "*.bak"
+    "*.bak",
+    # Maintenance tooling: any Python file under parsedmarc/resources/maps/
+    # whose name doesn't start with `_` (i.e. everything except __init__.py,
+    # which must keep shipping for `importlib.resources.files()` lookups).
+    "parsedmarc/resources/maps/[!_]*.py",
 ]
