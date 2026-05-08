@@ -191,7 +191,10 @@ ISP_RE = re.compile(
     # Dutch
     r"internetaanbieder|breedband|glasvezel|"
     # Russian
-    r"интернет[- ]?провайдер|провайдер интернет|провайдер|"
+    # Bare `провайдер` removed — collides with `хостинг провайдер`
+    # (hosting provider = Web Host) and other compound forms. Use only
+    # the internet-specific compounds.
+    r"интернет[- ]?провайдер|провайдер интернет|"
     r"широкополосный|оптический интернет|"
     r"телеком|телекоммуникации|оператор связи|"
     r"мобильный оператор|кабельное телевидение|"
@@ -854,7 +857,13 @@ GOV_RE = re.compile(
     # Korean
     r"정부|시청|군청|도청|국무총리실|"
     # Vietnamese
-    r"chính phủ|bộ|ủy ban nhân dân|"
+    # Bare `bộ` removed — collides with Vietnamese "set / series / look"
+    # which appears across non-government text (bộ phim = movie, bộ sưu tập
+    # = collection, etc.). Use compound forms like `bộ trưởng`, `bộ tài
+    # chính`, `bộ ngoại giao` instead, which are unambiguously governmental.
+    r"chính phủ|bộ trưởng|bộ tài chính|bộ ngoại giao|bộ y tế|"
+    r"bộ giáo dục|bộ quốc phòng|bộ công an|bộ tư pháp|"
+    r"ủy ban nhân dân|"
     # Thai
     r"รัฐบาล|กระทรวง|เทศบาล|"
     # Indonesian
@@ -2765,11 +2774,16 @@ FINANCE_RE = re.compile(
     r"stock and commodity market|stock and commodity exchange|"
     r"commodity (?:broker|exchange|market)|"
     r"investor education|"
+    r"accounting firm|cpa firm|"
+    r"certified public accountants?|chartered accountants?|"
+    r"tax preparation|tax advisory|tax planning firm|"
+    r"audit firm|auditing firm|"
     r"financial services|financial group|financial planning|"
     r"banking group|retail bank|commercial bank|"
     r"payment processor|payment platform|payments company|"
     # Spanish
     r"asegurad|seguros|aseguradora|compañía de seguros|"
+    r"firma de contabilidad|contadores públicos|despacho contable|"
     r"banca|bancario|banco de|caja de ahorros|"
     r"gestora|fondo de inversión|gestión de activos|"
     r"servicios financieros|sociedad de inversión|"
@@ -2779,6 +2793,7 @@ FINANCE_RE = re.compile(
     r"empresa de pagos|servicio de pagos|"
     # Portuguese
     r"seguradora|fundo de investimento|investimentos|"
+    r"escritório de contabilidade|contadores|"
     r"empréstimo consignado|crédito consignado|"
     r"financiamento (?:imobiliário|de veículos|estudantil)|"
     r"serviços financeiros|gestão de ativos|"
@@ -2786,6 +2801,7 @@ FINANCE_RE = re.compile(
     r"banco comercial|banco de varejo|"
     # French
     r"assurance|cabinet d'assurance|courtier en assurance|"
+    r"cabinet comptable|expert[- ]comptable|cabinet d'expertise comptable|"
     r"caisse d'épargne|banque populaire|banque privée|"
     r"société de gestion|fonds d'investissement|"
     r"services financiers|gestion de patrimoine|"
@@ -2795,9 +2811,11 @@ FINANCE_RE = re.compile(
     r"banca cooperativa|gestione patrimoniale|servizi finanziari|"
     r"fondo di investimento|società di gestione|"
     r"banca commerciale|cooperativa di credito|"
+    r"studio commercialista|commercialista|revisore dei conti|"
     # German
     r"versicherung|versicherungsgesellschaft|"
     r"versicherungsanstalt|versicherungsverein|"
+    r"wirtschaftsprüfer|steuerberater|steuerkanzlei|"
     r"vermögensverwaltung|kapitalverwaltung|"
     r"sparkasse|volksbank|raiffeisenbank|finanzdienstleistung|"
     r"investmentfonds|kreditgenossenschaft|"
@@ -2810,6 +2828,7 @@ FINANCE_RE = re.compile(
     r"bank spółdzielczy|fundusz inwestycyjny|"
     r"zarządzanie aktywami|usługi finansowe|"
     r"firma ubezpieczeniowa|"
+    r"biuro rachunkowe|biuro księgowe|kancelaria podatkowa|"
     # Czech
     r"pojišťovna|investiční společnost|finanční služby|"
     r"družstevní záložna|správa aktiv|banka|"
@@ -3749,7 +3768,7 @@ MARKETING_RE = re.compile(
     r"agence de marketing|agence de publicité|"
     r"agence de communication|marketing numérique|"
     r"automatisation marketing|plateforme marketing|"
-    r"e?mailing|marketing par e?mail|"
+    r"emailing|marketing par e?mail|"
     # Italian
     r"agenzia di marketing|agenzia pubblicitaria|"
     r"marketing digitale|automazione marketing|"
@@ -5704,10 +5723,14 @@ NEWS_RE = re.compile(
     r"sanomalehti|uutistoimisto|uutissivusto|"
     # Swedish
     r"tidning|nyhetsbyrå|nyhetstjänst|nyhetssajt|"
-    # Norwegian
-    r"avis|nyhetsbyrå|nyhetsportal|"
-    # Danish
-    r"avis|nyhedsbureau|nyhedsportal|"
+    # Norwegian — bare `avis` collides with French "notice/opinion" and
+    # the Avis Budget Group car-rental brand; require a compound that pins
+    # the meaning to "newspaper".
+    r"dagsavis|lokalavis|regionalavis|morgenavis|avishus|"
+    r"nyhetsbyrå|nyhetsportal|"
+    # Danish — same collision; same compound treatment.
+    r"dagblad|lokalavis|ugeavis|morgenavis|"
+    r"nyhedsbureau|nyhedsportal|"
     # Icelandic
     r"dagblað|fréttastofa|fréttavefur|"
     # Persian
@@ -5907,7 +5930,12 @@ NONPROFIT_RE = re.compile(
     r"φιλανθρωπική οργάνωση|"
     # Turkish
     r"kâr amacı gütmeyen|"
-    r"hayır kurumu|yardım kuruluşu|vakıf|"
+    # Bare `vakıf` removed — collides with Turkish brand-name component
+    # ("Vakıf Katılım Bankası" / "Vakıfbank" / "Vakıf Bilişim" — for-profit
+    # banks and tech firms whose brand uses the word). Require a
+    # nonprofit-specific compound.
+    r"hayır kurumu|yardım kuruluşu|"
+    r"yardım vakfı|hayır vakfı|kamu yararına vakıf|"
     # Estonian
     r"mittetulundusühing|heategevusorganisatsioon|"
     # Latvian
@@ -8947,10 +8975,87 @@ TITLE_NOISE_RE = re.compile(
     r"login|sign[ -]in|"
     r"under construction|coming soon|"
     r"just a moment|access denied|forbidden|"
+    r"attention required|are you a robot|"
+    r"checking your browser|please enable javascript|"
+    r"ddos[- ]guard|px-captcha|"
+    r"site is not available|page is not available|"
+    r"access to this page has been denied|"
     r"вход|"
     r"vercel security checkpoint|cloudflare|"
     r"website is for sale|domain is for sale|domain (?:name )?for sale|"
     r"buy this domain)"
+)
+
+# Parked / default / placeholder pages — operator unclassifiable from
+# this content. Triggered on title or description. When this fires the
+# row should go to known-unknown rather than be auto-classified, even if
+# a detector matched the host's marketing copy on the parking page itself.
+# Add new patterns sparingly: each one must be a phrase that *only* a
+# parked / default page would carry — never a phrase a real operator's
+# marketing page might contain.
+PARKED_PAGE_RE = re.compile(
+    r"(?i)(?:"
+    # Registrar / hosting parking placeholders — the operator is *the
+    # domain registrant we don't know about*, not the registrar whose
+    # parking page is currently being served.
+    r"this domain (?:name )?(?:has been |is )registered with|"
+    r"your domain (?:is |has )(?:expired|parked)|"
+    r"domain (?:has )?expired|domain (?:is )?parked|"
+    r"this domain is parked|parked free, courtesy of|"
+    r"domain parking|"
+    # Default-server / unconfigured pages — the operator deployed the
+    # domain but never replaced the host's default landing page.
+    r"automatically generated default|default server page|"
+    r"default landing page|default web page|"
+    r"this is an automatically generated|"
+    r"successfully deployed by|"
+    r"welcome to apache|apache http server test page|welcome to nginx|"
+    r"just another wordpress site|"
+    r"hostinger horizons|"
+    # Genuine site-shutdown text — the operator has wound down.
+    r"site is being prepared|"
+    r"this site has shut down|has completed its journey"
+    r")"
+)
+# Note: Cloudflare / DDoS-Guard / "Are you a robot?" / px-captcha
+# interstitials are NOT in PARKED_PAGE_RE on purpose — those signal that
+# we couldn't fetch the homepage, not that the operator is unclassifiable.
+# A row stuck behind a bot challenge can still classify on TLD signal
+# (.gov.il / .edu.ec / .jus.br / .mil.ua etc.) and that path must remain
+# open. If the row has no other signal it falls through to KU naturally.
+
+# Personal / hobby projects — there is no commercial operator to classify.
+# Hobbyists running their own ASN, homelab pages, personal blogs, and
+# resume sites don't fit any industry category and should fall through to
+# KU even if a detector matches incidental vocabulary on the page.
+PERSONAL_PROJECT_RE = re.compile(
+    r"(?i)(?:"
+    r"personal (?:bgp|networking|peering|asn|project|website|blog|portfolio|cv)|"
+    r"my (?:portfolio|resume|cv|homepage|personal)|"
+    r"\bhomelab\b|home lab|"
+    r"hobby project|side project|"
+    r"personal homepage and (?:cv|resume)"
+    r")"
+)
+
+# Adult / sexually-explicit content. Per AGENTS.md content rule, domains
+# whose primary purpose is adult content (porn, cam sites, escort
+# directories, adult dating) must never enter the map or KU file. When the
+# classifier encounters one of these phrases, it returns a sentinel
+# "DROP" decision so the caller knows to remove the domain from both files
+# rather than promoting or KU-ing it. Triggers must be unambiguous —
+# context-free phrases that only appear on adult-industry pages. We only
+# match the explicit-marketing vocabulary, not euphemisms ("companionship"
+# / "romance") that sit in non-adult contexts too.
+ADULT_CONTENT_RE = re.compile(
+    r"(?i)(?:"
+    r"adult web design|adult-entertainment|"
+    r"adult web hosting|adult webhosting|adult webmaster|"
+    r"\bporn(?:o|ography)?\b|\bxxx\b|"
+    r"escort directory|escort listings|"
+    r"adult dating|adult cam|cam (?:girls?|sites?)|"
+    r"adult chat|adult video chat"
+    r")"
 )
 
 LEGAL_SUFFIX_RE = re.compile(
@@ -9377,6 +9482,21 @@ def auto_classify(row: dict, domain: str, as_name: str) -> tuple | None:
     title = fix_text(row.get("title", ""))
     desc = fix_text(row.get("description", ""))
     text = f"{title} {desc}"
+    # Parked / default / placeholder / blocked pages — operator
+    # unclassifiable from this content. Whatever keywords appear are
+    # the *parking host's* marketing copy ("Business-Class Web Hosting
+    # by Media Temple"), not the actual operator. Skip to KU.
+    if PARKED_PAGE_RE.search(text):
+        return None
+    # Personal projects / homelabs — not a commercial operator. Skip to KU
+    # even if a detector matched incidental network-vocabulary on the page.
+    if PERSONAL_PROJECT_RE.search(text):
+        return None
+    # Adult content per AGENTS.md content rule — drop silently. Sentinel
+    # tuple ('DROP', None) tells the caller to remove the domain from both
+    # the map and the KU file rather than promoting or retaining it.
+    if ADULT_CONTENT_RE.search(text):
+        return ("DROP", None)
     is_edu_tld = domain.endswith(_EDU_TLDS) or bool(
         # US K-12 school suffix: <something>.k12.<state>.us. The k12 segment
         # is restricted to public school districts and individual schools, so
@@ -9493,7 +9613,25 @@ def auto_classify(row: dict, domain: str, as_name: str) -> tuple | None:
         elif re.search(
             r"(?i)\b(managed it|managed services?|it solutions?|it support|"
             r"managed network|managed wifi|"
-            r"managed (?:tech|technology))\b",
+            r"managed (?:tech|technology)|"
+            # Polish — `usługi IT dla biznesu` is the SMB MSP idiom
+            r"usługi it dla biznesu|obsługa informatyczna firm|"
+            r"outsourcing it|"
+            # Spanish — `servicios informáticos para empresas` is similar
+            r"servicios informáticos para empresas|"
+            # German — `IT-Dienstleister` is the MSP equivalent (not the
+            # standalone-product `IT-Systemhaus` which goes to Technology)
+            r"managed[- ]it[- ]services|it[- ]dienstleister für|"
+            # French
+            r"infogérance|prestataire (?:de )?services informatiques|"
+            # Italian
+            r"servizi informatici gestiti|outsourcing informatico|"
+            # Portuguese
+            r"serviços de ti gerenciados|terceirização de ti|"
+            # Dutch
+            r"beheerd[- ]it|it[- ]beheer|"
+            # Indonesian — `penyedia solusi IT` is the SMB MSP idiom
+            r"penyedia solusi it|solusi it (?:terpadu|berbasis))\b",
             f"{title} {desc}",
         ):
             # vmi.se, odyssey.uk, marconet.com type
@@ -9619,6 +9757,7 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
     adds: list = []
     ambiguous: list = []
     ku: list = []
+    dropped: list = []
     auto = hand = ambig = 0
     with open(input_path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
@@ -9638,6 +9777,11 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
             r = auto_classify(row, domain, as_name)
             if r is None:
                 ku.append(domain)
+            elif r == ("DROP", None):
+                # Adult-content domain — per AGENTS.md it must not enter
+                # any of the tracked list files. The caller uses this list
+                # to remove the domain from KU if it's currently there.
+                dropped.append(domain)
             elif len(r) == 2:
                 adds.append((domain, r[0], r[1]))
                 auto += 1
@@ -9650,7 +9794,14 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
         adds,
         ambiguous,
         ku,
-        {"auto": auto, "hand": hand, "ambig": ambig, "ku": len(ku)},
+        dropped,
+        {
+            "auto": auto,
+            "hand": hand,
+            "ambig": ambig,
+            "ku": len(ku),
+            "dropped": len(dropped),
+        },
     )
 
 
@@ -9685,13 +9836,23 @@ def main():
         ),
     )
     p.add_argument(
+        "--dropped-out",
+        default="/tmp/dropped_domains.txt",
+        help=(
+            "Output text file listing domains the classifier silently "
+            "dropped per the AGENTS.md content rule (adult content etc.). "
+            "These should be removed from any tracked list files they "
+            "currently appear in. Default: %(default)s"
+        ),
+    )
+    p.add_argument(
         "--mmdb",
         default=DEFAULT_MMDB,
         help="Path to ipinfo_lite.mmdb. Default: bundled MMDB",
     )
     args = p.parse_args()
 
-    adds, ambiguous, ku, stats = classify_tsv(args.input, args.mmdb)
+    adds, ambiguous, ku, dropped, stats = classify_tsv(args.input, args.mmdb)
 
     with open(args.map_out, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f, lineterminator="\r\n")
@@ -9705,16 +9866,23 @@ def main():
         w.writerow(["domain", "name", "primary_type", "alternatives", "title"])
         for domain, name, primary, alts, title in sorted(ambiguous):
             w.writerow([domain, name, primary, "|".join(alts), title])
+    if dropped:
+        with open(args.dropped_out, "w", encoding="utf-8") as f:
+            for d in sorted(set(dropped)):
+                f.write(d + "\n")
 
     print(
         f"auto: {stats['auto']}, hand: {stats['hand']}, "
         f"ambig: {stats['ambig']}, "
-        f"ku: {stats['ku']} (unique: {len(set(ku))})",
+        f"ku: {stats['ku']} (unique: {len(set(ku))}), "
+        f"dropped: {stats['dropped']}",
         file=sys.stderr,
     )
     print(f"  map adds   -> {args.map_out}")
     print(f"  ku adds    -> {args.ku_out}")
     print(f"  ambiguous  -> {args.ambiguous_out}")
+    if dropped:
+        print(f"  dropped    -> {args.dropped_out}")
 
 
 if __name__ == "__main__":
