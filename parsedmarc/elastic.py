@@ -30,6 +30,9 @@ class ElasticsearchError(Exception):
     """Raised when an Elasticsearch error occurs"""
 
 
+_SERVERLESS = False
+
+
 class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
@@ -279,6 +282,7 @@ def set_hosts(
     password: Optional[str] = None,
     api_key: Optional[str] = None,
     timeout: float = 60.0,
+    serverless: bool = False,
 ):
     """
     Sets the Elasticsearch hosts to use
@@ -292,7 +296,12 @@ def set_hosts(
         password (str): The password to use for authentication
         api_key (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
+        serverless (bool): Target an Elastic Cloud Serverless project. When True,
+            ``create_indexes`` skips ``number_of_shards`` / ``number_of_replicas``
+            settings, which Serverless rejects with HTTP 400.
     """
+    global _SERVERLESS
+    _SERVERLESS = serverless
     if not isinstance(hosts, list):
         hosts = [hosts]
     conn_params = {"hosts": hosts, "timeout": timeout}
@@ -325,10 +334,11 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
         try:
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
-                if settings is None:
-                    index.settings(number_of_shards=1, number_of_replicas=0)
-                else:
-                    index.settings(**settings)
+                if not _SERVERLESS:
+                    if settings is None:
+                        index.settings(number_of_shards=1, number_of_replicas=0)
+                    else:
+                        index.settings(**settings)
                 index.create()
         except Exception as e:
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
