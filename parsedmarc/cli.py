@@ -74,6 +74,12 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+class ConfigurationError(Exception):
+    """Raised when a configuration file has missing or invalid settings."""
+
+    pass
+
+
 def _str_to_list(s):
     """Converts a comma separated string to a list"""
     _list = s.split(",")
@@ -135,34 +141,84 @@ def _apply_env_overrides(config: ConfigParser) -> None:
     """Inject ``PARSEDMARC_*`` environment variables into *config*.
 
     Environment variables matching ``PARSEDMARC_{SECTION}_{KEY}`` override
-    (or create) the corresponding config-file values.  Sections are created
+    (or create) the corresponding config-file values. Sections are created
     automatically when they do not yet exist.
+
+    A ``PARSEDMARC_{SECTION}_{KEY}_FILE`` variant reads the value from the
+    referenced file (Docker / Kubernetes secret convention). When both the
+    direct variable and its ``_FILE`` companion are set, the file wins. The
+    handful of real config keys whose own names end in ``_file`` (see
+    ``_DIRECT_FILE_KEYS``) keep their pre-existing direct-value semantics
+    and are not eligible for the secret-file wrap.
     """
     prefix = "PARSEDMARC_"
+    file_suffix = "_FILE"
 
     # Short aliases that don't follow the PARSEDMARC_{SECTION}_{KEY} pattern.
-    _ENV_ALIASES = {
+    _ENV_ALIASES: dict[str, tuple[str, str]] = {
         "DEBUG": ("general", "debug"),
         "PARSEDMARC_DEBUG": ("general", "debug"),
     }
 
-    for env_key, env_value in os.environ.items():
-        if env_key in _ENV_ALIASES:
-            section, key = _ENV_ALIASES[env_key]
-        elif env_key.startswith(prefix) and env_key != "PARSEDMARC_CONFIG_FILE":
-            suffix = env_key[len(prefix) :]
-            section, key = _resolve_section_key(suffix)
-        else:
+    # Real config keys whose own names end in ``_file``. For these the
+    # ``PARSEDMARC_..._FILE`` env var is the direct value (a path string),
+    # not a Docker-secret file reference. Keep in sync with ``_parse_config``
+    # whenever a new ``*_file`` config key is added.
+    _DIRECT_FILE_KEYS = frozenset(
+        [
+            "GENERAL_LOG_FILE",
+            "MSGRAPH_TOKEN_FILE",
+            "GMAIL_API_CREDENTIALS_FILE",
+            "GMAIL_API_TOKEN_FILE",
+        ]
+    )
+
+    def read_secret_file(env_key: str, raw_path: str) -> str:
+        path = _expand_path(raw_path)
+        try:
+            with open(path, encoding="utf-8") as f:
+                return f.read().rstrip("\r\n")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ConfigurationError(
+                "Cannot read secret file for {0}: {1} ({2})".format(
+                    env_key, path, exc.__class__.__name__
+                )
+            ) from exc
+
+    direct: dict[tuple[str, str], str] = {}
+    secrets: dict[tuple[str, str], str] = {}
+
+    for env_key, value in os.environ.items():
+        if env_key == "PARSEDMARC_CONFIG_FILE":
             continue
+        if env_key in _ENV_ALIASES:
+            direct[_ENV_ALIASES[env_key]] = value
+            continue
+        if not env_key.startswith(prefix):
+            continue
+
+        key_body = env_key[len(prefix) :]
+        is_secret = key_body.endswith(file_suffix) and key_body not in _DIRECT_FILE_KEYS
+
+        if is_secret:
+            section, key = _resolve_section_key(key_body[: -len(file_suffix)])
+        else:
+            section, key = _resolve_section_key(key_body)
 
         if section is None:
             logger.debug("Ignoring unrecognized env var: %s", env_key)
             continue
+        if is_secret:
+            value = read_secret_file(env_key, value)
+            secrets[(section, key)] = value
+        else:
+            direct[(section, key)] = value
 
+    # _FILE entries win over direct ones: dict-unpack lets later mappings overwrite.
+    for (section, key), value in {**direct, **secrets}.items():
         if not config.has_section(section):
             config.add_section(section)
-
-        config.set(section, key, env_value)
+        config.set(section, key, value)
         logger.debug("Config override from env: [%s] %s", section, key)
 
 
@@ -264,12 +320,6 @@ def cli_parse(
         conn.send([error, file_path])
     finally:
         conn.close()
-
-
-class ConfigurationError(Exception):
-    """Raised when a configuration file has missing or invalid settings."""
-
-    pass
 
 
 def _load_config(config_file: str | None = None) -> ConfigParser:
