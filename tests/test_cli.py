@@ -498,6 +498,238 @@ hosts = localhost
                 f"Expected falsy for {false_val!r}",
             )
 
+    def test_short_alias_debug(self):
+        """The bare DEBUG alias maps to [general] debug."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        config = ConfigParser()
+        with patch.dict(os.environ, {"DEBUG": "true"}, clear=False):
+            _apply_env_overrides(config)
+        self.assertEqual(config.get("general", "debug"), "true")
+
+    def test_short_alias_parsedmarc_debug(self):
+        """The PARSEDMARC_DEBUG alias maps to [general] debug."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        config = ConfigParser()
+        with patch.dict(os.environ, {"PARSEDMARC_DEBUG": "true"}, clear=False):
+            _apply_env_overrides(config)
+        self.assertEqual(config.get("general", "debug"), "true")
+
+    def test_file_env_var_reads_secret(self):
+        """*_FILE env vars are loaded from a file (Docker secret style)."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        with NamedTemporaryFile(
+            mode="w", suffix=".secret", delete=False, encoding="utf-8"
+        ) as f:
+            f.write("sekret-123\n")
+            secret_path = f.name
+
+        try:
+            config = ConfigParser()
+            env = {"PARSEDMARC_IMAP_PASSWORD_FILE": secret_path}
+            with patch.dict(os.environ, env, clear=False):
+                _apply_env_overrides(config)
+            self.assertEqual(config.get("imap", "password"), "sekret-123")
+        finally:
+            os.unlink(secret_path)
+
+    def test_file_env_var_strips_trailing_crlf(self):
+        """Leading and internal whitespace is preserved; trailing CR/LF is stripped."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        with NamedTemporaryFile(
+            mode="w", suffix=".secret", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(" pre  inside\r\n")
+            secret_path = f.name
+
+        try:
+            config = ConfigParser()
+            env = {"PARSEDMARC_IMAP_PASSWORD_FILE": secret_path}
+            with patch.dict(os.environ, env, clear=False):
+                _apply_env_overrides(config)
+            self.assertEqual(config.get("imap", "password"), " pre  inside")
+        finally:
+            os.unlink(secret_path)
+
+    def test_file_env_var_supersedes_direct_env(self):
+        """*_FILE wins when both the direct env var and _FILE are set."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        with NamedTemporaryFile(
+            mode="w", suffix=".secret", delete=False, encoding="utf-8"
+        ) as f:
+            f.write("from-file")
+            secret_path = f.name
+
+        try:
+            config = ConfigParser()
+            env = {
+                "PARSEDMARC_IMAP_PASSWORD": "from-env",
+                "PARSEDMARC_IMAP_PASSWORD_FILE": secret_path,
+            }
+            with patch.dict(os.environ, env, clear=False):
+                _apply_env_overrides(config)
+            self.assertEqual(config.get("imap", "password"), "from-file")
+        finally:
+            os.unlink(secret_path)
+
+    def test_file_env_var_missing_file_raises(self):
+        """A missing secret file aborts with ConfigurationError."""
+        from parsedmarc.cli import ConfigurationError, _apply_env_overrides
+
+        config = ConfigParser()
+        env = {"PARSEDMARC_IMAP_PASSWORD_FILE": "/tmp/parsedmarc-nonexistent-secret"}
+        with patch.dict(os.environ, env, clear=False):
+            with self.assertRaises(ConfigurationError) as ctx:
+                _apply_env_overrides(config)
+        self.assertIn("PARSEDMARC_IMAP_PASSWORD_FILE", str(ctx.exception))
+
+    def test_file_env_var_unreadable_file_raises(self):
+        """A secret file we can't read aborts with ConfigurationError."""
+        import platform
+
+        # ``os.geteuid`` is POSIX-only; the ``platform.system() == "Windows"``
+        # check short-circuits on Windows so the second clause never runs.
+        if platform.system() == "Windows" or os.geteuid() == 0:
+            self.skipTest("chmod 000 doesn't restrict the running user")
+
+        from parsedmarc.cli import ConfigurationError, _apply_env_overrides
+
+        with NamedTemporaryFile(
+            mode="w", suffix=".secret", delete=False, encoding="utf-8"
+        ) as f:
+            f.write("data")
+            secret_path = f.name
+
+        try:
+            os.chmod(secret_path, 0o000)
+            config = ConfigParser()
+            env = {"PARSEDMARC_IMAP_PASSWORD_FILE": secret_path}
+            with patch.dict(os.environ, env, clear=False):
+                with self.assertRaises(ConfigurationError):
+                    _apply_env_overrides(config)
+        finally:
+            os.chmod(secret_path, 0o600)
+            os.unlink(secret_path)
+
+    def test_file_env_var_path_expansion(self):
+        """~ and $VAR references in the path are expanded."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            secret_path = os.path.join(tmpdir, "secret")
+            with open(secret_path, "w", encoding="utf-8") as f:
+                f.write("expanded-value")
+
+            config = ConfigParser()
+            env = {
+                "PARSEDMARC_TEST_SECRET_DIR": tmpdir,
+                "PARSEDMARC_IMAP_PASSWORD_FILE": "$PARSEDMARC_TEST_SECRET_DIR/secret",
+            }
+            with patch.dict(os.environ, env, clear=False):
+                _apply_env_overrides(config)
+            self.assertEqual(config.get("imap", "password"), "expanded-value")
+
+    def test_file_env_var_unknown_section_ignored(self):
+        """_FILE vars whose base name doesn't resolve to a section are ignored.
+
+        Uses ``clear=True`` so the assertion isn't perturbed by ambient
+        ``PARSEDMARC_*`` vars set in the dev shell or CI runner.
+        """
+        from parsedmarc.cli import _apply_env_overrides
+
+        config = ConfigParser()
+        env = {"PARSEDMARC_UNKNOWN_FOO_FILE": "/tmp/should-not-be-read"}
+        with patch.dict(os.environ, env, clear=True):
+            _apply_env_overrides(config)
+        self.assertEqual(config.sections(), [])
+
+    def test_file_env_var_direct_file_keys_keep_direct_semantics(self):
+        """Config keys ending in _file (log_file, token_file, ...) stay direct."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        config = ConfigParser()
+        env = {
+            "PARSEDMARC_GENERAL_LOG_FILE": "/var/log/parsedmarc.log",
+            "PARSEDMARC_GMAIL_API_CREDENTIALS_FILE": "/etc/parsedmarc/gmail.json",
+            "PARSEDMARC_GMAIL_API_TOKEN_FILE": "/etc/parsedmarc/gmail.token",
+            "PARSEDMARC_MSGRAPH_TOKEN_FILE": "/etc/parsedmarc/msgraph.token",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            _apply_env_overrides(config)
+        self.assertEqual(config.get("general", "log_file"), "/var/log/parsedmarc.log")
+        self.assertEqual(
+            config.get("gmail_api", "credentials_file"),
+            "/etc/parsedmarc/gmail.json",
+        )
+        self.assertEqual(
+            config.get("gmail_api", "token_file"), "/etc/parsedmarc/gmail.token"
+        )
+        self.assertEqual(
+            config.get("msgraph", "token_file"), "/etc/parsedmarc/msgraph.token"
+        )
+
+    def test_file_env_var_double_suffix_wraps_direct_file_key(self):
+        """GMAIL_API_CREDENTIALS_FILE_FILE provides the file path via a secret."""
+        from parsedmarc.cli import _apply_env_overrides
+
+        with NamedTemporaryFile(
+            mode="w", suffix=".secret", delete=False, encoding="utf-8"
+        ) as f:
+            f.write("/run/secrets/real-gmail-credentials.json\n")
+            secret_path = f.name
+
+        try:
+            config = ConfigParser()
+            env = {"PARSEDMARC_GMAIL_API_CREDENTIALS_FILE_FILE": secret_path}
+            with patch.dict(os.environ, env, clear=False):
+                _apply_env_overrides(config)
+            self.assertEqual(
+                config.get("gmail_api", "credentials_file"),
+                "/run/secrets/real-gmail-credentials.json",
+            )
+        finally:
+            os.unlink(secret_path)
+
+    def test_direct_file_keys_matches_parse_config_source(self):
+        """``_DIRECT_FILE_KEYS`` must cover every ``*_file`` key in ``_parse_config``.
+
+        Regression guard for the keep-in-sync comment: when someone adds a new
+        ``[section] some_file`` config option in ``_parse_config`` without
+        also extending ``_DIRECT_FILE_KEYS``, ``PARSEDMARC_SECTION_SOME_FILE``
+        would silently be treated as a Docker-secret wrapper (and try to read
+        a file at the supplied path) instead of as the direct value.
+        """
+        import re
+        import inspect
+        import parsedmarc.cli as cli_module
+
+        # Scan the cli source for every ``<section>_config[...]("<key>_file")``
+        # / ``["<key>_file"]`` access and rebuild the expected upper-case set.
+        # Skip ``_filename`` keys (e.g. ``aggregate_json_filename``).
+        src = inspect.getsource(cli_module)
+        pattern = re.compile(
+            r'(\w+?)_config(?:\.get|\[)\(?["\'](\w+_file)["\']',
+        )
+        seen: set[str] = set()
+        for sect_var, key in pattern.findall(src):
+            if key.endswith("_filename"):
+                continue
+            # Map the local variable name (graph_config / general_config /
+            # gmail_api_config / ...) to its config-section name. The
+            # convention is "<section>_config", but ``msgraph`` is bound to
+            # ``graph_config`` — handle that one alias.
+            section = "msgraph" if sect_var == "graph" else sect_var
+            seen.add(f"{section.upper()}_{key.upper()}")
+        self.assertEqual(
+            seen,
+            set(cli_module._DIRECT_FILE_KEYS),
+            "_DIRECT_FILE_KEYS is out of sync with *_file keys in _parse_config",
+        )
+
 
 class TestGmailAuthModes(unittest.TestCase):
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")

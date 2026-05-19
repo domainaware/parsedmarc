@@ -4,6 +4,12 @@
 
 ### Enhancements
 
+#### Docker-secret support via `_FILE` env vars
+
+Any `PARSEDMARC_{SECTION}_{KEY}` environment variable can now also be supplied via a file by appending `_FILE` to its name (e.g. `PARSEDMARC_IMAP_PASSWORD_FILE=/run/secrets/imap_password`). The file's contents (with trailing CR/LF stripped) are used as the value. This is the same convention used by the official Postgres, MariaDB, and Redis container images, so credentials no longer have to appear in plain `environment:` blocks where `docker inspect`, container logs, and `/proc/<pid>/environ` would expose them.
+
+When both the direct var and its `_FILE` companion are set, the file wins. A missing or unreadable file raises `ConfigurationError` rather than silently falling back to an empty value. The four pre-existing `*_file` config keys (`[general] log_file`, `[msgraph] token_file`, `[gmail_api] credentials_file`, `[gmail_api] token_file`) keep their direct-path semantics; wrap them in a Docker secret by doubling the suffix (`PARSEDMARC_GMAIL_API_CREDENTIALS_FILE_FILE`).
+
 #### Support for RFC 9989 / RFC 9990 / RFC 9991 reports
 
 Adds parsing support for the final DMARC specification (RFC 9989), the new aggregate-report schema (RFC 9990), and the new failure-report format (RFC 9991), while preserving full RFC 7489 / RFC 6591 backward compatibility.
