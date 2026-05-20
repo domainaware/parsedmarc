@@ -2,7 +2,7 @@
   <label>DMARC Failure Data</label>
   <search id="base_search">
     <query>
-      index="email" (sourcetype="dmarc:forensic" sourcetype="dmarc:failure") 
+      index="email" (sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")
       (parsed_sample.headers.From=$header_from$ OR NOT parsed_sample.headers.From=*)
       (parsed_sample.headers.To=$header_to$ OR NOT parsed_sample.headers.To=*)
       (parsed_sample.headers.Subject=$header_subject$ OR NOT parsed_sample.headers.Subject=*)

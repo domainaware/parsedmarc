@@ -78,7 +78,10 @@ jobs:
       run: |
         pip install -e .
         parsedmarc --debug -c ci.ini samples/aggregate/*
-        parsedmarc --debug -c ci.ini samples/forensic/*
+        parsedmarc --debug -c ci.ini samples/failure/*
+    - name: Test building packages
+      run: |
+        hatch build
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
