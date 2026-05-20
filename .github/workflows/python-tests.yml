@@ -73,7 +73,7 @@ jobs:
         pip install .[build]
     - name: Run unit tests
       run: |
-        pytest --cov --cov-report=xml tests.py
+        pytest --cov --cov-report=xml -junitxml=junit.xml -o junit_family=legacy tests.py
     - name: Test sample DMARC reports
       run: |
         pip install -e .
@@ -83,3 +83,13 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+    - name: Upload test results to Codecov
+       # Feeds Codecov Test Analytics (flaky-test detection, per-test
+       # history). Runs even on test failure so failed cases still get
+      # reported. Uses the same CODECOV_TOKEN as the coverage upload.
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./junit.xml
