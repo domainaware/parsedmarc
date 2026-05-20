@@ -613,6 +613,47 @@ services:
       PARSEDMARC_GENERAL_SAVE_FORENSIC: "true"
 ```
 
+### Docker secrets (`_FILE` suffix)
+
+Any `PARSEDMARC_*` environment variable can also be supplied via a file by
+appending `_FILE` to its name. The file's contents (with one trailing
+newline stripped) are used as the value. This is the same convention used
+by the official Postgres, MariaDB, and Redis container images, and is
+designed to plug straight into Docker / Docker Compose / Kubernetes secrets
+so credentials never appear in plain `environment:` blocks (where they
+would be readable via `docker inspect`, container logs, and
+`/proc/<pid>/environ`).
+
+If both the direct env var and the `_FILE` variant are set, the `_FILE`
+variant wins. If the file does not exist or is unreadable, parsedmarc
+exits with a configuration error rather than silently falling back to an
+empty value.
+
+```yaml
+secrets:
+  imap_password:
+    file: ./secrets/imap_password.txt
+
+services:
+  parsedmarc:
+    image: parsedmarc:latest
+    secrets:
+      - imap_password
+    environment:
+      PARSEDMARC_IMAP_HOST: imap.example.com
+      PARSEDMARC_IMAP_USER: dmarc@example.com
+      PARSEDMARC_IMAP_PASSWORD_FILE: /run/secrets/imap_password
+```
+
+Note that a small set of config keys whose own names already end in
+`_file` (`[general] log_file`, `[msgraph] token_file`,
+`[gmail_api] credentials_file`, `[gmail_api] token_file`) keep their
+pre-existing meaning when set via `PARSEDMARC_..._FILE` — that env var is
+the path itself, not a wrapper around a file containing the path. To pass
+*those* paths via a Docker secret, double up the suffix
+(`PARSEDMARC_GMAIL_API_CREDENTIALS_FILE_FILE`); the inner contents are
+then read and stored as the `credentials_file` value.
+
 ### Section name mapping
 
 For sections with underscores in the name, the full section name is used:
