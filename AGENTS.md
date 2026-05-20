@@ -13,10 +13,13 @@ parsedmarc is a Python module and CLI utility for parsing DMARC aggregate (RUA),
 pip install .[build]
 
 # Run all tests with coverage
-pytest --cov --cov-report=xml tests.py
+pytest --cov --cov-report=xml tests/
+
+# Run one test module
+pytest tests/test_init.py
 
 # Run a single test
-pytest tests.py::Test::testAggregateSamples
+pytest tests/test_init.py::Test::testAggregateSamples
 
 # Lint and format
 ruff check .
@@ -107,7 +110,7 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 - Ruff for formatting and linting (configured in `.vscode/settings.json`). Run `ruff check .` and `ruff format --check .` after every code edit, before committing.
 - TypedDict for structured data, type hints throughout.
 - Python ≥3.10 required.
-- Tests are in a single `tests.py` file using unittest; sample reports live in `samples/`.
+- Tests live under `tests/` as `tests/test_<module>.py`, one per top-level `parsedmarc/*` module (e.g. `tests/test_init.py` for `parsedmarc/__init__.py`, `tests/test_cli.py` for `parsedmarc/cli.py`). All test classes use `unittest`. Sample reports live in `samples/`. Run with `pytest tests/`; run one file with `pytest tests/test_init.py`. New tests go in the file whose module they exercise — do not reintroduce a monolithic test file.
 - File path config values must be wrapped with `_expand_path()` in `cli.py`.
 - Maildir UID checks are intentionally relaxed (warn, don't crash) for Docker compatibility.
 - Token file writes must create parent directories before opening for write.

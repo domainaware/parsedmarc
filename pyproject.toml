@@ -96,3 +96,26 @@ exclude = [
     # which must keep shipping for `importlib.resources.files()` lookups).
     "parsedmarc/resources/maps/[!_]*.py",
 ]
+
+[tool.pytest.ini_options]
+# Default to the per-module test layout under tests/. New tests should go
+# into tests/test_<module>.py to match the file they exercise; do not
+# reintroduce a monolithic tests.py.
+testpaths = ["tests"]
+
+[tool.coverage.run]
+# Coverage measures shipped code only. Master's reported ≈66.9% on
+# Codecov was an artefact of the old monolithic tests.py having no
+# [tool.coverage.run] block, which let coverage's default behaviour
+# measure every file imported during the run — including the test file
+# itself at ~99% "covered". That inflated the headline by ~8 percentage
+# points without any actual testing signal. Restricting to the parsedmarc
+# package gives a meaningful number that tracks how much of the shipped
+# library the test suite actually exercises.
+source = ["parsedmarc"]
+# Maintainer-only batch scripts under parsedmarc/resources/maps/ ship
+# out of the wheel (see the [tool.hatch.build] exclude block above) —
+# omit them so the headline number reflects only installed library code.
+omit = [
+    "*/parsedmarc/resources/maps/*.py",
+]
