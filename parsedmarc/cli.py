@@ -1630,10 +1630,10 @@ def _main():
     arg_parser.add_argument(
         "file_path",
         nargs="*",
-        help="one or more paths to aggregate or forensic "
+        help="one or more paths to aggregate or failure "
         "report files, emails, or mbox files'",
     )
-    strip_attachment_help = "remove attachment payloads from forensic report output"
+    strip_attachment_help = "remove attachment payloads from failure report output"
     arg_parser.add_argument(
         "--strip-attachment-payloads", help=strip_attachment_help, action="store_true"
     )

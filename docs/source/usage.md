@@ -651,7 +651,7 @@ imports more predictable:
 - Use `mailbox.since` to process reports in smaller time windows such as `1d`,
   `7d`, or another interval that fits the backlog. This makes it easier to catch
   up incrementally instead of loading an entire mailbox history in one run.
-- Set `strip_attachment_payloads = True` when forensic reports contain large
+- Set `strip_attachment_payloads = True` when failure reports contain large
   attachments and you do not need to retain the raw payloads in the parsed
   output.
 - Prefer running parsedmarc separately from Elasticsearch or OpenSearch, or

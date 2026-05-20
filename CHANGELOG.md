@@ -31,6 +31,7 @@ Forensic reports have been renamed to failure reports throughout the project to 
 
 - Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
 - CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
+- IMAP archive subfolder name is intentionally kept as `Forensic` (under `archive_folder`) so existing deployments don't end up with a split archive across `Forensic/` and `Failure/`.
 - RFC 7489 reports parse with `None` for DMARCbis-only fields
 - **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
   - **OpenSearch Dashboards**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
