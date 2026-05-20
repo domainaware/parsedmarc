@@ -89,7 +89,7 @@ information on DMARC failure reports (also known as forensic or ruf reports).
 These reports contain samples of emails that have failed to pass DMARC.
 
 :::{note}
-Most recipients do not send forensic/failure/ruf reports at all to avoid
+Most recipients do not send failure/ruf reports at all to avoid
 privacy leaks. Some recipients (notably Chinese webmail services) will only
 supply the headers of sample emails. Very few provide the entire email.
 :::
