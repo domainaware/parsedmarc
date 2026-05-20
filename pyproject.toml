@@ -96,3 +96,20 @@ exclude = [
     # which must keep shipping for `importlib.resources.files()` lookups).
     "parsedmarc/resources/maps/[!_]*.py",
 ]
+
+[tool.pytest.ini_options]
+# Default to the per-module test layout under tests/. New tests should go
+# into tests/test_<module>.py to match the file they exercise; do not
+# reintroduce a monolithic tests.py.
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["parsedmarc"]
+# Maintainer-only batch scripts under parsedmarc/resources/maps/ ship out
+# of the wheel (see the hatch.build exclude above) — exclude the whole
+# directory from coverage so the headline number reflects only the
+# installed library. The empty __init__.py file in the package is also
+# excluded, but it's already trivially-covered so this is harmless.
+omit = [
+    "*/parsedmarc/resources/maps/*.py",
+]

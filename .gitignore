@@ -147,3 +147,4 @@ parsedmarc/resources/maps/unknown_domains.txt
 *.bak
 *.lock
 parsedmarc/resources/maps/domain_info.tsv
+coverage.json
