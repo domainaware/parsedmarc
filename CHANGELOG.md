@@ -1,5 +1,54 @@
 # Changelog
 
+## 10.0.0
+
+### Enhancements
+
+#### Support for RFC 9989 / RFC 9990 / RFC 9991 reports
+
+Adds parsing support for the final DMARC specification (RFC 9989), the new aggregate-report schema (RFC 9990), and the new failure-report format (RFC 9991), while preserving full RFC 7489 / RFC 6591 backward compatibility.
+
+New aggregate-report fields surfaced from the RFC 9990 XSD — added to types, parsing, CSV output, and Elasticsearch/OpenSearch mappings:
+
+- `np` — non-existent subdomain policy (`none`/`quarantine`/`reject`)
+- `testing` — testing mode flag (`n`/`y`); reports whether the published DMARC record sets `t=y`. It is a **new field**, not a replacement for `pct`; the `pct` mechanism was removed entirely by RFC 9989 Appendix A.6 with no per-message replacement.
+- `discovery_method` — policy discovery method (`psl`/`treewalk`)
+- `generator` — report generator software identifier, in `report_metadata`
+- `human_result` — optional descriptive text on DKIM/SPF auth results (langAttrString; a possible `lang` attribute is automatically unwrapped)
+- `xml_namespace` — the XML namespace declared on the `<feedback>` root, if any. RFC 9990 reports declare `urn:ietf:params:xml:ns:dmarc-2.0`.
+
+`pct` is no longer present in RFC 9990's `PolicyPublishedType` and parses as `None` when absent. `fo` is still part of RFC 9990 and is preserved when set; it parses as `None` only when the reporter omits it.
+
+The parser detects an RFC 9990 report from the dmarc-2.0 XML namespace **or** the presence of any RFC 9990-only field, so namespaceless reports that follow the RFC 9990 shape still receive RFC 9990-aware validation warnings (missing required DKIM `selector`, removed-in-RFC-9990 policy-override types `forwarded` / `sampled_out`). RFC 9990 also added `policy_test_mode` to the policy-override enumeration; it is parsed and stored unchanged.
+
+For failure reports (RFC 9991), `Identity-Alignment` and `Auth-Failure` are split on CFWS-aware commas (whitespace is stripped from each token, per the RFC 9991 ABNF) and a warning is logged when either REQUIRED field is missing.
+
+Several elements that became `langAttrString` in RFC 9990 (`extra_contact_info`, `error`, `comment`, `human_result`) are now safely unwrapped when the reporter sends them with a `lang` attribute.
+
+Backwards compatibility to RFC 7489 is maintained.
+
+### Breaking changes
+
+#### Forensic reports have been renamed to failure reports
+
+Forensic reports have been renamed to failure reports throughout the project to reflect the proper naming of the reports since RFC 7489.
+
+- **Core**: `types.py`, `__init__.py` — `ForensicReport`→`FailureReport`, `parse_forensic_report`→`parse_failure_report`, report type `"failure"`
+- **Output modules**: `elastic.py`, `opensearch.py`, `splunk.py`, `kafkaclient.py`, `syslog.py`, `gelf.py`, `webhook.py`, `loganalytics.py`, `s3.py`
+- **CLI**: `cli.py` — args, config keys, index names (`dmarc_failure`)
+- **Docs & dashboards**: all markdown, Grafana JSON, OpenSearch NDJSON, Splunk XML
+
+##### Backward compatibility
+
+- Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
+- CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
+- IMAP archive subfolder name is intentionally kept as `Forensic` (under `archive_folder`) so existing deployments don't end up with a split archive across `Forensic/` and `Failure/`.
+- RFC 7489 reports parse with `None` for RFC 9990-only fields
+- **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
+  - **OpenSearch Dashboards**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
+  - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`
+  - **Elasticsearch/OpenSearch**: Duplicate-check searches query across both `dmarc_failure*` and `dmarc_forensic*` index patterns
+
 ## 9.11.2
 
 ### Changes
@@ -60,7 +109,7 @@
 
 - Renamed `[general] ip_db_url` to `ipinfo_url` to reflect what it actually overrides (the bundled IPinfo Lite MMDB download URL). The old name is still accepted as a deprecated alias and logs a warning on use; the env-var equivalent is now `PARSEDMARC_GENERAL_IPINFO_URL`, with `PARSEDMARC_GENERAL_IP_DB_URL` also still honored.
 - Added an optional IPinfo Lite REST API path for country + ASN lookups, so deployments that want the freshest data can query the API directly instead of waiting for the next MMDB release. Configure `[general] ipinfo_api_token` (or `PARSEDMARC_GENERAL_IPINFO_API_TOKEN`) and every IP lookup hits `https://api.ipinfo.io/lite/<ip>` first. At startup the `https://ipinfo.io/me` account endpoint is hit once to validate the token and log the plan, month-to-date usage, and remaining quota at info level (e.g. `IPinfo API configured — plan: Lite, usage: 12345/50000 this month, 37655 remaining`). An invalid token exits the process with a fatal error. Rate-limit (HTTP 429) and quota-exhausted (HTTP 402) responses put the API in a cooldown (honoring `Retry-After`, with a 5-minute / 1-hour default) and fall through to the bundled/cached MMDB; the first event is logged once at warning level and recovery is logged once at info level when the next lookup succeeds. Transient network errors fall through per-request without triggering a cooldown. The API token is never logged.
-- Renamed the ASN name and domain fields to match the IPinfo Lite MMDB's native schema: `asn_name` → `as_name` and `asn_domain` → `as_domain` on every source record (JSON output), and `source_asn_name` → `source_as_name` / `source_asn_domain` → `source_as_domain` in CSV output (aggregate + forensic) and the Elasticsearch / OpenSearch / Splunk integrations. The integer `asn` / `source_asn` field is unchanged. The emitted order is `asn`, `as_name`, `as_domain`.
+- Renamed the ASN name and domain fields to match the IPinfo Lite MMDB's native schema: `asn_name` → `as_name` and `asn_domain` → `as_domain` on every source record (JSON output), and `source_asn_name` → `source_as_name` / `source_asn_domain` → `source_as_domain` in CSV output (aggregate + failure) and the Elasticsearch / OpenSearch / Splunk integrations. The integer `asn` / `source_asn` field is unchanged. The emitted order is `asn`, `as_name`, `as_domain`.
 
 ### Upgrade notes
 
@@ -240,7 +289,7 @@
 
 ### Fixed
 
-- `get_index_prefix()` crashed on forensic reports with `TypeError` due to `report()` instead of `report[]` dict access.
+- `get_index_prefix()` crashed on failure reports with `TypeError` due to `report()` instead of `report[]` dict access.
 - Missing `exit(1)` after IMAP user/password validation failure allowed execution to continue with `None` credentials.
 
 ## 9.2.1

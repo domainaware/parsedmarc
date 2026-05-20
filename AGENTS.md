@@ -4,7 +4,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Project Overview
 
-parsedmarc is a Python module and CLI utility for parsing DMARC aggregate (RUA), forensic (RUF), and SMTP TLS reports. It reads reports from IMAP, Microsoft Graph, Gmail API, Maildir, mbox files, or direct file paths, and outputs to JSON/CSV, Elasticsearch, OpenSearch, Splunk, Kafka, S3, Azure Log Analytics, syslog, or webhooks.
+parsedmarc is a Python module and CLI utility for parsing DMARC aggregate (RUA), failure/forensic (RUF), and SMTP TLS reports. It supports both RFC 7489 / RFC 6591 and the final DMARC RFCs — RFC 9989 (DMARC policy), RFC 9990 (aggregate reporting), and RFC 9991 (failure reporting) — in both directions. It reads reports from IMAP, Microsoft Graph, Gmail API, Maildir, mbox files, or direct file paths, and outputs to JSON/CSV, Elasticsearch, OpenSearch, Splunk, Kafka, S3, Azure Log Analytics, syslog, or webhooks.
 
 ## Common Commands
 
@@ -24,7 +24,7 @@ ruff format .
 
 # Test CLI with sample reports
 parsedmarc --debug -c ci.ini samples/aggregate/*
-parsedmarc --debug -c ci.ini samples/forensic/*
+parsedmarc --debug -c ci.ini samples/failure/*
 
 # Build docs
 cd docs && make html
@@ -41,16 +41,36 @@ To skip DNS lookups during testing, set `GITHUB_ACTIONS=true`.
 
 ### Key modules
 
-- `parsedmarc/__init__.py` — Core parsing logic. Main functions: `parse_report_file()`, `parse_report_email()`, `parse_aggregate_report_xml()`, `parse_forensic_report()`, `parse_smtp_tls_report_json()`, `get_dmarc_reports_from_mailbox()`, `watch_inbox()`
-- `parsedmarc/cli.py` — CLI entry point (`_main`), config file parsing (`_load_config` + `_parse_config`), output orchestration. Supports configuration via INI files, `PARSEDMARC_{SECTION}_{KEY}` environment variables, or both (env vars override file values).
-- `parsedmarc/types.py` — TypedDict definitions for all report types (`AggregateReport`, `ForensicReport`, `SMTPTLSReport`, `ParsingResults`)
+- `parsedmarc/__init__.py` — Core parsing logic. Main functions: `parse_report_file()`, `parse_report_email()`, `parse_aggregate_report_xml()`, `parse_failure_report()`, `parse_smtp_tls_report_json()`, `get_dmarc_reports_from_mailbox()`, `watch_inbox()`. Legacy aliases (`parse_forensic_report`, etc.) are preserved for backward compatibility.
+- `parsedmarc/cli.py` — CLI entry point (`_main`), config file parsing (`_load_config` + `_parse_config`), output orchestration. Supports configuration via INI files, `PARSEDMARC_{SECTION}_{KEY}` environment variables, or both (env vars override file values). Accepts both old (`save_forensic`, `forensic_topic`) and new (`save_failure`, `failure_topic`) config keys.
+- `parsedmarc/types.py` — TypedDict definitions for all report types (`AggregateReport`, `FailureReport`, `SMTPTLSReport`, `ParsingResults`). Legacy alias `ForensicReport = FailureReport` preserved.
 - `parsedmarc/utils.py` — IP/DNS/GeoIP enrichment, base64 decoding, compression handling
 - `parsedmarc/mail/` — Polymorphic mail connections: `IMAPConnection`, `GmailConnection`, `MSGraphConnection`, `MaildirConnection`
 - `parsedmarc/{elastic,opensearch,splunk,kafkaclient,loganalytics,syslog,s3,webhook,gelf}.py` — Output integrations
 
 ### Report type system
 
-`ReportType = Literal["aggregate", "forensic", "smtp_tls"]`. Exception hierarchy: `ParserError` → `InvalidDMARCReport` → `InvalidAggregateReport`/`InvalidForensicReport`, and `InvalidSMTPTLSReport`.
+`ReportType = Literal["aggregate", "failure", "smtp_tls"]`. Exception hierarchy: `ParserError` → `InvalidDMARCReport` → `InvalidAggregateReport`/`InvalidFailureReport`, and `InvalidSMTPTLSReport`. Legacy alias `InvalidForensicReport = InvalidFailureReport` preserved.
+
+### RFC 9989 / RFC 9990 / RFC 9991 support
+
+Aggregate reports parse under both RFC 7489 and RFC 9990 in one code path. RFC 9990 adds these fields, all surfaced through `AggregatePolicyPublished` / `AggregateReportMetadata` / `AggregateAuthResult*`:
+
+- `np` — non-existent subdomain policy (`none`/`quarantine`/`reject`).
+- `testing` — `n`/`y` flag reporting whether the published DMARC record sets `t=y`. It is a **new field**, not a replacement for `pct`; RFC 9989 Appendix A.6 removed the `pct` mechanism entirely with no per-message substitute.
+- `discovery_method` — `psl`/`treewalk`.
+- `generator` — free-text reporter software identifier, in `report_metadata`.
+- `human_result` — optional descriptive text on each DKIM/SPF auth result.
+
+`pct` is no longer part of RFC 9990's `PolicyPublishedType` and parses as `None` when absent. `fo` is **still** part of RFC 9990 (`minOccurs="0"`) and is preserved when set; it parses as `None` only when the reporter omits it. Don't repeat the older project shorthand that "RFC 9990 drops both" — only `pct` was dropped.
+
+The parser detects an RFC 9990 report from the `urn:ietf:params:xml:ns:dmarc-2.0` XML namespace **or** the presence of any RFC 9990-only field. Real-world reporters frequently follow the RFC 9990 shape without declaring the namespace, so namespace-less RFC 9990-shaped reports still get RFC 9990-aware validation warnings (missing required DKIM `selector`, removed-in-RFC-9990 policy-override types `forwarded` / `sampled_out`). The namespace value (if any) is preserved on the parsed report as `xml_namespace`.
+
+RFC 9990's `PolicyOverrideType` enumeration is `{local_policy, mailing_list, other, policy_test_mode, trusted_forwarder}`. `policy_test_mode` is new (emitted when `t=y` suppresses enforcement); `forwarded` and `sampled_out` were removed. Override types are stored as-is and warned about on mismatch.
+
+Several elements (`extra_contact_info`, `error`, `comment`, `human_result`) are `langAttrString` in RFC 9990 — i.e. xs:string with an optional `lang` attribute. When the reporter sends the attribute, xmltodict turns the element into `{"#text": "...", "@lang": "en"}`; the parser unwraps that to a plain string via `_text()`.
+
+Failure reports (RFC 9991): `Identity-Alignment` and `Auth-Failure` are split on CFWS-aware commas (each token stripped per the RFC 9991 ABNF), and a warning is logged when either REQUIRED field is missing.
 
 ### Configuration
 
