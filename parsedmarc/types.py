@@ -106,6 +106,7 @@ class AggregateRecord(TypedDict):
 
 class AggregateReport(TypedDict):
     xml_schema: str
+    xml_namespace: Optional[str]
     report_metadata: AggregateReportMetadata
     policy_published: AggregatePolicyPublished
     records: List[AggregateRecord]

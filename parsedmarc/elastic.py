@@ -68,6 +68,7 @@ class _AggregateReportDoc(Document):
         name = "dmarc_aggregate"
 
     xml_schema = Text()
+    xml_namespace = Keyword()
     org_name = Text()
     org_email = Text()
     org_extra_contact_info = Text()
@@ -516,6 +517,7 @@ def save_aggregate_report_to_elasticsearch(
         date_range = [aggregate_report["begin_date"], aggregate_report["end_date"]]
         agg_doc = _AggregateReportDoc(
             xml_schema=aggregate_report["xml_schema"],
+            xml_namespace=aggregate_report.get("xml_namespace"),
             org_name=metadata["org_name"],
             org_email=metadata["org_email"],
             org_extra_contact_info=metadata["org_extra_contact_info"],

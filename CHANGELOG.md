@@ -4,15 +4,26 @@
 
 ### Enhancements
 
-#### Support for DMARCbis reports
+#### Support for RFC 9989 / RFC 9990 / RFC 9991 reports
 
-New fields from the XSD schema, added to types, parsing, CSV output, and Elasticsearch/OpenSearch mappings:
+Adds parsing support for the final DMARC specification (RFC 9989), the new aggregate-report schema (RFC 9990), and the new failure-report format (RFC 9991), while preserving full RFC 7489 / RFC 6591 backward compatibility.
+
+New aggregate-report fields surfaced from the RFC 9990 XSD — added to types, parsing, CSV output, and Elasticsearch/OpenSearch mappings:
 
 - `np` — non-existent subdomain policy (`none`/`quarantine`/`reject`)
-- `testing` — testing mode flag (`n`/`y`), replaces RFC 7489 `pct`
+- `testing` — testing mode flag (`n`/`y`); reports whether the published DMARC record sets `t=y`. It is a **new field**, not a replacement for `pct`; the `pct` mechanism was removed entirely by RFC 9989 Appendix A.6 with no per-message replacement.
 - `discovery_method` — policy discovery method (`psl`/`treewalk`)
-- `generator` — report generator software identifier (metadata)
-- `human_result` — optional descriptive text on DKIM/SPF auth results
+- `generator` — report generator software identifier, in `report_metadata`
+- `human_result` — optional descriptive text on DKIM/SPF auth results (langAttrString; a possible `lang` attribute is automatically unwrapped)
+- `xml_namespace` — the XML namespace declared on the `<feedback>` root, if any. RFC 9990 reports declare `urn:ietf:params:xml:ns:dmarc-2.0`.
+
+`pct` is no longer present in RFC 9990's `PolicyPublishedType` and parses as `None` when absent. `fo` is still part of RFC 9990 and is preserved when set; it parses as `None` only when the reporter omits it.
+
+The parser detects an RFC 9990 report from the dmarc-2.0 XML namespace **or** the presence of any RFC 9990-only field, so namespaceless reports that follow the RFC 9990 shape still receive RFC 9990-aware validation warnings (missing required DKIM `selector`, removed-in-RFC-9990 policy-override types `forwarded` / `sampled_out`). RFC 9990 also added `policy_test_mode` to the policy-override enumeration; it is parsed and stored unchanged.
+
+For failure reports (RFC 9991), `Identity-Alignment` and `Auth-Failure` are split on CFWS-aware commas (whitespace is stripped from each token, per the RFC 9991 ABNF) and a warning is logged when either REQUIRED field is missing.
+
+Several elements that became `langAttrString` in RFC 9990 (`extra_contact_info`, `error`, `comment`, `human_result`) are now safely unwrapped when the reporter sends them with a `lang` attribute.
 
 Backwards compatibility to RFC 7489 is maintained.
 
@@ -32,7 +43,7 @@ Forensic reports have been renamed to failure reports throughout the project to 
 - Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
 - CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
 - IMAP archive subfolder name is intentionally kept as `Forensic` (under `archive_folder`) so existing deployments don't end up with a split archive across `Forensic/` and `Failure/`.
-- RFC 7489 reports parse with `None` for DMARCbis-only fields
+- RFC 7489 reports parse with `None` for RFC 9990-only fields
 - **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
   - **OpenSearch Dashboards**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`
   - **Splunk**: Base search queries `(sourcetype="dmarc:failure" OR sourcetype="dmarc:forensic")`

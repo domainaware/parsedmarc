@@ -75,6 +75,28 @@ feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
 xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
 text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
+# Captures the value of any xmlns (default or prefixed) declaration so the
+# RFC 9990 namespace can be detected before xmltodict drops it.
+xml_namespace_regex = re.compile(
+    r"""xmlns(?::[a-zA-Z_][\w.-]*)?\s*=\s*["']([^"']+)["']"""
+)
+
+# The XML namespace assigned to DMARC aggregate reports by RFC 9990.
+RFC_9990_NAMESPACE = "urn:ietf:params:xml:ns:dmarc-2.0"
+
+# PolicyOverrideType enumeration from RFC 9990. Compared to RFC 7489,
+# `policy_test_mode` was added (emitted when t=y suppresses enforcement)
+# and `forwarded` / `sampled_out` were removed.
+RFC_9990_POLICY_OVERRIDE_TYPES = frozenset(
+    {
+        "local_policy",
+        "mailing_list",
+        "other",
+        "policy_test_mode",
+        "trusted_forwarder",
+    }
+)
+RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES = frozenset({"forwarded", "sampled_out"})
 
 MAGIC_ZIP = b"\x50\x4b\x03\x04"
 MAGIC_GZIP = b"\x1f\x8b"
@@ -120,6 +142,26 @@ class InvalidFailureReport(InvalidDMARCReport):
 
 # Backward-compatible alias
 InvalidForensicReport = InvalidFailureReport
+
+
+def _text(value: Any) -> Optional[str]:
+    """Unwrap a possibly-langAttrString value parsed by xmltodict.
+
+    RFC 9990 changed several aggregate-report elements (extra_contact_info,
+    error, comment, human_result) to type ``langAttrString`` — an
+    xs:simpleContent string with an optional ``lang`` attribute. When the
+    attribute is present, xmltodict parses the element as
+    ``{"#text": "...", "@lang": "en"}`` instead of a plain string. Returns
+    the text payload for both shapes, ``None`` for unset values, and leaves
+    other scalar shapes untouched so callers can preserve whatever the
+    reporter sent.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        text = value.get("#text")
+        return None if text is None else str(text)
+    return value
 
 
 def _bucket_interval_by_day(
@@ -314,6 +356,7 @@ def _parse_report_record(
     nameservers: Optional[list[str]] = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
+    is_rfc_9990: bool = False,
 ) -> dict[str, Any]:
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -387,8 +430,27 @@ def _parse_report_record(
         else:
             reasons = [policy_evaluated["reason"]]
     for reason in reasons:
-        if "comment" not in reason:
-            reason["comment"] = None
+        # `comment` is langAttrString in RFC 9990 — unwrap {"#text": ..., "@lang": ...}
+        reason["comment"] = _text(reason.get("comment"))
+        reason_type = reason.get("type")
+        if is_rfc_9990 and reason_type in RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES:
+            logger.warning(
+                "Policy override reason type %r was removed in RFC 9990; "
+                "expected one of %s",
+                reason_type,
+                sorted(RFC_9990_POLICY_OVERRIDE_TYPES),
+            )
+        elif (
+            is_rfc_9990
+            and reason_type is not None
+            and reason_type not in RFC_9990_POLICY_OVERRIDE_TYPES
+        ):
+            logger.warning(
+                "Unknown policy override reason type %r per RFC 9990; "
+                "expected one of %s",
+                reason_type,
+                sorted(RFC_9990_POLICY_OVERRIDE_TYPES),
+            )
     new_policy_evaluated["policy_override_reasons"] = reasons
     new_record["policy_evaluated"] = new_policy_evaluated
     if "identities" in record:
@@ -418,12 +480,18 @@ def _parse_report_record(
             if "selector" in result and result["selector"] is not None:
                 new_result["selector"] = result["selector"]
             else:
+                if is_rfc_9990:
+                    logger.warning(
+                        "DKIM auth result for %r is missing the 'selector' "
+                        "element, which is REQUIRED by RFC 9990",
+                        result["domain"],
+                    )
                 new_result["selector"] = "none"
             if "result" in result and result["result"] is not None:
                 new_result["result"] = result["result"]
             else:
                 new_result["result"] = "none"
-            new_result["human_result"] = result.get("human_result", None)
+            new_result["human_result"] = _text(result.get("human_result"))
             new_record["auth_results"]["dkim"].append(new_result)
 
     if not isinstance(auth_results["spf"], list):
@@ -439,7 +507,7 @@ def _parse_report_record(
                 new_result["result"] = result["result"]
             else:
                 new_result["result"] = "none"
-            new_result["human_result"] = result.get("human_result", None)
+            new_result["human_result"] = _text(result.get("human_result"))
             new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
@@ -712,6 +780,21 @@ def parse_aggregate_report_xml(
     # Parse XML and recover from errors
     if isinstance(xml, bytes):
         xml = xml.decode(errors="ignore")
+
+    # Detect the XML namespace before any rewriting strips it. The dmarc-2.0
+    # namespace is one of the indicators for an RFC 9990 report but it is
+    # NOT a reliable sole discriminator: the <version> element value is
+    # ambiguous (RFC 9990's appendix sample uses <version>1.0</version>
+    # inside the dmarc-2.0 namespace), and real-world reporters frequently
+    # emit RFC 9990-shaped reports without declaring the namespace at all.
+    # The final `is_rfc_9990` decision is made post-parse so that
+    # RFC 9990-only fields (np, testing, discovery_method, generator,
+    # human_result) can also vote it in.
+    xml_namespace: Optional[str] = None
+    namespace_match = xml_namespace_regex.search(xml)
+    if namespace_match:
+        xml_namespace = namespace_match.group(1)
+
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
@@ -735,16 +818,24 @@ def parse_aggregate_report_xml(
 
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
+        # <email> is xs:string in both RFC 7489 and RFC 9990, but defensive
+        # parsing in the wild: some reporters emit it with an xml:lang or
+        # similar attribute, which xmltodict turns into a dict.
         if isinstance(report_metadata.get("email"), dict):
-            logger.debug(
-                "Discarding malformed <email> in report_metadata: %r",
-                report_metadata["email"],
-            )
-            report_metadata["email"] = None
+            unwrapped = _text(report_metadata["email"])
+            if unwrapped is None:
+                logger.debug(
+                    "Discarding malformed <email> in report_metadata: %r",
+                    report_metadata["email"],
+                )
+            report_metadata["email"] = unwrapped
         schema = "draft"
         if "version" in report:
             schema = report["version"]
-        new_report: dict[str, Any] = {"xml_schema": schema}
+        new_report: dict[str, Any] = {
+            "xml_schema": schema,
+            "xml_namespace": xml_namespace,
+        }
         new_report_metadata: dict[str, Any] = {}
         if report_metadata["org_name"] is None:
             if report_metadata["email"] is not None:
@@ -765,9 +856,9 @@ def parse_aggregate_report_xml(
             )
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
-        extra = None
-        if "extra_contact_info" in report_metadata:
-            extra = report_metadata["extra_contact_info"]
+        # extra_contact_info is langAttrString in RFC 9990 (xs:string in
+        # RFC 7489) — unwrap {"#text": ..., "@lang": ...} if present.
+        extra = _text(report_metadata.get("extra_contact_info"))
         new_report_metadata["org_extra_contact_info"] = extra
         new_report_metadata["report_id"] = report_metadata["report_id"]
         report_id = new_report_metadata["report_id"]
@@ -795,21 +886,38 @@ def parse_aggregate_report_xml(
             new_report_metadata["end_date"], to_utc=True
         )
 
+        # <error> is langAttrString in RFC 9990 (xs:string in RFC 7489) and
+        # was cardinality-narrowed from "unbounded" to "1" in RFC 9990, but
+        # the parser still accepts a list for backward compatibility with
+        # RFC 7489 reports that carry multiple errors.
         if "error" in report["report_metadata"]:
-            if not isinstance(report["report_metadata"]["error"], list):
-                errors = [report["report_metadata"]["error"]]
-            else:
-                errors = report["report_metadata"]["error"]
+            raw_errors = report["report_metadata"]["error"]
+            if not isinstance(raw_errors, list):
+                raw_errors = [raw_errors]
+            errors = [text for text in (_text(e) for e in raw_errors) if text]
         new_report_metadata["errors"] = errors
-        generator = None
-        if "generator" in report_metadata:
-            generator = report_metadata["generator"]
+        # <generator> is a plain xs:string in RFC 9990 but apply _text() so
+        # a malformed reporter that decorates it with attributes still
+        # yields a string instead of breaking downstream consumers.
+        generator = _text(report_metadata.get("generator"))
         new_report_metadata["generator"] = generator
         new_report["report_metadata"] = new_report_metadata
         records = []
         policy_published = report["policy_published"]
         if type(policy_published) is list:
             policy_published = policy_published[0]
+
+        # Final RFC 9990 detection: the dmarc-2.0 XML namespace OR any
+        # RFC 9990-only field. Real-world reporters that follow the schema
+        # without declaring the namespace still get RFC 9990-aware
+        # warnings (missing DKIM selector, removed override-reason types,
+        # etc.) and a truthful audit trail in `xml_namespace`.
+        rfc_9990_only_policy_fields = {"np", "testing", "discovery_method"}
+        is_rfc_9990 = (
+            xml_namespace == RFC_9990_NAMESPACE
+            or "generator" in report_metadata
+            or any(f in policy_published for f in rfc_9990_only_policy_fields)
+        )
         new_policy_published: dict[str, Any] = {}
         new_policy_published["domain"] = policy_published["domain"]
         adkim = "r"
@@ -880,6 +988,7 @@ def parse_aggregate_report_xml(
                         nameservers=nameservers,
                         dns_timeout=timeout,
                         dns_retries=retries,
+                        is_rfc_9990=is_rfc_9990,
                     )
                     _append_parsed_record(
                         parsed_record=report_record,
@@ -902,6 +1011,7 @@ def parse_aggregate_report_xml(
                 nameservers=nameservers,
                 dns_timeout=timeout,
                 dns_retries=retries,
+                is_rfc_9990=is_rfc_9990,
             )
             _append_parsed_record(
                 parsed_record=report_record,
@@ -1383,21 +1493,37 @@ def parse_failure_report(
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
+        # Identity-Alignment is REQUIRED per RFC 9991 §4. Default silently for
+        # backward compatibility with pre-9991 reporters, but log so the
+        # offending reporter is visible. Values are CFWS-separated per the
+        # ABNF, so each mechanism is stripped after splitting.
         if "identity_alignment" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Identity-Alignment' "
+                "field (RFC 9991 §4); defaulting to no aligned mechanisms"
+            )
             parsed_report["authentication_mechanisms"] = []
-        elif parsed_report["identity_alignment"] == "none":
-            parsed_report["authentication_mechanisms"] = []
-            del parsed_report["identity_alignment"]
         else:
-            auth_mechanisms = parsed_report["identity_alignment"]
-            auth_mechanisms = auth_mechanisms.split(",")
-            parsed_report["authentication_mechanisms"] = auth_mechanisms
+            raw_alignment = parsed_report["identity_alignment"].strip()
+            if raw_alignment.lower() == "none":
+                parsed_report["authentication_mechanisms"] = []
+            else:
+                parsed_report["authentication_mechanisms"] = [
+                    m.strip() for m in raw_alignment.split(",") if m.strip()
+                ]
             del parsed_report["identity_alignment"]
 
+        # Auth-Failure is REQUIRED per RFC 9991 §4. Comma-separated per ABNF
+        # so strip each token.
         if "auth_failure" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Auth-Failure' field "
+                "(RFC 9991 §4); defaulting to 'dmarc'"
+            )
             parsed_report["auth_failure"] = "dmarc"
-        auth_failure = parsed_report["auth_failure"].split(",")
-        parsed_report["auth_failure"] = auth_failure
+        parsed_report["auth_failure"] = [
+            f.strip() for f in parsed_report["auth_failure"].split(",") if f.strip()
+        ]
 
         optional_fields = [
             "original_envelope_id",

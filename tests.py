@@ -229,10 +229,10 @@ class Test(unittest.TestCase):
             parsedmarc.InvalidFailureReport,
         )
 
-    def testDMARCbisDraftSample(self):
-        """Test parsing the sample report from the DMARCbis aggregate draft"""
+    def testRFC9990SampleReport(self):
+        """Test parsing the sample report from RFC 9990 Appendix B"""
         print()
-        sample_path = "samples/aggregate/dmarcbis-draft-sample.xml"
+        sample_path = "samples/aggregate/rfc9990-sample.xml"
         print("Testing {0}: ".format(sample_path), end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
@@ -256,7 +256,7 @@ class Test(unittest.TestCase):
             "Example DMARC Aggregate Reporter v1.2",
         )
 
-        # Verify DMARCbis policy_published fields
+        # Verify RFC 9990 policy_published fields
         pp = report["policy_published"]
         self.assertEqual(pp["domain"], "example.com")
         self.assertEqual(pp["p"], "quarantine")
@@ -267,7 +267,9 @@ class Test(unittest.TestCase):
         # adkim/aspf default when not in XML
         self.assertEqual(pp["adkim"], "r")
         self.assertEqual(pp["aspf"], "r")
-        # pct/fo are None on DMARCbis reports (not used)
+        # pct is removed in RFC 9989 (and so absent from the RFC 9990
+        # sample); fo is still part of RFC 9990's PolicyPublishedType but
+        # the appendix sample happens not to set it.
         self.assertIsNone(pp["pct"])
         self.assertIsNone(pp["fo"])
 
@@ -303,8 +305,8 @@ class Test(unittest.TestCase):
         self.assertIn("discovery_method", header.split(","))
         print("Passed!")
 
-    def testDMARCbisFieldsWithRFC7489(self):
-        """Test that RFC 7489 reports have None for DMARCbis-only fields"""
+    def testRFC9990FieldsAbsentFromRFC7489Report(self):
+        """Test that RFC 7489 reports have None for RFC 9990-only fields"""
         print()
         sample_path = (
             "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
@@ -320,7 +322,7 @@ class Test(unittest.TestCase):
         self.assertEqual(pp["pct"], "100")
         self.assertEqual(pp["fo"], "0")
 
-        # DMARCbis fields absent (None)
+        # RFC 9990-only fields absent (None)
         self.assertIsNone(pp["np"])
         self.assertIsNone(pp["testing"])
         self.assertIsNone(pp["discovery_method"])
@@ -329,12 +331,12 @@ class Test(unittest.TestCase):
         self.assertIsNone(report["report_metadata"]["generator"])
         print("Passed!")
 
-    def testDMARCbisWithExplicitFields(self):
-        """Test DMARCbis report with explicit testing and discovery_method"""
+    def testRFC9990WithExplicitFields(self):
+        """Test RFC 9990 report with explicit testing and discovery_method"""
         print()
         sample_path = (
             "samples/aggregate/"
-            "dmarcbis-example.net!example.com!1700000000!1700086399.xml"
+            "rfc9990-example.net!example.com!1700000000!1700086399.xml"
         )
         print("Testing {0}: ".format(sample_path), end="")
         result = parsedmarc.parse_report_file(
@@ -347,6 +349,227 @@ class Test(unittest.TestCase):
         self.assertEqual(pp["testing"], "y")
         self.assertEqual(pp["discovery_method"], "treewalk")
         print("Passed!")
+
+    def testRFC9990NamespaceCaptured(self):
+        """The dmarc-2.0 namespace on <feedback> is preserved on the
+        parsed report so consumers can distinguish RFC 9990 from RFC 7489
+        reports without inferring from the version element value."""
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate/rfc9990-sample.xml",
+            always_use_local_files=True,
+            offline=True,
+        )
+        report = cast(AggregateReport, result["report"])
+        self.assertEqual(
+            report["xml_namespace"],
+            "urn:ietf:params:xml:ns:dmarc-2.0",
+        )
+
+    def testRFC9990NamespaceAbsentOnRFC7489Report(self):
+        """RFC 7489 reports don't declare the dmarc-2.0 namespace, so
+        xml_namespace is None."""
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+            always_use_local_files=True,
+            offline=True,
+        )
+        report = cast(AggregateReport, result["report"])
+        self.assertIsNone(report["xml_namespace"])
+
+    def testRFC9990DetectionAcceptsNamespacelessReports(self):
+        """A report that follows the RFC 9990 shape without declaring the
+        namespace (e.g. emits np/testing/discovery_method) is still
+        treated as RFC 9990 for validation purposes — warnings fire,
+        the namespace field reports it honestly as absent."""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            report = parsedmarc.parse_aggregate_report_xml(
+                """<?xml version="1.0"?>
+                <feedback>
+                    <report_metadata>
+                        <org_name>Test</org_name>
+                        <email>t@example.com</email>
+                        <report_id>r1</report_id>
+                        <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+                    </report_metadata>
+                    <policy_published>
+                        <domain>example.com</domain>
+                        <p>none</p>
+                        <np>reject</np>
+                    </policy_published>
+                    <record>
+                        <row>
+                            <source_ip>192.0.2.1</source_ip>
+                            <count>1</count>
+                            <policy_evaluated>
+                                <disposition>none</disposition>
+                                <dkim>pass</dkim>
+                                <spf>pass</spf>
+                            </policy_evaluated>
+                        </row>
+                        <identifiers><header_from>example.com</header_from></identifiers>
+                        <auth_results>
+                            <dkim>
+                                <domain>example.com</domain>
+                                <result>pass</result>
+                            </dkim>
+                        </auth_results>
+                    </record>
+                </feedback>""",
+                offline=True,
+            )
+        # Namespace honestly None because none was declared.
+        self.assertIsNone(report["xml_namespace"])
+        # RFC 9990 detection still fired (DKIM selector warning emitted).
+        self.assertTrue(
+            any("selector" in msg for msg in cm.output),
+            f"Expected DKIM selector warning; got: {cm.output}",
+        )
+
+    def testRFC9990DKIMMissingSelectorWarning(self):
+        """A DKIM auth result with no <selector> in an RFC 9990 report
+        (namespace declared) emits a warning since selector is REQUIRED."""
+        xml = """<?xml version="1.0"?>
+        <feedback xmlns="urn:ietf:params:xml:ns:dmarc-2.0">
+            <version>1.0</version>
+            <report_metadata>
+                <org_name>Test</org_name>
+                <email>t@example.com</email>
+                <report_id>r1</report_id>
+                <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated>
+                        <disposition>none</disposition>
+                        <dkim>pass</dkim>
+                        <spf>pass</spf>
+                    </policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results>
+                    <dkim>
+                        <domain>example.com</domain>
+                        <result>pass</result>
+                    </dkim>
+                </auth_results>
+            </record>
+        </feedback>"""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertTrue(
+            any("selector" in m and "REQUIRED" in m for m in cm.output),
+            f"Expected selector REQUIRED warning; got: {cm.output}",
+        )
+
+    def testRFC9990LegacyOverrideTypeWarning(self):
+        """`forwarded` and `sampled_out` were removed in RFC 9990;
+        a warning fires when they appear in an RFC 9990 report."""
+        xml = """<?xml version="1.0"?>
+        <feedback xmlns="urn:ietf:params:xml:ns:dmarc-2.0">
+            <report_metadata>
+                <org_name>Test</org_name>
+                <email>t@example.com</email>
+                <report_id>r1</report_id>
+                <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated>
+                        <disposition>none</disposition>
+                        <dkim>pass</dkim>
+                        <spf>pass</spf>
+                        <reason><type>forwarded</type></reason>
+                    </policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results>
+                    <dkim>
+                        <domain>example.com</domain>
+                        <selector>s</selector>
+                        <result>pass</result>
+                    </dkim>
+                </auth_results>
+            </record>
+        </feedback>"""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertTrue(
+            any("forwarded" in m and "removed in RFC 9990" in m for m in cm.output),
+            f"Expected legacy override warning; got: {cm.output}",
+        )
+
+    def testRFC9990LangAttrStringUnwrapped(self):
+        """When a langAttrString element (extra_contact_info, error,
+        comment, human_result) carries a lang attribute, xmltodict turns
+        it into {"#text": "...", "@lang": "en"}; the parser must unwrap
+        to the text payload so the report stays comparable to one
+        without the lang attribute."""
+        xml = """<?xml version="1.0"?>
+        <feedback xmlns="urn:ietf:params:xml:ns:dmarc-2.0">
+            <report_metadata>
+                <org_name>Test</org_name>
+                <email>t@example.com</email>
+                <extra_contact_info xml:lang="en">contact-here</extra_contact_info>
+                <report_id>r1</report_id>
+                <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+                <error xml:lang="en">a problem</error>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated>
+                        <disposition>none</disposition>
+                        <dkim>pass</dkim>
+                        <spf>pass</spf>
+                        <reason>
+                            <type>local_policy</type>
+                            <comment xml:lang="en">a comment</comment>
+                        </reason>
+                    </policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results>
+                    <dkim>
+                        <domain>example.com</domain>
+                        <selector>s</selector>
+                        <result>pass</result>
+                        <human_result xml:lang="en">looks fine</human_result>
+                    </dkim>
+                    <spf>
+                        <domain>example.com</domain>
+                        <result>pass</result>
+                        <human_result xml:lang="en">spf-detail</human_result>
+                    </spf>
+                </auth_results>
+            </record>
+        </feedback>"""
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(
+            report["report_metadata"]["org_extra_contact_info"], "contact-here"
+        )
+        self.assertEqual(report["report_metadata"]["errors"], ["a problem"])
+        rec = report["records"][0]
+        reasons = rec["policy_evaluated"]["policy_override_reasons"]
+        self.assertEqual(reasons[0]["comment"], "a comment")
+        self.assertEqual(rec["auth_results"]["dkim"][0]["human_result"], "looks fine")
+        self.assertEqual(rec["auth_results"]["spf"][0]["human_result"], "spf-detail")
 
     def testSmtpTlsSamples(self):
         """Test sample SMTP TLS reports"""
@@ -3052,10 +3275,10 @@ class TestEnvVarConfig(unittest.TestCase):
         report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
         self.assertEqual(report["report_metadata"]["report_id"], "r1")
 
-    def testAggregateReportCsvRowsContainDMARCbisFields(self):
+    def testAggregateReportCsvRowsContainRFC9990Fields(self):
         """CSV rows include np, testing, discovery_method columns"""
         result = parsedmarc.parse_report_file(
-            "samples/aggregate/dmarcbis-draft-sample.xml",
+            "samples/aggregate/rfc9990-sample.xml",
             always_use_local_files=True,
             offline=True,
         )
@@ -3071,7 +3294,7 @@ class TestEnvVarConfig(unittest.TestCase):
         self.assertIn("spf_domains", row)
 
     def testAggregateReportSchemaVersion(self):
-        """DMARCbis report with <version> returns correct xml_schema"""
+        """RFC 9990 report with <version> returns correct xml_schema"""
         xml = """<?xml version="1.0"?>
         <feedback>
             <version>1.0</version>
@@ -3606,7 +3829,7 @@ class TestEnvVarConfig(unittest.TestCase):
     def testParsedAggregateReportsToCsvRowsList(self):
         """parsed_aggregate_reports_to_csv_rows handles list of reports"""
         result = parsedmarc.parse_report_file(
-            "samples/aggregate/dmarcbis-draft-sample.xml",
+            "samples/aggregate/rfc9990-sample.xml",
             always_use_local_files=True,
             offline=True,
         )
@@ -3718,7 +3941,7 @@ class TestEnvVarConfig(unittest.TestCase):
     def testParseAggregateReportFile(self):
         """parse_aggregate_report_file parses bytes input directly"""
         print()
-        sample_path = "samples/aggregate/dmarcbis-draft-sample.xml"
+        sample_path = "samples/aggregate/rfc9990-sample.xml"
         print("Testing {0}: ".format(sample_path), end="")
         with open(sample_path, "rb") as f:
             data = f.read()
@@ -3751,7 +3974,7 @@ class TestEnvVarConfig(unittest.TestCase):
 
     def testParseReportFileWithBytes(self):
         """parse_report_file handles bytes input"""
-        with open("samples/aggregate/dmarcbis-draft-sample.xml", "rb") as f:
+        with open("samples/aggregate/rfc9990-sample.xml", "rb") as f:
             data = f.read()
         result = parsedmarc.parse_report_file(
             data, always_use_local_files=True, offline=True
@@ -4178,12 +4401,12 @@ class TestPolicyPublishedEdgeCases(unittest.TestCase):
         self.assertEqual(report["report_metadata"]["generator"], "TestGen/1.0")
 
     def testPctFieldNone(self):
-        """pct defaults to None when absent (DMARCbis)"""
+        """pct defaults to None when absent (removed in RFC 9989)"""
         report = self._parse(tag="no-pct")
         self.assertIsNone(report["policy_published"]["pct"])
 
     def testFoFieldNone(self):
-        """fo defaults to None when absent (DMARCbis)"""
+        """fo defaults to None when absent (RFC 9990 keeps it optional)"""
         report = self._parse(tag="no-fo")
         self.assertIsNone(report["policy_published"]["fo"])
 
@@ -4393,6 +4616,71 @@ Test body"""
             report_str, self._make_sample(), self._default_msg_date(), offline=True
         )
         self.assertEqual(report["authentication_mechanisms"], ["dkim", "spf"])
+
+    def testIdentityAlignmentCFWSWhitespaceStripped(self):
+        """RFC 9991 ABNF allows CFWS around the commas in
+        Identity-Alignment. The previous parser left leading whitespace
+        on the second token ('dkim, spf' -> ['dkim', ' spf']); CFWS-aware
+        splitting yields ['dkim', 'spf']."""
+        report_str = self._make_feedback_report(**{"Identity-Alignment": "dkim, spf"})
+        report = parsedmarc.parse_failure_report(
+            report_str, self._make_sample(), self._default_msg_date(), offline=True
+        )
+        self.assertEqual(report["authentication_mechanisms"], ["dkim", "spf"])
+
+    def testAuthFailureCFWSWhitespaceStripped(self):
+        """Auth-Failure (also comma-separated per RFC 9991) is whitespace-
+        stripped per token."""
+        report_str = self._make_feedback_report(**{"Auth-Failure": "dmarc, spf"})
+        report = parsedmarc.parse_failure_report(
+            report_str, self._make_sample(), self._default_msg_date(), offline=True
+        )
+        self.assertEqual(report["auth_failure"], ["dmarc", "spf"])
+
+    def testMissingIdentityAlignmentWarns(self):
+        """Identity-Alignment is REQUIRED per RFC 9991; the parser
+        defaults silently for permissiveness but logs a warning so the
+        broken reporter is visible."""
+        report_str = self._make_feedback_report()
+        lines = [
+            ln
+            for ln in report_str.split("\n")
+            if not ln.startswith("Identity-Alignment:")
+        ]
+        report_str = "\n".join(lines)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            report = parsedmarc.parse_failure_report(
+                report_str,
+                self._make_sample(),
+                self._default_msg_date(),
+                offline=True,
+            )
+        self.assertEqual(report["authentication_mechanisms"], [])
+        self.assertTrue(
+            any("Identity-Alignment" in m and "RFC 9991" in m for m in cm.output),
+            f"Expected Identity-Alignment RFC 9991 warning; got: {cm.output}",
+        )
+
+    def testMissingAuthFailureWarns(self):
+        """Auth-Failure is REQUIRED per RFC 9991; the parser defaults
+        to 'dmarc' but logs a warning."""
+        report_str = self._make_feedback_report()
+        lines = [
+            ln for ln in report_str.split("\n") if not ln.startswith("Auth-Failure:")
+        ]
+        report_str = "\n".join(lines)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            report = parsedmarc.parse_failure_report(
+                report_str,
+                self._make_sample(),
+                self._default_msg_date(),
+                offline=True,
+            )
+        self.assertEqual(report["auth_failure"], ["dmarc"])
+        self.assertTrue(
+            any("Auth-Failure" in m and "RFC 9991" in m for m in cm.output),
+            f"Expected Auth-Failure RFC 9991 warning; got: {cm.output}",
+        )
 
     def testMissingReportedDomainFallback(self):
         """Missing reported_domain falls back to sample from domain"""
