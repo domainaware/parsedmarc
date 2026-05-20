@@ -74,9 +74,13 @@ jobs:
             -H 'kbn-xsrf: true' \
             --form file=@dashboards/opensearch/opensearch_dashboards.ndjson)
           echo "$response" | python3 -m json.tool
-          echo "$response" | python3 - <<'PY'
-          import json, sys
-          d = json.load(sys.stdin)
+          # Pass the response via env, not stdin: `python3 - <<EOF` (or bare
+          # heredoc) redirects the heredoc itself to stdin so sys.stdin is
+          # empty by the time the script runs, and json.load(sys.stdin) blows
+          # up with "Expecting value: line 1 column 1".
+          RESPONSE="$response" python3 <<'PY'
+          import json, os, sys
+          d = json.loads(os.environ["RESPONSE"])
           if not d.get("success"):
               sys.exit(f"Kibana import failed: {d}")
           if d.get("errors"):
