@@ -297,6 +297,11 @@ The full set of configuration options are:
     creating the index (Default: `1`)
   - `number_of_replicas` - int: The number of replicas to use when
     creating the index (Default: `0`)
+  - `serverless` - bool: Set to `True` when targeting an Elastic Cloud
+    Serverless project. Serverless rejects the `number_of_shards` and
+    `number_of_replicas` index settings with HTTP 400. With this flag set,
+    parsedmarc creates indices without those settings and Serverless applies
+    its own defaults (Default: `False`)
 - `opensearch`
   - `hosts` - str: A comma separated list of hostnames and ports
     or URLs (e.g. `127.0.0.1:9200` or
