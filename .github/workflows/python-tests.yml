@@ -73,7 +73,7 @@ jobs:
         pip install .[build]
     - name: Run unit tests
       run: |
-        pytest --cov --cov-report=xml -junitxml=junit.xml -o junit_family=legacy tests.py
+        pytest --cov --cov-report=xml --junitxml=junit.xml -o junit_family=legacy tests.py
     - name: Test sample DMARC reports
       run: |
         pip install -e .
