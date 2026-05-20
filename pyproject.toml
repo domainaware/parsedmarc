@@ -104,13 +104,18 @@ exclude = [
 testpaths = ["tests"]
 
 [tool.coverage.run]
-# Measure both shipped code and the test files themselves — matches the
-# coverage baseline the old monolithic tests.py produced (≈66.9% on
-# master). Setting `source = ["parsedmarc"]` would suppress measurement
-# of the test files and drop the headline number by ~8 percentage
-# points without any actual loss of testing. If you want only the
-# shipped-code number, run pytest with `--cov=parsedmarc` on the CLI.
-include = [
-    "parsedmarc/*",
-    "tests/*",
+# Coverage measures shipped code only. Master's reported ≈66.9% on
+# Codecov was an artefact of the old monolithic tests.py having no
+# [tool.coverage.run] block, which let coverage's default behaviour
+# measure every file imported during the run — including the test file
+# itself at ~99% "covered". That inflated the headline by ~8 percentage
+# points without any actual testing signal. Restricting to the parsedmarc
+# package gives a meaningful number that tracks how much of the shipped
+# library the test suite actually exercises.
+source = ["parsedmarc"]
+# Maintainer-only batch scripts under parsedmarc/resources/maps/ ship
+# out of the wheel (see the [tool.hatch.build] exclude block above) —
+# omit them so the headline number reflects only installed library code.
+omit = [
+    "*/parsedmarc/resources/maps/*.py",
 ]
