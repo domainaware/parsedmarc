@@ -22,6 +22,6 @@ python3 sortlists.py
 echo "Checking for invalid UTF-8 bytes in base_reverse_dns_map.csv"
 python3 find_bad_utf8.py base_reverse_dns_map.csv
 cd ../../..
-python3 tests.py
+python3 -m pytest --cov --cov-report=xml --junitxml=junit.xml -o junit_family=legacy tests/
 rm -rf dist/ build/
 hatch build
