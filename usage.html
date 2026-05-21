@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=de4344a5"></script>
+      <script src="_static/documentation_options.js?v=335988e4"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -53,6 +53,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#specifying-the-config-file-via-environment-variable">Specifying the config file via environment variable</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#running-without-a-config-file-env-only-mode">Running without a config file (env-only mode)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#docker-compose-example">Docker Compose example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docker-secrets-file-suffix">Docker secrets (<code class="docutils literal notranslate"><span class="pre">_FILE</span></code> suffix)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#section-name-mapping">Section name mapping</a></li>
 </ul>
 </li>
@@ -104,9 +105,9 @@
 <section id="cli-help">
 <h2>CLI help<a class="headerlink" href="#cli-help" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
-                  [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--forensic-json-filename FORENSIC_JSON_FILENAME]
+                  [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--failure-json-filename FAILURE_JSON_FILENAME]
                   [--smtp-tls-json-filename SMTP_TLS_JSON_FILENAME] [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
-                  [--forensic-csv-filename FORENSIC_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
+                  [--failure-csv-filename FAILURE_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
                   [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline] [-s] [-w] [--verbose] [--debug]
                   [--log-file LOG_FILE] [--no-prettify-json] [-v]
                   [file_path ...]
@@ -114,26 +115,26 @@
 Parses DMARC reports
 
 positional arguments:
-  file_path             one or more paths to aggregate or forensic report files, emails, or mbox files&#39;
+  file_path             one or more paths to aggregate or failure report files, emails, or mbox files&#39;
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG_FILE, --config-file CONFIG_FILE
                         a path to a configuration file (--silent implied)
   --strip-attachment-payloads
-                        remove attachment payloads from forensic report output
+                        remove attachment payloads from failure report output
   -o OUTPUT, --output OUTPUT
                         write output files to the given directory
   --aggregate-json-filename AGGREGATE_JSON_FILENAME
                         filename for the aggregate JSON output file
-  --forensic-json-filename FORENSIC_JSON_FILENAME
-                        filename for the forensic JSON output file
+  --failure-json-filename FAILURE_JSON_FILENAME
+                        filename for the failure JSON output file
   --smtp-tls-json-filename SMTP_TLS_JSON_FILENAME
                         filename for the SMTP TLS JSON output file
   --aggregate-csv-filename AGGREGATE_CSV_FILENAME
                         filename for the aggregate CSV output file
-  --forensic-csv-filename FORENSIC_CSV_FILENAME
-                        filename for the forensic CSV output file
+  --failure-csv-filename FAILURE_CSV_FILENAME
+                        filename for the failure CSV output file
   --smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME
                         filename for the SMTP TLS CSV output file
   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
@@ -167,7 +168,7 @@ configuration file, described below.</p>
 
 <span class="k">[general]</span>
 <span class="na">save_aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
-<span class="na">save_forensic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
+<span class="na">save_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">True</span>
 
 <span class="k">[imap]</span>
 <span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">imap.example.com</span>
@@ -206,7 +207,7 @@ configuration file, described below.</p>
 
 <span class="k">[webhook]</span>
 <span class="na">aggregate_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://aggregate_url.example.com</span>
-<span class="na">forensic_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://forensic_url.example.com</span>
+<span class="na">failure_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://failure_url.example.com</span>
 <span class="na">smtp_tls_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">https://smtp_tls_url.example.com</span>
 <span class="na">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">60</span>
 </pre></div>
@@ -217,7 +218,7 @@ configuration file, described below.</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> - bool: Save aggregate report data to
 Elasticsearch, Splunk and/or S3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> - bool: Save forensic report data to
+<li><p><code class="docutils literal notranslate"><span class="pre">save_failure</span></code> - bool: Save failure report data to
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_smtp_tls</span></code> - bool: Save SMTP-STS report data to
 Elasticsearch, Splunk and/or S3</p></li>
@@ -228,7 +229,7 @@ payloads from results</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate
 JSON output file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">forensic_json_filename</span></code> - str: filename for the forensic
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_json_filename</span></code> - str: filename for the failure
 JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> - str: An optional custom path to a MMDB file
 from IPinfo, MaxMind, or DBIP</p></li>
@@ -406,6 +407,12 @@ verification (not recommended)</p></li>
 creating the index (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> - int: The number of replicas to use when
 creating the index (Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">serverless</span></code> - bool: Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> when targeting an Elastic Cloud
+Serverless project. Serverless manages sharding and replication itself
+and rejects the <code class="docutils literal notranslate"><span class="pre">number_of_shards</span></code> / <code class="docutils literal notranslate"><span class="pre">number_of_replicas</span></code> index settings
+with HTTP 400. With this flag set, parsedmarc strips those keys from the
+settings sent at index creation; any other settings (e.g.
+<code class="docutils literal notranslate"><span class="pre">refresh_interval</span></code>) are passed through unchanged (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">opensearch</span></code></p>
@@ -459,7 +466,7 @@ verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_topic</span></code> - str: The Kafka topic for aggregate reports</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">forensic_topic</span></code> - str: The Kafka topic for forensic reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_topic</span></code> - str: The Kafka topic for failure reports</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
@@ -485,6 +492,47 @@ so use <code class="docutils literal notranslate"><span class="pre">%%</span></c
 </div>
 </li>
 </ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">postgresql</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The PostgreSQL server hostname or IP address.
+Required unless <code class="docutils literal notranslate"><span class="pre">connection_string</span></code> is provided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The PostgreSQL server port (Default: <code class="docutils literal notranslate"><span class="pre">5432</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: The database user name (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: The database user password (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">database</span></code> - str: The database name (Optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connection_string</span></code> - str: A full libpq connection string or URI
+(e.g. <code class="docutils literal notranslate"><span class="pre">postgresql://user:pass&#64;host/dbname</span></code>). When provided,
+all individual parameters above are ignored.</p></li>
+</ul>
+<p>The PostgreSQL backend is an optional extra. Install it with
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">parsedmarc[postgresql]</span></code> (it pulls in <code class="docutils literal notranslate"><span class="pre">psycopg</span></code>); the
+prebuilt binary wheels are not available for every platform, which is
+why it is not a mandatory dependency.</p>
+<p>Tables are created automatically on first run using
+<code class="docutils literal notranslate"><span class="pre">CREATE</span> <span class="pre">TABLE</span> <span class="pre">IF</span> <span class="pre">NOT</span> <span class="pre">EXISTS</span></code>, so no manual schema migration is needed
+for fresh installations.</p>
+<p><strong>Example configuration:</strong></p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[postgresql]</span>
+<span class="na">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">localhost</span>
+<span class="na">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">5432</span>
+<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">parsedmarc</span>
+<span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">secret</span>
+<span class="na">database</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">parsedmarc</span>
+</pre></div>
+</div>
+<p>Or using a DSN/URI:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[postgresql]</span>
+<span class="na">connection_string</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">postgresql://parsedmarc:secret@localhost/parsedmarc</span>
+</pre></div>
+</div>
+<p>Saving parsed data to PostgreSQL is controlled by the <code class="docutils literal notranslate"><span class="pre">[general]</span></code>
+options <code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code>, <code class="docutils literal notranslate"><span class="pre">save_failure</span></code>, and <code class="docutils literal notranslate"><span class="pre">save_smtp_tls</span></code>
+(<code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> is still accepted as a deprecated alias for
+<code class="docutils literal notranslate"><span class="pre">save_failure</span></code>). These flags must be set to <code class="docutils literal notranslate"><span class="pre">True</span></code> for the
+corresponding report types (aggregate DMARC, failure DMARC, and
+SMTP TLS reports) or no data will be written to PostgreSQL, even if
+this section is configured.</p>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">s3</span></code></p>
 <ul class="simple">
@@ -586,7 +634,7 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 <li><p><code class="docutils literal notranslate"><span class="pre">dce</span></code> - str: The Data Collection Endpoint (DCE). Example: <code class="docutils literal notranslate"><span class="pre">https://{DCE-NAME}.{REGION}.ingest.monitor.azure.com</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_immutable_id</span></code> - str: The immutable ID of the Data Collection Rule (DCR)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_aggregate_stream</span></code> - str: The stream name for aggregate reports in the DCR</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">dcr_forensic_stream</span></code> - str: The stream name for the forensic reports in the DCR</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dcr_failure_stream</span></code> - str: The stream name for the failure reports in the DCR</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dcr_smtp_tls_stream</span></code> - str: The stream name for the SMTP TLS reports in the DCR</p></li>
 </ul>
 <div class="admonition note">
@@ -603,14 +651,14 @@ When <code class="docutils literal notranslate"><span class="pre">False</span></
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">maildir</span></code></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">maildir_path</span></code> - str: Full path for mailbox maidir location (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maildir_path</span></code> - str: Full path for mailbox maildir location (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">maildir_create</span></code> - bool: Create maildir if not present (Default: False)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">webhook</span></code> - Post the individual reports to a webhook url with the report as the JSON body</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_url</span></code> - str: URL of the webhook which should receive the aggregate reports</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">forensic_url</span></code> - str: URL of the webhook which should receive the forensic reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_url</span></code> - str: URL of the webhook which should receive the failure reports</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">smtp_tls_url</span></code> - str: URL of the webhook which should receive the smtp_tls reports</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> - int: Interval in which the webhook call should timeout</p></li>
 </ul>
@@ -627,23 +675,23 @@ blocks DNS requests to outside resolvers.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_forensic</span></code> are separate options
-because you may not want to save forensic reports
-(also known as failure reports) to your Elasticsearch instance,
+<p><code class="docutils literal notranslate"><span class="pre">save_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">save_failure</span></code> are separate options
+because you may not want to save failure reports
+(formerly known as forensic reports) to your Elasticsearch instance,
 particularly if you are in a highly-regulated industry that
 handles sensitive data, such as healthcare or finance. If your
 legitimate outgoing email fails DMARC, it is possible
-that email may appear later in a forensic report.</p>
-<p>Forensic reports contain the original headers of an email that
+that email may appear later in a failure report.</p>
+<p>Failure reports contain the original headers of an email that
 failed a DMARC check, and sometimes may also include the
 full message body, depending on the policy of the reporting
 organization.</p>
-<p>Most reporting organizations do not send forensic reports of any
+<p>Most reporting organizations do not send failure reports of any
 kind for privacy reasons. While aggregate DMARC reports are sent
-at least daily, it is normal to receive very few forensic reports.</p>
-<p>An alternative approach is to still collect forensic/failure/ruf
+at least daily, it is normal to receive very few failure reports.</p>
+<p>An alternative approach is to still collect failure/ruf
 reports in your DMARC inbox, but run <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> with
-<code class="docutils literal notranslate"><span class="pre">save_forensic</span> <span class="pre">=</span> <span class="pre">True</span></code> manually on a separate IMAP folder (using
+<code class="docutils literal notranslate"><span class="pre">save_failure</span> <span class="pre">=</span> <span class="pre">True</span></code> manually on a separate IMAP folder (using
 the <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> option), after you have manually moved
 known samples you want to save to that folder
 (e.g. malicious samples and non-sensitive legitimate samples).</p>
@@ -736,9 +784,50 @@ parsedmarc<span class="w"> </span>/path/to/reports/*
 <span class="w">      </span><span class="nt">PARSEDMARC_MAILBOX_WATCH</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
 <span class="w">      </span><span class="nt">PARSEDMARC_ELASTICSEARCH_HOSTS</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://elasticsearch:9200</span>
 <span class="w">      </span><span class="nt">PARSEDMARC_GENERAL_SAVE_AGGREGATE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
-<span class="w">      </span><span class="nt">PARSEDMARC_GENERAL_SAVE_FORENSIC</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_GENERAL_SAVE_FAILURE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
 </pre></div>
 </div>
+</section>
+<section id="docker-secrets-file-suffix">
+<h3>Docker secrets (<code class="docutils literal notranslate"><span class="pre">_FILE</span></code> suffix)<a class="headerlink" href="#docker-secrets-file-suffix" title="Link to this heading"></a></h3>
+<p>Any <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_{SECTION}_{KEY}</span></code> environment variable can also be supplied
+via a file by appending <code class="docutils literal notranslate"><span class="pre">_FILE</span></code> to its name. The file’s contents (with any
+trailing CR/LF characters stripped) are used as the value. This is the
+same convention used by the official Postgres, MariaDB, and Redis container
+images, and is designed to plug straight into Docker / Docker Compose /
+Kubernetes secrets so credentials never appear in plain <code class="docutils literal notranslate"><span class="pre">environment:</span></code>
+blocks (where they would be readable via <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">inspect</span></code>, container logs,
+and <code class="docutils literal notranslate"><span class="pre">/proc/&lt;pid&gt;/environ</span></code>).</p>
+<p>The bare <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> / <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_DEBUG</span></code> aliases and <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_CONFIG_FILE</span></code>
+do not have a <code class="docutils literal notranslate"><span class="pre">_FILE</span></code> form; only <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_{SECTION}_{KEY}</span></code> vars resolved
+to a known config section are eligible.</p>
+<p>If both the direct env var and the <code class="docutils literal notranslate"><span class="pre">_FILE</span></code> variant are set, the <code class="docutils literal notranslate"><span class="pre">_FILE</span></code>
+variant wins. If the file does not exist or is unreadable, parsedmarc
+exits with a configuration error rather than silently falling back to an
+empty value.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">secrets</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">imap_password</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./secrets/imap_password.txt</span>
+
+<span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">parsedmarc</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">parsedmarc:latest</span>
+<span class="w">    </span><span class="nt">secrets</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imap_password</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_HOST</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imap.example.com</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_USER</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dmarc@example.com</span>
+<span class="w">      </span><span class="nt">PARSEDMARC_IMAP_PASSWORD_FILE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/run/secrets/imap_password</span>
+</pre></div>
+</div>
+<p>Note that a small set of config keys whose own names already end in
+<code class="docutils literal notranslate"><span class="pre">_file</span></code> (<code class="docutils literal notranslate"><span class="pre">[general]</span> <span class="pre">log_file</span></code>, <code class="docutils literal notranslate"><span class="pre">[msgraph]</span> <span class="pre">token_file</span></code>,
+<code class="docutils literal notranslate"><span class="pre">[gmail_api]</span> <span class="pre">credentials_file</span></code>, <code class="docutils literal notranslate"><span class="pre">[gmail_api]</span> <span class="pre">token_file</span></code>) keep their
+pre-existing meaning when set via <code class="docutils literal notranslate"><span class="pre">PARSEDMARC_..._FILE</span></code> — that env var is
+the path itself, not a wrapper around a file containing the path. To pass
+<em>those</em> paths via a Docker secret, double up the suffix
+(<code class="docutils literal notranslate"><span class="pre">PARSEDMARC_GMAIL_API_CREDENTIALS_FILE_FILE</span></code>); the inner contents are
+then read and stored as the <code class="docutils literal notranslate"><span class="pre">credentials_file</span></code> value.</p>
 </section>
 <section id="section-name-mapping">
 <h3>Section name mapping<a class="headerlink" href="#section-name-mapping" title="Link to this heading"></a></h3>
@@ -817,7 +906,7 @@ a safer starting point for large backfills than aggressive parallelism.</p></li>
 <li><p>Use <code class="docutils literal notranslate"><span class="pre">mailbox.since</span></code> to process reports in smaller time windows such as <code class="docutils literal notranslate"><span class="pre">1d</span></code>,
 <code class="docutils literal notranslate"><span class="pre">7d</span></code>, or another interval that fits the backlog. This makes it easier to catch
 up incrementally instead of loading an entire mailbox history in one run.</p></li>
-<li><p>Set <code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span> <span class="pre">=</span> <span class="pre">True</span></code> when forensic reports contain large
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span> <span class="pre">=</span> <span class="pre">True</span></code> when failure reports contain large
 attachments and you do not need to retain the raw payloads in the parsed
 output.</p></li>
 <li><p>Prefer running parsedmarc separately from Elasticsearch or OpenSearch, or

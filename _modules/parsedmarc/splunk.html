@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=de4344a5"></script>
+      <script src="../../_static/documentation_options.js?v=335988e4"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -229,30 +229,30 @@
             <span class="k">raise</span> <span class="n">SplunkError</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="HECClient.save_forensic_reports_to_splunk">
-<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_forensic_reports_to_splunk">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_forensic_reports_to_splunk</span><span class="p">(</span>
+<div class="viewcode-block" id="HECClient.save_failure_reports_to_splunk">
+<a class="viewcode-back" href="../../api.html#parsedmarc.splunk.HECClient.save_failure_reports_to_splunk">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_failure_reports_to_splunk</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">forensic_reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">failure_reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Saves forensic DMARC reports to Splunk</span>
+<span class="sd">        Saves failure DMARC reports to Splunk</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            forensic_reports (list): A list of forensic report dictionaries</span>
+<span class="sd">            failure_reports (list): A list of failure report dictionaries</span>
 <span class="sd">                to save in Splunk</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving forensic reports to Splunk&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">forensic_reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">forensic_reports</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving failure reports to Splunk&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">failure_reports</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">failure_reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">failure_reports</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failure_reports</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span>
 
         <span class="n">json_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">forensic_reports</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">failure_reports</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:forensic&quot;</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:failure&quot;</span>
             <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">])</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -320,6 +320,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 </div>
 
+
+
+<span class="c1"># Backward-compatible aliases</span>
+<span class="n">HECClient</span><span class="o">.</span><span class="n">save_forensic_reports_to_splunk</span> <span class="o">=</span> <span class="n">HECClient</span><span class="o">.</span><span class="n">save_failure_reports_to_splunk</span>
 </pre></div>
 
            </div>

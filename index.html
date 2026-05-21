@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>parsedmarc documentation - Open source DMARC report analyzer and visualizer &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=de4344a5"></script>
+      <script src="_static/documentation_options.js?v=335988e4"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -101,17 +101,22 @@ and Valimail.</p>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Parses draft and 1.0 standard aggregate/rua DMARC reports</p></li>
-<li><p>Parses forensic/failure/ruf DMARC reports</p></li>
-<li><p>Parses reports from SMTP TLS Reporting</p></li>
+<li><p>Parses aggregate/rua DMARC reports: the legacy draft and 1.0 schemas
+(RFC 7489) and the new RFC 9990 schema for the final DMARC standard
+(RFC 9989)</p></li>
+<li><p>Parses failure/ruf DMARC reports (RFC 6591 and RFC 9991; formerly called
+forensic reports)</p></li>
+<li><p>Parses reports from SMTP TLS Reporting (TLS-RPT, RFC 8460)</p></li>
 <li><p>Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail API</p></li>
 <li><p>Transparently handles gzip or zip compressed reports</p></li>
 <li><p>Consistent data structures</p></li>
 <li><p>Simple JSON and/or CSV output</p></li>
 <li><p>Optionally email the results</p></li>
-<li><p>Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
-with premade dashboards</p></li>
-<li><p>Optionally send reports to Apache Kafka</p></li>
+<li><p>Optionally send the results to Elasticsearch, OpenSearch, Splunk, or
+PostgreSQL, for use with premade dashboards</p></li>
+<li><p>Optionally send the results to Apache Kafka, Amazon S3, Azure Log
+Analytics (Microsoft Sentinel), a Graylog (GELF) endpoint, a syslog server,
+or an HTTP webhook</p></li>
 </ul>
 </section>
 <section id="python-compatibility">
@@ -189,7 +194,7 @@ for RHEL or Debian.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Sample outputs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="output.html#sample-aggregate-report-output">Sample aggregate report output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="output.html#sample-forensic-report-output">Sample forensic report output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="output.html#sample-failure-report-output">Sample failure report output</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="elasticsearch.html">Elasticsearch and Kibana</a><ul>

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>Index &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=de4344a5"></script>
+      <script src="_static/documentation_options.js?v=335988e4"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -115,10 +115,10 @@
 </li>
       <li><a href="api.html#parsedmarc.types.AggregateParsedReport">AggregateParsedReport (class in parsedmarc.types)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.types.AggregatePolicyEvaluated">AggregatePolicyEvaluated (class in parsedmarc.types)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.types.AggregatePolicyOverrideReason">AggregatePolicyOverrideReason (class in parsedmarc.types)</a>
 </li>
       <li><a href="api.html#parsedmarc.types.AggregatePolicyPublished">AggregatePolicyPublished (class in parsedmarc.types)</a>
@@ -130,6 +130,8 @@
       <li><a href="api.html#parsedmarc.types.AggregateReportMetadata">AggregateReportMetadata (class in parsedmarc.types)</a>
 </li>
       <li><a href="api.html#parsedmarc.elastic.AlreadySaved">AlreadySaved</a>, <a href="api.html#parsedmarc.opensearch.AlreadySaved">[1]</a>
+</li>
+      <li><a href="api.html#parsedmarc.append_json">append_json() (in module parsedmarc)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -191,11 +193,15 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#parsedmarc.types.ForensicParsedReport">ForensicParsedReport (class in parsedmarc.types)</a>
+      <li><a href="api.html#parsedmarc.types.FailureParsedReport">FailureParsedReport (class in parsedmarc.types)</a>
+</li>
+      <li><a href="api.html#parsedmarc.types.FailureReport">FailureReport (class in parsedmarc.types)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#parsedmarc.types.ForensicReport">ForensicReport (class in parsedmarc.types)</a>
+      <li><a href="api.html#parsedmarc.types.ForensicParsedReport">ForensicParsedReport (in module parsedmarc.types)</a>
+</li>
+      <li><a href="api.html#parsedmarc.types.ForensicReport">ForensicReport (in module parsedmarc.types)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -249,7 +255,9 @@
 </li>
       <li><a href="api.html#parsedmarc.InvalidDMARCReport">InvalidDMARCReport</a>
 </li>
-      <li><a href="api.html#parsedmarc.InvalidForensicReport">InvalidForensicReport</a>
+      <li><a href="api.html#parsedmarc.InvalidFailureReport">InvalidFailureReport</a>
+</li>
+      <li><a href="api.html#parsedmarc.InvalidForensicReport">InvalidForensicReport (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.utils.InvalidIPinfoAPIKey">InvalidIPinfoAPIKey</a>
 </li>
@@ -328,6 +336,8 @@
 </li>
       <li><a href="api.html#parsedmarc.utils.parse_email">parse_email() (in module parsedmarc.utils)</a>
 </li>
+      <li><a href="api.html#parsedmarc.parse_failure_report">parse_failure_report() (in module parsedmarc)</a>
+</li>
       <li><a href="api.html#parsedmarc.parse_forensic_report">parse_forensic_report() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.parse_report_email">parse_report_email() (in module parsedmarc)</a>
@@ -340,18 +350,22 @@
 </li>
       <li><a href="api.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">parsed_aggregate_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
+      <li><a href="api.html#parsedmarc.parsed_failure_reports_to_csv">parsed_failure_reports_to_csv() (in module parsedmarc)</a>
+</li>
+      <li><a href="api.html#parsedmarc.parsed_failure_reports_to_csv_rows">parsed_failure_reports_to_csv_rows() (in module parsedmarc)</a>
+</li>
       <li><a href="api.html#parsedmarc.parsed_forensic_reports_to_csv">parsed_forensic_reports_to_csv() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">parsed_forensic_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">parsed_smtp_tls_reports_to_csv() (in module parsedmarc)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">parsed_smtp_tls_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.types.ParsedEmail">ParsedEmail (class in parsedmarc.types)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     parsedmarc
 
@@ -426,6 +440,12 @@
 </li>
       <li><a href="api.html#parsedmarc.splunk.HECClient.save_aggregate_reports_to_splunk">save_aggregate_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
 </li>
+      <li><a href="api.html#parsedmarc.elastic.save_failure_report_to_elasticsearch">save_failure_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
+</li>
+      <li><a href="api.html#parsedmarc.opensearch.save_failure_report_to_opensearch">save_failure_report_to_opensearch() (in module parsedmarc.opensearch)</a>
+</li>
+      <li><a href="api.html#parsedmarc.splunk.HECClient.save_failure_reports_to_splunk">save_failure_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
+</li>
       <li><a href="api.html#parsedmarc.elastic.save_forensic_report_to_elasticsearch">save_forensic_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
 </li>
       <li><a href="api.html#parsedmarc.opensearch.save_forensic_report_to_opensearch">save_forensic_report_to_opensearch() (in module parsedmarc.opensearch)</a>
@@ -436,10 +456,10 @@
 </li>
       <li><a href="api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">save_smtp_tls_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
 </li>
-      <li><a href="api.html#parsedmarc.opensearch.save_smtp_tls_report_to_opensearch">save_smtp_tls_report_to_opensearch() (in module parsedmarc.opensearch)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.opensearch.save_smtp_tls_report_to_opensearch">save_smtp_tls_report_to_opensearch() (in module parsedmarc.opensearch)</a>
+</li>
       <li><a href="api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">save_smtp_tls_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
 </li>
       <li><a href="api.html#parsedmarc.elastic.set_hosts">set_hosts() (in module parsedmarc.elastic)</a>

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elasticsearch and Kibana &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=de4344a5"></script>
+      <script src="_static/documentation_options.js?v=335988e4"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -186,7 +186,7 @@ server.ssl.key: /etc/kibana/kibana.key
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For more security, you can configure Kibana to use a local network connexion
+<p>For more security, you can configure Kibana to use a local network connection
 to elasticsearch :</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>elasticsearch.hosts: [&#39;https://SERVER_IP:9200&#39;]
 </pre></div>
@@ -251,7 +251,7 @@ Kibana index patterns with versions that match the upgraded indexes:</p>
 <ol class="arabic simple">
 <li><p>Login in to Kibana, and click on Management</p></li>
 <li><p>Under Kibana, click on Saved Objects</p></li>
-<li><p>Check the checkboxes for the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">dmarc_forensic</span></code>
+<li><p>Check the checkboxes for the <code class="docutils literal notranslate"><span class="pre">dmarc_aggregate</span></code> and <code class="docutils literal notranslate"><span class="pre">dmarc_failure</span></code>
 index patterns</p></li>
 <li><p>Click Delete</p></li>
 <li><p>Click Delete on the conformation message</p></li>

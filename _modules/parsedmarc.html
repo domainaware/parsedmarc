@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=de4344a5"></script>
+      <script src="../_static/documentation_options.js?v=335988e4"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -134,7 +134,8 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AggregateReport</span><span class="p">,</span>
-    <span class="n">ForensicReport</span><span class="p">,</span>
+    <span class="n">FailureReport</span><span class="p">,</span>
+    <span class="n">ForensicReport</span> <span class="k">as</span> <span class="n">ForensicReport</span><span class="p">,</span>
     <span class="n">ParsedReport</span><span class="p">,</span>
     <span class="n">ParsingResults</span><span class="p">,</span>
     <span class="n">SMTPTLSReport</span><span class="p">,</span>
@@ -155,10 +156,33 @@
 <span class="n">xml_header_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^&lt;\?xml .*?&gt;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
 <span class="n">xml_schema_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&lt;/??xs:schema.*&gt;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
 <span class="n">text_report_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*([a-zA-Z\s]+):\s(.+)&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+<span class="c1"># Captures the value of any xmlns (default or prefixed) declaration so the</span>
+<span class="c1"># RFC 9990 namespace can be detected before xmltodict drops it.</span>
+<span class="n">xml_namespace_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;xmlns(?::[a-zA-Z_][\w.-]*)?\s*=\s*[&quot;&#39;]([^&quot;&#39;]+)[&quot;&#39;]&quot;&quot;&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># The XML namespace assigned to DMARC aggregate reports by RFC 9990.</span>
+<span class="n">RFC_9990_NAMESPACE</span> <span class="o">=</span> <span class="s2">&quot;urn:ietf:params:xml:ns:dmarc-2.0&quot;</span>
+
+<span class="c1"># PolicyOverrideType enumeration from RFC 9990. Compared to RFC 7489,</span>
+<span class="c1"># `policy_test_mode` was added (emitted when t=y suppresses enforcement)</span>
+<span class="c1"># and `forwarded` / `sampled_out` were removed.</span>
+<span class="n">RFC_9990_POLICY_OVERRIDE_TYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;local_policy&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mailing_list&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;other&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;policy_test_mode&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;trusted_forwarder&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+<span class="n">RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;forwarded&quot;</span><span class="p">,</span> <span class="s2">&quot;sampled_out&quot;</span><span class="p">})</span>
 
 <span class="n">MAGIC_ZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x50\x4b\x03\x04</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_GZIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x1f\x8b</span><span class="s2">&quot;</span>
 <span class="n">MAGIC_XML</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3c\x3f\x78\x6d\x6c\x20</span><span class="s2">&quot;</span>
+<span class="n">MAGIC_XML_TAG</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x3c</span><span class="s2">&quot;</span>  <span class="c1"># &#39;&lt;&#39; - XML starting with an element tag (no declaration)</span>
 <span class="n">MAGIC_JSON</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\7</span><span class="s2">b&quot;</span>
 
 <span class="n">EMAIL_SAMPLE_CONTENT_TYPES</span> <span class="o">=</span> <span class="p">(</span>
@@ -205,11 +229,35 @@
 
 
 
-<div class="viewcode-block" id="InvalidForensicReport">
-<a class="viewcode-back" href="../api.html#parsedmarc.InvalidForensicReport">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">InvalidForensicReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC forensic report is encountered&quot;&quot;&quot;</span></div>
+<div class="viewcode-block" id="InvalidFailureReport">
+<a class="viewcode-back" href="../api.html#parsedmarc.InvalidFailureReport">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InvalidFailureReport</span><span class="p">(</span><span class="n">InvalidDMARCReport</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when an invalid DMARC failure report is encountered&quot;&quot;&quot;</span></div>
 
+
+
+<span class="c1"># Backward-compatible alias</span>
+<span class="n">InvalidForensicReport</span> <span class="o">=</span> <span class="n">InvalidFailureReport</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_text</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwrap a possibly-langAttrString value parsed by xmltodict.</span>
+
+<span class="sd">    RFC 9990 changed several aggregate-report elements (extra_contact_info,</span>
+<span class="sd">    error, comment, human_result) to type ``langAttrString`` — an</span>
+<span class="sd">    xs:simpleContent string with an optional ``lang`` attribute. When the</span>
+<span class="sd">    attribute is present, xmltodict parses the element as</span>
+<span class="sd">    ``{&quot;#text&quot;: &quot;...&quot;, &quot;@lang&quot;: &quot;en&quot;}`` instead of a plain string. Returns</span>
+<span class="sd">    the text payload for both shapes, ``None`` for unset values, and leaves</span>
+<span class="sd">    other scalar shapes untouched so callers can preserve whatever the</span>
+<span class="sd">    reporter sent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;#text&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_bucket_interval_by_day</span><span class="p">(</span>
@@ -404,6 +452,7 @@
     <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
+    <span class="n">is_rfc_9990</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a record from a DMARC aggregate report into a more consistent</span>
@@ -453,8 +502,6 @@
     <span class="p">}</span>
     <span class="k">if</span> <span class="s2">&quot;disposition&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
         <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;pass&quot;</span><span class="p">:</span>
-            <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
         <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
     <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
@@ -479,8 +526,27 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">reasons</span> <span class="o">=</span> <span class="p">[</span><span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;reason&quot;</span><span class="p">]]</span>
     <span class="k">for</span> <span class="n">reason</span> <span class="ow">in</span> <span class="n">reasons</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">&quot;comment&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reason</span><span class="p">:</span>
-            <span class="n">reason</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># `comment` is langAttrString in RFC 9990 — unwrap {&quot;#text&quot;: ..., &quot;@lang&quot;: ...}</span>
+        <span class="n">reason</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">reason</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">))</span>
+        <span class="n">reason_type</span> <span class="o">=</span> <span class="n">reason</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_rfc_9990</span> <span class="ow">and</span> <span class="n">reason_type</span> <span class="ow">in</span> <span class="n">RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Policy override reason type </span><span class="si">%r</span><span class="s2"> was removed in RFC 9990; &quot;</span>
+                <span class="s2">&quot;expected one of </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">reason_type</span><span class="p">,</span>
+                <span class="nb">sorted</span><span class="p">(</span><span class="n">RFC_9990_POLICY_OVERRIDE_TYPES</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">is_rfc_9990</span>
+            <span class="ow">and</span> <span class="n">reason_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">reason_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">RFC_9990_POLICY_OVERRIDE_TYPES</span>
+        <span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Unknown policy override reason type </span><span class="si">%r</span><span class="s2"> per RFC 9990; &quot;</span>
+                <span class="s2">&quot;expected one of </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">reason_type</span><span class="p">,</span>
+                <span class="nb">sorted</span><span class="p">(</span><span class="n">RFC_9990_POLICY_OVERRIDE_TYPES</span><span class="p">),</span>
+            <span class="p">)</span>
     <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reasons</span>
     <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;policy_evaluated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_policy_evaluated</span>
     <span class="k">if</span> <span class="s2">&quot;identities&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">:</span>
@@ -510,11 +576,18 @@
             <span class="k">if</span> <span class="s2">&quot;selector&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_rfc_9990</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;DKIM auth result for </span><span class="si">%r</span><span class="s2"> is missing the &#39;selector&#39; &quot;</span>
+                        <span class="s2">&quot;element, which is REQUIRED by RFC 9990&quot;</span><span class="p">,</span>
+                        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
+                    <span class="p">)</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
             <span class="k">if</span> <span class="s2">&quot;result&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+            <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;human_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;human_result&quot;</span><span class="p">))</span>
             <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">auth_results</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
@@ -530,6 +603,7 @@
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+            <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;human_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;human_result&quot;</span><span class="p">))</span>
             <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_result</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;envelope_from&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_record</span><span class="p">[</span><span class="s2">&quot;identifiers&quot;</span><span class="p">]:</span>
@@ -813,6 +887,21 @@
     <span class="c1"># Parse XML and recover from errors</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
         <span class="n">xml</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Detect the XML namespace before any rewriting strips it. The dmarc-2.0</span>
+    <span class="c1"># namespace is one of the indicators for an RFC 9990 report but it is</span>
+    <span class="c1"># NOT a reliable sole discriminator: the &lt;version&gt; element value is</span>
+    <span class="c1"># ambiguous (RFC 9990&#39;s appendix sample uses &lt;version&gt;1.0&lt;/version&gt;</span>
+    <span class="c1"># inside the dmarc-2.0 namespace), and real-world reporters frequently</span>
+    <span class="c1"># emit RFC 9990-shaped reports without declaring the namespace at all.</span>
+    <span class="c1"># The final `is_rfc_9990` decision is made post-parse so that</span>
+    <span class="c1"># RFC 9990-only fields (np, testing, discovery_method, generator,</span>
+    <span class="c1"># human_result) can also vote it in.</span>
+    <span class="n">xml_namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">namespace_match</span> <span class="o">=</span> <span class="n">xml_namespace_regex</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">namespace_match</span><span class="p">:</span>
+        <span class="n">xml_namespace</span> <span class="o">=</span> <span class="n">namespace_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="k">try</span><span class="p">:</span>
         <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -836,16 +925,24 @@
 
         <span class="n">report</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">)[</span><span class="s2">&quot;feedback&quot;</span><span class="p">]</span>
         <span class="n">report_metadata</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span>
+        <span class="c1"># &lt;email&gt; is xs:string in both RFC 7489 and RFC 9990, but defensive</span>
+        <span class="c1"># parsing in the wild: some reporters emit it with an xml:lang or</span>
+        <span class="c1"># similar attribute, which xmltodict turns into a dict.</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;email&quot;</span><span class="p">),</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="s2">&quot;Discarding malformed &lt;email&gt; in report_metadata: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
-            <span class="p">)</span>
-            <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">unwrapped</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">unwrapped</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Discarding malformed &lt;email&gt; in report_metadata: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unwrapped</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="s2">&quot;draft&quot;</span>
         <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">in</span> <span class="n">report</span><span class="p">:</span>
             <span class="n">schema</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span>
-        <span class="n">new_report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;xml_schema&quot;</span><span class="p">:</span> <span class="n">schema</span><span class="p">}</span>
+        <span class="n">new_report</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;xml_schema&quot;</span><span class="p">:</span> <span class="n">schema</span><span class="p">,</span>
+            <span class="s2">&quot;xml_namespace&quot;</span><span class="p">:</span> <span class="n">xml_namespace</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="n">new_report_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -866,9 +963,9 @@
             <span class="p">)</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">org_name</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_email&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">]</span>
-        <span class="n">extra</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="s2">&quot;extra_contact_info&quot;</span> <span class="ow">in</span> <span class="n">report_metadata</span><span class="p">:</span>
-            <span class="n">extra</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;extra_contact_info&quot;</span><span class="p">]</span>
+        <span class="c1"># extra_contact_info is langAttrString in RFC 9990 (xs:string in</span>
+        <span class="c1"># RFC 7489) — unwrap {&quot;#text&quot;: ..., &quot;@lang&quot;: ...} if present.</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">report_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extra_contact_info&quot;</span><span class="p">))</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;org_extra_contact_info&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">extra</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
         <span class="n">report_id</span> <span class="o">=</span> <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;report_id&quot;</span><span class="p">]</span>
@@ -896,17 +993,38 @@
             <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;end_date&quot;</span><span class="p">],</span> <span class="n">to_utc</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
 
+        <span class="c1"># &lt;error&gt; is langAttrString in RFC 9990 (xs:string in RFC 7489) and</span>
+        <span class="c1"># was cardinality-narrowed from &quot;unbounded&quot; to &quot;1&quot; in RFC 9990, but</span>
+        <span class="c1"># the parser still accepts a list for backward compatibility with</span>
+        <span class="c1"># RFC 7489 reports that carry multiple errors.</span>
         <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">]]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">errors</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">]</span>
+            <span class="n">raw_errors</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">][</span><span class="s2">&quot;error&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_errors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">raw_errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">raw_errors</span><span class="p">]</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">text</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_text</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">raw_errors</span><span class="p">)</span> <span class="k">if</span> <span class="n">text</span><span class="p">]</span>
         <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span>
+        <span class="c1"># &lt;generator&gt; is a plain xs:string in RFC 9990 but apply _text() so</span>
+        <span class="c1"># a malformed reporter that decorates it with attributes still</span>
+        <span class="c1"># yields a string instead of breaking downstream consumers.</span>
+        <span class="n">generator</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">report_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;generator&quot;</span><span class="p">))</span>
+        <span class="n">new_report_metadata</span><span class="p">[</span><span class="s2">&quot;generator&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">generator</span>
         <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;report_metadata&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_report_metadata</span>
         <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">policy_published</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">policy_published</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
             <span class="n">policy_published</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Final RFC 9990 detection: the dmarc-2.0 XML namespace OR any</span>
+        <span class="c1"># RFC 9990-only field. Real-world reporters that follow the schema</span>
+        <span class="c1"># without declaring the namespace still get RFC 9990-aware</span>
+        <span class="c1"># warnings (missing DKIM selector, removed override-reason types,</span>
+        <span class="c1"># etc.) and a truthful audit trail in `xml_namespace`.</span>
+        <span class="n">rfc_9990_only_policy_fields</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;np&quot;</span><span class="p">,</span> <span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="s2">&quot;discovery_method&quot;</span><span class="p">}</span>
+        <span class="n">is_rfc_9990</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">xml_namespace</span> <span class="o">==</span> <span class="n">RFC_9990_NAMESPACE</span>
+            <span class="ow">or</span> <span class="s2">&quot;generator&quot;</span> <span class="ow">in</span> <span class="n">report_metadata</span>
+            <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span> <span class="ow">in</span> <span class="n">policy_published</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">rfc_9990_only_policy_fields</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">new_policy_published</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span>
         <span class="n">adkim</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
@@ -925,16 +1043,39 @@
             <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;sp&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">sp</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;sp&quot;</span><span class="p">]</span>
         <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;sp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
-        <span class="n">pct</span> <span class="o">=</span> <span class="s2">&quot;100&quot;</span>
+        <span class="n">pct</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="s2">&quot;pct&quot;</span> <span class="ow">in</span> <span class="n">policy_published</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;pct&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pct</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;pct&quot;</span><span class="p">]</span>
         <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;pct&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pct</span>
-        <span class="n">fo</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="n">fo</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="s2">&quot;fo&quot;</span> <span class="ow">in</span> <span class="n">policy_published</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;fo&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">fo</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;fo&quot;</span><span class="p">]</span>
         <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;fo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fo</span>
+        <span class="n">np_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;np&quot;</span> <span class="ow">in</span> <span class="n">policy_published</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;np&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">np_</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;np&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">np_</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="s2">&quot;quarantine&quot;</span><span class="p">,</span> <span class="s2">&quot;reject&quot;</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid np value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np_</span><span class="p">))</span>
+        <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;np&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_</span>
+        <span class="n">testing</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;testing&quot;</span> <span class="ow">in</span> <span class="n">policy_published</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">testing</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">testing</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid testing value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">testing</span><span class="p">))</span>
+        <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">testing</span>
+        <span class="n">discovery_method</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;discovery_method&quot;</span> <span class="ow">in</span> <span class="n">policy_published</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;discovery_method&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">discovery_method</span> <span class="o">=</span> <span class="n">policy_published</span><span class="p">[</span><span class="s2">&quot;discovery_method&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">discovery_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;psl&quot;</span><span class="p">,</span> <span class="s2">&quot;treewalk&quot;</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Invalid discovery_method value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">discovery_method</span><span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="n">new_policy_published</span><span class="p">[</span><span class="s2">&quot;discovery_method&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">discovery_method</span>
         <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_policy_published</span>
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;record&quot;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
@@ -954,6 +1095,7 @@
                         <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                         <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
                         <span class="n">dns_retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+                        <span class="n">is_rfc_9990</span><span class="o">=</span><span class="n">is_rfc_9990</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="n">_append_parsed_record</span><span class="p">(</span>
                         <span class="n">parsed_record</span><span class="o">=</span><span class="n">report_record</span><span class="p">,</span>
@@ -976,6 +1118,7 @@
                 <span class="n">nameservers</span><span class="o">=</span><span class="n">nameservers</span><span class="p">,</span>
                 <span class="n">dns_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
                 <span class="n">dns_retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span>
+                <span class="n">is_rfc_9990</span><span class="o">=</span><span class="n">is_rfc_9990</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">_append_parsed_record</span><span class="p">(</span>
                 <span class="n">parsed_record</span><span class="o">=</span><span class="n">report_record</span><span class="p">,</span>
@@ -1072,6 +1215,7 @@
             <span class="p">)</span>
         <span class="k">elif</span> <span class="p">(</span>
             <span class="n">header</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">MAGIC_XML</span><span class="p">)]</span> <span class="o">==</span> <span class="n">MAGIC_XML</span>
+            <span class="ow">or</span> <span class="n">header</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">MAGIC_XML_TAG</span><span class="p">)]</span> <span class="o">==</span> <span class="n">MAGIC_XML_TAG</span>
             <span class="ow">or</span> <span class="n">header</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">MAGIC_JSON</span><span class="p">)]</span> <span class="o">==</span> <span class="n">MAGIC_JSON</span>
         <span class="p">):</span>
             <span class="n">report</span> <span class="o">=</span> <span class="n">file_object</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
@@ -1210,6 +1354,9 @@
         <span class="n">sp</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;sp&quot;</span><span class="p">]</span>
         <span class="n">pct</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;pct&quot;</span><span class="p">]</span>
         <span class="n">fo</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;fo&quot;</span><span class="p">]</span>
+        <span class="n">np_</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;np&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">testing</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">discovery_method</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;discovery_method&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="n">report_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">xml_schema</span><span class="o">=</span><span class="n">xml_schema</span><span class="p">,</span>
@@ -1226,8 +1373,11 @@
             <span class="n">aspf</span><span class="o">=</span><span class="n">aspf</span><span class="p">,</span>
             <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
             <span class="n">sp</span><span class="o">=</span><span class="n">sp</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">=</span><span class="n">np_</span><span class="p">,</span>
             <span class="n">pct</span><span class="o">=</span><span class="n">pct</span><span class="p">,</span>
             <span class="n">fo</span><span class="o">=</span><span class="n">fo</span><span class="p">,</span>
+            <span class="n">testing</span><span class="o">=</span><span class="n">testing</span><span class="p">,</span>
+            <span class="n">discovery_method</span><span class="o">=</span><span class="n">discovery_method</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">]:</span>
@@ -1329,8 +1479,11 @@
         <span class="s2">&quot;aspf&quot;</span><span class="p">,</span>
         <span class="s2">&quot;p&quot;</span><span class="p">,</span>
         <span class="s2">&quot;sp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;np&quot;</span><span class="p">,</span>
         <span class="s2">&quot;pct&quot;</span><span class="p">,</span>
         <span class="s2">&quot;fo&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;testing&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;discovery_method&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_ip_address&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_country&quot;</span><span class="p">,</span>
         <span class="s2">&quot;source_reverse_dns&quot;</span><span class="p">,</span>
@@ -1372,9 +1525,9 @@
 
 
 
-<div class="viewcode-block" id="parse_forensic_report">
-<a class="viewcode-back" href="../api.html#parsedmarc.parse_forensic_report">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_forensic_report</span><span class="p">(</span>
+<div class="viewcode-block" id="parse_failure_report">
+<a class="viewcode-back" href="../api.html#parsedmarc.parse_failure_report">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_failure_report</span><span class="p">(</span>
     <span class="n">feedback_report</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">msg_date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
@@ -1388,9 +1541,9 @@
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ForensicReport</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FailureReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts a DMARC forensic report and sample to a dict</span>
+<span class="sd">    Converts a DMARC failure report and sample to a dict</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        feedback_report (str): A message&#39;s feedback report as a string</span>
@@ -1407,7 +1560,7 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">            forensic report results</span>
+<span class="sd">            failure report results</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: A parsed report and sample</span>
@@ -1423,7 +1576,7 @@
 
         <span class="k">if</span> <span class="s2">&quot;arrival_date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">msg_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="s2">&quot;Forensic sample is not a valid email&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span><span class="s2">&quot;Failure sample is not a valid email&quot;</span><span class="p">)</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;arrival_date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
@@ -1465,21 +1618,37 @@
         <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_report_source</span>
         <span class="k">del</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;source_ip&quot;</span><span class="p">]</span>
 
+        <span class="c1"># Identity-Alignment is REQUIRED per RFC 9991 §4. Default silently for</span>
+        <span class="c1"># backward compatibility with pre-9991 reporters, but log so the</span>
+        <span class="c1"># offending reporter is visible. Values are CFWS-separated per the</span>
+        <span class="c1"># ABNF, so each mechanism is stripped after splitting.</span>
         <span class="k">if</span> <span class="s2">&quot;identity_alignment&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Failure report missing required &#39;Identity-Alignment&#39; &quot;</span>
+                <span class="s2">&quot;field (RFC 9991 §4); defaulting to no aligned mechanisms&quot;</span>
+            <span class="p">)</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;authentication_mechanisms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">elif</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;identity_alignment&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
-            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;authentication_mechanisms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">del</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;identity_alignment&quot;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">auth_mechanisms</span> <span class="o">=</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;identity_alignment&quot;</span><span class="p">]</span>
-            <span class="n">auth_mechanisms</span> <span class="o">=</span> <span class="n">auth_mechanisms</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
-            <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;authentication_mechanisms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">auth_mechanisms</span>
+            <span class="n">raw_alignment</span> <span class="o">=</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;identity_alignment&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">raw_alignment</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;authentication_mechanisms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;authentication_mechanisms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">m</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">raw_alignment</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="p">]</span>
             <span class="k">del</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;identity_alignment&quot;</span><span class="p">]</span>
 
+        <span class="c1"># Auth-Failure is REQUIRED per RFC 9991 §4. Comma-separated per ABNF</span>
+        <span class="c1"># so strip each token.</span>
         <span class="k">if</span> <span class="s2">&quot;auth_failure&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Failure report missing required &#39;Auth-Failure&#39; field &quot;</span>
+                <span class="s2">&quot;(RFC 9991 §4); defaulting to &#39;dmarc&#39;&quot;</span>
+            <span class="p">)</span>
             <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;auth_failure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc&quot;</span>
-        <span class="n">auth_failure</span> <span class="o">=</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;auth_failure&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
-        <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;auth_failure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">auth_failure</span>
+        <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;auth_failure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;auth_failure&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="p">]</span>
 
         <span class="n">optional_fields</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;original_envelope_id&quot;</span><span class="p">,</span>
@@ -1510,30 +1679,30 @@
         <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample</span>
         <span class="n">parsed_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_sample</span>
 
-        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">ForensicReport</span><span class="p">,</span> <span class="n">parsed_report</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">FailureReport</span><span class="p">,</span> <span class="n">parsed_report</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="s2">&quot;Missing value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+        <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span><span class="s2">&quot;Missing value: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+        <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span><span class="s2">&quot;Unexpected error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
 
 
 
-<div class="viewcode-block" id="parsed_forensic_reports_to_csv_rows">
-<a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv_rows">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">]],</span>
+<div class="viewcode-block" id="parsed_failure_reports_to_csv_rows">
+<a class="viewcode-back" href="../api.html#parsedmarc.parsed_failure_reports_to_csv_rows">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_failure_reports_to_csv_rows</span><span class="p">(</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts one or more parsed forensic reports to a list of dicts in flat CSV</span>
+<span class="sd">    Converts one or more parsed failure reports to a list of dicts in flat CSV</span>
 <span class="sd">    format</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        reports: A parsed forensic report or list of parsed forensic reports</span>
+<span class="sd">        reports: A parsed failure report or list of parsed failure reports</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        list: Parsed forensic report data as a list of dicts in flat CSV format</span>
+<span class="sd">        list: Parsed failure report data as a list of dicts in flat CSV format</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reports</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">reports</span> <span class="o">=</span> <span class="p">[</span><span class="n">reports</span><span class="p">]</span>
@@ -1564,20 +1733,20 @@
 
 
 
-<div class="viewcode-block" id="parsed_forensic_reports_to_csv">
-<a class="viewcode-back" href="../api.html#parsedmarc.parsed_forensic_reports_to_csv">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parsed_forensic_reports_to_csv</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">]],</span>
+<div class="viewcode-block" id="parsed_failure_reports_to_csv">
+<a class="viewcode-back" href="../api.html#parsedmarc.parsed_failure_reports_to_csv">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parsed_failure_reports_to_csv</span><span class="p">(</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts one or more parsed forensic reports to flat CSV format, including</span>
+<span class="sd">    Converts one or more parsed failure reports to flat CSV format, including</span>
 <span class="sd">    headers</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        reports: A parsed forensic report or list of parsed forensic reports</span>
+<span class="sd">        reports: A parsed failure report or list of parsed failure reports</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str: Parsed forensic report data in flat CSV format, including headers</span>
+<span class="sd">        str: Parsed failure report data in flat CSV format, including headers</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;feedback_type&quot;</span><span class="p">,</span>
@@ -1612,7 +1781,7 @@
     <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">DictWriter</span><span class="p">(</span><span class="n">csv_file</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">fields</span><span class="p">)</span>
     <span class="n">csv_writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
 
-    <span class="n">rows</span> <span class="o">=</span> <span class="n">parsed_forensic_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">parsed_failure_reports_to_csv_rows</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
         <span class="n">new_row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1656,13 +1825,13 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">            forensic report results</span>
+<span class="sd">            failure report results</span>
 <span class="sd">        keep_alive (callable): keep alive function</span>
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict:</span>
-<span class="sd">        * ``report_type``: ``aggregate`` or ``forensic``</span>
+<span class="sd">        * ``report_type``: ``aggregate`` or ``failure``</span>
 <span class="sd">        * ``report``: The parsed report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParsedReport</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1806,7 +1975,7 @@
 
     <span class="k">if</span> <span class="n">feedback_report</span> <span class="ow">and</span> <span class="n">sample</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">forensic_report</span> <span class="o">=</span> <span class="n">parse_forensic_report</span><span class="p">(</span>
+            <span class="n">failure_report</span> <span class="o">=</span> <span class="n">parse_failure_report</span><span class="p">(</span>
                 <span class="n">feedback_report</span><span class="p">,</span>
                 <span class="n">sample</span><span class="p">,</span>
                 <span class="n">msg_date</span><span class="p">,</span>
@@ -1820,17 +1989,17 @@
                 <span class="n">dns_retries</span><span class="o">=</span><span class="n">dns_retries</span><span class="p">,</span>
                 <span class="n">strip_attachment_payloads</span><span class="o">=</span><span class="n">strip_attachment_payloads</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="n">InvalidForensicReport</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">InvalidFailureReport</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">error</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s1">&#39;Message with subject &quot;</span><span class="si">{0}</span><span class="s1">&quot; &#39;</span>
                 <span class="s2">&quot;is not a valid &quot;</span>
-                <span class="s2">&quot;forensic DMARC report: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="s2">&quot;failure DMARC report: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
             <span class="p">)</span>
-            <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">InvalidForensicReport</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;report_type&quot;</span><span class="p">:</span> <span class="s2">&quot;forensic&quot;</span><span class="p">,</span> <span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="n">forensic_report</span><span class="p">}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;report_type&quot;</span><span class="p">:</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="n">failure_report</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">result</span>
 
     <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1858,7 +2027,7 @@
     <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParsedReport</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or forensic file at the given path, a</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or failure file at the given path, a</span>
 <span class="sd">    file-like object. or bytes</span>
 
 <span class="sd">    Args:</span>
@@ -1870,7 +2039,7 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">            forensic report results</span>
+<span class="sd">            failure report results</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP</span>
 <span class="sd">        always_use_local_files (bool): Do not download files</span>
 <span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map</span>
@@ -1969,7 +2138,7 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">            forensic report results</span>
+<span class="sd">            failure report results</span>
 <span class="sd">        always_use_local_files (bool): Do not download files</span>
 <span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
 <span class="sd">        reverse_dns_map_url (str): URL to a reverse DNS map file</span>
@@ -1978,11 +2147,11 @@
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        dict: Lists of ``aggregate_reports``, ``forensic_reports``, and ``smtp_tls_reports``</span>
+<span class="sd">        dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">aggregate_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">forensic_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">failure_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">smtp_tls_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">mbox</span> <span class="o">=</span> <span class="n">mailbox</span><span class="o">.</span><span class="n">mbox</span><span class="p">(</span><span class="n">input_</span><span class="p">)</span>
@@ -2020,8 +2189,8 @@
                             <span class="s2">&quot;Skipping duplicate aggregate report &quot;</span>
                             <span class="sa">f</span><span class="s2">&quot;from </span><span class="si">{</span><span class="n">report_org</span><span class="si">}</span><span class="s2"> with ID: </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2">&quot;</span>
                         <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;forensic&quot;</span><span class="p">:</span>
-                    <span class="n">forensic_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;failure&quot;</span><span class="p">:</span>
+                    <span class="n">failure_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">:</span>
                     <span class="n">smtp_tls_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
             <span class="k">except</span> <span class="n">InvalidDMARCReport</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
@@ -2030,10 +2199,58 @@
         <span class="k">raise</span> <span class="n">InvalidDMARCReport</span><span class="p">(</span><span class="s2">&quot;Mailbox </span><span class="si">{0}</span><span class="s2"> does not exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_</span><span class="p">))</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">&quot;aggregate_reports&quot;</span><span class="p">:</span> <span class="n">aggregate_reports</span><span class="p">,</span>
-        <span class="s2">&quot;forensic_reports&quot;</span><span class="p">:</span> <span class="n">forensic_reports</span><span class="p">,</span>
+        <span class="s2">&quot;failure_reports&quot;</span><span class="p">:</span> <span class="n">failure_reports</span><span class="p">,</span>
         <span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">:</span> <span class="n">smtp_tls_reports</span><span class="p">,</span>
     <span class="p">}</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_migrate_forensic_archive_folder</span><span class="p">(</span>
+    <span class="n">connection</span><span class="p">:</span> <span class="n">MailboxConnection</span><span class="p">,</span> <span class="n">archive_folder</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Consolidate a pre-rename ``&lt;archive&gt;/Forensic`` subfolder into</span>
+<span class="sd">    ``&lt;archive&gt;/Failure``.</span>
+
+<span class="sd">    Before failure reports were renamed from &quot;forensic&quot; reports, they were</span>
+<span class="sd">    archived under ``&lt;archive_folder&gt;/Forensic``; they now go to</span>
+<span class="sd">    ``&lt;archive_folder&gt;/Failure``. This best-effort, run-on-startup migration</span>
+<span class="sd">    moves any pre-existing legacy archive into the new location so reports</span>
+<span class="sd">    filed before and after the rename live in the same folder.</span>
+
+<span class="sd">    It is a no-op when there is no legacy ``Forensic`` folder (the common</span>
+<span class="sd">    case), and never raises: a mailbox that cannot be reorganized is logged</span>
+<span class="sd">    and skipped, consistent with the rest of parsedmarc&#39;s mailbox handling</span>
+<span class="sd">    (warn, don&#39;t crash). Uses the folder-management API added in mailsuite</span>
+<span class="sd">    2.1.0 (``folder_exists`` / ``rename_folder`` / ``merge_folders``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">old_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="n">new_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Failure&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">connection</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">old_folder</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">connection</span><span class="o">.</span><span class="n">folder_exists</span><span class="p">(</span><span class="n">new_folder</span><span class="p">):</span>
+            <span class="c1"># Both exist (e.g. a partial earlier migration, or a manually</span>
+            <span class="c1"># created Failure folder): move the legacy folder&#39;s messages into</span>
+            <span class="c1"># the new one and drop the now-empty legacy folder.</span>
+            <span class="n">connection</span><span class="o">.</span><span class="n">merge_folders</span><span class="p">(</span><span class="n">old_folder</span><span class="p">,</span> <span class="n">new_folder</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Merged legacy archive folder </span><span class="si">{0}</span><span class="s2"> into </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">old_folder</span><span class="p">,</span> <span class="n">new_folder</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">connection</span><span class="o">.</span><span class="n">rename_folder</span><span class="p">(</span><span class="n">old_folder</span><span class="p">,</span> <span class="n">new_folder</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Renamed legacy archive folder </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">old_folder</span><span class="p">,</span> <span class="n">new_folder</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;Could not migrate legacy archive folder </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">: </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">old_folder</span><span class="p">,</span> <span class="n">new_folder</span><span class="p">,</span> <span class="n">error</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="get_dmarc_reports_from_mailbox">
@@ -2079,7 +2296,7 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Remove attachment payloads from</span>
-<span class="sd">            forensic report results</span>
+<span class="sd">            failure report results</span>
 <span class="sd">        results (dict): Results from the previous run</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">            (use 0 for no limit)</span>
@@ -2090,7 +2307,7 @@
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        dict: Lists of ``aggregate_reports``, ``forensic_reports``, and ``smtp_tls_reports``</span>
+<span class="sd">        dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">delete</span> <span class="ow">and</span> <span class="n">test</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;delete and test options are mutually exclusive&quot;</span><span class="p">)</span>
@@ -2102,25 +2319,26 @@
     <span class="n">current_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">aggregate_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">forensic_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">failure_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">smtp_tls_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">forensic_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">failure_report_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">smtp_tls_msg_uids</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">aggregate_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Aggregate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
-    <span class="n">forensic_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Forensic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
+    <span class="n">failure_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Failure&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
     <span class="n">smtp_tls_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/SMTP-TLS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
     <span class="n">invalid_reports_folder</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/Invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">forensic_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">failure_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;failure_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span> <span class="ow">and</span> <span class="n">create_folders</span><span class="p">:</span>
+        <span class="n">_migrate_forensic_archive_folder</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">archive_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">archive_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">aggregate_reports_folder</span><span class="p">)</span>
-        <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">forensic_reports_folder</span><span class="p">)</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">failure_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">smtp_tls_reports_folder</span><span class="p">)</span>
         <span class="n">connection</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="n">invalid_reports_folder</span><span class="p">)</span>
 
@@ -2226,9 +2444,9 @@
                         <span class="sa">f</span><span class="s2">&quot;Skipping duplicate aggregate report with ID: </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="p">)</span>
                 <span class="n">aggregate_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_id</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;forensic&quot;</span><span class="p">:</span>
-                <span class="n">forensic_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
-                <span class="n">forensic_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_id</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;failure&quot;</span><span class="p">:</span>
+                <span class="n">failure_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
+                <span class="n">failure_report_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_id</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">:</span>
                 <span class="n">smtp_tls_reports</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;report&quot;</span><span class="p">])</span>
                 <span class="n">smtp_tls_msg_uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message_id</span><span class="p">)</span>
@@ -2255,7 +2473,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
             <span class="n">processed_messages</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">aggregate_report_msg_uids</span> <span class="o">+</span> <span class="n">forensic_report_msg_uids</span> <span class="o">+</span> <span class="n">smtp_tls_msg_uids</span>
+                <span class="n">aggregate_report_msg_uids</span> <span class="o">+</span> <span class="n">failure_report_msg_uids</span> <span class="o">+</span> <span class="n">smtp_tls_msg_uids</span>
             <span class="p">)</span>
 
             <span class="n">number_of_processed_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">processed_messages</span><span class="p">)</span>
@@ -2295,24 +2513,24 @@
                         <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID&quot;</span>
                         <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">: </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Mailbox error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving forensic report messages from&quot;</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failure_report_msg_uids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving failure report messages from&quot;</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                     <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> to </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                        <span class="n">message</span><span class="p">,</span> <span class="n">reports_folder</span><span class="p">,</span> <span class="n">forensic_reports_folder</span>
+                        <span class="n">message</span><span class="p">,</span> <span class="n">reports_folder</span><span class="p">,</span> <span class="n">failure_reports_folder</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-                <span class="n">number_of_forensic_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">forensic_report_msg_uids</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_forensic_msgs</span><span class="p">):</span>
-                    <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">forensic_report_msg_uids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">number_of_failure_msgs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">failure_report_msg_uids</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_failure_msgs</span><span class="p">):</span>
+                    <span class="n">msg_uid</span> <span class="o">=</span> <span class="n">failure_report_msg_uids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                     <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Moving message&quot;</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                         <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> of </span><span class="si">{2}</span><span class="s2">: UID </span><span class="si">{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">message</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">number_of_forensic_msgs</span><span class="p">,</span> <span class="n">msg_uid</span>
+                            <span class="n">message</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">number_of_failure_msgs</span><span class="p">,</span> <span class="n">msg_uid</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                     <span class="k">try</span><span class="p">:</span>
-                        <span class="n">connection</span><span class="o">.</span><span class="n">move_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">forensic_reports_folder</span><span class="p">)</span>
+                        <span class="n">connection</span><span class="o">.</span><span class="n">move_message</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">failure_reports_folder</span><span class="p">)</span>
                     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="n">e</span> <span class="o">=</span> <span class="s2">&quot;Error moving message UID </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Mailbox error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -2339,7 +2557,7 @@
                         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Mailbox error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;aggregate_reports&quot;</span><span class="p">:</span> <span class="n">aggregate_reports</span><span class="p">,</span>
-        <span class="s2">&quot;forensic_reports&quot;</span><span class="p">:</span> <span class="n">forensic_reports</span><span class="p">,</span>
+        <span class="s2">&quot;failure_reports&quot;</span><span class="p">:</span> <span class="n">failure_reports</span><span class="p">,</span>
         <span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">:</span> <span class="n">smtp_tls_reports</span><span class="p">,</span>
     <span class="p">}</span>
 
@@ -2428,7 +2646,7 @@
 <span class="sd">        dns_retries (int): Number of times to retry DNS queries on timeout</span>
 <span class="sd">            or other transient errors</span>
 <span class="sd">        strip_attachment_payloads (bool): Replace attachment payloads in</span>
-<span class="sd">            forensic report samples with None</span>
+<span class="sd">            failure report samples with None</span>
 <span class="sd">        batch_size (int): Number of messages to read and process before saving</span>
 <span class="sd">        since: Search for messages since certain time</span>
 <span class="sd">        normalize_timespan_threshold_hours (float): Normalize timespans beyond this</span>
@@ -2470,34 +2688,50 @@
 
 
 
+<div class="viewcode-block" id="append_json">
+<a class="viewcode-back" href="../api.html#parsedmarc.append_json">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">append_json</span><span class="p">(</span>
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">Sequence</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">],</span>
-        <span class="n">Sequence</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">],</span>
+        <span class="n">Sequence</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">],</span>
         <span class="n">Sequence</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">],</span>
     <span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;a+&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
-        <span class="n">output_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">reports</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="c1"># not appending anything, don&#39;t do any dance to append it</span>
-                <span class="c1"># correctly</span>
-                <span class="k">return</span>
-            <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">last_char</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">last_char</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
-                <span class="c1"># remove the trailing &quot;\n]&quot;, leading &quot;[\n&quot;, and replace with</span>
-                <span class="c1"># &quot;,\n&quot;</span>
-                <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
-                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">output_json</span> <span class="o">=</span> <span class="n">output_json</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="n">output</span><span class="o">.</span><span class="n">truncate</span><span class="p">()</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Append ``reports`` to a JSON array on disk, creating the file</span>
+<span class="sd">    if needed.</span>
 
-        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output_json</span><span class="p">)</span>
+<span class="sd">    Reads the existing array (if the file exists and parses cleanly),</span>
+<span class="sd">    merges the new reports onto the end, and rewrites the file as a</span>
+<span class="sd">    single valid JSON array. An earlier version of this used an</span>
+<span class="sd">    ``open(..., &quot;a+&quot;)`` + ``seek()`` + overwrite pattern, but Python&#39;s</span>
+<span class="sd">    documentation is explicit that on POSIX, ``a`` / ``a+`` writes</span>
+<span class="sd">    *always* go to EOF regardless of seek position — so the second</span>
+<span class="sd">    call onto an existing file produced ``[...],\\n[...]``-style</span>
+<span class="sd">    corrupted output. Read-merge-write is the only way to get a valid</span>
+<span class="sd">    JSON array out of repeated appends.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Don&#39;t create an empty-array file for an empty input; if a</span>
+        <span class="c1"># file already exists, leave it alone.</span>
+        <span class="k">return</span>
+
+    <span class="n">existing</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">loaded</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loaded</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">existing</span> <span class="o">=</span> <span class="n">loaded</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+            <span class="c1"># Corrupted or unreadable: overwrite cleanly rather than</span>
+            <span class="c1"># silently fail to record.</span>
+            <span class="n">existing</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">existing</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">merged</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">append_csv</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">csv</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2519,10 +2753,10 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">output_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span>
     <span class="n">aggregate_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;aggregate.json&quot;</span><span class="p">,</span>
-    <span class="n">forensic_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;forensic.json&quot;</span><span class="p">,</span>
+    <span class="n">failure_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;failure.json&quot;</span><span class="p">,</span>
     <span class="n">smtp_tls_json_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls.json&quot;</span><span class="p">,</span>
     <span class="n">aggregate_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;aggregate.csv&quot;</span><span class="p">,</span>
-    <span class="n">forensic_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;forensic.csv&quot;</span><span class="p">,</span>
+    <span class="n">failure_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;failure.csv&quot;</span><span class="p">,</span>
     <span class="n">smtp_tls_csv_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls.csv&quot;</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2532,15 +2766,15 @@
 <span class="sd">        results: Parsing results</span>
 <span class="sd">        output_directory (str): The path to the directory to save in</span>
 <span class="sd">        aggregate_json_filename (str): Filename for the aggregate JSON file</span>
-<span class="sd">        forensic_json_filename (str): Filename for the forensic JSON file</span>
+<span class="sd">        failure_json_filename (str): Filename for the failure JSON file</span>
 <span class="sd">        smtp_tls_json_filename (str): Filename for the SMTP TLS JSON file</span>
 <span class="sd">        aggregate_csv_filename (str): Filename for the aggregate CSV file</span>
-<span class="sd">        forensic_csv_filename (str): Filename for the forensic CSV file</span>
+<span class="sd">        failure_csv_filename (str): Filename for the failure CSV file</span>
 <span class="sd">        smtp_tls_csv_filename (str): Filename for the SMTP TLS CSV file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">aggregate_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;aggregate_reports&quot;</span><span class="p">]</span>
-    <span class="n">forensic_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;forensic_reports&quot;</span><span class="p">]</span>
+    <span class="n">failure_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;failure_reports&quot;</span><span class="p">]</span>
     <span class="n">smtp_tls_reports</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;smtp_tls_reports&quot;</span><span class="p">]</span>
     <span class="n">output_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">output_directory</span><span class="p">)</span>
 
@@ -2559,13 +2793,11 @@
         <span class="n">parsed_aggregate_reports_to_csv</span><span class="p">(</span><span class="n">aggregate_reports</span><span class="p">),</span>
     <span class="p">)</span>
 
-    <span class="n">append_json</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">forensic_json_filename</span><span class="p">),</span> <span class="n">forensic_reports</span>
-    <span class="p">)</span>
+    <span class="n">append_json</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">failure_json_filename</span><span class="p">),</span> <span class="n">failure_reports</span><span class="p">)</span>
 
     <span class="n">append_csv</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">forensic_csv_filename</span><span class="p">),</span>
-        <span class="n">parsed_forensic_reports_to_csv</span><span class="p">(</span><span class="n">forensic_reports</span><span class="p">),</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">failure_csv_filename</span><span class="p">),</span>
+        <span class="n">parsed_failure_reports_to_csv</span><span class="p">(</span><span class="n">failure_reports</span><span class="p">),</span>
     <span class="p">)</span>
 
     <span class="n">append_json</span><span class="p">(</span>
@@ -2582,10 +2814,10 @@
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">samples_directory</span><span class="p">)</span>
 
     <span class="n">sample_filenames</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">forensic_report</span> <span class="ow">in</span> <span class="n">forensic_reports</span><span class="p">:</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">failure_report</span> <span class="ow">in</span> <span class="n">failure_reports</span><span class="p">:</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">failure_report</span><span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="p">]</span>
         <span class="n">message_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">parsed_sample</span> <span class="o">=</span> <span class="n">forensic_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span>
+        <span class="n">parsed_sample</span> <span class="o">=</span> <span class="n">failure_report</span><span class="p">[</span><span class="s2">&quot;parsed_sample&quot;</span><span class="p">]</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">parsed_sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filename_safe_subject&quot;</span><span class="p">)</span>
             <span class="ow">or</span> <span class="n">parsed_sample</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">)</span>
@@ -2726,6 +2958,12 @@
         <span class="n">plain_message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
+
+<span class="c1"># Backward-compatible aliases</span>
+<span class="n">parse_forensic_report</span> <span class="o">=</span> <span class="n">parse_failure_report</span>
+<span class="n">parsed_forensic_reports_to_csv_rows</span> <span class="o">=</span> <span class="n">parsed_failure_reports_to_csv_rows</span>
+<span class="n">parsed_forensic_reports_to_csv</span> <span class="o">=</span> <span class="n">parsed_failure_reports_to_csv</span>
 </pre></div>
 
            </div>

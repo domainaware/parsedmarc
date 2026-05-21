@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.types &mdash; parsedmarc 9.11.2 documentation</title>
+  <title>parsedmarc.types &mdash; parsedmarc 10.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=de4344a5"></script>
+      <script src="../../_static/documentation_options.js?v=335988e4"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -90,7 +90,7 @@
 <span class="c1">#   For optional keys, use total=False TypedDicts.</span>
 
 
-<span class="n">ReportType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;aggregate&quot;</span><span class="p">,</span> <span class="s2">&quot;forensic&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">]</span>
+<span class="n">ReportType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;aggregate&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;smtp_tls&quot;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="AggregateReportMetadata">
@@ -104,7 +104,8 @@
     <span class="n">end_date</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">timespan_requires_normalization</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">original_timespan_seconds</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 
@@ -116,8 +117,11 @@
     <span class="n">aspf</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">p</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">sp</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">pct</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">fo</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">pct</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">fo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">testing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">discovery_method</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 
@@ -167,7 +171,8 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">AggregateAuthResultDKIM</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">result</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">human_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 
@@ -176,7 +181,8 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">AggregateAuthResultSPF</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">result</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">human_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
 
 
 
@@ -217,6 +223,7 @@
 <a class="viewcode-back" href="../../api.html#parsedmarc.types.AggregateReport">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AggregateReport</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">xml_schema</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">xml_namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">report_metadata</span><span class="p">:</span> <span class="n">AggregateReportMetadata</span>
     <span class="n">policy_published</span><span class="p">:</span> <span class="n">AggregatePolicyPublished</span>
     <span class="n">records</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AggregateRecord</span><span class="p">]</span></div>
@@ -246,7 +253,7 @@
     <span class="s2">&quot;ParsedEmail&quot;</span><span class="p">,</span>
     <span class="p">{</span>
         <span class="c1"># This is a lightly-specified version of mailsuite/mailparser JSON.</span>
-        <span class="c1"># It focuses on the fields parsedmarc uses in forensic handling.</span>
+        <span class="c1"># It focuses on the fields parsedmarc uses in failure report handling.</span>
         <span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="s2">&quot;subject&quot;</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="s2">&quot;filename_safe_subject&quot;</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -265,9 +272,9 @@
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="ForensicReport">
-<a class="viewcode-back" href="../../api.html#parsedmarc.types.ForensicReport">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">ForensicReport</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<div class="viewcode-block" id="FailureReport">
+<a class="viewcode-back" href="../../api.html#parsedmarc.types.FailureReport">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FailureReport</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">feedback_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">user_agent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
@@ -287,6 +294,10 @@
     <span class="n">sample</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">parsed_sample</span><span class="p">:</span> <span class="n">ParsedEmail</span></div>
 
+
+
+<span class="c1"># Backward-compatible alias</span>
+<span class="n">ForensicReport</span> <span class="o">=</span> <span class="n">FailureReport</span>
 
 
 <div class="viewcode-block" id="SMTPTLSFailureDetails">
@@ -349,12 +360,16 @@
 
 
 
-<div class="viewcode-block" id="ForensicParsedReport">
-<a class="viewcode-back" href="../../api.html#parsedmarc.types.ForensicParsedReport">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">ForensicParsedReport</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-    <span class="n">report_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;forensic&quot;</span><span class="p">]</span>
-    <span class="n">report</span><span class="p">:</span> <span class="n">ForensicReport</span></div>
+<div class="viewcode-block" id="FailureParsedReport">
+<a class="viewcode-back" href="../../api.html#parsedmarc.types.FailureParsedReport">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FailureParsedReport</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+    <span class="n">report_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">]</span>
+    <span class="n">report</span><span class="p">:</span> <span class="n">FailureReport</span></div>
 
+
+
+<span class="c1"># Backward-compatible alias</span>
+<span class="n">ForensicParsedReport</span> <span class="o">=</span> <span class="n">FailureParsedReport</span>
 
 
 <div class="viewcode-block" id="SMTPTLSParsedReport">
@@ -365,14 +380,14 @@
 
 
 
-<span class="n">ParsedReport</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">AggregateParsedReport</span><span class="p">,</span> <span class="n">ForensicParsedReport</span><span class="p">,</span> <span class="n">SMTPTLSParsedReport</span><span class="p">]</span>
+<span class="n">ParsedReport</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">AggregateParsedReport</span><span class="p">,</span> <span class="n">FailureParsedReport</span><span class="p">,</span> <span class="n">SMTPTLSParsedReport</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="ParsingResults">
 <a class="viewcode-back" href="../../api.html#parsedmarc.types.ParsingResults">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ParsingResults</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">aggregate_reports</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]</span>
-    <span class="n">forensic_reports</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ForensicReport</span><span class="p">]</span>
+    <span class="n">failure_reports</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]</span>
     <span class="n">smtp_tls_reports</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">]</span></div>
 
 </pre></div>
