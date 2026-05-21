@@ -54,6 +54,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+postgresql = [
+    # Optional output backend. psycopg ships prebuilt binary wheels via the
+    # [binary] extra, but those wheels don't exist for every platform/arch,
+    # so PostgreSQL support is opt-in rather than a mandatory dependency.
+    "psycopg[binary]>=3.1.0",
+]
 build = [
     # Used only by maintainer tooling under parsedmarc/resources/maps/ —
     # `collect_domain_info.py --use-search-fallback` falls back to a
