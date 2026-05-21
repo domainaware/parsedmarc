@@ -245,6 +245,8 @@ else
         samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml
         samples/aggregate/usssa.com!example.com!1538784000!1538870399.xml
         samples/aggregate/veeam.com!example.com!1530133200!1530219600.xml
+        samples/aggregate/rfc9990-sample.xml
+        samples/aggregate/rfc9990-example.net!example.com!1700000000!1700086399.xml
         samples/failure/*.eml
         samples/smtp_tls/*.json
         samples/smtp_tls/google.com_smtp_tls_report.eml
