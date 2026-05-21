@@ -2500,26 +2500,39 @@ def append_json(
         Sequence[SMTPTLSReport],
     ],
 ) -> None:
-    with open(filename, "a+", newline="\n", encoding="utf-8") as output:
-        output_json = json.dumps(reports, ensure_ascii=False, indent=2)
-        if output.seek(0, os.SEEK_END) != 0:
-            if len(reports) == 0:
-                # not appending anything, don't do any dance to append it
-                # correctly
-                return
-            output.seek(output.tell() - 1)
-            last_char = output.read(1)
-            if last_char == "]":
-                # remove the trailing "\n]", leading "[\n", and replace with
-                # ",\n"
-                output.seek(output.tell() - 2)
-                output.write(",\n")
-                output_json = output_json[2:]
-            else:
-                output.seek(0)
-                output.truncate()
+    """Append ``reports`` to a JSON array on disk, creating the file
+    if needed.
 
-        output.write(output_json)
+    Reads the existing array (if the file exists and parses cleanly),
+    merges the new reports onto the end, and rewrites the file as a
+    single valid JSON array. An earlier version of this used an
+    ``open(..., "a+")`` + ``seek()`` + overwrite pattern, but Python's
+    documentation is explicit that on POSIX, ``a`` / ``a+`` writes
+    *always* go to EOF regardless of seek position — so the second
+    call onto an existing file produced ``[...],\\n[...]``-style
+    corrupted output. Read-merge-write is the only way to get a valid
+    JSON array out of repeated appends.
+    """
+    if len(reports) == 0:
+        # Don't create an empty-array file for an empty input; if a
+        # file already exists, leave it alone.
+        return
+
+    existing: list = []
+    if os.path.isfile(filename) and os.path.getsize(filename) > 0:
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                loaded = json.loads(f.read())
+            if isinstance(loaded, list):
+                existing = loaded
+        except (json.JSONDecodeError, OSError):
+            # Corrupted or unreadable: overwrite cleanly rather than
+            # silently fail to record.
+            existing = []
+
+    merged = existing + list(reports)
+    with open(filename, "w", newline="\n", encoding="utf-8") as output:
+        json.dump(merged, output, ensure_ascii=False, indent=2)
 
 
 def append_csv(filename: str, csv: str) -> None:
