@@ -714,24 +714,24 @@ then read and stored as the `credentials_file` value.
 
 For sections with underscores in the name, the full section name is used:
 
-| Section          | Env var prefix                |
-|------------------|-------------------------------|
-| `general`        | `PARSEDMARC_GENERAL_`         |
-| `mailbox`        | `PARSEDMARC_MAILBOX_`         |
-| `imap`           | `PARSEDMARC_IMAP_`            |
-| `msgraph`        | `PARSEDMARC_MSGRAPH_`         |
-| `elasticsearch`  | `PARSEDMARC_ELASTICSEARCH_`   |
-| `opensearch`     | `PARSEDMARC_OPENSEARCH_`      |
-| `splunk_hec`     | `PARSEDMARC_SPLUNK_HEC_`      |
-| `kafka`          | `PARSEDMARC_KAFKA_`           |
-| `smtp`           | `PARSEDMARC_SMTP_`            |
-| `s3`             | `PARSEDMARC_S3_`              |
-| `syslog`         | `PARSEDMARC_SYSLOG_`          |
-| `gmail_api`      | `PARSEDMARC_GMAIL_API_`       |
-| `maildir`        | `PARSEDMARC_MAILDIR_`         |
-| `log_analytics`  | `PARSEDMARC_LOG_ANALYTICS_`   |
-| `gelf`           | `PARSEDMARC_GELF_`            |
-| `webhook`        | `PARSEDMARC_WEBHOOK_`         |
+| Section | Env var prefix |
+| --- | --- |
+| `general` | `PARSEDMARC_GENERAL_` |
+| `mailbox` | `PARSEDMARC_MAILBOX_` |
+| `imap` | `PARSEDMARC_IMAP_` |
+| `msgraph` | `PARSEDMARC_MSGRAPH_` |
+| `elasticsearch` | `PARSEDMARC_ELASTICSEARCH_` |
+| `opensearch` | `PARSEDMARC_OPENSEARCH_` |
+| `splunk_hec` | `PARSEDMARC_SPLUNK_HEC_` |
+| `kafka` | `PARSEDMARC_KAFKA_` |
+| `smtp` | `PARSEDMARC_SMTP_` |
+| `s3` | `PARSEDMARC_S3_` |
+| `syslog` | `PARSEDMARC_SYSLOG_` |
+| `gmail_api` | `PARSEDMARC_GMAIL_API_` |
+| `maildir` | `PARSEDMARC_MAILDIR_` |
+| `log_analytics` | `PARSEDMARC_LOG_ANALYTICS_` |
+| `gelf` | `PARSEDMARC_GELF_` |
+| `webhook` | `PARSEDMARC_WEBHOOK_` |
 
 ## Performance tuning
 
