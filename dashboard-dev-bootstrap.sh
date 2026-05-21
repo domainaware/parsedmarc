@@ -219,12 +219,45 @@ else
             -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
     fi
 
-    PARSEDMARC_BIN="${PARSEDMARC_BIN:-$REPO_ROOT/venv/bin/parsedmarc}"
-    if [ ! -x "$PARSEDMARC_BIN" ]; then
-        PARSEDMARC_BIN="$(command -v parsedmarc || true)"
+    # Resolve a Python environment for the seed and make sure parsedmarc plus
+    # the PostgreSQL extra (psycopg) are installed in it, so the same run can
+    # populate Postgres. Precedence:
+    #   1. An explicit PARSEDMARC_BIN — used as-is, nothing installed.
+    #   2. An already-activated virtualenv ($VIRTUAL_ENV).
+    #   3. An existing repo venv/ or .venv/.
+    #   4. Otherwise a freshly created $REPO_ROOT/venv.
+    # Cases 2-4 run `pip install -e .[postgresql]` only when the CLI or psycopg
+    # is missing, so it's a no-op once the environment is set up.
+    if [ -n "${PARSEDMARC_BIN:-}" ]; then
+        if [ ! -x "$PARSEDMARC_BIN" ]; then
+            echo "ERROR: PARSEDMARC_BIN is set but not executable: $PARSEDMARC_BIN" >&2
+            exit 1
+        fi
+        echo "  using PARSEDMARC_BIN: $PARSEDMARC_BIN"
+    else
+        if [ -n "${VIRTUAL_ENV:-}" ]; then
+            seed_venv="$VIRTUAL_ENV"
+            echo "  using active virtualenv: $seed_venv"
+        elif [ -d "$REPO_ROOT/venv" ]; then
+            seed_venv="$REPO_ROOT/venv"
+            echo "  using existing venv: $seed_venv"
+        elif [ -d "$REPO_ROOT/.venv" ]; then
+            seed_venv="$REPO_ROOT/.venv"
+            echo "  using existing .venv: $seed_venv"
+        else
+            seed_venv="$REPO_ROOT/venv"
+            echo "  creating virtualenv: $seed_venv"
+            python3 -m venv "$seed_venv"
+        fi
+        PARSEDMARC_BIN="$seed_venv/bin/parsedmarc"
+        if [ ! -x "$PARSEDMARC_BIN" ] ||
+            ! "$seed_venv/bin/python" -c 'import psycopg' >/dev/null 2>&1; then
+            echo "  installing parsedmarc[postgresql] into $seed_venv"
+            "$seed_venv/bin/python" -m pip install -q -e "${REPO_ROOT}[postgresql]"
+        fi
     fi
-    if [ -z "$PARSEDMARC_BIN" ] || [ ! -x "$PARSEDMARC_BIN" ]; then
-        echo "ERROR: parsedmarc CLI not found. Install with 'pip install -e .[build]' or set PARSEDMARC_BIN." >&2
+    if [ ! -x "$PARSEDMARC_BIN" ]; then
+        echo "ERROR: parsedmarc CLI not found at $PARSEDMARC_BIN" >&2
         exit 1
     fi
 
@@ -268,6 +301,8 @@ else
             PARSEDMARC_POSTGRESQL_DATABASE="$PG_DB"
         )
     else
+        # Reached only for an explicit PARSEDMARC_BIN whose env lacks psycopg
+        # (the auto-resolved venv path installs the extra above).
         echo "  NOTE: 'psycopg' is not available to ${PARSEDMARC_BIN} — skipping the"
         echo "        PostgreSQL seed. Enable it with: pip install -e '.[postgresql]'"
     fi
