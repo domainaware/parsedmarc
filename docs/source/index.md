@@ -29,9 +29,12 @@ and Valimail.
 
 ## Features
 
-- Parses draft and 1.0 standard aggregate/rua DMARC reports
-- Parses failure/ruf DMARC reports
-- Parses reports from SMTP TLS Reporting
+- Parses aggregate/rua DMARC reports: the legacy draft and 1.0 schemas
+  (RFC 7489) and the new RFC 9990 schema for the final DMARC standard
+  (RFC 9989)
+- Parses failure/ruf DMARC reports (RFC 6591 and RFC 9991; formerly called
+  forensic reports)
+- Parses reports from SMTP TLS Reporting (TLS-RPT, RFC 8460)
 - Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail API
 - Transparently handles gzip or zip compressed reports
 - Consistent data structures
