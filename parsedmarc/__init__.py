@@ -2064,6 +2064,54 @@ def get_dmarc_reports_from_mbox(
     }
 
 
+def _migrate_forensic_archive_folder(
+    connection: MailboxConnection, archive_folder: str
+) -> None:
+    """Consolidate a pre-rename ``<archive>/Forensic`` subfolder into
+    ``<archive>/Failure``.
+
+    Before failure reports were renamed from "forensic" reports, they were
+    archived under ``<archive_folder>/Forensic``; they now go to
+    ``<archive_folder>/Failure``. This best-effort, run-on-startup migration
+    moves any pre-existing legacy archive into the new location so reports
+    filed before and after the rename live in the same folder.
+
+    It is a no-op when there is no legacy ``Forensic`` folder (the common
+    case), and never raises: a mailbox that cannot be reorganized is logged
+    and skipped, consistent with the rest of parsedmarc's mailbox handling
+    (warn, don't crash). Uses the folder-management API added in mailsuite
+    2.1.0 (``folder_exists`` / ``rename_folder`` / ``merge_folders``).
+    """
+    old_folder = "{0}/Forensic".format(archive_folder)
+    new_folder = "{0}/Failure".format(archive_folder)
+    try:
+        if not connection.folder_exists(old_folder):
+            return
+        if connection.folder_exists(new_folder):
+            # Both exist (e.g. a partial earlier migration, or a manually
+            # created Failure folder): move the legacy folder's messages into
+            # the new one and drop the now-empty legacy folder.
+            connection.merge_folders(old_folder, new_folder)
+            logger.info(
+                "Merged legacy archive folder {0} into {1}".format(
+                    old_folder, new_folder
+                )
+            )
+        else:
+            connection.rename_folder(old_folder, new_folder)
+            logger.info(
+                "Renamed legacy archive folder {0} to {1}".format(
+                    old_folder, new_folder
+                )
+            )
+    except Exception as error:
+        logger.warning(
+            "Could not migrate legacy archive folder {0} to {1}: {2}".format(
+                old_folder, new_folder, error
+            )
+        )
+
+
 def get_dmarc_reports_from_mailbox(
     connection: MailboxConnection,
     *,
@@ -2134,7 +2182,7 @@ def get_dmarc_reports_from_mailbox(
     failure_report_msg_uids = []
     smtp_tls_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    failure_reports_folder = "{0}/Forensic".format(archive_folder)
+    failure_reports_folder = "{0}/Failure".format(archive_folder)
     smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
     invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
@@ -2144,6 +2192,7 @@ def get_dmarc_reports_from_mailbox(
         smtp_tls_reports = results["smtp_tls_reports"].copy()
 
     if not test and create_folders:
+        _migrate_forensic_archive_folder(connection, archive_folder)
         connection.create_folder(archive_folder)
         connection.create_folder(aggregate_reports_folder)
         connection.create_folder(failure_reports_folder)

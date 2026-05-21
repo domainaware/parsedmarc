@@ -610,7 +610,7 @@ services:
       PARSEDMARC_MAILBOX_WATCH: "true"
       PARSEDMARC_ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       PARSEDMARC_GENERAL_SAVE_AGGREGATE: "true"
-      PARSEDMARC_GENERAL_SAVE_FORENSIC: "true"
+      PARSEDMARC_GENERAL_SAVE_FAILURE: "true"
 ```
 
 ### Docker secrets (`_FILE` suffix)

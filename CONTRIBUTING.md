@@ -34,7 +34,7 @@ sample reports:
 
 ```bash
 parsedmarc --debug -c ci.ini samples/aggregate/*
-parsedmarc --debug -c ci.ini samples/forensic/*
+parsedmarc --debug -c ci.ini samples/failure/*
 ```
 
 To skip DNS lookups during tests, set:
