@@ -29,35 +29,40 @@ and Valimail.
 
 ## Features
 
-- Parses draft and 1.0 standard aggregate/rua DMARC reports
-- Parses failure/ruf DMARC reports
-- Parses reports from SMTP TLS Reporting
+- Parses aggregate/rua DMARC reports: the legacy draft and 1.0 schemas
+  (RFC 7489) and the new RFC 9990 schema for the final DMARC standard
+  (RFC 9989)
+- Parses failure/ruf DMARC reports (RFC 6591 and RFC 9991; formerly called
+  forensic reports)
+- Parses reports from SMTP TLS Reporting (TLS-RPT, RFC 8460)
 - Can parse reports from an inbox over IMAP, Microsoft Graph, or Gmail API
 - Transparently handles gzip or zip compressed reports
 - Consistent data structures
 - Simple JSON and/or CSV output
 - Optionally email the results
-- Optionally send the results to Elasticsearch, Opensearch, and/or Splunk, for use
-    with premade dashboards
-- Optionally send reports to Apache Kafka
+- Optionally send the results to Elasticsearch, OpenSearch, or Splunk, for use
+  with premade dashboards
+- Optionally send the results to PostgreSQL, Apache Kafka, Amazon S3, Azure Log
+  Analytics (Microsoft Sentinel), a Graylog (GELF) endpoint, a syslog server,
+  or an HTTP webhook
 
 ## Python Compatibility
 
 This project supports the following Python versions, which are either actively maintained or are the default versions
 for RHEL or Debian.
 
-| Version | Supported | Reason                                                     |
-|---------|-----------|------------------------------------------------------------|
-| < 3.6   | ❌         | End of Life (EOL)                                          |
-| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies |
-| 3.7     | ❌         | End of Life (EOL)                                          |
-| 3.8     | ❌         | End of Life (EOL)                                          |
-| 3.9     | ❌         | Used in Debian 11 and RHEL 9, but not supported by project dependencies |
-| 3.10    | ✅         | Actively maintained                                        |
-| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
-| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
-| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
-| 3.14    | ✅         | Supported (requires `imapclient>=3.1.0`)                  |
+| Version | Supported | Reason |
+| --- | --- | --- |
+| < 3.6 | ❌ | End of Life (EOL) |
+| 3.6 | ❌ | Used in RHEL 8, but not supported by project dependencies |
+| 3.7 | ❌ | End of Life (EOL) |
+| 3.8 | ❌ | End of Life (EOL) |
+| 3.9 | ❌ | Used in Debian 11 and RHEL 9, but not supported by project dependencies |
+| 3.10 | ✅ | Actively maintained |
+| 3.11 | ✅ | Actively maintained; supported until June 2028 (Debian 12) |
+| 3.12 | ✅ | Actively maintained; supported until May 2035 (RHEL 10) |
+| 3.13 | ✅ | Actively maintained; supported until June 2030 (Debian 13) |
+| 3.14 | ✅ | Supported (requires `imapclient>=3.1.0`) |
 
 ```{toctree}
 :caption: 'Contents'
