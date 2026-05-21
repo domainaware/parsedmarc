@@ -125,7 +125,7 @@ server.ssl.key: /etc/kibana/kibana.key
 ```
 
 :::{note}
-For more security, you can configure Kibana to use a local network connexion
+For more security, you can configure Kibana to use a local network connection
 to elasticsearch :
 ```text
 elasticsearch.hosts: ['https://SERVER_IP:9200']
