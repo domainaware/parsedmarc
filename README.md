@@ -48,15 +48,15 @@ Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if
 This project supports the following Python versions, which are either actively maintained or are the default versions
 for RHEL or Debian.
 
-| Version | Supported | Reason                                                     |
-|---------|-----------|------------------------------------------------------------|
-| < 3.6   | ❌         | End of Life (EOL)                                          |
-| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies |
-| 3.7     | ❌         | End of Life (EOL)                                          |
-| 3.8     | ❌         | End of Life (EOL)                                          |
+| Version | Supported | Reason                                                                  |
+|---------|-----------|-------------------------------------------------------------------------|
+| < 3.6   | ❌         | End of Life (EOL)                                                       |
+| 3.6     | ❌         | Used in RHEL 8, but not supported by project dependencies               |
+| 3.7     | ❌         | End of Life (EOL)                                                       |
+| 3.8     | ❌         | End of Life (EOL)                                                       |
 | 3.9     | ❌         | Used in Debian 11 and RHEL 9, but not supported by project dependencies |
-| 3.10    | ✅         | Actively maintained                                        |
-| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12) |
-| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)    |
-| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13) |
-| 3.14    | ✅         | Supported (requires `imapclient>=3.1.0`)                  |
+| 3.10    | ✅         | Actively maintained                                                     |
+| 3.11    | ✅         | Actively maintained; supported until June 2028 (Debian 12)              |
+| 3.12    | ✅         | Actively maintained; supported until May 2035 (RHEL 10)                 |
+| 3.13    | ✅         | Actively maintained; supported until June 2030 (Debian 13)              |
+| 3.14    | ✅         | Supported (requires `imapclient>=3.1.0`)                                |
