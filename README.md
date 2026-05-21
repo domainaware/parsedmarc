@@ -40,10 +40,10 @@ Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if
 - Simple JSON and/or CSV output
 - Optionally email the results
 - Optionally send the results to Elasticsearch, OpenSearch, or Splunk, for use
-  with premade dashboards, or to PostgreSQL
-- Optionally send the results to Apache Kafka, Amazon S3, Azure Log Analytics
-  (Microsoft Sentinel), a Graylog (GELF) endpoint, a syslog server, or an HTTP
-  webhook
+  with premade dashboards
+- Optionally send the results to PostgreSQL, Apache Kafka, Amazon S3, Azure Log
+  Analytics (Microsoft Sentinel), a Graylog (GELF) endpoint, a syslog server,
+  or an HTTP webhook
 
 ## Python Compatibility
 
