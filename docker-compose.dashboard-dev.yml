@@ -27,13 +27,36 @@ services:
   grafana:
     image: grafana/grafana:latest
     environment:
-      - GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+      # Grafana reads GF_SECURITY_ADMIN_PASSWORD, not GRAFANA_PASSWORD. Default
+      # to "admin" so the login matches the bootstrap script's GRAFANA_PASSWORD
+      # default; set GRAFANA_PASSWORD in .env to change both in lockstep.
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
       elasticsearch:
         condition: service_healthy
+      postgresql:
+        condition: service_healthy
+
+  postgresql:
+    image: postgres:17
+    environment:
+      - POSTGRES_USER=${POSTGRESQL_USER:-parsedmarc}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD:-parsedmarc}
+      - POSTGRES_DB=${POSTGRESQL_DB:-parsedmarc}
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRESQL_USER:-parsedmarc} -d ${POSTGRESQL_DB:-parsedmarc}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   splunk:
     image: splunk/splunk:latest

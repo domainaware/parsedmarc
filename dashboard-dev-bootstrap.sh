@@ -19,6 +19,12 @@ set +a
 GRAFANA_USER="${GRAFANA_USER:-admin}"
 GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
 
+# PostgreSQL dev credentials. Defaults match docker-compose.dashboard-dev.yml's
+# ${POSTGRESQL_*:-parsedmarc} fallbacks; override all four in lockstep via .env.
+PG_USER="${POSTGRESQL_USER:-parsedmarc}"
+PG_PASSWORD="${POSTGRESQL_PASSWORD:-parsedmarc}"
+PG_DB="${POSTGRESQL_DB:-parsedmarc}"
+
 log() { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
 
 wait_for() {
@@ -59,6 +65,8 @@ wait_for "OpenSearch Dashboards" \
     curl -ksf -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
     http://localhost:5602/api/status
 wait_for "Grafana" curl -sf http://localhost:3000/api/health
+wait_for "PostgreSQL" \
+    "${COMPOSE[@]}" exec -T postgresql pg_isready -U "$PG_USER" -d "$PG_DB"
 # Splunk's HEC port is healthy once management API is up too.
 wait_for "Splunk HEC" curl -ksf https://localhost:8088/services/collector/health
 # Splunkd management API (used for dashboard imports) lives inside the container.
@@ -204,6 +212,11 @@ else
         splunk_curl -X POST \
             "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/splunk_hec_token" \
             -d "indexes=email,main" -d "index=email" -d "disabled=0" >/dev/null
+        # PostgreSQL: drop and recreate the public schema. parsedmarc recreates
+        # its tables on the next seed run, so this is a clean wipe.
+        "${COMPOSE[@]}" exec -T -e PGPASSWORD="$PG_PASSWORD" postgresql \
+            psql -U "$PG_USER" -d "$PG_DB" \
+            -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
     fi
 
     PARSEDMARC_BIN="${PARSEDMARC_BIN:-$REPO_ROOT/venv/bin/parsedmarc}"
@@ -236,7 +249,28 @@ else
         samples/smtp_tls/*.json
         samples/smtp_tls/google.com_smtp_tls_report.eml
     )
-    "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
+    # PostgreSQL config is injected via env vars (parsedmarc synthesizes the
+    # [postgresql] section from PARSEDMARC_POSTGRESQL_*), so the same seed run
+    # also populates Postgres without touching the gitignored parsedmarc-dev.ini.
+    # Only wire it in when psycopg is importable: parsedmarc aborts the whole
+    # run (exit 1, nothing written to *any* backend) if a configured output
+    # backend can't initialize, so a missing optional extra must not be added.
+    pg_seed_env=()
+    seed_python="$(dirname "$PARSEDMARC_BIN")/python"
+    if [ -x "$seed_python" ] && "$seed_python" -c 'import psycopg' >/dev/null 2>&1; then
+        pg_seed_env=(
+            PARSEDMARC_POSTGRESQL_HOST=localhost
+            PARSEDMARC_POSTGRESQL_PORT=5432
+            PARSEDMARC_POSTGRESQL_USER="$PG_USER"
+            PARSEDMARC_POSTGRESQL_PASSWORD="$PG_PASSWORD"
+            PARSEDMARC_POSTGRESQL_DATABASE="$PG_DB"
+        )
+    else
+        echo "  NOTE: 'psycopg' is not available to ${PARSEDMARC_BIN} — skipping the"
+        echo "        PostgreSQL seed. Enable it with: pip install -e '.[postgresql]'"
+    fi
+    env "${pg_seed_env[@]}" \
+        "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
 fi
 
 # ---------------------------------------------------------------------------
@@ -310,6 +344,38 @@ EOF
     echo "  created datasource '${name}'"
 done
 
+# PostgreSQL datasource for the PostgreSQL DMARC dashboard. Fixed uid dmarc-pg
+# so the dashboard import below can resolve its ${DS_POSTGRESQL} input. Skipped
+# when already present.
+pg_ds_code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -o /dev/null -w "%{http_code}" \
+    "http://localhost:3000/api/datasources/name/PostgreSQL")
+if [ "$pg_ds_code" = "200" ]; then
+    echo "  datasource 'PostgreSQL' already exists — skipping"
+else
+    pg_ds_body=$(cat <<EOF
+{
+  "name": "PostgreSQL",
+  "uid": "dmarc-pg",
+  "type": "grafana-postgresql-datasource",
+  "url": "postgresql:5432",
+  "access": "proxy",
+  "user": "${PG_USER}",
+  "database": "${PG_DB}",
+  "isDefault": false,
+  "jsonData": { "sslmode": "disable" },
+  "secureJsonData": { "password": "${PG_PASSWORD}" }
+}
+EOF
+    )
+    curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -H 'Content-Type: application/json' \
+        -X POST "http://localhost:3000/api/datasources" \
+        -d "$pg_ds_body" | sed 's/^/  /'
+    echo
+    echo "  created datasource 'PostgreSQL'"
+fi
+
 log "Importing Grafana dashboard"
 GF_BODY=$(python3 -c '
 import json, sys
@@ -323,6 +389,26 @@ curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -H 'Content-Type: application/json' \
     -X POST "http://localhost:3000/api/dashboards/db" \
     -d "$GF_BODY" | sed 's/^/  /'
+
+log "Importing Grafana PostgreSQL dashboard"
+# Resolve the dashboard's ${DS_POSTGRESQL} input to the dmarc-pg datasource uid
+# created above, drop the export-only __inputs/__requires keys, and let
+# id=None create-or-replace by uid+overwrite.
+GF_PG_BODY=$(python3 -c '
+import json
+with open("dashboards/grafana/Grafana-DMARC_Reports-PostgreSQL.json") as f:
+    text = f.read()
+text = text.replace("${DS_POSTGRESQL}", "dmarc-pg")
+d = json.loads(text)
+d.pop("__inputs", None)
+d.pop("__requires", None)
+d["id"] = None
+print(json.dumps({"dashboard": d, "overwrite": True, "folderUid": ""}))
+')
+curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -H 'Content-Type: application/json' \
+    -X POST "http://localhost:3000/api/dashboards/db" \
+    -d "$GF_PG_BODY" | sed 's/^/  /'
 
 log "Importing Splunk dashboard views into the DMARC app"
 splunk_import_view() {
@@ -352,4 +438,5 @@ cat <<EOF
   OpenSearch Dashboards   http://localhost:5602/   (admin / ${OPENSEARCH_INITIAL_ADMIN_PASSWORD})
   Grafana                 http://localhost:3000/   (${GRAFANA_USER} / ${GRAFANA_PASSWORD})
   Splunk                  http://localhost:8000/   (admin / ${SPLUNK_PASSWORD})
+  PostgreSQL              localhost:5432           (${PG_USER} / ${PG_PASSWORD}, db ${PG_DB})
 EOF
