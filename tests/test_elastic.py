@@ -320,6 +320,54 @@ class TestCreateIndexes(unittest.TestCase):
         self.assertIn("cluster down", str(ctx.exception))
 
 
+class TestCreateIndexesServerless(unittest.TestCase):
+    """Serverless mode strips shard/replica keys but keeps everything else.
+
+    Elastic Cloud Serverless rejects ``number_of_shards`` and
+    ``number_of_replicas`` with HTTP 400. Other settings like
+    ``refresh_interval`` are accepted and must pass through unchanged.
+    """
+
+    def setUp(self):
+        self._original = elastic_module._SERVERLESS
+        elastic_module._SERVERLESS = True
+
+    def tearDown(self):
+        elastic_module._SERVERLESS = self._original
+
+    def test_serverless_default_skips_settings_entirely(self):
+        with patch("parsedmarc.elastic.Index") as mock_index_cls:
+            mock_index = mock_index_cls.return_value
+            mock_index.exists.return_value = False
+            create_indexes(["idx"])
+        mock_index.settings.assert_not_called()
+        mock_index.create.assert_called_once()
+
+    def test_serverless_filters_rejected_keys_and_passes_others_through(self):
+        with patch("parsedmarc.elastic.Index") as mock_index_cls:
+            mock_index = mock_index_cls.return_value
+            mock_index.exists.return_value = False
+            create_indexes(
+                ["idx"],
+                settings={
+                    "number_of_shards": 3,
+                    "number_of_replicas": 2,
+                    "refresh_interval": "5s",
+                },
+            )
+        mock_index.settings.assert_called_once_with(refresh_interval="5s")
+
+    def test_serverless_skips_settings_when_only_rejected_keys(self):
+        with patch("parsedmarc.elastic.Index") as mock_index_cls:
+            mock_index = mock_index_cls.return_value
+            mock_index.exists.return_value = False
+            create_indexes(
+                ["idx"], settings={"number_of_shards": 3, "number_of_replicas": 2}
+            )
+        mock_index.settings.assert_not_called()
+        mock_index.create.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # migrate_indexes
 # ---------------------------------------------------------------------------

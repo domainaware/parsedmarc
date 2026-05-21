@@ -4,6 +4,10 @@
 
 ### Enhancements
 
+#### Elastic Cloud Serverless compatibility
+
+New `[elasticsearch] serverless` config flag (env var `PARSEDMARC_ELASTICSEARCH_SERVERLESS`). Elastic Cloud Serverless manages sharding and replication itself and rejects the `number_of_shards` / `number_of_replicas` index settings with HTTP 400 — previously every write into a Serverless project failed at index-creation time. With the flag set, `create_indexes` strips those two keys from the settings sent to Elasticsearch and passes any other settings (e.g. `refresh_interval`) through unchanged. Non-Serverless deployments are unaffected.
+
 #### Docker-secret support via `_FILE` env vars
 
 Any `PARSEDMARC_{SECTION}_{KEY}` environment variable can now also be supplied via a file by appending `_FILE` to its name (e.g. `PARSEDMARC_IMAP_PASSWORD_FILE=/run/secrets/imap_password`). The file's contents (with trailing CR/LF stripped) are used as the value. This is the same convention used by the official Postgres, MariaDB, and Redis container images, so credentials no longer have to appear in plain `environment:` blocks where `docker inspect`, container logs, and `/proc/<pid>/environ` would expose them.

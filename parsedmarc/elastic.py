@@ -31,6 +31,18 @@ class ElasticsearchError(Exception):
     """Raised when an Elasticsearch error occurs"""
 
 
+# Mirror of the ``serverless`` flag passed to ``set_hosts``; consulted by
+# ``create_indexes`` to strip settings Elastic Cloud Serverless rejects.
+# Module-level state is consistent with the existing ``connections.create_connection``
+# global the rest of this module relies on — there is a single default ES
+# connection per process.
+_SERVERLESS = False
+
+# Index settings rejected by Elastic Cloud Serverless with HTTP 400. Other
+# settings (e.g. ``refresh_interval``) are accepted and pass through.
+_SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replicas"})
+
+
 class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
@@ -314,6 +326,7 @@ def set_hosts(
     password: Optional[str] = None,
     api_key: Optional[str] = None,
     timeout: float = 60.0,
+    serverless: bool = False,
 ):
     """
     Sets the Elasticsearch hosts to use
@@ -327,7 +340,14 @@ def set_hosts(
         password (str): The password to use for authentication
         api_key (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
+        serverless (bool): Target an Elastic Cloud Serverless project. When True,
+            ``create_indexes`` strips ``number_of_shards`` / ``number_of_replicas``
+            from its settings (which Serverless rejects with HTTP 400) and passes
+            any other settings through unchanged.
     """
+    # Module-global; see the _SERVERLESS comment at the top of the module.
+    global _SERVERLESS
+    _SERVERLESS = serverless
     if not isinstance(hosts, list):
         hosts = [hosts]
     conn_params = {"hosts": hosts, "timeout": timeout}
@@ -352,18 +372,28 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
 
     Args:
         names (list): A list of index names
-        settings (dict): Index settings
-
+        settings (dict): Index settings. In Serverless mode, keys in
+            ``_SERVERLESS_REJECTED_SETTINGS`` are filtered out and the
+            remaining keys are passed through; defaults are skipped entirely.
     """
+    if settings is None:
+        effective_settings: dict[str, Any] = (
+            {} if _SERVERLESS else {"number_of_shards": 1, "number_of_replicas": 0}
+        )
+    elif _SERVERLESS:
+        effective_settings = {
+            k: v for k, v in settings.items() if k not in _SERVERLESS_REJECTED_SETTINGS
+        }
+    else:
+        effective_settings = dict(settings)
+
     for name in names:
         index = Index(name)
         try:
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
-                if settings is None:
-                    index.settings(number_of_shards=1, number_of_replicas=0)
-                else:
-                    index.settings(**settings)
+                if effective_settings:
+                    index.settings(**effective_settings)
                 index.create()
         except Exception as e:
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))

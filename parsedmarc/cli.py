@@ -732,6 +732,10 @@ def _parse_config(config: ConfigParser, opts):
         # Since 8.20
         if "api_key" in elasticsearch_config:
             opts.elasticsearch_api_key = elasticsearch_config["api_key"]
+        if "serverless" in elasticsearch_config:
+            opts.elasticsearch_serverless = elasticsearch_config.getboolean(
+                "serverless"
+            )
 
     if "opensearch" in config:
         opensearch_config = config["opensearch"]
@@ -1235,6 +1239,7 @@ def _init_output_clients(opts):
                     password=opts.elasticsearch_password,
                     api_key=opts.elasticsearch_api_key,
                     timeout=elastic_timeout_value,
+                    serverless=opts.elasticsearch_serverless,
                 )
                 elastic.migrate_indexes(
                     aggregate_indexes=[es_aggregate_index],
@@ -1849,6 +1854,7 @@ def _main():
         elasticsearch_username=None,
         elasticsearch_password=None,
         elasticsearch_api_key=None,
+        elasticsearch_serverless=False,
         opensearch_hosts=None,
         opensearch_timeout=60,
         opensearch_number_of_shards=1,

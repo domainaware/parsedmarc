@@ -2232,6 +2232,60 @@ class TestParseConfigElasticsearch(unittest.TestCase):
             _parse_config(cp, _opts())
         self.assertIn("hosts", str(ctx.exception))
 
+    def test_elasticsearch_serverless_flag(self):
+        """``[elasticsearch] serverless = true`` flips ``opts.elasticsearch_serverless``."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("elasticsearch", {"hosts": "es:9200", "serverless": "true"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertIs(opts.elasticsearch_serverless, True)
+
+    def test_elasticsearch_serverless_passed_to_set_hosts(self):
+        """End-to-end: a Serverless config reaches ``elastic.set_hosts(serverless=True)``.
+
+        Regression guard: catches anyone who later parses the flag but forgets
+        to plumb it through to ``set_hosts`` (or vice-versa).
+        """
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+serverless = true
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with (
+            patch("parsedmarc.cli.elastic.migrate_indexes"),
+            patch("parsedmarc.cli.elastic.set_hosts") as mock_set_hosts,
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ):
+            parsedmarc.cli._main()
+
+        mock_set_hosts.assert_called_once()
+        self.assertIs(mock_set_hosts.call_args.kwargs.get("serverless"), True)
+
 
 class TestParseConfigOpenSearch(unittest.TestCase):
     def test_opensearch_basic(self):
