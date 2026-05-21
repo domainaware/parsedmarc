@@ -2588,6 +2588,246 @@ class TestParseConfigS3(unittest.TestCase):
             _parse_config(cp, _opts())
 
 
+class TestParseConfigPostgreSQL(unittest.TestCase):
+    def test_postgresql_individual_params(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "postgresql",
+            {
+                "host": "db.example.com",
+                "port": "6543",
+                "user": "pmarc",
+                "password": "secret",
+                "database": "dmarc",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.postgresql_host, "db.example.com")
+        self.assertEqual(opts.postgresql_port, 6543)
+        self.assertEqual(opts.postgresql_user, "pmarc")
+        self.assertEqual(opts.postgresql_password, "secret")
+        self.assertEqual(opts.postgresql_database, "dmarc")
+
+    def test_postgresql_connection_string_takes_precedence(self):
+        """connection_string is read and host parsing is skipped."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "postgresql",
+            {
+                "connection_string": "postgresql://u:p@h/db",
+                "host": "ignored.example.com",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.postgresql_connection_string, "postgresql://u:p@h/db")
+        # The host branch is skipped entirely when a connection_string is set.
+        self.assertFalse(hasattr(opts, "postgresql_host"))
+
+    def test_postgresql_missing_host_and_dsn_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("postgresql", {"port": "5432"})
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("postgresql", str(ctx.exception))
+
+
+class TestPostgreSQLCliWiring(unittest.TestCase):
+    """End-to-end: a [postgresql] config reaches PostgreSQLClient + create_tables.
+
+    Regression guard so the config parse, the Namespace defaults, and the
+    _init_output_clients wiring can't drift apart.
+    """
+
+    def test_postgresql_config_constructs_client_and_creates_tables(self):
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[postgresql]
+host = db.example.com
+port = 6543
+user = pmarc
+password = secret
+database = dmarc
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with (
+            patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ):
+            parsedmarc.cli._main()
+
+        mock_client_cls.assert_called_once()
+        kwargs = mock_client_cls.call_args.kwargs
+        self.assertEqual(kwargs.get("host"), "db.example.com")
+        self.assertEqual(kwargs.get("port"), 6543)
+        self.assertEqual(kwargs.get("user"), "pmarc")
+        self.assertEqual(kwargs.get("database"), "dmarc")
+        mock_client_cls.return_value.create_tables.assert_called_once()
+
+    def test_postgresql_aggregate_report_is_saved(self):
+        """An aggregate report reaches the client's save method via the loop."""
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[postgresql]
+host = db.example.com
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        report = {"policy_published": {"domain": "example.com"}, "records": []}
+        with (
+            patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [report],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ):
+            parsedmarc.cli._main()
+
+        pg_client = mock_client_cls.return_value
+        pg_client.save_aggregate_report_to_postgresql.assert_called_once_with(report)
+
+    def _run_main(self, reports, save_side_effect=None):
+        """Run _main with all save flags on and PostgreSQLClient mocked.
+
+        Returns the mocked client instance for assertions. *save_side_effect*,
+        if given, is applied to every save_* method so error-handling branches
+        can be exercised.
+        """
+        config = """[general]
+save_aggregate = true
+save_failure = true
+save_smtp_tls = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[postgresql]
+host = db.example.com
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with (
+            patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value=reports,
+            ),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ):
+            client = mock_client_cls.return_value
+            if save_side_effect is not None:
+                for m in (
+                    "save_aggregate_report_to_postgresql",
+                    "save_failure_report_to_postgresql",
+                    "save_smtp_tls_report_to_postgresql",
+                ):
+                    getattr(client, m).side_effect = save_side_effect
+            parsedmarc.cli._main()
+        return client
+
+    def test_postgresql_all_report_types_saved(self):
+        """Failure and SMTP-TLS reports also reach their save methods."""
+        agg = {"policy_published": {"domain": "example.com"}, "records": []}
+        fail = {"reported_domain": "example.com", "parsed_sample": {}}
+        tls = {"organization_name": "Org", "policies": [{"policy_domain": "d"}]}
+        client = self._run_main(
+            {
+                "aggregate_reports": [agg],
+                "failure_reports": [fail],
+                "smtp_tls_reports": [tls],
+            }
+        )
+        client.save_aggregate_report_to_postgresql.assert_called_once_with(agg)
+        client.save_failure_report_to_postgresql.assert_called_once_with(fail)
+        client.save_smtp_tls_report_to_postgresql.assert_called_once_with(tls)
+
+    def test_postgresql_already_saved_is_warned_not_fatal(self):
+        """AlreadySaved from any save is swallowed (logged), not propagated."""
+        from parsedmarc import postgres
+
+        agg = {"policy_published": {"domain": "example.com"}, "records": []}
+        fail = {"reported_domain": "example.com", "parsed_sample": {}}
+        tls = {"organization_name": "Org", "policies": []}
+        # Should not raise despite every save raising AlreadySaved.
+        self._run_main(
+            {
+                "aggregate_reports": [agg],
+                "failure_reports": [fail],
+                "smtp_tls_reports": [tls],
+            },
+            save_side_effect=postgres.AlreadySaved("dup"),
+        )
+
+    def test_postgresql_error_is_logged_not_fatal(self):
+        """PostgreSQLError from any save is logged, not propagated."""
+        from parsedmarc import postgres
+
+        agg = {"policy_published": {"domain": "example.com"}, "records": []}
+        fail = {"reported_domain": "example.com", "parsed_sample": {}}
+        tls = {"organization_name": "Org", "policies": []}
+        self._run_main(
+            {
+                "aggregate_reports": [agg],
+                "failure_reports": [fail],
+                "smtp_tls_reports": [tls],
+            },
+            save_side_effect=postgres.PostgreSQLError("boom"),
+        )
+
+
 class TestParseConfigSyslog(unittest.TestCase):
     def test_syslog_complete(self):
         from parsedmarc.cli import _parse_config
