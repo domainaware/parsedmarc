@@ -116,6 +116,48 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 - Token file writes must create parent directories before opening for write.
 - Store natively numeric values as numbers, not pre-formatted strings. Example: ASN is stored as `int 15169`, not `"AS15169"`; Elasticsearch / OpenSearch mappings for such fields use `Integer()` so consumers can do range queries and numeric sorts. Display layers format with a prefix at render time.
 
+## Testing standards
+
+These rules govern *every* test added to `tests/`. They exist because the project has been burned by tests that looked like coverage but caught nothing, and by bug claims that turned out to be wrong about the spec. Both failure modes erode trust faster than missing coverage does.
+
+### Coverage measures shipped code only
+
+`[tool.coverage.run]` in `pyproject.toml` sets `source = ["parsedmarc"]` and omits `*/parsedmarc/resources/maps/*.py` (maintainer scripts that ship out of the wheel). Counting the test files in the denominator inflates the headline by ~8 percentage points without telling anyone anything useful — pytest discovers test files and runs them, so they're trivially "covered". The number that matters is "what fraction of the installed library does the test suite actually exercise". Don't reintroduce `tests/*` to the coverage scope, don't expand the `omit` list to hide gaps, don't add `# pragma: no cover` to dodge ugly branches. If a branch is genuinely unreachable, delete it; if it's reachable but hard to test, write the test.
+
+### Honest tests assert on observable behaviour
+
+A test that mocks every dependency and asserts that the mocks were invoked is testing the mocks, not the code. The benchmark for a good test is: *would this test fail if the code under test were silently wrong?* If the answer is no — if the test would pass regardless of whether the function does what its docstring claims — it isn't a test, it's coverage-padding.
+
+Concrete patterns:
+
+- **Mock at SDK boundaries, not at internal helpers.** Patch `boto3.resource`, `kafka.KafkaProducer`, `requests.Session.post`, `elasticsearch_dsl.Document.save`, `azure.monitor.ingestion.LogsIngestionClient` — the seams where the project's code stops and an external system begins. Don't patch our own functions just to make a test "easier"; that hides bugs in the function instead of testing it.
+- **Assert on what gets sent, not that something was sent.** For an output module, parse the body that was passed to the mocked transport (`json.loads(call.kwargs["data"])`, `kafka.send.call_args.args[1]`, `bucket.put_object.call_args.kwargs["Key"]`) and verify the *fields and values a dashboard or downstream consumer would actually filter on*. A test that only checks `mock.assert_called_once()` would pass even if the payload were `{}`.
+- **No trivial passthrough tests.** A test that calls a getter and asserts it returns the value just set isn't testing the code; it's testing Python's attribute machinery.
+- **No `# pragma: no cover`.** If a branch is unreachable, the right fix is to delete the branch, not to hide it.
+
+### "If 90% requires faking it, ship 85% honestly"
+
+Coverage targets are a tool, not a goal. The value of coverage is what would actually catch regressions; chasing a percentage by writing low-signal tests degrades the suite. When the next available coverage point would cost test integrity — typically the deep orchestration paths in `_main()` and the watch-mode mailbox iteration, both of which need either a live ES/IMAP cluster or mocks so deep they verify the mock rather than the code — stop, and call out the modules where you stopped in the PR description. PR-B (#775) explicitly halted `cli.py` at 69% and `__init__.py` at 76% for this reason; the floor for the rest of the suite is 99–100%.
+
+### Verify bug claims against authoritative sources before fixing
+
+If a test surfaces something that looks like a bug, cite the spec before changing code. Intuition isn't enough; "this code looks wrong" has been wrong often enough in this codebase that the project requires verification. In order of authority:
+
+1. **The relevant RFC** for protocol or report-format questions (RFC 9989 for DMARC policy, RFC 9990 for aggregate reports, RFC 9991 for failure reports, RFC 8460 for SMTP TLS reports, RFC 6591 for legacy ARF).
+2. **The internal type contract** (`parsedmarc/types.py` TypedDicts) for project-internal data shapes.
+3. **The installed SDK source in the venv** for third-party API questions where the docs are inaccessible — `find venv -name '*.py' -path '*<package>*'` and grep, rather than asking a subagent to synthesize an answer.
+4. **The official upstream documentation** (Python docs, vendor docs) for language- or platform-level behaviour. The `append_json` bug fix in #775 cited the explicit "writes in `a`/`a+` mode always go to EOF regardless of seek" line from <https://docs.python.org/3/library/functions.html#open>.
+
+Cite the source in the commit message and the test docstring. A reviewer should be able to look at the test and confirm both *what* changed and *why the prior behaviour was wrong*. Two examples worth pattern-matching are #775's SMTP-TLS-to-S3 fix (RFC 8460 §4.3 cited) and the `append_json` fix (Python docs quoted).
+
+### Bugs found while writing tests are fixed in the same PR
+
+When a test for the documented behaviour fails because the code is wrong, the right move is to fix the code, not to lock in the broken behaviour. Don't write `self.assertRaises(KeyError)` to make a passing test out of a known bug, and don't skip the test with a "TODO: file separately". If the fix is small and clearly correct against the cited authority above, it belongs in the same PR as the test that found it — the test then doubles as the regression guard. List each fix in `CHANGELOG.md` under the in-progress version's **Bug fixes** section (introducing the heading if it's not there yet).
+
+### File layout is non-negotiable
+
+Tests live under `tests/` as `tests/test_<module>.py`, one per top-level `parsedmarc/*` module. The split is documented in [Code Style](#code-style) above. New tests go in the file whose module they exercise — don't create cross-module kitchen-sink test files, and don't reintroduce a monolithic `tests.py`. Module-level test logger handlers should be reset in `setUp` / a `_fresh_logger()` helper (see `tests/test_gelf.py` and `tests/test_syslog.py`) so that test ordering doesn't cause stale handlers from a prior test to accumulate on the module's logger and break `assertLogs` capture.
+
 ## Local dev secrets
 
 If a config file is listed in `.gitignore`, treat its contents as secret. Do not paste its literal values into any tracked file — READMEs, docs, code comments, commit messages, PR descriptions, sample/test fixtures. Reference the variable name (e.g. `$SOME_PASSWORD`) or show a placeholder (`...`) instead, and tell the reader to pick their own values. This is both a real-leak hedge and a way to keep secret scanners (GitHub secret scanning, push protection, third-party scanners) from firing false positives on the repo. Defer to `.gitignore` as the source of truth on what's secret — the rule applies to any gitignored config file the project ever adds, not just the ones present today (currently `.env` and `parsedmarc*.ini`).
