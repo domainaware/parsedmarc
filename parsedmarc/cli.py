@@ -92,6 +92,28 @@ def _expand_path(p: str) -> str:
     return os.path.expanduser(os.path.expandvars(p))
 
 
+def _expand_file_path_args(paths: list[str]) -> list[str]:
+    """Expand CLI file-path arguments into a flat list of file paths.
+
+    A path that already exists on disk is taken literally; only a
+    non-existent path is treated as a glob pattern. This preserves
+    shell-style wildcard expansion (e.g. a quoted ``samples/*.xml``) while
+    ensuring that literal filenames containing glob metacharacters
+    (``[``, ``]``, ``*``, ``?``) are not silently dropped. Emailed DMARC
+    failure reports are frequently named like
+    ``[Provider DMARC Failure Report] Subject.eml``; ``glob()`` treats the
+    brackets as a character class, matches nothing, and drops the file
+    (see <https://docs.python.org/3/library/glob.html>).
+    """
+    expanded: list[str] = []
+    for path in paths:
+        if os.path.exists(path):
+            expanded.append(path)
+        else:
+            expanded += glob(path)
+    return expanded
+
+
 # All known INI config section names, used for env var resolution.
 _KNOWN_SECTIONS = frozenset(
     {
@@ -105,6 +127,7 @@ _KNOWN_SECTIONS = frozenset(
         "kafka",
         "smtp",
         "s3",
+        "postgresql",
         "syslog",
         "gmail_api",
         "maildir",
@@ -2112,11 +2135,9 @@ def _main():
                 logger.error("Output client error: {0}".format(error_))
                 exit(1)
 
-    file_paths = []
+    file_paths = _expand_file_path_args(args.file_path)
     mbox_paths = []
 
-    for file_path in args.file_path:
-        file_paths += glob(file_path)
     for file_path in file_paths:
         if is_mbox(file_path):
             mbox_paths.append(file_path)

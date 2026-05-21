@@ -28,7 +28,7 @@ services:
       retries: 24
 
   opensearch:
-    image: opensearchproject/opensearch:2
+    image: opensearchproject/opensearch:3
     environment:
       - network.host=127.0.0.1
       - http.host=0.0.0.0

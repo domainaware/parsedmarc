@@ -349,6 +349,40 @@ hosts = localhost
         # Just a section name with no key should not match
         self.assertEqual(_resolve_section_key("IMAP"), (None, None))
 
+    def test_expand_file_path_args_keeps_bracketed_filenames(self):
+        """Literal report filenames containing glob metacharacters must not
+        be dropped.
+
+        Regression test: ``_main`` expanded every file argument with
+        ``glob()``, which treats ``[...]`` as a character class. A real
+        file named ``[Provider DMARC Failure Report] Subject.eml`` (the
+        shape Netease and others use) matched nothing and was silently
+        skipped, so the report never reached the parser.
+        See https://docs.python.org/3/library/glob.html.
+        """
+        from glob import glob
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            bracket = os.path.join(d, "[Netease DMARC Failure Report] Rent.eml")
+            plain = os.path.join(d, "report.eml")
+            for p in (bracket, plain):
+                with open(p, "w") as f:
+                    f.write("x")
+
+            # Sanity: raw glob drops the bracketed path (documents the bug).
+            self.assertEqual(glob(bracket), [])
+
+            # The literal bracketed path is preserved as-is.
+            self.assertEqual(_expand_file_path_args([bracket]), [bracket])
+
+            # Wildcards (non-existent as literal paths) still expand.
+            wildcard = os.path.join(d, "*.eml")
+            self.assertEqual(
+                sorted(_expand_file_path_args([wildcard])),
+                sorted([bracket, plain]),
+            )
+
     def test_apply_env_overrides_injects_values(self):
         """Env vars are injected into an existing ConfigParser."""
         from configparser import ConfigParser
@@ -381,6 +415,36 @@ hosts = localhost
 
         self.assertTrue(config.has_section("elasticsearch"))
         self.assertEqual(config.get("elasticsearch", "hosts"), "http://localhost:9200")
+
+    def test_apply_env_overrides_postgresql_section(self):
+        """PARSEDMARC_POSTGRESQL_* env vars must resolve to the [postgresql]
+        section.
+
+        Regression test: ``postgresql`` was missing from ``_KNOWN_SECTIONS``,
+        so ``_resolve_section_key`` returned ``(None, None)`` for every
+        ``PARSEDMARC_POSTGRESQL_*`` var and the override was silently dropped.
+        The PostgreSQL backend is only initialized when ``"postgresql" in
+        config.sections()`` (cli.py), so the section must exist for env-var /
+        Docker-secret configuration of the backend to work at all.
+        """
+        from configparser import ConfigParser
+        from parsedmarc.cli import _apply_env_overrides
+
+        config = ConfigParser()
+
+        env = {
+            "PARSEDMARC_POSTGRESQL_HOST": "db.example.com",
+            "PARSEDMARC_POSTGRESQL_PORT": "5432",
+            "PARSEDMARC_POSTGRESQL_USER": "parsedmarc",
+            "PARSEDMARC_POSTGRESQL_DATABASE": "parsedmarc",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            _apply_env_overrides(config)
+
+        self.assertIn("postgresql", config.sections())
+        self.assertEqual(config.get("postgresql", "host"), "db.example.com")
+        self.assertEqual(config.get("postgresql", "port"), "5432")
+        self.assertEqual(config.get("postgresql", "database"), "parsedmarc")
 
     def test_apply_env_overrides_ignores_config_file_var(self):
         """PARSEDMARC_CONFIG_FILE is not injected as a config key."""

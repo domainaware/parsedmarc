@@ -19,6 +19,12 @@ set +a
 GRAFANA_USER="${GRAFANA_USER:-admin}"
 GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
 
+# PostgreSQL dev credentials. Defaults match docker-compose.dashboard-dev.yml's
+# ${POSTGRESQL_*:-parsedmarc} fallbacks; override all four in lockstep via .env.
+PG_USER="${POSTGRESQL_USER:-parsedmarc}"
+PG_PASSWORD="${POSTGRESQL_PASSWORD:-parsedmarc}"
+PG_DB="${POSTGRESQL_DB:-parsedmarc}"
+
 log() { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
 
 wait_for() {
@@ -59,6 +65,8 @@ wait_for "OpenSearch Dashboards" \
     curl -ksf -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
     http://localhost:5602/api/status
 wait_for "Grafana" curl -sf http://localhost:3000/api/health
+wait_for "PostgreSQL" \
+    "${COMPOSE[@]}" exec -T postgresql pg_isready -U "$PG_USER" -d "$PG_DB"
 # Splunk's HEC port is healthy once management API is up too.
 wait_for "Splunk HEC" curl -ksf https://localhost:8088/services/collector/health
 # Splunkd management API (used for dashboard imports) lives inside the container.
@@ -204,14 +212,52 @@ else
         splunk_curl -X POST \
             "https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http/splunk_hec_token" \
             -d "indexes=email,main" -d "index=email" -d "disabled=0" >/dev/null
+        # PostgreSQL: drop and recreate the public schema. parsedmarc recreates
+        # its tables on the next seed run, so this is a clean wipe.
+        "${COMPOSE[@]}" exec -T -e PGPASSWORD="$PG_PASSWORD" postgresql \
+            psql -U "$PG_USER" -d "$PG_DB" \
+            -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
     fi
 
-    PARSEDMARC_BIN="${PARSEDMARC_BIN:-$REPO_ROOT/venv/bin/parsedmarc}"
-    if [ ! -x "$PARSEDMARC_BIN" ]; then
-        PARSEDMARC_BIN="$(command -v parsedmarc || true)"
+    # Resolve a Python environment for the seed and make sure parsedmarc plus
+    # the PostgreSQL extra (psycopg) are installed in it, so the same run can
+    # populate Postgres. Precedence:
+    #   1. An explicit PARSEDMARC_BIN — used as-is, nothing installed.
+    #   2. An already-activated virtualenv ($VIRTUAL_ENV).
+    #   3. An existing repo venv/ or .venv/.
+    #   4. Otherwise a freshly created $REPO_ROOT/venv.
+    # Cases 2-4 run `pip install -e .[postgresql]` only when the CLI or psycopg
+    # is missing, so it's a no-op once the environment is set up.
+    if [ -n "${PARSEDMARC_BIN:-}" ]; then
+        if [ ! -x "$PARSEDMARC_BIN" ]; then
+            echo "ERROR: PARSEDMARC_BIN is set but not executable: $PARSEDMARC_BIN" >&2
+            exit 1
+        fi
+        echo "  using PARSEDMARC_BIN: $PARSEDMARC_BIN"
+    else
+        if [ -n "${VIRTUAL_ENV:-}" ]; then
+            seed_venv="$VIRTUAL_ENV"
+            echo "  using active virtualenv: $seed_venv"
+        elif [ -d "$REPO_ROOT/venv" ]; then
+            seed_venv="$REPO_ROOT/venv"
+            echo "  using existing venv: $seed_venv"
+        elif [ -d "$REPO_ROOT/.venv" ]; then
+            seed_venv="$REPO_ROOT/.venv"
+            echo "  using existing .venv: $seed_venv"
+        else
+            seed_venv="$REPO_ROOT/venv"
+            echo "  creating virtualenv: $seed_venv"
+            python3 -m venv "$seed_venv"
+        fi
+        PARSEDMARC_BIN="$seed_venv/bin/parsedmarc"
+        if [ ! -x "$PARSEDMARC_BIN" ] ||
+            ! "$seed_venv/bin/python" -c 'import psycopg' >/dev/null 2>&1; then
+            echo "  installing parsedmarc[postgresql] into $seed_venv"
+            "$seed_venv/bin/python" -m pip install -q -e "${REPO_ROOT}[postgresql]"
+        fi
     fi
-    if [ -z "$PARSEDMARC_BIN" ] || [ ! -x "$PARSEDMARC_BIN" ]; then
-        echo "ERROR: parsedmarc CLI not found. Install with 'pip install -e .[build]' or set PARSEDMARC_BIN." >&2
+    if [ ! -x "$PARSEDMARC_BIN" ]; then
+        echo "ERROR: parsedmarc CLI not found at $PARSEDMARC_BIN" >&2
         exit 1
     fi
 
@@ -232,11 +278,36 @@ else
         samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml
         samples/aggregate/usssa.com!example.com!1538784000!1538870399.xml
         samples/aggregate/veeam.com!example.com!1530133200!1530219600.xml
+        samples/aggregate/rfc9990-sample.xml
+        samples/aggregate/rfc9990-example.net!example.com!1700000000!1700086399.xml
         samples/failure/*.eml
         samples/smtp_tls/*.json
         samples/smtp_tls/google.com_smtp_tls_report.eml
     )
-    "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
+    # PostgreSQL config is injected via env vars (parsedmarc synthesizes the
+    # [postgresql] section from PARSEDMARC_POSTGRESQL_*), so the same seed run
+    # also populates Postgres without touching the gitignored parsedmarc-dev.ini.
+    # Only wire it in when psycopg is importable: parsedmarc aborts the whole
+    # run (exit 1, nothing written to *any* backend) if a configured output
+    # backend can't initialize, so a missing optional extra must not be added.
+    pg_seed_env=()
+    seed_python="$(dirname "$PARSEDMARC_BIN")/python"
+    if [ -x "$seed_python" ] && "$seed_python" -c 'import psycopg' >/dev/null 2>&1; then
+        pg_seed_env=(
+            PARSEDMARC_POSTGRESQL_HOST=localhost
+            PARSEDMARC_POSTGRESQL_PORT=5432
+            PARSEDMARC_POSTGRESQL_USER="$PG_USER"
+            PARSEDMARC_POSTGRESQL_PASSWORD="$PG_PASSWORD"
+            PARSEDMARC_POSTGRESQL_DATABASE="$PG_DB"
+        )
+    else
+        # Reached only for an explicit PARSEDMARC_BIN whose env lacks psycopg
+        # (the auto-resolved venv path installs the extra above).
+        echo "  NOTE: 'psycopg' is not available to ${PARSEDMARC_BIN} — skipping the"
+        echo "        PostgreSQL seed. Enable it with: pip install -e '.[postgresql]'"
+    fi
+    env "${pg_seed_env[@]}" \
+        "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
 fi
 
 # ---------------------------------------------------------------------------
@@ -253,11 +324,15 @@ log "Importing OpenSearch Dashboards saved objects"
 # OSD with the security plugin enabled stores saved objects per tenant. Without
 # a securitytenant header the import lands in the API user's *private* tenant,
 # which is invisible to anyone else (and to the same user when their browser
-# session is on a different tenant). Target global_tenant — the shared
+# session is on a different tenant). Target the Global tenant — the shared
 # workspace every user has access to and where public dashboards conventionally
-# live. To send the import elsewhere set OSD_TENANT=admin_tenant (or any other
-# tenant name) before running.
-OSD_TENANT="${OSD_TENANT:-global_tenant}"
+# live. Its securitytenant token is the literal "global"; any *other* string is
+# treated as a custom tenant name, so "global_tenant" would silently create a
+# separate "global_tenant" tenant rather than hit Global. (An empty/omitted
+# header is *not* equivalent — it falls back to the user's configured default
+# tenant, not Global.) To send the import elsewhere set OSD_TENANT=admin_tenant
+# (or any other tenant name) before running.
+OSD_TENANT="${OSD_TENANT:-global}"
 curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true' \
     -H 'osd-xsrf: true' \
     -H "securitytenant: ${OSD_TENANT}" \
@@ -306,6 +381,38 @@ EOF
     echo "  created datasource '${name}'"
 done
 
+# PostgreSQL datasource for the PostgreSQL DMARC dashboard. Fixed uid dmarc-pg
+# so the dashboard import below can resolve its ${DS_POSTGRESQL} input. Skipped
+# when already present.
+pg_ds_code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -o /dev/null -w "%{http_code}" \
+    "http://localhost:3000/api/datasources/name/PostgreSQL")
+if [ "$pg_ds_code" = "200" ]; then
+    echo "  datasource 'PostgreSQL' already exists — skipping"
+else
+    pg_ds_body=$(cat <<EOF
+{
+  "name": "PostgreSQL",
+  "uid": "dmarc-pg",
+  "type": "grafana-postgresql-datasource",
+  "url": "postgresql:5432",
+  "access": "proxy",
+  "user": "${PG_USER}",
+  "database": "${PG_DB}",
+  "isDefault": false,
+  "jsonData": { "sslmode": "disable" },
+  "secureJsonData": { "password": "${PG_PASSWORD}" }
+}
+EOF
+    )
+    curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -H 'Content-Type: application/json' \
+        -X POST "http://localhost:3000/api/datasources" \
+        -d "$pg_ds_body" | sed 's/^/  /'
+    echo
+    echo "  created datasource 'PostgreSQL'"
+fi
+
 log "Importing Grafana dashboard"
 GF_BODY=$(python3 -c '
 import json, sys
@@ -319,6 +426,26 @@ curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -H 'Content-Type: application/json' \
     -X POST "http://localhost:3000/api/dashboards/db" \
     -d "$GF_BODY" | sed 's/^/  /'
+
+log "Importing Grafana PostgreSQL dashboard"
+# Resolve the dashboard's ${DS_POSTGRESQL} input to the dmarc-pg datasource uid
+# created above, drop the export-only __inputs/__requires keys, and let
+# id=None create-or-replace by uid+overwrite.
+GF_PG_BODY=$(python3 -c '
+import json
+with open("dashboards/grafana/Grafana-DMARC_Reports-PostgreSQL.json") as f:
+    text = f.read()
+text = text.replace("${DS_POSTGRESQL}", "dmarc-pg")
+d = json.loads(text)
+d.pop("__inputs", None)
+d.pop("__requires", None)
+d["id"] = None
+print(json.dumps({"dashboard": d, "overwrite": True, "folderUid": ""}))
+')
+curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -H 'Content-Type: application/json' \
+    -X POST "http://localhost:3000/api/dashboards/db" \
+    -d "$GF_PG_BODY" | sed 's/^/  /'
 
 log "Importing Splunk dashboard views into the DMARC app"
 splunk_import_view() {
@@ -348,4 +475,5 @@ cat <<EOF
   OpenSearch Dashboards   http://localhost:5602/   (admin / ${OPENSEARCH_INITIAL_ADMIN_PASSWORD})
   Grafana                 http://localhost:3000/   (${GRAFANA_USER} / ${GRAFANA_PASSWORD})
   Splunk                  http://localhost:8000/   (admin / ${SPLUNK_PASSWORD})
+  PostgreSQL              localhost:5432           (${PG_USER} / ${PG_PASSWORD}, db ${PG_DB})
 EOF
