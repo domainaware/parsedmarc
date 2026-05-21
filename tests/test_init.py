@@ -2393,6 +2393,44 @@ class TestAppendJson(unittest.TestCase):
             if os.path.exists(path):
                 os.remove(path)
 
+    def test_corrupt_existing_file_is_overwritten_cleanly(self):
+        """If the existing JSON file is corrupt (e.g. truncated by a
+        prior crash, or hit the pre-fix `append_json` bug), the
+        read-merge-write path falls back to overwriting with the new
+        content rather than silently failing to record.
+
+        Recording at the cost of losing prior corrupt data is the
+        lesser evil — those bytes are already unparseable, so no
+        downstream consumer can read them anyway."""
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            tf.write("{ this is not valid json at all")
+            path = tf.name
+        try:
+            parsedmarc.append_json(path, [{"new": "data"}])
+            with open(path) as f:
+                data = json.loads(f.read())
+            self.assertEqual(data, [{"new": "data"}])
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_existing_file_with_non_list_root_is_overwritten(self):
+        """If the existing file parses cleanly but the root isn't a
+        list (e.g. someone wrote {"foo": 1} by hand), the
+        isinstance(loaded, list) guard kicks in and we overwrite
+        rather than concatenating a dict and a list."""
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            tf.write('{"not": "a list"}')
+            path = tf.name
+        try:
+            parsedmarc.append_json(path, [{"new": "data"}])
+            with open(path) as f:
+                data = json.loads(f.read())
+            self.assertEqual(data, [{"new": "data"}])
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
 
 class TestAppendCsv(unittest.TestCase):
     def test_writes_new_file_with_header(self):
