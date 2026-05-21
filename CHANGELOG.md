@@ -29,7 +29,7 @@ Backwards compatibility to RFC 7489 is maintained.
 
 #### PostgreSQL storage backend
 
-New optional PostgreSQL output backend as a lighter-weight alternative to Elasticsearch/OpenSearch, configured via a `[postgresql]` section (host/port/user/password/database or a libpq `connection_string`). Tables are created automatically on first run, and the schema captures the RFC 9990 aggregate fields (`np`, `testing`, `discovery_method`, `generator`, `xml_namespace`, and per-result `human_result`). A Grafana dashboard (`grafana/Grafana-DMARC_Reports-PostgreSQL.json`) is included. Aggregate and SMTP-TLS reports are de-duplicated via `ON CONFLICT`; failure reports via an arrival-date / From / To / Subject check mirroring the Elasticsearch backend.
+New optional PostgreSQL output backend as a lighter-weight alternative to Elasticsearch/OpenSearch, configured via a `[postgresql]` section (host/port/user/password/database or a libpq `connection_string`). Tables are created automatically on first run, and the schema captures the RFC 9990 aggregate fields (`np`, `testing`, `discovery_method`, `generator`, `xml_namespace`, and per-result `human_result`). A Grafana dashboard (`dashboards/grafana/Grafana-DMARC_Reports-PostgreSQL.json`) is included. Aggregate and SMTP-TLS reports are de-duplicated via `ON CONFLICT`; failure reports via an arrival-date / From / To / Subject check mirroring the Elasticsearch backend.
 
 The backend is opt-in: install it with `pip install parsedmarc[postgresql]` (it pulls in `psycopg`). It is not a mandatory dependency because the prebuilt `psycopg` binary wheels are not available for every platform.
 

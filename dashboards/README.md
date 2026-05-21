@@ -4,6 +4,7 @@ This directory holds the dashboard sources that ship with parsedmarc:
 
 - [opensearch/opensearch_dashboards.ndjson](opensearch/opensearch_dashboards.ndjson) — the source-of-truth saved-objects export. It is imported into both **OpenSearch Dashboards** and **Kibana** (the file format is compatible with both).
 - [grafana/Grafana-DMARC_Reports.json](grafana/Grafana-DMARC_Reports.json) — the Grafana dashboard, with two Elasticsearch datasources (`dmarc-ag`, `dmarc-fo`).
+- [grafana/Grafana-DMARC_Reports-PostgreSQL.json](grafana/Grafana-DMARC_Reports-PostgreSQL.json) — the Grafana dashboard for the PostgreSQL backend.
 - [splunk/](splunk/) — three Splunk dashboard XML views (`dmarc_aggregate`, `dmarc_failure`, `smtp_tls`).
 
 Edits to any of these files should be exported from a running instance after authoring the change in the UI, not hand-edited (with the occasional exception of small XML tweaks for Splunk).
