@@ -2433,6 +2433,92 @@ class TestMigrateForensicArchiveFolderMaildir(unittest.TestCase):
         self.assertEqual(result["failure_reports"], [])
 
 
+class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
+    """parsedmarc's real mailbox processing loop, end to end on an on-disk
+    Maildir (mailsuite MaildirConnection, no mocks, offline parsing): fetch
+    from INBOX, parse and classify each message, then route it to the matching
+    archive subfolder — or delete it / leave it, per mode. This path was
+    previously untestable without a live IMAP server (see AGENTS.md), so it sat
+    uncovered; the Maildir backend lets it run in CI with no network or
+    credentials, asserting on the observable result (parsed counts + where each
+    message physically ended up), not on mock call records."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        # Aggregate dedup is a module-global ExpiringDict; reset it so an
+        # aggregate report "seen" by an earlier test isn't silently dropped
+        # from this test's results.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        # Use a not-yet-existing subpath so mailbox.Maildir(create=True) builds
+        # cur/new/tmp (it skips creation if the directory already exists, which
+        # mkdtemp's would). Deliver straight to disk; the connection is built
+        # afterwards (in _run) so its first read sees every delivered message.
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        self._inbox = mailbox.Maildir(self._maildir, create=True)
+
+    def _deliver(self, source):
+        raw = open(source, "rb").read() if isinstance(source, str) else source
+        self._inbox.add(mailbox.MaildirMessage(raw))
+        self._inbox.flush()
+
+    def _run(self, **kwargs):
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, **kwargs
+        )
+        return conn, result
+
+    def test_each_report_type_routed_to_its_archive_subfolder(self):
+        """One report of each type plus an unparseable message: each is filed
+        under the correct subfolder (Aggregate / Failure / SMTP-TLS / Invalid)
+        and the INBOX is drained."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run()
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
+    def test_delete_mode_removes_processed_messages(self):
+        """delete=True: a parsed message is removed from the INBOX rather than
+        archived."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(delete=True)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        # The Failure folder is created but nothing is filed there — deleted.
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_test_mode_parses_without_moving_or_creating_folders(self):
+        """test=True: the report is parsed and returned, but the message stays
+        in the INBOX and no archive folders are created/touched."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(test=True)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertFalse(conn.folder_exists("Archive/Failure"))
+
+
 class TestEmailResultsErrorBranches(unittest.TestCase):
     """email_results requires mail_to to be a list — this is enforced
     by an assert. A regression that dropped the assert would mean the
