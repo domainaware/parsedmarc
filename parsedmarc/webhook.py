@@ -39,26 +39,22 @@ class WebhookClient(object):
         }
 
     def save_failure_report_to_webhook(self, report: str):
-        try:
-            self._send_to_webhook(self.failure_url, report)
-        except Exception as error_:
-            logger.error("Webhook Error: {0}".format(error_.__str__()))
+        self._send_to_webhook(self.failure_url, report)
 
     def save_smtp_tls_report_to_webhook(self, report: str):
-        try:
-            self._send_to_webhook(self.smtp_tls_url, report)
-        except Exception as error_:
-            logger.error("Webhook Error: {0}".format(error_.__str__()))
+        self._send_to_webhook(self.smtp_tls_url, report)
 
     def save_aggregate_report_to_webhook(self, report: str):
-        try:
-            self._send_to_webhook(self.aggregate_url, report)
-        except Exception as error_:
-            logger.error("Webhook Error: {0}".format(error_.__str__()))
+        self._send_to_webhook(self.aggregate_url, report)
 
     def _send_to_webhook(
         self, webhook_url: str, payload: Union[bytes, str, dict[str, Any]]
     ):
+        # All HTTP / network errors are swallowed and logged: a failing
+        # webhook should never abort the surrounding parse-and-output
+        # batch. The outer save_* methods previously wrapped this in a
+        # redundant try/except — removed because _send_to_webhook
+        # already catches every Exception itself.
         try:
             self.session.post(webhook_url, data=payload, timeout=self.timeout)
         except Exception as error_:

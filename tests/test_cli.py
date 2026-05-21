@@ -1805,5 +1805,858 @@ class TestExpandPath(unittest.TestCase):
         self.assertEqual(_expand_path("relative/path"), "relative/path")
 
 
+# ---------------------------------------------------------------------------
+# _parse_config: per-section INI → opts mapping
+#
+# Each section of the INI is consumed by a different branch of
+# _parse_config. The tests below build a minimal config for one
+# section at a time and verify every documented key lands on the right
+# opts attribute. A rename, typo, or dropped backwards-compat alias
+# would be caught here.
+# ---------------------------------------------------------------------------
+
+
+class _StrToListTests(unittest.TestCase):
+    def test_str_to_list_strips_leading_whitespace_per_element(self):
+        from parsedmarc.cli import _str_to_list
+
+        self.assertEqual(_str_to_list("a, b ,c"), ["a", "b ", "c"])
+
+    def test_str_to_list_single_value(self):
+        from parsedmarc.cli import _str_to_list
+
+        self.assertEqual(_str_to_list("solo"), ["solo"])
+
+
+def _opts():
+    """A fresh Namespace with no attributes — _parse_config sets fields
+    via attribute assignment on whatever it's given."""
+    from argparse import Namespace
+
+    return Namespace()
+
+
+def _config_with(section: str, settings: dict) -> "ConfigParser":
+    """Build a ConfigParser holding exactly one section."""
+    from configparser import ConfigParser
+
+    cp = ConfigParser()
+    cp.add_section(section)
+    for k, v in settings.items():
+        cp.set(section, k, str(v))
+    return cp
+
+
+class TestParseConfigGeneral(unittest.TestCase):
+    """The [general] section sets dozens of flags. Hit a representative
+    subset: filenames, save-toggles, DNS settings, output dir."""
+
+    def test_general_filenames_and_output(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "general",
+            {
+                "silent": "false",
+                "output": "/tmp/dmarc-out",
+                "aggregate_json_filename": "agg.json",
+                "failure_json_filename": "fail.json",
+                "smtp_tls_json_filename": "tls.json",
+                "aggregate_csv_filename": "agg.csv",
+                "failure_csv_filename": "fail.csv",
+                "smtp_tls_csv_filename": "tls.csv",
+                "save_aggregate": "true",
+                "save_failure": "true",
+                "save_smtp_tls": "true",
+                "debug": "false",
+                "verbose": "false",
+                "warnings": "false",
+                "fail_on_output_error": "false",
+                "offline": "true",
+                "strip_attachment_payloads": "true",
+                "n_procs": "4",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.output, "/tmp/dmarc-out")
+        self.assertEqual(opts.aggregate_json_filename, "agg.json")
+        self.assertEqual(opts.failure_json_filename, "fail.json")
+        self.assertEqual(opts.smtp_tls_csv_filename, "tls.csv")
+        self.assertTrue(opts.save_aggregate)
+        self.assertTrue(opts.save_failure)
+        self.assertTrue(opts.save_smtp_tls)
+        self.assertTrue(opts.offline)
+        self.assertTrue(opts.strip_attachment_payloads)
+        self.assertEqual(opts.n_procs, 4)
+        self.assertFalse(opts.silent)
+        self.assertFalse(opts.debug)
+
+    def test_general_save_forensic_alias_sets_save_failure(self):
+        """Backwards compat: save_forensic in INI sets opts.save_failure."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("general", {"save_forensic": "true"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertTrue(opts.save_failure)
+
+    def test_general_forensic_filename_aliases_set_failure(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "general",
+            {
+                "forensic_json_filename": "fa.json",
+                "forensic_csv_filename": "fa.csv",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.failure_json_filename, "fa.json")
+        self.assertEqual(opts.failure_csv_filename, "fa.csv")
+
+    def test_general_dns_settings_with_defaults(self):
+        from parsedmarc.cli import _parse_config
+
+        # dns_timeout/dns_retries are typed via getfloat/getint which
+        # return non-None values for any valid input.
+        cp = _config_with(
+            "general",
+            {
+                "dns_timeout": "5.0",
+                "dns_retries": "2",
+                "dns_test_address": "1.1.1.1",
+                "nameservers": "1.1.1.1, 8.8.8.8",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.dns_timeout, 5.0)
+        self.assertEqual(opts.dns_retries, 2)
+        self.assertEqual(opts.nameservers, ["1.1.1.1", "8.8.8.8"])
+
+    def test_general_normalize_timespan_threshold(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("general", {"normalize_timespan_threshold_hours": "48"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.normalize_timespan_threshold_hours, 48.0)
+
+
+class TestParseConfigElasticsearch(unittest.TestCase):
+    def test_elasticsearch_basic(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "elasticsearch",
+            {
+                "hosts": "es1:9200, es2:9200",
+                "timeout": "30.0",
+                "number_of_shards": "3",
+                "number_of_replicas": "1",
+                "index_suffix": "tenant_a",
+                "index_prefix": "cust_",
+                "monthly_indexes": "true",
+                "ssl": "true",
+                "cert_path": "/etc/ca.pem",
+                "skip_certificate_verification": "true",
+                "user": "alice",
+                "password": "secret",
+                "api_key": "base64key",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.elasticsearch_hosts, ["es1:9200", "es2:9200"])
+        self.assertEqual(opts.elasticsearch_timeout, 30.0)
+        self.assertEqual(opts.elasticsearch_number_of_shards, 3)
+        self.assertEqual(opts.elasticsearch_number_of_replicas, 1)
+        self.assertEqual(opts.elasticsearch_index_suffix, "tenant_a")
+        self.assertEqual(opts.elasticsearch_index_prefix, "cust_")
+        self.assertTrue(opts.elasticsearch_monthly_indexes)
+        self.assertTrue(opts.elasticsearch_ssl)
+        self.assertEqual(opts.elasticsearch_ssl_cert_path, "/etc/ca.pem")
+        self.assertTrue(opts.elasticsearch_skip_certificate_verification)
+        self.assertEqual(opts.elasticsearch_username, "alice")
+        self.assertEqual(opts.elasticsearch_password, "secret")
+        self.assertEqual(opts.elasticsearch_api_key, "base64key")
+
+    def test_elasticsearch_apikey_camelcase_alias_pre_8_20(self):
+        """`apiKey` (camelCase) is the legacy 8.20-and-earlier name."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("elasticsearch", {"hosts": "es:9200", "apiKey": "legacy"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.elasticsearch_api_key, "legacy")
+
+    def test_elasticsearch_missing_hosts_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("elasticsearch", {"timeout": "30"})
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("hosts", str(ctx.exception))
+
+
+class TestParseConfigOpenSearch(unittest.TestCase):
+    def test_opensearch_basic(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "opensearch",
+            {
+                "hosts": "os1:9200",
+                "timeout": "45.0",
+                "number_of_shards": "2",
+                "number_of_replicas": "0",
+                "index_suffix": "x",
+                "index_prefix": "y_",
+                "monthly_indexes": "true",
+                "ssl": "true",
+                "cert_path": "/etc/ca.pem",
+                "skip_certificate_verification": "true",
+                "user": "u",
+                "password": "p",
+                "api_key": "k",
+                "auth_type": "BASIC",
+                "aws_region": "us-east-1",
+                "aws_service": "es",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.opensearch_hosts, ["os1:9200"])
+        self.assertEqual(opts.opensearch_timeout, 45.0)
+        self.assertEqual(opts.opensearch_number_of_shards, 2)
+        self.assertEqual(opts.opensearch_number_of_replicas, 0)
+        self.assertEqual(opts.opensearch_index_suffix, "x")
+        self.assertEqual(opts.opensearch_index_prefix, "y_")
+        self.assertTrue(opts.opensearch_monthly_indexes)
+        self.assertTrue(opts.opensearch_ssl)
+        self.assertEqual(opts.opensearch_ssl_cert_path, "/etc/ca.pem")
+        self.assertTrue(opts.opensearch_skip_certificate_verification)
+        self.assertEqual(opts.opensearch_username, "u")
+        self.assertEqual(opts.opensearch_password, "p")
+        self.assertEqual(opts.opensearch_api_key, "k")
+        # auth_type is lowercased/stripped.
+        self.assertEqual(opts.opensearch_auth_type, "basic")
+        self.assertEqual(opts.opensearch_aws_region, "us-east-1")
+        self.assertEqual(opts.opensearch_aws_service, "es")
+
+    def test_opensearch_authentication_type_legacy_alias(self):
+        """`authentication_type` is the legacy spelling of `auth_type`."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "opensearch",
+            {"hosts": "os:9200", "authentication_type": "AWSSigV4"},
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.opensearch_auth_type, "awssigv4")
+
+    def test_opensearch_apikey_camelcase_alias(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("opensearch", {"hosts": "os:9200", "apiKey": "legacy"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.opensearch_api_key, "legacy")
+
+    def test_opensearch_missing_hosts_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("opensearch", {"timeout": "30"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigSplunkHec(unittest.TestCase):
+    def test_splunk_hec_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "splunk_hec",
+            {
+                "url": "https://splunk:8088",
+                "token": "abc-token",
+                "index": "dmarc",
+                "skip_certificate_verification": "true",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.hec, "https://splunk:8088")
+        self.assertEqual(opts.hec_token, "abc-token")
+        self.assertEqual(opts.hec_index, "dmarc")
+        self.assertTrue(opts.hec_skip_certificate_verification)
+
+    def test_splunk_hec_missing_url_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("splunk_hec", {"token": "t", "index": "i"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_splunk_hec_missing_token_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("splunk_hec", {"url": "https://splunk:8088", "index": "i"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_splunk_hec_missing_index_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("splunk_hec", {"url": "https://splunk:8088", "token": "t"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigKafka(unittest.TestCase):
+    def test_kafka_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {
+                "hosts": "kafka1:9092, kafka2:9092",
+                "user": "u",
+                "password": "p",
+                "ssl": "true",
+                "skip_certificate_verification": "true",
+                "aggregate_topic": "dmarc-aggregate",
+                "failure_topic": "dmarc-failure",
+                "smtp_tls_topic": "smtp-tls",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.kafka_hosts, ["kafka1:9092", "kafka2:9092"])
+        self.assertEqual(opts.kafka_username, "u")
+        self.assertEqual(opts.kafka_password, "p")
+        self.assertTrue(opts.kafka_ssl)
+        self.assertTrue(opts.kafka_skip_certificate_verification)
+        self.assertEqual(opts.kafka_aggregate_topic, "dmarc-aggregate")
+        self.assertEqual(opts.kafka_failure_topic, "dmarc-failure")
+        self.assertEqual(opts.kafka_smtp_tls_topic, "smtp-tls")
+
+    def test_kafka_forensic_topic_alias_sets_failure_topic(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {
+                "hosts": "k:9092",
+                "aggregate_topic": "agg",
+                "forensic_topic": "old-fail",
+                "smtp_tls_topic": "tls",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.kafka_failure_topic, "old-fail")
+
+    def test_kafka_missing_hosts_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {
+                "aggregate_topic": "a",
+                "failure_topic": "f",
+                "smtp_tls_topic": "t",
+            },
+        )
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_kafka_missing_aggregate_topic_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {"hosts": "k:9092", "failure_topic": "f", "smtp_tls_topic": "t"},
+        )
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_kafka_missing_failure_topic_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {"hosts": "k:9092", "aggregate_topic": "a", "smtp_tls_topic": "t"},
+        )
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_kafka_missing_smtp_tls_topic_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "kafka",
+            {"hosts": "k:9092", "aggregate_topic": "a", "failure_topic": "f"},
+        )
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigSmtp(unittest.TestCase):
+    def test_smtp_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "smtp",
+            {
+                "host": "smtp.example.com",
+                "port": "587",
+                "ssl": "true",
+                "skip_certificate_verification": "true",
+                "user": "u",
+                "password": "p",
+                "from": "dmarc@example.com",
+                "to": "admin@example.com, alert@example.com",
+                "subject": "DMARC Report",
+                "attachment": "/tmp/dmarc.zip",
+                "message": "See attached",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.smtp_host, "smtp.example.com")
+        self.assertEqual(opts.smtp_port, 587)
+        self.assertTrue(opts.smtp_ssl)
+        self.assertTrue(opts.smtp_skip_certificate_verification)
+        self.assertEqual(opts.smtp_user, "u")
+        self.assertEqual(opts.smtp_password, "p")
+        self.assertEqual(opts.smtp_from, "dmarc@example.com")
+        self.assertEqual(opts.smtp_to, ["admin@example.com", "alert@example.com"])
+        self.assertEqual(opts.smtp_subject, "DMARC Report")
+        self.assertEqual(opts.smtp_attachment, "/tmp/dmarc.zip")
+        self.assertEqual(opts.smtp_message, "See attached")
+
+    def test_smtp_missing_host_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("smtp", {"user": "u", "password": "p"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_smtp_missing_user_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("smtp", {"host": "smtp.example.com", "password": "p"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_smtp_missing_password_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("smtp", {"host": "smtp.example.com", "user": "u"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigS3(unittest.TestCase):
+    def test_s3_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "s3",
+            {
+                "bucket": "my-bucket",
+                "path": "/dmarc/",
+                "region_name": "us-east-1",
+                "endpoint_url": "https://s3.example.com",
+                "access_key_id": "AKIA-x",
+                "secret_access_key": "secret",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.s3_bucket, "my-bucket")
+        # Leading and trailing slashes are stripped.
+        self.assertEqual(opts.s3_path, "dmarc")
+        self.assertEqual(opts.s3_region_name, "us-east-1")
+        self.assertEqual(opts.s3_endpoint_url, "https://s3.example.com")
+        self.assertEqual(opts.s3_access_key_id, "AKIA-x")
+        self.assertEqual(opts.s3_secret_access_key, "secret")
+
+    def test_s3_default_path_is_empty(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("s3", {"bucket": "b"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.s3_path, "")
+
+    def test_s3_missing_bucket_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("s3", {"path": "x"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigSyslog(unittest.TestCase):
+    def test_syslog_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "syslog",
+            {
+                "server": "syslog.example.com",
+                "port": "6514",
+                "protocol": "tls",
+                "cafile_path": "/etc/ca.pem",
+                "certfile_path": "/etc/c.pem",
+                "keyfile_path": "/etc/k.pem",
+                "timeout": "10.0",
+                "retry_attempts": "5",
+                "retry_delay": "2",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.syslog_server, "syslog.example.com")
+        self.assertEqual(opts.syslog_port, "6514")
+        self.assertEqual(opts.syslog_protocol, "tls")
+        self.assertEqual(opts.syslog_cafile_path, "/etc/ca.pem")
+        self.assertEqual(opts.syslog_certfile_path, "/etc/c.pem")
+        self.assertEqual(opts.syslog_keyfile_path, "/etc/k.pem")
+        self.assertEqual(opts.syslog_timeout, 10.0)
+        self.assertEqual(opts.syslog_retry_attempts, 5)
+        self.assertEqual(opts.syslog_retry_delay, 2)
+
+    def test_syslog_defaults(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("syslog", {"server": "s"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.syslog_port, 514)
+        self.assertEqual(opts.syslog_protocol, "udp")
+        self.assertEqual(opts.syslog_timeout, 5.0)
+        self.assertEqual(opts.syslog_retry_attempts, 3)
+        self.assertEqual(opts.syslog_retry_delay, 5)
+
+    def test_syslog_missing_server_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("syslog", {"port": "514"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigGmailApi(unittest.TestCase):
+    def test_gmail_api_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "gmail_api",
+            {
+                "credentials_file": "/etc/gmail-creds.json",
+                "token_file": "/var/lib/parsedmarc/gmail.token",
+                "include_spam_trash": "true",
+                "paginate_messages": "false",
+                "scopes": "https://www.googleapis.com/auth/gmail.readonly",
+                "oauth2_port": "8888",
+                "auth_mode": "device_code",
+                "service_account_user": "user@example.com",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.gmail_api_credentials_file, "/etc/gmail-creds.json")
+        self.assertEqual(opts.gmail_api_token_file, "/var/lib/parsedmarc/gmail.token")
+        self.assertTrue(opts.gmail_api_include_spam_trash)
+        self.assertFalse(opts.gmail_api_paginate_messages)
+        self.assertEqual(
+            opts.gmail_api_scopes,
+            ["https://www.googleapis.com/auth/gmail.readonly"],
+        )
+        self.assertEqual(opts.gmail_api_oauth2_port, 8888)
+        self.assertEqual(opts.gmail_api_auth_mode, "device_code")
+        self.assertEqual(opts.gmail_api_service_account_user, "user@example.com")
+
+    def test_gmail_api_delegated_user_alias(self):
+        """`delegated_user` is the legacy spelling of `service_account_user`."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "gmail_api",
+            {
+                "credentials_file": "/c",
+                "delegated_user": "legacy@example.com",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.gmail_api_service_account_user, "legacy@example.com")
+
+    def test_gmail_api_default_scope(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("gmail_api", {"credentials_file": "/c"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(
+            opts.gmail_api_scopes,
+            ["https://www.googleapis.com/auth/gmail.modify"],
+        )
+
+
+class TestParseConfigLogAnalytics(unittest.TestCase):
+    def test_log_analytics_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "log_analytics",
+            {
+                "client_id": "cid",
+                "client_secret": "csec",
+                "tenant_id": "tid",
+                "dce": "https://dce.example.com",
+                "dcr_immutable_id": "dcr-1",
+                "dcr_aggregate_stream": "Custom-Aggregate_CL",
+                "dcr_failure_stream": "Custom-Failure_CL",
+                "dcr_smtp_tls_stream": "Custom-SMTPTLS_CL",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.la_client_id, "cid")
+        self.assertEqual(opts.la_client_secret, "csec")
+        self.assertEqual(opts.la_tenant_id, "tid")
+        self.assertEqual(opts.la_dce, "https://dce.example.com")
+        self.assertEqual(opts.la_dcr_immutable_id, "dcr-1")
+        self.assertEqual(opts.la_dcr_aggregate_stream, "Custom-Aggregate_CL")
+        self.assertEqual(opts.la_dcr_failure_stream, "Custom-Failure_CL")
+        self.assertEqual(opts.la_dcr_smtp_tls_stream, "Custom-SMTPTLS_CL")
+
+    def test_log_analytics_forensic_stream_alias(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "log_analytics",
+            {
+                "client_id": "c",
+                "dcr_forensic_stream": "Old-Forensic_CL",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.la_dcr_failure_stream, "Old-Forensic_CL")
+
+
+class TestParseConfigGelf(unittest.TestCase):
+    def test_gelf_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "gelf", {"host": "graylog.example.com", "port": "12201", "mode": "tls"}
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.gelf_host, "graylog.example.com")
+        self.assertEqual(opts.gelf_port, "12201")
+        self.assertEqual(opts.gelf_mode, "tls")
+
+    def test_gelf_missing_host_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("gelf", {"port": "12201", "mode": "udp"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_gelf_missing_port_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("gelf", {"host": "g", "mode": "udp"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_gelf_missing_mode_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("gelf", {"host": "g", "port": "12201"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+
+class TestParseConfigWebhook(unittest.TestCase):
+    def test_webhook_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "webhook",
+            {
+                "aggregate_url": "https://hooks.example.com/agg",
+                "failure_url": "https://hooks.example.com/fail",
+                "smtp_tls_url": "https://hooks.example.com/tls",
+                "timeout": "30",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.webhook_aggregate_url, "https://hooks.example.com/agg")
+        self.assertEqual(opts.webhook_failure_url, "https://hooks.example.com/fail")
+        self.assertEqual(opts.webhook_smtp_tls_url, "https://hooks.example.com/tls")
+        self.assertEqual(opts.webhook_timeout, 30)
+
+    def test_webhook_forensic_url_alias_sets_failure_url(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("webhook", {"forensic_url": "https://old.example.com/fail"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.webhook_failure_url, "https://old.example.com/fail")
+
+
+class TestConfigureLogging(unittest.TestCase):
+    """_configure_logging is called in every child process for parallel
+    parsing — if it stops attaching a handler, log output goes dark in
+    multiprocessing mode."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as plog
+
+        self._saved_handlers = list(plog.handlers)
+        self._saved_level = plog.level
+
+    def tearDown(self):
+        from parsedmarc.log import logger as plog
+
+        plog.handlers[:] = self._saved_handlers
+        plog.setLevel(self._saved_level)
+
+    def test_sets_log_level(self):
+        import logging as _logging
+        from parsedmarc.cli import _configure_logging
+        from parsedmarc.log import logger as plog
+
+        _configure_logging(_logging.DEBUG)
+        self.assertEqual(plog.level, _logging.DEBUG)
+
+    def test_adds_stream_handler_when_none_present(self):
+        import logging as _logging
+        from parsedmarc.cli import _configure_logging
+        from parsedmarc.log import logger as plog
+
+        # Clear any existing StreamHandler so we know addHandler runs.
+        plog.handlers[:] = [
+            h for h in plog.handlers if type(h) is not _logging.StreamHandler
+        ]
+        _configure_logging(_logging.INFO)
+        self.assertTrue(any(type(h) is _logging.StreamHandler for h in plog.handlers))
+
+    def test_does_not_duplicate_stream_handler(self):
+        import logging as _logging
+        from parsedmarc.cli import _configure_logging
+        from parsedmarc.log import logger as plog
+
+        # Start with a single StreamHandler attached.
+        plog.handlers[:] = [_logging.StreamHandler()]
+        before = len(plog.handlers)
+        _configure_logging(_logging.INFO)
+        after = len(plog.handlers)
+        self.assertEqual(before, after)
+
+    def test_adds_file_handler_when_log_file_given(self):
+        import logging as _logging
+        import tempfile
+        from parsedmarc.cli import _configure_logging
+        from parsedmarc.log import logger as plog
+
+        with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as tf:
+            path = tf.name
+        try:
+            _configure_logging(_logging.INFO, log_file=path)
+            self.assertTrue(
+                any(isinstance(h, _logging.FileHandler) for h in plog.handlers)
+            )
+        finally:
+            for h in list(plog.handlers):
+                if isinstance(h, _logging.FileHandler):
+                    plog.removeHandler(h)
+                    h.close()
+            os.remove(path)
+
+    def test_unwritable_log_file_logs_warning_does_not_raise(self):
+        """If the log file can't be opened, we warn and continue. A
+        regression that raised would crash the whole parse pipeline."""
+        import logging as _logging
+        from parsedmarc.cli import _configure_logging
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            _configure_logging(_logging.INFO, log_file="/proc/nonexistent/x.log")
+        self.assertTrue(any("Unable to write to log file" in m for m in cm.output))
+
+
+class TestCliParse(unittest.TestCase):
+    """cli_parse is the multiprocessing worker — it shells out to
+    parse_report_file, then sends the result (or error) back over a
+    pipe. Both branches matter: a regression would silently drop
+    results in parallel mode."""
+
+    def test_cli_parse_sends_results_on_success(self):
+        from multiprocessing import Pipe
+        from unittest.mock import patch
+        from parsedmarc.cli import cli_parse
+
+        parent_conn, child_conn = Pipe()
+        with patch("parsedmarc.cli.parse_report_file") as mock_parse:
+            mock_parse.return_value = {"report_type": "aggregate", "report": {}}
+            cli_parse(
+                "/path/to/report.xml",
+                False,
+                None,
+                2.0,
+                0,
+                None,
+                True,
+                True,
+                None,
+                None,
+                24.0,
+                child_conn,
+            )
+        sent = parent_conn.recv()
+        self.assertEqual(sent[0], {"report_type": "aggregate", "report": {}})
+        self.assertEqual(sent[1], "/path/to/report.xml")
+
+    def test_cli_parse_sends_error_on_parser_error(self):
+        from multiprocessing import Pipe
+        from unittest.mock import patch
+        from parsedmarc.cli import cli_parse
+        from parsedmarc import ParserError
+
+        parent_conn, child_conn = Pipe()
+        with patch("parsedmarc.cli.parse_report_file") as mock_parse:
+            err = ParserError("bad report")
+            mock_parse.side_effect = err
+            cli_parse(
+                "/bad.xml",
+                False,
+                None,
+                2.0,
+                0,
+                None,
+                True,
+                True,
+                None,
+                None,
+                24.0,
+                child_conn,
+            )
+        sent = parent_conn.recv()
+        self.assertIsInstance(sent[0], ParserError)
+        self.assertEqual(sent[1], "/bad.xml")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

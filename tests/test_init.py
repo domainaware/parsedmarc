@@ -2306,5 +2306,140 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
             os.remove(path)
 
 
+class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
+    """Input validation on get_dmarc_reports_from_mailbox.
+
+    These guards prevent two real footguns: the test/delete combo
+    would otherwise delete every message after parsing — silently
+    destructive — and a None connection would NPE deep in the
+    iteration loop with a confusing traceback. Fail fast at the
+    door instead."""
+
+    def test_delete_and_test_combination_raises(self):
+        from unittest.mock import MagicMock
+
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), delete=True, test=True
+            )
+        self.assertIn("mutually exclusive", str(ctx.exception))
+
+    def test_none_connection_raises(self):
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(connection=None)
+        self.assertIn("connection", str(ctx.exception).lower())
+
+
+class TestEmailResultsErrorBranches(unittest.TestCase):
+    """email_results requires mail_to to be a list — this is enforced
+    by an assert. A regression that dropped the assert would mean the
+    SMTP code further down would silently iterate over the characters
+    of a string."""
+
+    def test_mail_to_must_be_list(self):
+        with self.assertRaises(AssertionError):
+            parsedmarc.email_results(
+                {
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+                host="smtp.example.com",
+                mail_from="from@example.com",
+                mail_to="admin@example.com",  # str, not list — triggers assert
+            )
+
+
+class TestAppendJson(unittest.TestCase):
+    """append_json writes new files cleanly and merges into existing
+    JSON arrays without breaking valid JSON."""
+
+    def test_writes_new_file(self):
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            path = tf.name
+        os.remove(path)  # ensure file is fresh
+        try:
+            parsedmarc.append_json(path, [{"a": 1}])
+            with open(path) as f:
+                data = json.loads(f.read())
+            self.assertEqual(data, [{"a": 1}])
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_appends_to_existing_file(self):
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            path = tf.name
+        try:
+            parsedmarc.append_json(path, [{"a": 1}])
+            parsedmarc.append_json(path, [{"b": 2}])
+            with open(path) as f:
+                data = json.loads(f.read())
+            self.assertEqual(data, [{"a": 1}, {"b": 2}])
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_empty_list_on_existing_file_is_noop(self):
+        with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
+            path = tf.name
+        try:
+            parsedmarc.append_json(path, [{"a": 1}])
+            parsedmarc.append_json(path, [])
+            with open(path) as f:
+                data = json.loads(f.read())
+            self.assertEqual(data, [{"a": 1}])
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+
+class TestAppendCsv(unittest.TestCase):
+    def test_writes_new_file_with_header(self):
+        with NamedTemporaryFile("w", suffix=".csv", delete=False) as tf:
+            path = tf.name
+        os.remove(path)
+        try:
+            parsedmarc.append_csv(path, "h1,h2\nv1,v2\n")
+            with open(path) as f:
+                content = f.read()
+            self.assertEqual(content, "h1,h2\nv1,v2\n")
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_appends_strips_header_on_existing_file(self):
+        """Second append must not re-emit the header line."""
+        with NamedTemporaryFile("w", suffix=".csv", delete=False) as tf:
+            path = tf.name
+        try:
+            parsedmarc.append_csv(path, "h1,h2\nv1,v2\n")
+            parsedmarc.append_csv(path, "h1,h2\nv3,v4\n")
+            with open(path) as f:
+                content = f.read()
+            # Only one header line in the merged output.
+            self.assertEqual(content.count("h1,h2"), 1)
+            self.assertIn("v3,v4", content)
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+    def test_append_empty_csv_on_existing_file_is_noop(self):
+        """append_csv with just a header row (no data) should not
+        rewrite the file when one already exists."""
+        with NamedTemporaryFile("w", suffix=".csv", delete=False) as tf:
+            path = tf.name
+        try:
+            parsedmarc.append_csv(path, "h1,h2\nv1,v2\n")
+            parsedmarc.append_csv(path, "h1,h2\n")
+            with open(path) as f:
+                content = f.read()
+            # File unchanged.
+            self.assertEqual(content, "h1,h2\nv1,v2\n")
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
