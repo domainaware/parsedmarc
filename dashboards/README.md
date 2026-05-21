@@ -4,7 +4,7 @@ This directory holds the dashboard sources that ship with parsedmarc:
 
 - [opensearch/opensearch_dashboards.ndjson](opensearch/opensearch_dashboards.ndjson) — the source-of-truth saved-objects export. It is imported into both **OpenSearch Dashboards** and **Kibana** (the file format is compatible with both).
 - [grafana/Grafana-DMARC_Reports.json](grafana/Grafana-DMARC_Reports.json) — the Grafana dashboard, with two Elasticsearch datasources (`dmarc-ag`, `dmarc-fo`).
-- [splunk/](splunk/) — three Splunk dashboard XML views (`dmarc_aggregate`, `dmarc_forensic`, `smtp_tls`).
+- [splunk/](splunk/) — three Splunk dashboard XML views (`dmarc_aggregate`, `dmarc_failure`, `smtp_tls`).
 
 Edits to any of these files should be exported from a running instance after authoring the change in the UI, not hand-edited (with the occasional exception of small XML tweaks for Splunk).
 
@@ -73,12 +73,12 @@ OSD imports default to the `global_tenant` so other admins on the instance can s
 2. **Dashboard settings → JSON Model**, copy the JSON, save it to [grafana/Grafana-DMARC_Reports.json](grafana/Grafana-DMARC_Reports.json).
 3. Re-run the bootstrap script.
 
-The bootstrap script provisions two `elasticsearch` datasources (`dmarc-ag` for `dmarc_aggregate*`, `dmarc-fo` for `dmarc_forensic*`) on first run; existing datasources are left alone.
+The bootstrap script provisions two `elasticsearch` datasources (`dmarc-ag` for `dmarc_aggregate*`, `dmarc-fo` for `dmarc_f*`, which matches both pre-rename `dmarc_forensic*` and post-rename `dmarc_failure*`) on first run; existing datasources are left alone.
 
 ### Splunk
 
 1. Edit the dashboard at http://localhost:8000/ inside the **DMARC** app.
-2. Open the dashboard's **Source** view, copy the XML, and paste it over the matching file in [splunk/](splunk/) (`dmarc_aggregate_dashboard.xml`, `dmarc_forensic_dashboard.xml`, or `smtp_tls_dashboard.xml`).
+2. Open the dashboard's **Source** view, copy the XML, and paste it over the matching file in [splunk/](splunk/) (`dmarc_aggregate_dashboard.xml`, `dmarc_failure_dashboard.xml`, or `smtp_tls_dashboard.xml`).
 3. Re-run the bootstrap script. It re-imports each view via `DELETE` + `POST` to the splunkd management API.
 
 ## Reseeding sample data
@@ -87,7 +87,7 @@ The bootstrap script provisions two `elasticsearch` datasources (`dmarc-ag` for 
 RESEED=1 ./dashboard-dev-bootstrap.sh
 ```
 
-Wipes every `dmarc_aggregate*` / `dmarc_forensic*` / `smtp_tls*` index from ES and OS, drops and recreates the Splunk `email` index, then re-runs the parsedmarc CLI against the curated sample list. Use this after changing parsedmarc's enrichment or output schemas.
+Wipes every `dmarc_aggregate*` / `dmarc_failure*` / `dmarc_forensic*` / `smtp_tls*` index from ES and OS, drops and recreates the Splunk `email` index, then re-runs the parsedmarc CLI against the curated sample list. Use this after changing parsedmarc's enrichment or output schemas.
 
 ## Tearing the stack down
 

@@ -176,9 +176,10 @@ else
         echo "  RESEED=1: wiping existing parsedmarc data from all backends"
         # ES 8.x rejects wildcard DELETEs by default
         # (action.destructive_requires_name=true). Enumerate the daily indexes
-        # parsedmarc rolls (dmarc_aggregate-YYYY-MM-DD, dmarc_forensic-...,
-        # smtp_tls-...) and DELETE each one explicitly.
-        for prefix in dmarc_aggregate dmarc_forensic smtp_tls; do
+        # parsedmarc rolls (dmarc_aggregate-YYYY-MM-DD, dmarc_failure-...,
+        # smtp_tls-...) and DELETE each one explicitly. dmarc_forensic-* is the
+        # pre-rename failure index family, kept here so RESEED clears old data.
+        for prefix in dmarc_aggregate dmarc_failure dmarc_forensic smtp_tls; do
             for idx in $(curl -sf "http://localhost:9200/_cat/indices/${prefix}*?h=index" 2>/dev/null); do
                 curl -sS -X DELETE "http://localhost:9200/${idx}" >/dev/null 2>&1 || true
             done
@@ -231,7 +232,7 @@ else
         samples/aggregate/protection.outlook.com!example.com!1711756800!1711843200.xml
         samples/aggregate/usssa.com!example.com!1538784000!1538870399.xml
         samples/aggregate/veeam.com!example.com!1530133200!1530219600.xml
-        samples/forensic/*.eml
+        samples/failure/*.eml
         samples/smtp_tls/*.json
         samples/smtp_tls/google.com_smtp_tls_report.eml
     )
@@ -268,7 +269,9 @@ log "Configuring Grafana datasources"
 # Two Elasticsearch datasources, one per index family, matching the dashboard's
 # template variables (dmarc-ag and dmarc-fo). Skipped when already present.
 declare -a GF_DS_NAMES=("dmarc-ag" "dmarc-fo")
-declare -a GF_DS_INDEX=("dmarc_aggregate*" "dmarc_forensic*")
+# dmarc_f* matches both pre-rename dmarc_forensic* and post-rename
+# dmarc_failure* indices, mirroring the OpenSearch/Kibana dashboards.
+declare -a GF_DS_INDEX=("dmarc_aggregate*" "dmarc_f*")
 declare -a GF_DS_TIME=("date_range" "arrival_date")
 for i in 0 1; do
     name="${GF_DS_NAMES[$i]}"
@@ -335,7 +338,7 @@ splunk_import_view() {
 }
 
 splunk_import_view dmarc_aggregate dashboards/splunk/dmarc_aggregate_dashboard.xml
-splunk_import_view dmarc_forensic  dashboards/splunk/dmarc_forensic_dashboard.xml
+splunk_import_view dmarc_failure   dashboards/splunk/dmarc_failure_dashboard.xml
 splunk_import_view smtp_tls        dashboards/splunk/smtp_tls_dashboard.xml
 
 cat <<EOF

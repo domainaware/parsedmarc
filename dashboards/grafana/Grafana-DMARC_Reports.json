@@ -2751,7 +2751,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Forensic Policy"
+              "options": "Failure Policy"
             },
             "properties": [
               {
@@ -2957,7 +2957,7 @@
               "published_policy.adkim.keyword": "DKIM Policy",
               "published_policy.aspf.keyword": "SPF Policy",
               "published_policy.domain.keyword": "Domain",
-              "published_policy.fo.keyword": "Forensic Policy",
+              "published_policy.fo.keyword": "Failure Policy",
               "published_policy.p.keyword": "Policy",
               "published_policy.pct": "Percentage",
               "published_policy.sp.keyword": "Subdomain Policy",
@@ -3685,7 +3685,7 @@
       },
       "id": 32,
       "panels": [],
-      "title": "DMARC Forensic",
+      "title": "DMARC Failure",
       "type": "row"
     },
     {
@@ -3929,7 +3929,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Forensic Samples",
+      "title": "Failure Samples",
       "transformations": [
         {
           "id": "organize",
@@ -4026,7 +4026,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Forensic Sample Sources by Country",
+      "title": "Failure Sample Sources by Country",
       "type": "geomap",
       "options": {
         "view": {
@@ -4207,7 +4207,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "DMARC Forensic Sample Source Countries",
+      "title": "DMARC Failure Sample Source Countries",
       "transformations": [
         {
           "id": "organize",
@@ -4402,7 +4402,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Top 1000 Forensic Sample Source IP Addresses",
+      "title": "Top 1000 Failure Sample Source IP Addresses",
       "transformations": [
         {
           "id": "organize",
@@ -4807,7 +4807,7 @@
         "error": null,
         "hide": 2,
         "includeAll": false,
-        "label": "Datasource: Forensic",
+        "label": "Datasource: Failure",
         "multi": false,
         "name": "datasourcefo",
         "options": [],

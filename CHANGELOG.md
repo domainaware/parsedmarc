@@ -64,7 +64,7 @@ Forensic reports have been renamed to failure reports throughout the project to 
 
 - Old function/type names preserved as aliases: `parse_forensic_report = parse_failure_report`, `ForensicReport = FailureReport`, etc.
 - CLI config accepts both old (`save_forensic`, `forensic_topic`) and new keys (`save_failure`, `failure_topic`)
-- IMAP archive subfolder name is intentionally kept as `Forensic` (under `archive_folder`) so existing deployments don't end up with a split archive across `Forensic/` and `Failure/`.
+- The archive subfolder for failure reports is now `Failure` (under `archive_folder`), renamed from `Forensic`. To avoid a split archive across `Forensic/` and `Failure/`, parsedmarc migrates an existing `Forensic` subfolder into `Failure` automatically on startup (best-effort): it renames the folder when no `Failure` folder exists yet, merges the two when both already exist, and logs-and-skips any mailbox it cannot reorganize (warn, don't crash). This consolidation uses the folder-management API (`folder_exists` / `rename_folder` / `merge_folders`) added in mailsuite 2.1.0, so the required `mailsuite` version is now `>=2.1.0`.
 - RFC 7489 reports parse with `None` for RFC 9990-only fields
 - **Updated dashboards with queries are backward compatible**: queries match data indexed under both old (`dmarc_forensic*` / `dmarc:forensic`) and new (`dmarc_failure*` / `dmarc:failure`) names, so dashboards show data from before and after the rename:
   - **OpenSearch Dashboards**: Index pattern uses `dmarc_f*` to match both `dmarc_forensic*` and `dmarc_failure*`

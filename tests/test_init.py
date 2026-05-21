@@ -6,18 +6,22 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 """
 
 import json
+import mailbox
 import os
 import unittest
 from datetime import datetime, timedelta, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from shutil import rmtree
+from tempfile import NamedTemporaryFile, mkdtemp
 from typing import BinaryIO, cast
+from unittest.mock import MagicMock
 
 from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
+from parsedmarc.mail import MaildirConnection
 from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
 
 # Detect if running in GitHub Actions to skip DNS lookups
@@ -2328,6 +2332,105 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             parsedmarc.get_dmarc_reports_from_mailbox(connection=None)
         self.assertIn("connection", str(ctx.exception).lower())
+
+
+class TestMigrateForensicArchiveFolderErrorHandling(unittest.TestCase):
+    """The one migration scenario a real on-disk Maildir can't reproduce: a
+    backend that raises mid-operation. _migrate_forensic_archive_folder must
+    warn and continue (warn, don't crash) so a mailbox it cannot reorganize
+    doesn't abort the whole run.
+
+    The rename / merge / no-op behavior is covered for real (no mocks) in
+    TestMigrateForensicArchiveFolderMaildir; only this failure path needs a
+    mock, to force a folder operation to raise."""
+
+    def test_backend_error_is_warned_not_raised(self):
+        conn = MagicMock()
+        conn.folder_exists.side_effect = lambda name: name.endswith("/Forensic")
+        conn.rename_folder.side_effect = RuntimeError("server said no")
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsedmarc._migrate_forensic_archive_folder(conn, "Archive")
+        self.assertTrue(
+            any("Could not migrate" in line for line in cm.output),
+            cm.output,
+        )
+
+
+class TestMigrateForensicArchiveFolderMaildir(unittest.TestCase):
+    """End-to-end migration against a real on-disk Maildir via mailsuite's
+    MaildirConnection — no mocks. This exercises the actual mailsuite 2.1.0
+    folder API (folder_exists / rename_folder / merge_folders / delete_folder)
+    and the on-disk result, so it would catch a real behavioral break that a
+    mock-based test cannot (e.g. a signature mismatch, or messages left behind
+    in the legacy folder)."""
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        self.conn = MaildirConnection(self._tmp, maildir_create=True)
+        # Parent must exist before nested subfolders, as get_dmarc_reports_-
+        # from_mailbox creates it (create_folder(archive_folder)) first.
+        self.conn.create_folder("Archive")
+
+    def _seed(self, folder, subject):
+        """Drop a real RFC 822 message into an on-disk Maildir subfolder."""
+        self.conn.create_folder(folder)
+        box = mailbox.Maildir(os.path.join(self._tmp, "." + folder))
+        box.add(
+            mailbox.MaildirMessage(
+                "From: reporter@example.com\n"
+                "To: dmarc@example.org\n"
+                f"Subject: {subject}\n\nbody\n"
+            )
+        )
+        box.flush()
+
+    def test_rename_moves_legacy_folder_and_its_messages(self):
+        """Only the legacy folder exists: it (and the message inside it) is
+        renamed to Failure, leaving nothing behind in Forensic."""
+        self._seed("Archive/Forensic", "legacy failure report")
+        self.assertTrue(self.conn.folder_exists("Archive/Forensic"))
+        self.assertFalse(self.conn.folder_exists("Archive/Failure"))
+
+        parsedmarc._migrate_forensic_archive_folder(self.conn, "Archive")
+
+        self.assertFalse(self.conn.folder_exists("Archive/Forensic"))
+        self.assertTrue(self.conn.folder_exists("Archive/Failure"))
+        self.assertEqual(len(self.conn.fetch_messages("Archive/Failure")), 1)
+
+    def test_merge_consolidates_messages_when_both_exist(self):
+        """Both folders exist: the legacy folder's messages are merged into
+        the existing Failure folder (which keeps its own), and the emptied
+        legacy folder is deleted."""
+        self._seed("Archive/Failure", "post-rename failure report")
+        self._seed("Archive/Forensic", "legacy failure report")
+
+        parsedmarc._migrate_forensic_archive_folder(self.conn, "Archive")
+
+        self.assertFalse(self.conn.folder_exists("Archive/Forensic"))
+        self.assertTrue(self.conn.folder_exists("Archive/Failure"))
+        self.assertEqual(len(self.conn.fetch_messages("Archive/Failure")), 2)
+
+    def test_no_legacy_folder_is_noop(self):
+        """No legacy folder (the common case): nothing is created or changed."""
+        parsedmarc._migrate_forensic_archive_folder(self.conn, "Archive")
+        self.assertFalse(self.conn.folder_exists("Archive/Forensic"))
+        self.assertFalse(self.conn.folder_exists("Archive/Failure"))
+
+    def test_orchestration_migrates_before_creating_folders(self):
+        """get_dmarc_reports_from_mailbox runs the migration *before* it
+        creates folders: a seeded legacy Forensic folder ends up consolidated
+        into the newly-created Failure subfolder (message and all), not split
+        across the two. Driven through the real orchestration with an empty
+        INBOX, so no parsing or network occurs."""
+        self._seed("Archive/Forensic", "legacy failure report")
+
+        result = parsedmarc.get_dmarc_reports_from_mailbox(connection=self.conn)
+
+        self.assertFalse(self.conn.folder_exists("Archive/Forensic"))
+        self.assertTrue(self.conn.folder_exists("Archive/Failure"))
+        self.assertEqual(len(self.conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(result["failure_reports"], [])
 
 
 class TestEmailResultsErrorBranches(unittest.TestCase):

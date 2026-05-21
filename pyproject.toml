@@ -10,7 +10,7 @@ name = "parsedmarc"
 dynamic = [
     "version",
 ]
-description = "A Python package and CLI for parsing aggregate and forensic DMARC reports"
+description = "A Python package and CLI for parsing aggregate, failure, and SMTP TLS DMARC reports"
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
@@ -41,7 +41,7 @@ dependencies = [
     "expiringdict>=1.1.4",
     "kafka-python-ng>=2.2.2",
     "lxml>=4.4.0",
-    "mailsuite[gmail,msgraph]>=2.0.2",
+    "mailsuite[gmail,msgraph]>=2.1.0",
     "maxminddb>=2.0.0",
     "opensearch-py>=2.4.2,<=4.0.0",
     "publicsuffixlist>=0.10.0",
