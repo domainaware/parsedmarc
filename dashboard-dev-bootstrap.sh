@@ -253,11 +253,15 @@ log "Importing OpenSearch Dashboards saved objects"
 # OSD with the security plugin enabled stores saved objects per tenant. Without
 # a securitytenant header the import lands in the API user's *private* tenant,
 # which is invisible to anyone else (and to the same user when their browser
-# session is on a different tenant). Target global_tenant — the shared
+# session is on a different tenant). Target the Global tenant — the shared
 # workspace every user has access to and where public dashboards conventionally
-# live. To send the import elsewhere set OSD_TENANT=admin_tenant (or any other
-# tenant name) before running.
-OSD_TENANT="${OSD_TENANT:-global_tenant}"
+# live. Its securitytenant token is the literal "global"; any *other* string is
+# treated as a custom tenant name, so "global_tenant" would silently create a
+# separate "global_tenant" tenant rather than hit Global. (An empty/omitted
+# header is *not* equivalent — it falls back to the user's configured default
+# tenant, not Global.) To send the import elsewhere set OSD_TENANT=admin_tenant
+# (or any other tenant name) before running.
+OSD_TENANT="${OSD_TENANT:-global}"
 curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true' \
     -H 'osd-xsrf: true' \
     -H "securitytenant: ${OSD_TENANT}" \
