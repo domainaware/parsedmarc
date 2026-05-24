@@ -579,6 +579,46 @@ Body text"""
         self.assertEqual(result["subject"], "Test")
         self.assertEqual(result["reply_to"], [])
 
+    def testReplyToHeaderIsParsed(self):
+        """A Reply-To header populates reply_to with every address.
+
+        Regression: parse_email read mailparser's underscored
+        ``reply_to`` key, but mail_json names the header ``reply-to``,
+        so the lookup always missed and every Reply-To address was
+        silently dropped (reply_to was always []).
+        """
+        email_str = (
+            "From: Sender <sender@example.com>\r\n"
+            "Reply-To: Real One <real@phish.example>,"
+            " Second <two@phish.example>\r\n"
+            "To: victim@example.org\r\n"
+            "Subject: Hi\r\n\r\nBody\r\n"
+        )
+        result = parsedmarc.utils.parse_email(email_str)
+        self.assertEqual(
+            [a["address"] for a in result["reply_to"]],
+            ["real@phish.example", "two@phish.example"],
+        )
+        self.assertEqual(result["reply_to"][0]["display_name"], "Real One")
+
+    def testDeliveredToHeaderIsParsed(self):
+        """A Delivered-To header populates delivered_to.
+
+        Same hyphen/underscore key mismatch as reply_to: mail_json
+        names the header ``delivered-to``, so reading ``delivered_to``
+        dropped it.
+        """
+        email_str = (
+            "From: Sender <sender@example.com>\r\n"
+            "Delivered-To: box@example.org\r\n"
+            "To: box@example.org\r\n"
+            "Subject: Hi\r\n\r\nBody\r\n"
+        )
+        result = parsedmarc.utils.parse_email(email_str)
+        self.assertEqual(
+            [a["address"] for a in result["delivered_to"]], ["box@example.org"]
+        )
+
     def testEmailWithNoSubject(self):
         """parse_email defaults subject to None when missing"""
         email_str = """From: test@example.com

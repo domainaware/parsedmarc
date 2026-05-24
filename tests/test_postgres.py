@@ -665,6 +665,39 @@ class TestPostgreSQLClientSave(unittest.TestCase):
         self.assertEqual(len(addr_sqls), 1)
         self.assertIn("solo@example.com", addr_sqls[0][1])
 
+    def test_save_failure_report_indexes_reply_to_address(self):
+        """A parsed Reply-To address is written to
+        dmarc_failure_sample_address with address_type 'reply_to' — the
+        rows the Grafana PostgreSQL failure panel aggregates for its
+        'Reply To' column. Guards the path that parse_email now
+        populates (reply_to was always [] before the hyphen-key fix)."""
+        client, mock_conn = _make_client()
+        cur = _mock_cursor(mock_conn, [None, (1,)])
+
+        report = {
+            "arrival_date_utc": "2024-01-15 10:30:00",
+            "reported_domain": "example.com",
+            "source": {"ip_address": "203.0.113.1"},
+            "parsed_sample": {
+                "subject": "Test",
+                "reply_to": [
+                    {"display_name": "Real One", "address": "real@phish.example"}
+                ],
+            },
+        }
+
+        client.save_failure_report_to_postgresql(report)
+
+        reply_to_inserts = [
+            _named_params(c)
+            for c in cur.execute.call_args_list
+            if "dmarc_failure_sample_address" in c.args[0]
+            and c.args[1][1] == "reply_to"
+        ]
+        self.assertEqual(len(reply_to_inserts), 1)
+        self.assertEqual(reply_to_inserts[0]["address"], "real@phish.example")
+        self.assertEqual(reply_to_inserts[0]["display_name"], "Real One")
+
 
 class TestPostgreSQLSaveErrors(unittest.TestCase):
     """Driver errors raised mid-save are wrapped in PostgreSQLError."""
