@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.0.1
+
+### Changes
+
+- Bump `mailsuite` requirement to `>-2.2.0` to fix an upstream `Reply-To` header parsing bug for failure samples
+
 ## 10.0.0
 
 ### Enhancements
