@@ -117,9 +117,6 @@ class EmailAddress(TypedDict):
     address: str
     local: Optional[str]
     domain: Optional[str]
-    # "Display Name <addr>", or just the address when there is no
-    # display name. A ready-to-render form used by the dashboards.
-    display: str
 
 
 class EmailAttachment(TypedDict, total=False):
