@@ -61,7 +61,9 @@
       <title>DMARC failure email samples</title>
       <table>
         <search base="base_search">
-          <query>| rename parsed_sample.headers.from{}{} as from, parsed_sample.headers.Subject as subject, parsed_sample.headers.reply-to{}{} as reply_to
+          <query>| eval from=coalesce('parsed_sample.from.display_name'." &lt;".'parsed_sample.from.address'."&gt;", 'parsed_sample.from.address')
+| eval reply_to=coalesce('parsed_sample.reply_to{}.display_name'." &lt;".'parsed_sample.reply_to{}.address'."&gt;", 'parsed_sample.reply_to{}.address')
+| rename parsed_sample.subject as subject
 | table arrival_date_utc, source.ip_address, "from", subject, reply_to, authentication_results
 | sort -arrival_date_utc</query>
         </search>

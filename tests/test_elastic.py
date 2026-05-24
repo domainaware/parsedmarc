@@ -751,6 +751,36 @@ class TestSaveFailureReport(unittest.TestCase):
             save_failure_report_to_elasticsearch(report)
         mock_save.assert_called_once()
 
+    def test_reply_to_header_flattened_and_indexed(self):
+        """A Reply-To header is flattened to a display string on
+        ``sample.headers["reply-to"]`` — so the failure dashboard's
+        ``sample.headers.reply-to.keyword`` column resolves — and each
+        Reply-To address also populates the nested ``sample.reply_to``
+        docs. Asserts on the document handed to .save(), not merely
+        that save ran."""
+        report = _failure_report()
+        report["parsed_sample"]["headers"]["Reply-To"] = [
+            ["Real One", "real@phish.example"]
+        ]
+        report["parsed_sample"]["reply_to"] = [
+            {"display_name": "Real One", "address": "real@phish.example"}
+        ]
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index"),
+            patch.object(
+                elastic_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_failure_report_to_elasticsearch(report)
+        doc = mock_save.call_args.args[0]
+        self.assertEqual(
+            doc.sample.headers["reply-to"], "Real One <real@phish.example>"
+        )
+        self.assertEqual(
+            [a.address for a in doc.sample.reply_to], ["real@phish.example"]
+        )
+
 
 # ---------------------------------------------------------------------------
 # save_smtp_tls_report_to_elasticsearch

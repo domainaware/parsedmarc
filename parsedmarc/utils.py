@@ -1133,9 +1133,15 @@ def parse_email(
         parsed_email["date"] = parsed_email["date"].replace("T", " ")
     else:
         parsed_email["date"] = None
-    if "reply_to" in parsed_email:
+    # mailparser's mail_json names these headers with hyphens
+    # ("reply-to", "delivered-to"), not underscores. Reading the
+    # underscored key always missed, so every Reply-To address was
+    # silently dropped. Convert under the underscored name consumers
+    # expect and drop the raw hyphenated key so the body carries a
+    # single representation, matching how "to"/"cc"/"bcc" are handled.
+    if "reply-to" in parsed_email:
         parsed_email["reply_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["reply_to"])
+            map(lambda x: parse_email_address(x), parsed_email.pop("reply-to"))
         )
     else:
         parsed_email["reply_to"] = []
@@ -1161,9 +1167,9 @@ def parse_email(
     else:
         parsed_email["bcc"] = []
 
-    if "delivered_to" in parsed_email:
+    if "delivered-to" in parsed_email:
         parsed_email["delivered_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["delivered_to"])
+            map(lambda x: parse_email_address(x), parsed_email.pop("delivered-to"))
         )
 
     if "attachments" not in parsed_email:

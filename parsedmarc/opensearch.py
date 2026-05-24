@@ -701,6 +701,16 @@ def save_failure_report_to_opensearch(
         to_["sample.headers.to"] = headers["to"]
         to_query = Q(dict(match_phrase=to_))
         q = q & to_query
+    if "reply-to" in headers:
+        # Flatten the Reply-To header to a string so it can be displayed
+        # and aggregated like From/To. Only the first address is used,
+        # matching the From/To handling above. Not part of the dedup
+        # query.
+        headers["reply-to"] = headers["reply-to"][0]
+        if headers["reply-to"][0] == "":
+            headers["reply-to"] = headers["reply-to"][1]
+        else:
+            headers["reply-to"] = " <".join(headers["reply-to"]) + ">"
     if "subject" in headers:
         subject = headers["subject"]
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
