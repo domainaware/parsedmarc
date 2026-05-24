@@ -10,6 +10,8 @@
 
 - **Splunk failure dashboard:** the email-samples panel showed empty `from` and `reply_to` columns — it renamed `parsed_sample.headers.from{}{}` / `parsed_sample.headers.reply-to{}{}`, which are mis-cased (the header keys are `From` / `Reply-To`) and array-of-array shaped. The panel now reads the structured `parsed_sample.from.address`, `parsed_sample.subject`, and `parsed_sample.reply_to{}.address` fields.
 - **OpenSearch failure dashboard:** the column labelled `reply_to` aggregated `sample.headers.in-reply-to.keyword` — the `In-Reply-To` threading header, not the Reply-To address. It now aggregates `sample.headers.reply-to.keyword`, and that field was added to the `dmarc_f*` index pattern. To support it, the Elasticsearch/OpenSearch failure writer now flattens the `Reply-To` header into a display string on `sample.headers["reply-to"]`, mirroring the existing `From` / `To` handling. (Re-import the dashboards, or refresh the `dmarc_f*` index pattern, to pick up the new field.)
+- **Grafana (Elasticsearch) dashboard:** the *Failure Samples* panel already read `sample.headers.reply-to.keyword`, but that field previously held the raw `[[name, address]]` array (split into separate name/address terms). The failure-writer flattening above makes the existing `ReplyTo` column render a clean `Name <address>` string — no dashboard change required.
+- **Grafana (PostgreSQL) dashboard:** the *Failure Reports* panel did not surface the message `From` header or `Reply-To` at all (it showed only the envelope `Mail From` / `Rcpt To`). Added `From` (from `sample_from`) and `Reply To` (aggregated from `dmarc_failure_sample_address`) columns.
 
 ## 10.0.2
 
