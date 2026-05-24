@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.0.2
+
+### Changes
+
+- Bump the `mailsuite` requirement to `>=2.2.1`, which raises the transitive `mail-parser` floor to `>=4.2.1`. `mail-parser` 4.2.1 stops returning a phantom `('', '')` entry for absent address headers, so parsedmarc no longer indexes an empty `Cc`/`Bcc` address (`{address: ""}`) for every DMARC failure-report sample in Elasticsearch/OpenSearch — and no longer emits it in JSON, S3, or Kafka output. (The `Reply-To` parsing for failure samples and the failure dashboards are tracked separately.)
+
 ## 10.0.1
 
 ### Changes
