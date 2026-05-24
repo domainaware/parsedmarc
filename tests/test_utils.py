@@ -313,12 +313,16 @@ class Test(unittest.TestCase):
         self.assertEqual(result["address"], "john@example.com")
         self.assertEqual(result["local"], "john")
         self.assertEqual(result["domain"], "example.com")
+        # "Name <addr>" display form used by the dashboards.
+        self.assertEqual(result["display"], "John Doe <john@example.com>")
 
     def testParseEmailAddressWithoutDisplayName(self):
         """parse_email_address with empty display name"""
         result = parsedmarc.utils.parse_email_address(("", "john@example.com"))  # type: ignore[arg-type]
         self.assertIsNone(result["display_name"])
         self.assertEqual(result["address"], "john@example.com")
+        # With no display name, display falls back to the bare address.
+        self.assertEqual(result["display"], "john@example.com")
 
     def testParseEmailAddressNoAt(self):
         """parse_email_address with no @ returns None local/domain"""
@@ -600,6 +604,11 @@ Body text"""
             ["real@phish.example", "two@phish.example"],
         )
         self.assertEqual(result["reply_to"][0]["display_name"], "Real One")
+        # The dashboards render the "Name <addr>" display form.
+        self.assertEqual(
+            [a["display"] for a in result["reply_to"]],
+            ["Real One <real@phish.example>", "Second <two@phish.example>"],
+        )
 
     def testDeliveredToHeaderIsParsed(self):
         """A Delivered-To header populates delivered_to.

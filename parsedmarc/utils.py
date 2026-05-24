@@ -987,11 +987,17 @@ def parse_email_address(original_address: str) -> dict[str, Optional[str]]:
         local = address_parts[0].lower()
         domain = address_parts[-1].lower()
 
+    # A ready-to-display form: "Display Name <addr>", or just the address
+    # when there is no display name. Dashboards render this so every
+    # address type looks the same regardless of backend.
+    display = "{0} <{1}>".format(display_name, address) if display_name else address
+
     return {
         "display_name": display_name,
         "address": address,
         "local": local,
         "domain": domain,
+        "display": display,
     }
 
 
