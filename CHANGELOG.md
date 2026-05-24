@@ -1,5 +1,16 @@
 # Changelog
 
+## 10.0.3
+
+### Bug fixes
+
+- Fix `Reply-To` (and `Delivered-To`) addresses being dropped from failure-report samples. `parse_email()` looked up mailparser's underscored `reply_to` / `delivered_to` keys, but `mail_json` names those headers `reply-to` / `delivered-to`, so the lookup always missed and `parsed_sample["reply_to"]` was always `[]` regardless of the message. Failure samples now carry their parsed Reply-To addresses through to JSON/CSV output and the Elasticsearch/OpenSearch nested `sample.reply_to` field.
+
+### Dashboard fixes
+
+- **Splunk failure dashboard:** the email-samples panel showed empty `from` and `reply_to` columns — it renamed `parsed_sample.headers.from{}{}` / `parsed_sample.headers.reply-to{}{}`, which are mis-cased (the header keys are `From` / `Reply-To`) and array-of-array shaped. The panel now reads the structured `parsed_sample.from.address`, `parsed_sample.subject`, and `parsed_sample.reply_to{}.address` fields.
+- **OpenSearch failure dashboard:** the column labelled `reply_to` aggregated `sample.headers.in-reply-to.keyword` — the `In-Reply-To` threading header, not the Reply-To address. It now aggregates `sample.headers.reply-to.keyword`, and that field was added to the `dmarc_f*` index pattern. To support it, the Elasticsearch/OpenSearch failure writer now flattens the `Reply-To` header into a display string on `sample.headers["reply-to"]`, mirroring the existing `From` / `To` handling. (Re-import the dashboards, or refresh the `dmarc_f*` index pattern, to pick up the new field.)
+
 ## 10.0.2
 
 ### Changes

@@ -61,7 +61,7 @@
       <title>DMARC failure email samples</title>
       <table>
         <search base="base_search">
-          <query>| rename parsed_sample.headers.from{}{} as from, parsed_sample.headers.Subject as subject, parsed_sample.headers.reply-to{}{} as reply_to
+          <query>| rename parsed_sample.from.address as from, parsed_sample.subject as subject, parsed_sample.reply_to{}.address as reply_to
 | table arrival_date_utc, source.ip_address, "from", subject, reply_to, authentication_results
 | sort -arrival_date_utc</query>
         </search>
