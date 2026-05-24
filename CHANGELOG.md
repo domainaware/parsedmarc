@@ -4,7 +4,11 @@
 
 ### Changes
 
-- Bump the `mailsuite` requirement to `>=2.2.1`, which raises the transitive `mail-parser` floor to `>=4.2.1`. `mail-parser` 4.2.1 stops returning a phantom `('', '')` entry for absent address headers, so parsedmarc no longer indexes an empty `Cc`/`Bcc` address (`{address: ""}`) for every DMARC failure-report sample in Elasticsearch/OpenSearch — and no longer emits it in JSON, S3, or Kafka output. (The `Reply-To` parsing for failure samples and the failure dashboards are tracked separately.)
+- Bump the `mailsuite` requirement to `>=2.2.1`, which raises the transitive `mail-parser` floor to `>=4.2.1`. This pulls in two upstream fixes:
+  - `mail-parser` 4.2.1 stops returning a phantom `('', '')` entry for absent address headers, so parsedmarc no longer indexes an empty `Cc`/`Bcc` address (`{address: ""}`) for every DMARC failure-report sample in Elasticsearch/OpenSearch — and no longer emits it in JSON, S3, or Kafka output.
+  - `mail-parser` 4.2.1 also adopts the stricter address parsing that hardens against [CVE-2023-27043](https://nvd.nist.gov/vuln/detail/CVE-2023-27043) — a Python `email`-module flaw where an RFC 2822 header containing a special character has the wrong portion identified as the addr-spec, which can let a crafted address bypass email-domain verification.
+
+  (The `Reply-To` parsing for failure samples and the failure dashboards are tracked separately.)
 
 ## 10.0.1
 
