@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 10.0.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 10.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=335988e4"></script>
+      <script src="../../_static/documentation_options.js?v=04a1028e"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -1292,9 +1292,15 @@
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="s2">&quot;reply_to&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
+    <span class="c1"># mailparser&#39;s mail_json names these headers with hyphens</span>
+    <span class="c1"># (&quot;reply-to&quot;, &quot;delivered-to&quot;), not underscores. Reading the</span>
+    <span class="c1"># underscored key always missed, so every Reply-To address was</span>
+    <span class="c1"># silently dropped. Convert under the underscored name consumers</span>
+    <span class="c1"># expect and drop the raw hyphenated key so the body carries a</span>
+    <span class="c1"># single representation, matching how &quot;to&quot;/&quot;cc&quot;/&quot;bcc&quot; are handled.</span>
+    <span class="k">if</span> <span class="s2">&quot;reply-to&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;reply_to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">parse_email_address</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;reply_to&quot;</span><span class="p">])</span>
+            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">parse_email_address</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">parsed_email</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;reply-to&quot;</span><span class="p">))</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;reply_to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1320,9 +1326,9 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;bcc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">if</span> <span class="s2">&quot;delivered_to&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s2">&quot;delivered-to&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;delivered_to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">parse_email_address</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;delivered_to&quot;</span><span class="p">])</span>
+            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">parse_email_address</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">parsed_email</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;delivered-to&quot;</span><span class="p">))</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;attachments&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>

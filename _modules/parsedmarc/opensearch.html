@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.opensearch &mdash; parsedmarc 10.0.0 documentation</title>
+  <title>parsedmarc.opensearch &mdash; parsedmarc 10.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=335988e4"></script>
+      <script src="../../_static/documentation_options.js?v=04a1028e"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -803,6 +803,16 @@
         <span class="n">to_</span><span class="p">[</span><span class="s2">&quot;sample.headers.to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">]</span>
         <span class="n">to_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match_phrase</span><span class="o">=</span><span class="n">to_</span><span class="p">))</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">to_query</span>
+    <span class="k">if</span> <span class="s2">&quot;reply-to&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="c1"># Flatten the Reply-To header to a string so it can be displayed</span>
+        <span class="c1"># and aggregated like From/To. Only the first address is used,</span>
+        <span class="c1"># matching the From/To handling above. Not part of the dedup</span>
+        <span class="c1"># query.</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &lt;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;reply-to&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;subject&quot;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
         <span class="n">subject</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">]</span>
         <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
