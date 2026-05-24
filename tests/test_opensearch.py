@@ -779,6 +779,23 @@ class TestSaveFailureReport(unittest.TestCase):
             [a.address for a in doc.sample.reply_to], ["real@phish.example"]
         )
 
+    def test_reply_to_header_without_display_name_flattens_to_address(self):
+        """A Reply-To header with no display name flattens to the bare
+        address — the empty-display branch of the header flattening,
+        matching the From/To handling."""
+        report = _failure_report()
+        report["parsed_sample"]["headers"]["Reply-To"] = [["", "noname@phish.example"]]
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(
+                opensearch_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_failure_report_to_opensearch(report)
+        doc = mock_save.call_args.args[0]
+        self.assertEqual(doc.sample.headers["reply-to"], "noname@phish.example")
+
 
 # ---------------------------------------------------------------------------
 # save_smtp_tls_report_to_opensearch
