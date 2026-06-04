@@ -30,7 +30,6 @@ from parsedmarc import (
     gelf,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
-    google_secops,
     kafkaclient,
     loganalytics,
     opensearch,
@@ -59,7 +58,6 @@ from parsedmarc.utils import (
     get_reverse_dns,
     is_mbox,
     load_ip_db,
-    load_psl_overrides,
     load_reverse_dns_map,
 )
 
@@ -1245,6 +1243,25 @@ def _init_output_clients(opts):
         raise RuntimeError(f"GELF: {e}") from e
 
     try:
+        if opts.google_secops:
+            logger.debug("Initializing Google SecOps client")
+            from parsedmarc import google_secops
+            clients["google_secops_client"] = google_secops.GoogleSecOpsClient(
+                include_failure_payload=opts.google_secops_include_failure_payload,
+                failure_payload_max_bytes=opts.google_secops_failure_payload_max_bytes,
+                static_observer_name=opts.google_secops_static_observer_name,
+                static_observer_vendor=opts.google_secops_static_observer_vendor,
+                static_environment=opts.google_secops_static_environment,
+                api_credentials_file=opts.google_secops_api_credentials_file,
+                api_customer_id=opts.google_secops_api_customer_id,
+                api_region=opts.google_secops_api_region,
+                api_log_type=opts.google_secops_api_log_type,
+                use_stdout=opts.google_secops_use_stdout,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Google SecOps: {e}") from e
+
+    try:
         if (
             opts.webhook_aggregate_url
             or opts.webhook_failure_url
@@ -1456,6 +1473,7 @@ def _main():
         gelf_client = clients.get("gelf_client")
         webhook_client = clients.get("webhook_client")
         pg_client = clients.get("postgresql_client")
+        google_secops_client = clients.get("google_secops_client")
 
         kafka_aggregate_topic = opts.kafka_aggregate_topic
         kafka_failure_topic = opts.kafka_failure_topic
@@ -2597,6 +2615,7 @@ def _main():
 
         if "gmail_api" in config.sections():
             gmail_api_config = config["gmail_api"]
+            default_gmail_api_scope = "https://www.googleapis.com/auth/gmail.modify"
             opts.gmail_api_credentials_file = gmail_api_config.get("credentials_file")
             opts.gmail_api_token_file = gmail_api_config.get("token_file", ".token")
             opts.gmail_api_include_spam_trash = bool(
@@ -2724,6 +2743,33 @@ def _main():
                 opts.webhook_smtp_tls_url = webhook_config["smtp_tls_url"]
             if "timeout" in webhook_config:
                 opts.webhook_timeout = webhook_config.getint("timeout")
+    
+    clients = {}
+    max_retries = 4
+    retry_delay = 5
+    for attempt in range(max_retries + 1):
+        try:
+            clients = _init_output_clients(opts)
+            break
+        except ConfigurationError as e:
+            logger.critical(str(e))
+            exit(1)
+        except Exception as error_:
+            if attempt < max_retries:
+                logger.warning(
+                    "Output client error (attempt %d/%d, retrying in %ds): %s",
+                    attempt + 1,
+                    max_retries + 1,
+                    retry_delay,
+                    error_,
+                )
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                logger.error("Output client error: {0}".format(error_))
+                exit(1)
+
+    file_paths = _expand_file_path_args(args.file_path)
     mbox_paths = []
 
     for file_path in file_paths:
