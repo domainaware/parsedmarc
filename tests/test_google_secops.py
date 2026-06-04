@@ -8,7 +8,6 @@ import json
 import os
 import tempfile
 import unittest
-import warnings
 from unittest.mock import MagicMock, patch
 
 import parsedmarc
