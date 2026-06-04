@@ -10,6 +10,14 @@ parsedmarc already ships structured JSON over syslog; the DMARC→UDM mapping
 lives here so that a downstream UDM schema change is a parser edit rather than a
 parsedmarc release.
 
+> **New to SecOps parsers?** SecOps ingests a log source by running a *parser*
+> that turns each raw log line into a [Unified Data Model](https://cloud.google.com/chronicle/docs/event-processing/udm-overview)
+> (UDM) event. These parsers are written in a Logstash-style configuration
+> language Google calls a **configuration-based normalizer (CBN)** — the
+> `parsedmarc.conf` in this directory is one. You attach it to a custom *log
+> type*, and SecOps then runs it on every parsedmarc syslog line. Already fluent
+> in CBN? Skip to [Installation](#installation).
+
 ## Status
 
 > [!IMPORTANT]
