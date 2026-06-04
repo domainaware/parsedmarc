@@ -246,6 +246,7 @@ class TestGoogleSecOps(unittest.TestCase):
     def test_get_api_endpoint(self):
         """Test API endpoint URL generation."""
         from parsedmarc.google_secops import GoogleSecOpsClient
+        from urllib.parse import urlparse
 
         client = GoogleSecOpsClient(use_stdout=True)
         client.api_customer_id = "test-customer-123"
@@ -253,14 +254,17 @@ class TestGoogleSecOps(unittest.TestCase):
         client.api_log_type = "DMARC"
 
         endpoint = client._get_api_endpoint()
-        assert "us-chronicle.googleapis.com" in endpoint
-        assert "test-customer-123" in endpoint
-        assert "DMARC" in endpoint
+        parsed_url = urlparse(endpoint)
+        assert parsed_url.scheme == "https"
+        assert parsed_url.netloc == "us-chronicle.googleapis.com"
+        assert "test-customer-123" in parsed_url.path
+        assert "DMARC" in parsed_url.path
 
         # Test different region
         client.api_region = "europe"
         endpoint = client._get_api_endpoint()
-        assert "europe-chronicle.googleapis.com" in endpoint
+        parsed_url = urlparse(endpoint)
+        assert parsed_url.netloc == "europe-chronicle.googleapis.com"
 
     def test_helper_methods(self):
         """Test helper methods for severity, description, and timestamp formatting."""
@@ -413,7 +417,11 @@ class TestGoogleSecOps(unittest.TestCase):
             call_args = mock_session.post.call_args
 
             # Verify endpoint
-            assert "us-chronicle.googleapis.com" in call_args[0][0]
+            from urllib.parse import urlparse
+            endpoint_url = call_args[0][0]
+            parsed_url = urlparse(endpoint_url)
+            assert parsed_url.scheme == "https"
+            assert parsed_url.netloc == "us-chronicle.googleapis.com"
 
             # Verify payload structure
             payload = call_args[1]["json"]
