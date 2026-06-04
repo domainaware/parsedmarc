@@ -4,14 +4,14 @@ A [Google Security Operations (Chronicle)](https://cloud.google.com/security/pro
 
 ## Overview
 
-parsedmarc sends DMARC aggregate reports, forensic reports, and SMTP TLS reports as JSON-formatted syslog messages. This parser transforms those JSON events into Google SecOps UDM events for threat detection and investigation.
+parsedmarc sends DMARC aggregate reports, failure reports, and SMTP TLS reports as JSON-formatted syslog messages. This parser transforms those JSON events into Google SecOps UDM events for threat detection and investigation.
 
 ### Supported Report Types
 
 | Report Type | UDM Event Type | Description |
 |---|---|---|
 | DMARC Aggregate | `EMAIL_TRANSACTION` | Aggregate DMARC authentication results from reporting organizations |
-| DMARC Forensic | `EMAIL_TRANSACTION` | Individual email authentication failure reports |
+| DMARC Failure | `EMAIL_TRANSACTION` | Individual email authentication failure reports |
 | SMTP TLS | `GENERIC_EVENT` | SMTP TLS session success/failure reports (RFC 8460) |
 
 ## UDM Field Mappings
@@ -35,10 +35,15 @@ parsedmarc sends DMARC aggregate reports, forensic reports, and SMTP TLS reports
 | `org_name` | `additional.fields` | Reporting organization name |
 | `count` | `additional.fields` | Number of messages |
 | `p`, `sp`, `pct` | `additional.fields` | DMARC policy settings |
+| `np` | `additional.fields` | Non-existent domain policy |
+| `fo` | `additional.fields` | Failure reporting options |
+| `testing` | `additional.fields` | Whether policy is in testing mode |
+| `discovery_method` | `additional.fields` | How the DMARC policy was discovered |
+| `normalized_timespan` | `additional.fields` | Whether report timespan was normalized |
 | `dkim_domains`, `dkim_results` | `additional.fields` | DKIM authentication details |
 | `spf_domains`, `spf_results` | `additional.fields` | SPF authentication details |
 
-### DMARC Forensic Reports
+### DMARC Failure Reports
 
 | parsedmarc Field | UDM Field | Notes |
 |---|---|---|
@@ -108,10 +113,10 @@ parsedmarc sends DMARC aggregate reports, forensic reports, and SMTP TLS reports
 ### Aggregate Report
 
 ```json
-{"xml_schema": "1.0", "org_name": "Example Inc", "org_email": "noreply@example.net", "report_id": "abc123", "begin_date": "2024-01-01 00:00:00", "end_date": "2024-01-01 23:59:59", "domain": "example.com", "adkim": "r", "aspf": "r", "p": "reject", "sp": "reject", "pct": "100", "fo": "0", "source_ip_address": "203.0.113.1", "source_country": "United States", "source_reverse_dns": "mail.example.org", "source_base_domain": "example.org", "count": 42, "spf_aligned": true, "dkim_aligned": true, "dmarc_aligned": true, "disposition": "none", "header_from": "example.com", "envelope_from": "example.com", "envelope_to": null, "dkim_domains": "example.com", "dkim_selectors": "selector1", "dkim_results": "pass", "spf_domains": "example.com", "spf_scopes": "mfrom", "spf_results": "pass"}
+{"xml_schema": "1.0", "org_name": "Example Inc", "org_email": "noreply@example.net", "report_id": "abc123", "begin_date": "2024-01-01 00:00:00", "end_date": "2024-01-01 23:59:59", "normalized_timespan": false, "domain": "example.com", "adkim": "r", "aspf": "r", "p": "reject", "sp": "reject", "pct": "100", "fo": "0", "np": "reject", "testing": false, "discovery_method": null, "source_ip_address": "203.0.113.1", "source_country": "United States", "source_reverse_dns": "mail.example.org", "source_base_domain": "example.org", "count": 42, "spf_aligned": true, "dkim_aligned": true, "dmarc_aligned": true, "disposition": "none", "header_from": "example.com", "envelope_from": "example.com", "envelope_to": null, "dkim_domains": "example.com", "dkim_selectors": "selector1", "dkim_results": "pass", "spf_domains": "example.com", "spf_scopes": "mfrom", "spf_results": "pass"}
 ```
 
-### Forensic Report
+### Failure Report
 
 ```json
 {"feedback_type": "auth-failure", "user_agent": "Lua/1.0", "version": "1.0", "original_mail_from": "sender@example.com", "original_rcpt_to": "recipient@example.org", "arrival_date": "Mon, 01 Jan 2024 12:00:00 +0000", "arrival_date_utc": "2024-01-01 12:00:00", "source_ip_address": "198.51.100.1", "source_country": "Germany", "source_reverse_dns": "mail.example.com", "source_base_domain": "example.com", "subject": "Test Email", "message_id": "<abc@example.com>", "authentication_results": "dmarc=fail (p=reject; dis=reject) header.from=example.com", "dkim_domain": "example.com", "delivery_result": "reject", "auth_failure": "dmarc", "reported_domain": "example.com", "authentication_mechanisms": "dmarc"}
