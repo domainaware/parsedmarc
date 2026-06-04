@@ -1,0 +1,92 @@
+name: Validate dashboards
+
+permissions:
+  contents: read
+
+# Kibana 8.x's saved-object migration handlers accept the OpenSearch
+# Dashboards saved-object format directly, so we ship the OSD ndjson as the
+# single source for both backends. This workflow guards that compatibility:
+# any change to the OSD ndjson must still import cleanly into a Kibana 8.x
+# container before the change is mergeable.
+#
+# The job is path-filtered to only run when the ndjson itself changes —
+# every other PR skips it.
+on:
+  push:
+    branches: [master]
+    paths: ['dashboards/opensearch/opensearch_dashboards.ndjson']
+  pull_request:
+    branches: [master]
+    paths: ['dashboards/opensearch/opensearch_dashboards.ndjson']
+
+jobs:
+  kibana-import:
+    name: Verify ndjson imports into Kibana 8.x
+    runs-on: ubuntu-latest
+
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.7
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          xpack.license.self_generated.type: basic
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -sf http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 24
+
+      kibana:
+        image: docker.elastic.co/kibana/kibana:8.19.7
+        env:
+          ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+        ports:
+          - 5601:5601
+        options: >-
+          --health-cmd "curl -sf http://localhost:5601/api/status"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Wait for Kibana to report ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5601/api/status >/dev/null; then
+              echo "Kibana is ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Kibana failed to come up within 5 minutes" >&2
+          exit 1
+
+      - name: Import OSD ndjson and assert success
+        run: |
+          response=$(curl -sS -X POST \
+            'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
+            -H 'kbn-xsrf: true' \
+            --form file=@dashboards/opensearch/opensearch_dashboards.ndjson)
+          echo "$response" | python3 -m json.tool
+          # Pass the response via env, not stdin: `python3 - <<EOF` (or bare
+          # heredoc) redirects the heredoc itself to stdin so sys.stdin is
+          # empty by the time the script runs, and json.load(sys.stdin) blows
+          # up with "Expecting value: line 1 column 1".
+          RESPONSE="$response" python3 <<'PY'
+          import json, os, sys
+          d = json.loads(os.environ["RESPONSE"])
+          if not d.get("success"):
+              sys.exit(f"Kibana import failed: {d}")
+          if d.get("errors"):
+              sys.exit(f"Kibana import had errors: {d['errors']}")
+          n = d.get("successCount", 0)
+          if n < 1:
+              sys.exit(f"Expected at least 1 imported object, got {n}")
+          print(f"OK: {n} saved objects imported and migrated by Kibana")
+          PY

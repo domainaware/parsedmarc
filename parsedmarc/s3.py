@@ -56,21 +56,32 @@ class S3Client(object):
     def save_aggregate_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "aggregate")
 
-    def save_forensic_report_to_s3(self, report: dict[str, Any]):
-        self.save_report_to_s3(report, "forensic")
+    def save_failure_report_to_s3(self, report: dict[str, Any]):
+        self.save_report_to_s3(report, "failure")
 
     def save_smtp_tls_report_to_s3(self, report: dict[str, Any]):
         self.save_report_to_s3(report, "smtp_tls")
 
     def save_report_to_s3(self, report: dict[str, Any], report_type: str):
         if report_type == "smtp_tls":
-            report_date = report["begin_date"]
+            # SMTP TLS reports (RFC 8460) are flat — they have no
+            # `report_metadata` sub-object — and parse_smtp_tls_report_json
+            # stores begin_date as the ISO string from the report JSON
+            # (per SMTPTLSReport's TypedDict).
+            report_date = human_timestamp_to_datetime(report["begin_date"])
             report_id = report["report_id"]
+            metadata_source = {
+                "org_name": report.get("organization_name"),
+                "report_id": report.get("report_id"),
+                "begin_date": str(report.get("begin_date")),
+                "end_date": str(report.get("end_date")),
+            }
         else:
             report_date = human_timestamp_to_datetime(
                 report["report_metadata"]["begin_date"]
             )
             report_id = report["report_metadata"]["report_id"]
+            metadata_source = report["report_metadata"]
         path_template = "{0}/{1}/year={2}/month={3:02d}/day={4:02d}/{5}.json"
         object_path = path_template.format(
             self.bucket_path,
@@ -87,9 +98,23 @@ class S3Client(object):
         )
         object_metadata = {
             k: v
-            for k, v in report["report_metadata"].items()
-            if k in self.metadata_keys
+            for k, v in metadata_source.items()
+            if k in self.metadata_keys and v is not None
         }
         self.bucket.put_object(
-            Body=json.dumps(report), Key=object_path, Metadata=object_metadata
+            Body=json.dumps(report, default=str),
+            Key=object_path,
+            Metadata=object_metadata,
         )
+
+    def close(self):
+        """Clean up the boto3 resource."""
+        try:
+            if self.s3.meta is not None:
+                self.s3.meta.client.close()
+        except Exception:
+            pass
+
+
+# Backward-compatible aliases
+S3Client.save_forensic_report_to_s3 = S3Client.save_failure_report_to_s3

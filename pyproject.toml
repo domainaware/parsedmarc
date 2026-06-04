@@ -2,7 +2,7 @@
 requires = [
     "hatchling>=1.27.0",
 ]
-requires_python = ">=3.9,<3.14"
+requires_python = ">=3.10,<3.15"
 build-backend = "hatchling.build"
 
 [project]
@@ -10,7 +10,7 @@ name = "parsedmarc"
 dynamic = [
     "version",
 ]
-description = "A Python package and CLI for parsing aggregate and forensic DMARC reports"
+description = "A Python package and CLI for parsing aggregate, failure, and SMTP TLS DMARC reports"
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3"
 ]
-requires-python = ">=3.9, <3.14"
+requires-python = ">=3.10"
 dependencies = [
     "azure-identity>=1.8.0",
     "azure-monitor-ingestion>=1.0.0",
@@ -39,18 +39,11 @@ dependencies = [
     "elasticsearch-dsl==7.4.0",
     "elasticsearch<7.14.0",
     "expiringdict>=1.1.4",
-    "geoip2>=3.0.0",
-    "google-api-core>=2.4.0",
-    "google-api-python-client>=2.35.0",
-    "google-auth-httplib2>=0.1.0",
-    "google-auth-oauthlib>=0.4.6",
-    "google-auth>=2.3.3",
-    "imapclient>=2.1.0",
     "kafka-python-ng>=2.2.2",
     "lxml>=4.4.0",
-    "mailsuite>=1.11.1",
-    "msgraph-core==0.2.2",
-    "opensearch-py>=2.4.2,<=3.0.0",
+    "mailsuite[gmail,msgraph]>=2.2.1",
+    "maxminddb>=2.0.0",
+    "opensearch-py>=2.4.2,<=4.0.0",
     "publicsuffixlist>=0.10.0",
     "pygelf>=0.4.2",
     "requests>=2.22.0",
@@ -61,7 +54,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+postgresql = [
+    # Optional output backend. psycopg ships prebuilt binary wheels via the
+    # [binary] extra, but those wheels don't exist for every platform/arch,
+    # so PostgreSQL support is opt-in rather than a mandatory dependency.
+    "psycopg[binary]>=3.1.0",
+]
 build = [
+    # Used only by maintainer tooling under parsedmarc/resources/maps/ —
+    # `collect_domain_info.py --use-search-fallback` falls back to a
+    # DuckDuckGo search when the homepage fetch returns a bot-block / parked
+    # / empty page. Optional import; the script runs without it as long as
+    # the fallback flag isn't passed.
+    "ddgs>=9.0.0",
     "hatch>=1.14.0",
     "myst-parser[linkify]",
     "nose",
@@ -89,10 +94,34 @@ include = [
 [tool.hatch.build]
 exclude = [
     "base_reverse_dns.csv",
-    "find_bad_utf8.py",
-    "find_unknown_base_reverse_dns.py",
     "unknown_base_reverse_dns.csv",
-    "sortmaps.py",
     "README.md",
-    "*.bak"
+    "*.bak",
+    # Maintenance tooling: any Python file under parsedmarc/resources/maps/
+    # whose name doesn't start with `_` (i.e. everything except __init__.py,
+    # which must keep shipping for `importlib.resources.files()` lookups).
+    "parsedmarc/resources/maps/[!_]*.py",
+]
+
+[tool.pytest.ini_options]
+# Default to the per-module test layout under tests/. New tests should go
+# into tests/test_<module>.py to match the file they exercise; do not
+# reintroduce a monolithic tests.py.
+testpaths = ["tests"]
+
+[tool.coverage.run]
+# Coverage measures shipped code only. Master's reported ≈66.9% on
+# Codecov was an artefact of the old monolithic tests.py having no
+# [tool.coverage.run] block, which let coverage's default behaviour
+# measure every file imported during the run — including the test file
+# itself at ~99% "covered". That inflated the headline by ~8 percentage
+# points without any actual testing signal. Restricting to the parsedmarc
+# package gives a meaningful number that tracks how much of the shipped
+# library the test suite actually exercises.
+source = ["parsedmarc"]
+# Maintainer-only batch scripts under parsedmarc/resources/maps/ ship
+# out of the wheel (see the [tool.hatch.build] exclude block above) —
+# omit them so the headline number reflects only installed library code.
+omit = [
+    "*/parsedmarc/resources/maps/*.py",
 ]

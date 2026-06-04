@@ -38,17 +38,23 @@ import xmltodict
 from expiringdict import ExpiringDict
 from mailsuite.smtp import send_email
 
-from parsedmarc.constants import __version__
+from parsedmarc.constants import (
+    DEFAULT_DNS_MAX_RETRIES,
+    DEFAULT_DNS_TIMEOUT,
+    __version__,
+)
 from parsedmarc.log import logger
 from parsedmarc.mail import (
     GmailConnection,
     IMAPConnection,
     MailboxConnection,
+    MaildirConnection,
     MSGraphConnection,
 )
 from parsedmarc.types import (
     AggregateReport,
-    ForensicReport,
+    FailureReport,
+    ForensicReport as ForensicReport,
     ParsedReport,
     ParsingResults,
     SMTPTLSReport,
@@ -69,10 +75,33 @@ feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
 xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
 text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
+# Captures the value of any xmlns (default or prefixed) declaration so the
+# RFC 9990 namespace can be detected before xmltodict drops it.
+xml_namespace_regex = re.compile(
+    r"""xmlns(?::[a-zA-Z_][\w.-]*)?\s*=\s*["']([^"']+)["']"""
+)
+
+# The XML namespace assigned to DMARC aggregate reports by RFC 9990.
+RFC_9990_NAMESPACE = "urn:ietf:params:xml:ns:dmarc-2.0"
+
+# PolicyOverrideType enumeration from RFC 9990. Compared to RFC 7489,
+# `policy_test_mode` was added (emitted when t=y suppresses enforcement)
+# and `forwarded` / `sampled_out` were removed.
+RFC_9990_POLICY_OVERRIDE_TYPES = frozenset(
+    {
+        "local_policy",
+        "mailing_list",
+        "other",
+        "policy_test_mode",
+        "trusted_forwarder",
+    }
+)
+RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES = frozenset({"forwarded", "sampled_out"})
 
 MAGIC_ZIP = b"\x50\x4b\x03\x04"
 MAGIC_GZIP = b"\x1f\x8b"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
+MAGIC_XML_TAG = b"\x3c"  # '<' - XML starting with an element tag (no declaration)
 MAGIC_JSON = b"\7b"
 
 EMAIL_SAMPLE_CONTENT_TYPES = (
@@ -107,8 +136,32 @@ class InvalidAggregateReport(InvalidDMARCReport):
     """Raised when an invalid DMARC aggregate report is encountered"""
 
 
-class InvalidForensicReport(InvalidDMARCReport):
-    """Raised when an invalid DMARC forensic report is encountered"""
+class InvalidFailureReport(InvalidDMARCReport):
+    """Raised when an invalid DMARC failure report is encountered"""
+
+
+# Backward-compatible alias
+InvalidForensicReport = InvalidFailureReport
+
+
+def _text(value: Any) -> Optional[str]:
+    """Unwrap a possibly-langAttrString value parsed by xmltodict.
+
+    RFC 9990 changed several aggregate-report elements (extra_contact_info,
+    error, comment, human_result) to type ``langAttrString`` — an
+    xs:simpleContent string with an optional ``lang`` attribute. When the
+    attribute is present, xmltodict parses the element as
+    ``{"#text": "...", "@lang": "en"}`` instead of a plain string. Returns
+    the text payload for both shapes, ``None`` for unset values, and leaves
+    other scalar shapes untouched so callers can preserve whatever the
+    reporter sent.
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        text = value.get("#text")
+        return None if text is None else str(text)
+    return value
 
 
 def _bucket_interval_by_day(
@@ -301,7 +354,9 @@ def _parse_report_record(
     reverse_dns_map_url: Optional[str] = None,
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
+    is_rfc_9990: bool = False,
 ) -> dict[str, Any]:
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -312,11 +367,13 @@ def _parse_report_record(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
 
     Returns:
         dict: The converted record
@@ -336,6 +393,7 @@ def _parse_report_record(
         offline=offline,
         nameservers=nameservers,
         timeout=dns_timeout,
+        retries=dns_retries,
     )
     new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
@@ -348,8 +406,6 @@ def _parse_report_record(
     }
     if "disposition" in policy_evaluated:
         new_policy_evaluated["disposition"] = policy_evaluated["disposition"]
-        if new_policy_evaluated["disposition"].strip().lower() == "pass":
-            new_policy_evaluated["disposition"] = "none"
     if "dkim" in policy_evaluated:
         new_policy_evaluated["dkim"] = policy_evaluated["dkim"]
     if "spf" in policy_evaluated:
@@ -374,8 +430,27 @@ def _parse_report_record(
         else:
             reasons = [policy_evaluated["reason"]]
     for reason in reasons:
-        if "comment" not in reason:
-            reason["comment"] = None
+        # `comment` is langAttrString in RFC 9990 — unwrap {"#text": ..., "@lang": ...}
+        reason["comment"] = _text(reason.get("comment"))
+        reason_type = reason.get("type")
+        if is_rfc_9990 and reason_type in RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES:
+            logger.warning(
+                "Policy override reason type %r was removed in RFC 9990; "
+                "expected one of %s",
+                reason_type,
+                sorted(RFC_9990_POLICY_OVERRIDE_TYPES),
+            )
+        elif (
+            is_rfc_9990
+            and reason_type is not None
+            and reason_type not in RFC_9990_POLICY_OVERRIDE_TYPES
+        ):
+            logger.warning(
+                "Unknown policy override reason type %r per RFC 9990; "
+                "expected one of %s",
+                reason_type,
+                sorted(RFC_9990_POLICY_OVERRIDE_TYPES),
+            )
     new_policy_evaluated["policy_override_reasons"] = reasons
     new_record["policy_evaluated"] = new_policy_evaluated
     if "identities" in record:
@@ -405,11 +480,18 @@ def _parse_report_record(
             if "selector" in result and result["selector"] is not None:
                 new_result["selector"] = result["selector"]
             else:
+                if is_rfc_9990:
+                    logger.warning(
+                        "DKIM auth result for %r is missing the 'selector' "
+                        "element, which is REQUIRED by RFC 9990",
+                        result["domain"],
+                    )
                 new_result["selector"] = "none"
             if "result" in result and result["result"] is not None:
                 new_result["result"] = result["result"]
             else:
                 new_result["result"] = "none"
+            new_result["human_result"] = _text(result.get("human_result"))
             new_record["auth_results"]["dkim"].append(new_result)
 
     if not isinstance(auth_results["spf"], list):
@@ -425,6 +507,7 @@ def _parse_report_record(
                 new_result["result"] = result["result"]
             else:
                 new_result["result"] = "none"
+            new_result["human_result"] = _text(result.get("human_result"))
             new_record["auth_results"]["spf"].append(new_result)
 
     if "envelope_from" not in new_record["identifiers"]:
@@ -668,7 +751,8 @@ def parse_aggregate_report_xml(
     reverse_dns_map_url: Optional[str] = None,
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
     keep_alive: Optional[Callable] = None,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> AggregateReport:
@@ -676,7 +760,7 @@ def parse_aggregate_report_xml(
 
     Args:
         xml (str): A string of DMARC aggregate report XML
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -684,6 +768,8 @@ def parse_aggregate_report_xml(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        retries (int): Number of times to retry DNS queries on timeout or
+            other transient errors
         keep_alive (callable): Keep alive function
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
@@ -694,6 +780,21 @@ def parse_aggregate_report_xml(
     # Parse XML and recover from errors
     if isinstance(xml, bytes):
         xml = xml.decode(errors="ignore")
+
+    # Detect the XML namespace before any rewriting strips it. The dmarc-2.0
+    # namespace is one of the indicators for an RFC 9990 report but it is
+    # NOT a reliable sole discriminator: the <version> element value is
+    # ambiguous (RFC 9990's appendix sample uses <version>1.0</version>
+    # inside the dmarc-2.0 namespace), and real-world reporters frequently
+    # emit RFC 9990-shaped reports without declaring the namespace at all.
+    # The final `is_rfc_9990` decision is made post-parse so that
+    # RFC 9990-only fields (np, testing, discovery_method, generator,
+    # human_result) can also vote it in.
+    xml_namespace: Optional[str] = None
+    namespace_match = xml_namespace_regex.search(xml)
+    if namespace_match:
+        xml_namespace = namespace_match.group(1)
+
     try:
         xmltodict.parse(xml)["feedback"]
     except Exception as e:
@@ -717,10 +818,24 @@ def parse_aggregate_report_xml(
 
         report = xmltodict.parse(xml)["feedback"]
         report_metadata = report["report_metadata"]
+        # <email> is xs:string in both RFC 7489 and RFC 9990, but defensive
+        # parsing in the wild: some reporters emit it with an xml:lang or
+        # similar attribute, which xmltodict turns into a dict.
+        if isinstance(report_metadata.get("email"), dict):
+            unwrapped = _text(report_metadata["email"])
+            if unwrapped is None:
+                logger.debug(
+                    "Discarding malformed <email> in report_metadata: %r",
+                    report_metadata["email"],
+                )
+            report_metadata["email"] = unwrapped
         schema = "draft"
         if "version" in report:
             schema = report["version"]
-        new_report: dict[str, Any] = {"xml_schema": schema}
+        new_report: dict[str, Any] = {
+            "xml_schema": schema,
+            "xml_namespace": xml_namespace,
+        }
         new_report_metadata: dict[str, Any] = {}
         if report_metadata["org_name"] is None:
             if report_metadata["email"] is not None:
@@ -741,9 +856,9 @@ def parse_aggregate_report_xml(
             )
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
-        extra = None
-        if "extra_contact_info" in report_metadata:
-            extra = report_metadata["extra_contact_info"]
+        # extra_contact_info is langAttrString in RFC 9990 (xs:string in
+        # RFC 7489) — unwrap {"#text": ..., "@lang": ...} if present.
+        extra = _text(report_metadata.get("extra_contact_info"))
         new_report_metadata["org_extra_contact_info"] = extra
         new_report_metadata["report_id"] = report_metadata["report_id"]
         report_id = new_report_metadata["report_id"]
@@ -751,8 +866,8 @@ def parse_aggregate_report_xml(
         new_report_metadata["report_id"] = report_id
         date_range = report["report_metadata"]["date_range"]
 
-        begin_ts = int(date_range["begin"])
-        end_ts = int(date_range["end"])
+        begin_ts = int(date_range["begin"].split(".")[0])
+        end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
 
         normalize_timespan = span_seconds > normalize_timespan_threshold_hours * 3600
@@ -771,17 +886,38 @@ def parse_aggregate_report_xml(
             new_report_metadata["end_date"], to_utc=True
         )
 
+        # <error> is langAttrString in RFC 9990 (xs:string in RFC 7489) and
+        # was cardinality-narrowed from "unbounded" to "1" in RFC 9990, but
+        # the parser still accepts a list for backward compatibility with
+        # RFC 7489 reports that carry multiple errors.
         if "error" in report["report_metadata"]:
-            if not isinstance(report["report_metadata"]["error"], list):
-                errors = [report["report_metadata"]["error"]]
-            else:
-                errors = report["report_metadata"]["error"]
+            raw_errors = report["report_metadata"]["error"]
+            if not isinstance(raw_errors, list):
+                raw_errors = [raw_errors]
+            errors = [text for text in (_text(e) for e in raw_errors) if text]
         new_report_metadata["errors"] = errors
+        # <generator> is a plain xs:string in RFC 9990 but apply _text() so
+        # a malformed reporter that decorates it with attributes still
+        # yields a string instead of breaking downstream consumers.
+        generator = _text(report_metadata.get("generator"))
+        new_report_metadata["generator"] = generator
         new_report["report_metadata"] = new_report_metadata
         records = []
         policy_published = report["policy_published"]
         if type(policy_published) is list:
             policy_published = policy_published[0]
+
+        # Final RFC 9990 detection: the dmarc-2.0 XML namespace OR any
+        # RFC 9990-only field. Real-world reporters that follow the schema
+        # without declaring the namespace still get RFC 9990-aware
+        # warnings (missing DKIM selector, removed override-reason types,
+        # etc.) and a truthful audit trail in `xml_namespace`.
+        rfc_9990_only_policy_fields = {"np", "testing", "discovery_method"}
+        is_rfc_9990 = (
+            xml_namespace == RFC_9990_NAMESPACE
+            or "generator" in report_metadata
+            or any(f in policy_published for f in rfc_9990_only_policy_fields)
+        )
         new_policy_published: dict[str, Any] = {}
         new_policy_published["domain"] = policy_published["domain"]
         adkim = "r"
@@ -800,16 +936,39 @@ def parse_aggregate_report_xml(
             if policy_published["sp"] is not None:
                 sp = policy_published["sp"]
         new_policy_published["sp"] = sp
-        pct = "100"
+        pct = None
         if "pct" in policy_published:
             if policy_published["pct"] is not None:
                 pct = policy_published["pct"]
         new_policy_published["pct"] = pct
-        fo = "0"
+        fo = None
         if "fo" in policy_published:
             if policy_published["fo"] is not None:
                 fo = policy_published["fo"]
         new_policy_published["fo"] = fo
+        np_ = None
+        if "np" in policy_published:
+            if policy_published["np"] is not None:
+                np_ = policy_published["np"]
+                if np_ not in ("none", "quarantine", "reject"):
+                    logger.warning("Invalid np value: {0}".format(np_))
+        new_policy_published["np"] = np_
+        testing = None
+        if "testing" in policy_published:
+            if policy_published["testing"] is not None:
+                testing = policy_published["testing"]
+                if testing not in ("n", "y"):
+                    logger.warning("Invalid testing value: {0}".format(testing))
+        new_policy_published["testing"] = testing
+        discovery_method = None
+        if "discovery_method" in policy_published:
+            if policy_published["discovery_method"] is not None:
+                discovery_method = policy_published["discovery_method"]
+                if discovery_method not in ("psl", "treewalk"):
+                    logger.warning(
+                        "Invalid discovery_method value: {0}".format(discovery_method)
+                    )
+        new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
 
         if type(report["record"]) is list:
@@ -828,6 +987,8 @@ def parse_aggregate_report_xml(
                         reverse_dns_map_url=reverse_dns_map_url,
                         nameservers=nameservers,
                         dns_timeout=timeout,
+                        dns_retries=retries,
+                        is_rfc_9990=is_rfc_9990,
                     )
                     _append_parsed_record(
                         parsed_record=report_record,
@@ -849,6 +1010,8 @@ def parse_aggregate_report_xml(
                 offline=offline,
                 nameservers=nameservers,
                 dns_timeout=timeout,
+                dns_retries=retries,
+                is_rfc_9990=is_rfc_9990,
             )
             _append_parsed_record(
                 parsed_record=report_record,
@@ -942,6 +1105,7 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
             )
         elif (
             header[: len(MAGIC_XML)] == MAGIC_XML
+            or header[: len(MAGIC_XML_TAG)] == MAGIC_XML_TAG
             or header[: len(MAGIC_JSON)] == MAGIC_JSON
         ):
             report = file_object.read().decode(errors="ignore")
@@ -962,10 +1126,12 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
     return report
 
 
-def extract_report_from_file_path(file_path: str):
+def extract_report_from_file_path(
+    file_path: Union[str, bytes, os.PathLike[str], os.PathLike[bytes]],
+) -> str:
     """Extracts report from a file at the given file_path"""
     try:
-        with open(file_path, "rb") as report_file:
+        with open(os.fspath(file_path), "rb") as report_file:
             return extract_report(report_file.read())
     except FileNotFoundError:
         raise ParserError("File was not found")
@@ -980,7 +1146,8 @@ def parse_aggregate_report_file(
     reverse_dns_map_url: Optional[str] = None,
     ip_db_path: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     keep_alive: Optional[Callable] = None,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> AggregateReport:
@@ -993,10 +1160,12 @@ def parse_aggregate_report_file(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         keep_alive (callable): Keep alive function
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
@@ -1018,6 +1187,7 @@ def parse_aggregate_report_file(
         offline=offline,
         nameservers=nameservers,
         timeout=dns_timeout,
+        retries=dns_retries,
         keep_alive=keep_alive,
         normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
     )
@@ -1065,6 +1235,9 @@ def parsed_aggregate_reports_to_csv_rows(
         sp = report["policy_published"]["sp"]
         pct = report["policy_published"]["pct"]
         fo = report["policy_published"]["fo"]
+        np_ = report["policy_published"].get("np", None)
+        testing = report["policy_published"].get("testing", None)
+        discovery_method = report["policy_published"].get("discovery_method", None)
 
         report_dict: dict[str, Any] = dict(
             xml_schema=xml_schema,
@@ -1081,8 +1254,11 @@ def parsed_aggregate_reports_to_csv_rows(
             aspf=aspf,
             p=p,
             sp=sp,
+            np=np_,
             pct=pct,
             fo=fo,
+            testing=testing,
+            discovery_method=discovery_method,
         )
 
         for record in report["records"]:
@@ -1095,6 +1271,9 @@ def parsed_aggregate_reports_to_csv_rows(
             row["source_base_domain"] = record["source"]["base_domain"]
             row["source_name"] = record["source"]["name"]
             row["source_type"] = record["source"]["type"]
+            row["source_asn"] = record["source"]["asn"]
+            row["source_as_name"] = record["source"]["as_name"]
+            row["source_as_domain"] = record["source"]["as_domain"]
             row["count"] = record["count"]
             row["spf_aligned"] = record["alignment"]["spf"]
             row["dkim_aligned"] = record["alignment"]["dkim"]
@@ -1178,14 +1357,20 @@ def parsed_aggregate_reports_to_csv(
         "aspf",
         "p",
         "sp",
+        "np",
         "pct",
         "fo",
+        "testing",
+        "discovery_method",
         "source_ip_address",
         "source_country",
         "source_reverse_dns",
         "source_base_domain",
         "source_name",
         "source_type",
+        "source_asn",
+        "source_as_name",
+        "source_as_domain",
         "count",
         "spf_aligned",
         "dkim_aligned",
@@ -1217,7 +1402,7 @@ def parsed_aggregate_reports_to_csv(
     return csv_file_object.getvalue()
 
 
-def parse_forensic_report(
+def parse_failure_report(
     feedback_report: str,
     sample: str,
     msg_date: datetime,
@@ -1228,16 +1413,17 @@ def parse_forensic_report(
     offline: bool = False,
     ip_db_path: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
-) -> ForensicReport:
+) -> FailureReport:
     """
-    Converts a DMARC forensic report and sample to a dict
+    Converts a DMARC failure report and sample to a dict
 
     Args:
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -1246,8 +1432,10 @@ def parse_forensic_report(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
-            forensic report results
+            failure report results
 
     Returns:
         dict: A parsed report and sample
@@ -1263,7 +1451,7 @@ def parse_forensic_report(
 
         if "arrival_date" not in parsed_report:
             if msg_date is None:
-                raise InvalidForensicReport("Forensic sample is not a valid email")
+                raise InvalidFailureReport("Failure sample is not a valid email")
             parsed_report["arrival_date"] = msg_date.isoformat()
 
         if "version" not in parsed_report:
@@ -1300,25 +1488,42 @@ def parse_forensic_report(
             offline=offline,
             nameservers=nameservers,
             timeout=dns_timeout,
+            retries=dns_retries,
         )
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
 
+        # Identity-Alignment is REQUIRED per RFC 9991 §4. Default silently for
+        # backward compatibility with pre-9991 reporters, but log so the
+        # offending reporter is visible. Values are CFWS-separated per the
+        # ABNF, so each mechanism is stripped after splitting.
         if "identity_alignment" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Identity-Alignment' "
+                "field (RFC 9991 §4); defaulting to no aligned mechanisms"
+            )
             parsed_report["authentication_mechanisms"] = []
-        elif parsed_report["identity_alignment"] == "none":
-            parsed_report["authentication_mechanisms"] = []
-            del parsed_report["identity_alignment"]
         else:
-            auth_mechanisms = parsed_report["identity_alignment"]
-            auth_mechanisms = auth_mechanisms.split(",")
-            parsed_report["authentication_mechanisms"] = auth_mechanisms
+            raw_alignment = parsed_report["identity_alignment"].strip()
+            if raw_alignment.lower() == "none":
+                parsed_report["authentication_mechanisms"] = []
+            else:
+                parsed_report["authentication_mechanisms"] = [
+                    m.strip() for m in raw_alignment.split(",") if m.strip()
+                ]
             del parsed_report["identity_alignment"]
 
+        # Auth-Failure is REQUIRED per RFC 9991 §4. Comma-separated per ABNF
+        # so strip each token.
         if "auth_failure" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Auth-Failure' field "
+                "(RFC 9991 §4); defaulting to 'dmarc'"
+            )
             parsed_report["auth_failure"] = "dmarc"
-        auth_failure = parsed_report["auth_failure"].split(",")
-        parsed_report["auth_failure"] = auth_failure
+        parsed_report["auth_failure"] = [
+            f.strip() for f in parsed_report["auth_failure"].split(",") if f.strip()
+        ]
 
         optional_fields = [
             "original_envelope_id",
@@ -1349,27 +1554,27 @@ def parse_forensic_report(
         parsed_report["sample"] = sample
         parsed_report["parsed_sample"] = parsed_sample
 
-        return cast(ForensicReport, parsed_report)
+        return cast(FailureReport, parsed_report)
 
     except KeyError as error:
-        raise InvalidForensicReport("Missing value: {0}".format(error.__str__()))
+        raise InvalidFailureReport("Missing value: {0}".format(error.__str__()))
 
     except Exception as error:
-        raise InvalidForensicReport("Unexpected error: {0}".format(error.__str__()))
+        raise InvalidFailureReport("Unexpected error: {0}".format(error.__str__()))
 
 
-def parsed_forensic_reports_to_csv_rows(
-    reports: Union[ForensicReport, list[ForensicReport]],
+def parsed_failure_reports_to_csv_rows(
+    reports: Union[FailureReport, list[FailureReport]],
 ) -> list[dict[str, Any]]:
     """
-    Converts one or more parsed forensic reports to a list of dicts in flat CSV
+    Converts one or more parsed failure reports to a list of dicts in flat CSV
     format
 
     Args:
-        reports: A parsed forensic report or list of parsed forensic reports
+        reports: A parsed failure report or list of parsed failure reports
 
     Returns:
-        list: Parsed forensic report data as a list of dicts in flat CSV format
+        list: Parsed failure report data as a list of dicts in flat CSV format
     """
     if isinstance(reports, dict):
         reports = [reports]
@@ -1383,6 +1588,9 @@ def parsed_forensic_reports_to_csv_rows(
         row["source_base_domain"] = report["source"]["base_domain"]
         row["source_name"] = report["source"]["name"]
         row["source_type"] = report["source"]["type"]
+        row["source_asn"] = report["source"]["asn"]
+        row["source_as_name"] = report["source"]["as_name"]
+        row["source_as_domain"] = report["source"]["as_domain"]
         row["source_country"] = report["source"]["country"]
         del row["source"]
         row["subject"] = report["parsed_sample"].get("subject")
@@ -1396,18 +1604,18 @@ def parsed_forensic_reports_to_csv_rows(
     return rows
 
 
-def parsed_forensic_reports_to_csv(
-    reports: Union[ForensicReport, list[ForensicReport]],
+def parsed_failure_reports_to_csv(
+    reports: Union[FailureReport, list[FailureReport]],
 ) -> str:
     """
-    Converts one or more parsed forensic reports to flat CSV format, including
+    Converts one or more parsed failure reports to flat CSV format, including
     headers
 
     Args:
-        reports: A parsed forensic report or list of parsed forensic reports
+        reports: A parsed failure report or list of parsed failure reports
 
     Returns:
-        str: Parsed forensic report data in flat CSV format, including headers
+        str: Parsed failure report data in flat CSV format, including headers
     """
     fields = [
         "feedback_type",
@@ -1428,6 +1636,9 @@ def parsed_forensic_reports_to_csv(
         "source_base_domain",
         "source_name",
         "source_type",
+        "source_asn",
+        "source_as_name",
+        "source_as_domain",
         "delivery_result",
         "auth_failure",
         "reported_domain",
@@ -1439,7 +1650,7 @@ def parsed_forensic_reports_to_csv(
     csv_writer = DictWriter(csv_file, fieldnames=fields)
     csv_writer.writeheader()
 
-    rows = parsed_forensic_reports_to_csv_rows(reports)
+    rows = parsed_failure_reports_to_csv_rows(reports)
 
     for row in rows:
         new_row: dict[str, Any] = {}
@@ -1459,7 +1670,8 @@ def parse_report_email(
     reverse_dns_map_path: Optional[str] = None,
     reverse_dns_map_url: Optional[str] = None,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     keep_alive: Optional[Callable] = None,
     normalize_timespan_threshold_hours: float = 24.0,
@@ -1469,21 +1681,23 @@ def parse_report_email(
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
         offline (bool): Do not query online for geolocation on DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
-            forensic report results
+            failure report results
         keep_alive (callable): keep alive function
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
         dict:
-        * ``report_type``: ``aggregate`` or ``forensic``
+        * ``report_type``: ``aggregate`` or ``failure``
         * ``report``: The parsed report
     """
     result: Optional[ParsedReport] = None
@@ -1602,6 +1816,7 @@ def parse_report_email(
                         offline=offline,
                         nameservers=nameservers,
                         timeout=dns_timeout,
+                        retries=dns_retries,
                         keep_alive=keep_alive,
                         normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                     )
@@ -1626,7 +1841,7 @@ def parse_report_email(
 
     if feedback_report and sample:
         try:
-            forensic_report = parse_forensic_report(
+            failure_report = parse_failure_report(
                 feedback_report,
                 sample,
                 msg_date,
@@ -1637,19 +1852,20 @@ def parse_report_email(
                 reverse_dns_map_url=reverse_dns_map_url,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
+                dns_retries=dns_retries,
                 strip_attachment_payloads=strip_attachment_payloads,
             )
-        except InvalidForensicReport as e:
+        except InvalidFailureReport as e:
             error = (
                 'Message with subject "{0}" '
                 "is not a valid "
-                "forensic DMARC report: {1}".format(subject, e)
+                "failure DMARC report: {1}".format(subject, e)
             )
-            raise InvalidForensicReport(error)
+            raise InvalidFailureReport(error)
         except Exception as e:
-            raise InvalidForensicReport(e.__str__())
+            raise InvalidFailureReport(e.__str__())
 
-        result = {"report_type": "forensic", "report": forensic_report}
+        result = {"report_type": "failure", "report": failure_report}
         return result
 
     if result is None:
@@ -1660,10 +1876,11 @@ def parse_report_email(
 
 
 def parse_report_file(
-    input_: Union[bytes, str, BinaryIO],
+    input_: Union[bytes, str, os.PathLike[str], os.PathLike[bytes], BinaryIO],
     *,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     ip_db_path: Optional[str] = None,
     always_use_local_files: bool = False,
@@ -1673,17 +1890,20 @@ def parse_report_file(
     keep_alive: Optional[Callable] = None,
     normalize_timespan_threshold_hours: float = 24,
 ) -> ParsedReport:
-    """Parses a DMARC aggregate or forensic file at the given path, a
+    """Parses a DMARC aggregate or failure file at the given path, a
     file-like object. or bytes
 
     Args:
-        input_ (str | bytes | BinaryIO): A path to a file, a file like object, or bytes
+        input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
+            a file-like object, or bytes
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
-            forensic report results
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+            failure report results
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
@@ -1694,9 +1914,10 @@ def parse_report_file(
         dict: The parsed DMARC report
     """
     file_object: BinaryIO
-    if isinstance(input_, str):
-        logger.debug("Parsing {0}".format(input_))
-        file_object = open(input_, "rb")
+    if isinstance(input_, (str, os.PathLike)):
+        file_path = os.fspath(input_)
+        logger.debug("Parsing {0}".format(file_path))
+        file_object = open(file_path, "rb")
     elif isinstance(input_, (bytes, bytearray, memoryview)):
         file_object = BytesIO(bytes(input_))
     else:
@@ -1719,6 +1940,7 @@ def parse_report_file(
             offline=offline,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
+            dns_retries=dns_retries,
             keep_alive=keep_alive,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
@@ -1738,6 +1960,7 @@ def parse_report_file(
                     offline=offline,
                     nameservers=nameservers,
                     dns_timeout=dns_timeout,
+                    dns_retries=dns_retries,
                     strip_attachment_payloads=strip_attachment_payloads,
                     keep_alive=keep_alive,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
@@ -1754,7 +1977,8 @@ def get_dmarc_reports_from_mbox(
     input_: str,
     *,
     nameservers: Optional[list[str]] = None,
-    dns_timeout: float = 2.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     ip_db_path: Optional[str] = None,
     always_use_local_files: bool = False,
@@ -1771,21 +1995,23 @@ def get_dmarc_reports_from_mbox(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
-            forensic report results
+            failure report results
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
-        dict: Lists of ``aggregate_reports``, ``forensic_reports``, and ``smtp_tls_reports``
+        dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
 
     """
     aggregate_reports: list[AggregateReport] = []
-    forensic_reports: list[ForensicReport] = []
+    failure_reports: list[FailureReport] = []
     smtp_tls_reports: list[SMTPTLSReport] = []
     try:
         mbox = mailbox.mbox(input_)
@@ -1807,6 +2033,7 @@ def get_dmarc_reports_from_mbox(
                     offline=offline,
                     nameservers=nameservers,
                     dns_timeout=dns_timeout,
+                    dns_retries=dns_retries,
                     strip_attachment_payloads=sa,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
@@ -1822,8 +2049,8 @@ def get_dmarc_reports_from_mbox(
                             "Skipping duplicate aggregate report "
                             f"from {report_org} with ID: {report_id}"
                         )
-                elif parsed_email["report_type"] == "forensic":
-                    forensic_reports.append(parsed_email["report"])
+                elif parsed_email["report_type"] == "failure":
+                    failure_reports.append(parsed_email["report"])
                 elif parsed_email["report_type"] == "smtp_tls":
                     smtp_tls_reports.append(parsed_email["report"])
             except InvalidDMARCReport as error:
@@ -1832,9 +2059,57 @@ def get_dmarc_reports_from_mbox(
         raise InvalidDMARCReport("Mailbox {0} does not exist".format(input_))
     return {
         "aggregate_reports": aggregate_reports,
-        "forensic_reports": forensic_reports,
+        "failure_reports": failure_reports,
         "smtp_tls_reports": smtp_tls_reports,
     }
+
+
+def _migrate_forensic_archive_folder(
+    connection: MailboxConnection, archive_folder: str
+) -> None:
+    """Consolidate a pre-rename ``<archive>/Forensic`` subfolder into
+    ``<archive>/Failure``.
+
+    Before failure reports were renamed from "forensic" reports, they were
+    archived under ``<archive_folder>/Forensic``; they now go to
+    ``<archive_folder>/Failure``. This best-effort, run-on-startup migration
+    moves any pre-existing legacy archive into the new location so reports
+    filed before and after the rename live in the same folder.
+
+    It is a no-op when there is no legacy ``Forensic`` folder (the common
+    case), and never raises: a mailbox that cannot be reorganized is logged
+    and skipped, consistent with the rest of parsedmarc's mailbox handling
+    (warn, don't crash). Uses the folder-management API added in mailsuite
+    2.1.0 (``folder_exists`` / ``rename_folder`` / ``merge_folders``).
+    """
+    old_folder = "{0}/Forensic".format(archive_folder)
+    new_folder = "{0}/Failure".format(archive_folder)
+    try:
+        if not connection.folder_exists(old_folder):
+            return
+        if connection.folder_exists(new_folder):
+            # Both exist (e.g. a partial earlier migration, or a manually
+            # created Failure folder): move the legacy folder's messages into
+            # the new one and drop the now-empty legacy folder.
+            connection.merge_folders(old_folder, new_folder)
+            logger.info(
+                "Merged legacy archive folder {0} into {1}".format(
+                    old_folder, new_folder
+                )
+            )
+        else:
+            connection.rename_folder(old_folder, new_folder)
+            logger.info(
+                "Renamed legacy archive folder {0} to {1}".format(
+                    old_folder, new_folder
+                )
+            )
+    except Exception as error:
+        logger.warning(
+            "Could not migrate legacy archive folder {0} to {1}: {2}".format(
+                old_folder, new_folder, error
+            )
+        )
 
 
 def get_dmarc_reports_from_mailbox(
@@ -1851,6 +2126,7 @@ def get_dmarc_reports_from_mailbox(
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
     dns_timeout: float = 6.0,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     results: Optional[ParsingResults] = None,
     batch_size: int = 10,
@@ -1867,15 +2143,17 @@ def get_dmarc_reports_from_mailbox(
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete  messages after processing them
         test (bool): Do not move or delete messages after processing them
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
         offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of DNS nameservers to query
         dns_timeout (float): Set the DNS query timeout
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
-            forensic report results
+            failure report results
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
             (use 0 for no limit)
@@ -1886,7 +2164,7 @@ def get_dmarc_reports_from_mailbox(
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
 
     Returns:
-        dict: Lists of ``aggregate_reports``, ``forensic_reports``, and ``smtp_tls_reports``
+        dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
     """
     if delete and test:
         raise ValueError("delete and test options are mutually exclusive")
@@ -1898,25 +2176,26 @@ def get_dmarc_reports_from_mailbox(
     current_time: Optional[Union[datetime, date, str]] = None
 
     aggregate_reports: list[AggregateReport] = []
-    forensic_reports: list[ForensicReport] = []
+    failure_reports: list[FailureReport] = []
     smtp_tls_reports: list[SMTPTLSReport] = []
     aggregate_report_msg_uids = []
-    forensic_report_msg_uids = []
+    failure_report_msg_uids = []
     smtp_tls_msg_uids = []
     aggregate_reports_folder = "{0}/Aggregate".format(archive_folder)
-    forensic_reports_folder = "{0}/Forensic".format(archive_folder)
+    failure_reports_folder = "{0}/Failure".format(archive_folder)
     smtp_tls_reports_folder = "{0}/SMTP-TLS".format(archive_folder)
     invalid_reports_folder = "{0}/Invalid".format(archive_folder)
 
     if results:
         aggregate_reports = results["aggregate_reports"].copy()
-        forensic_reports = results["forensic_reports"].copy()
+        failure_reports = results["failure_reports"].copy()
         smtp_tls_reports = results["smtp_tls_reports"].copy()
 
     if not test and create_folders:
+        _migrate_forensic_archive_folder(connection, archive_folder)
         connection.create_folder(archive_folder)
         connection.create_folder(aggregate_reports_folder)
-        connection.create_folder(forensic_reports_folder)
+        connection.create_folder(failure_reports_folder)
         connection.create_folder(smtp_tls_reports_folder)
         connection.create_folder(invalid_reports_folder)
 
@@ -1951,10 +2230,8 @@ def get_dmarc_reports_from_mailbox(
             )
             current_time = datetime.now(timezone.utc).strftime("%d-%b-%Y")
         elif isinstance(connection, MSGraphConnection):
-            since = (
-                datetime.now(timezone.utc) - timedelta(minutes=_since)
-            ).isoformat() + "Z"
-            current_time = datetime.now(timezone.utc).isoformat() + "Z"
+            since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).isoformat()
+            current_time = datetime.now(timezone.utc).isoformat()
         elif isinstance(connection, GmailConnection):
             since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime(
                 "%s"
@@ -1990,6 +2267,9 @@ def get_dmarc_reports_from_mailbox(
         elif isinstance(connection, MSGraphConnection):
             message_id = str(msg_uid)
             msg_content = connection.fetch_message(message_id, mark_read=not test)
+        elif isinstance(connection, MaildirConnection):
+            message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
+            msg_content = connection.fetch_message(message_id, mark_read=not test)
         else:
             message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
             msg_content = connection.fetch_message(message_id)
@@ -1999,6 +2279,7 @@ def get_dmarc_reports_from_mailbox(
                 msg_content,
                 nameservers=nameservers,
                 dns_timeout=dns_timeout,
+                dns_retries=dns_retries,
                 ip_db_path=ip_db_path,
                 always_use_local_files=always_use_local_files,
                 reverse_dns_map_path=reverse_dns_map_path,
@@ -2020,9 +2301,9 @@ def get_dmarc_reports_from_mailbox(
                         f"Skipping duplicate aggregate report with ID: {report_id}"
                     )
                 aggregate_report_msg_uids.append(message_id)
-            elif parsed_email["report_type"] == "forensic":
-                forensic_reports.append(parsed_email["report"])
-                forensic_report_msg_uids.append(message_id)
+            elif parsed_email["report_type"] == "failure":
+                failure_reports.append(parsed_email["report"])
+                failure_report_msg_uids.append(message_id)
             elif parsed_email["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(parsed_email["report"])
                 smtp_tls_msg_uids.append(message_id)
@@ -2049,7 +2330,7 @@ def get_dmarc_reports_from_mailbox(
     if not test:
         if delete:
             processed_messages = (
-                aggregate_report_msg_uids + forensic_report_msg_uids + smtp_tls_msg_uids
+                aggregate_report_msg_uids + failure_report_msg_uids + smtp_tls_msg_uids
             )
 
             number_of_processed_msgs = len(processed_messages)
@@ -2089,24 +2370,24 @@ def get_dmarc_reports_from_mailbox(
                         message = "Error moving message UID"
                         e = "{0} {1}: {2}".format(message, msg_uid, e)
                         logger.error("Mailbox error: {0}".format(e))
-            if len(forensic_report_msg_uids) > 0:
-                message = "Moving forensic report messages from"
+            if len(failure_report_msg_uids) > 0:
+                message = "Moving failure report messages from"
                 logger.debug(
                     "{0} {1} to {2}".format(
-                        message, reports_folder, forensic_reports_folder
+                        message, reports_folder, failure_reports_folder
                     )
                 )
-                number_of_forensic_msgs = len(forensic_report_msg_uids)
-                for i in range(number_of_forensic_msgs):
-                    msg_uid = forensic_report_msg_uids[i]
+                number_of_failure_msgs = len(failure_report_msg_uids)
+                for i in range(number_of_failure_msgs):
+                    msg_uid = failure_report_msg_uids[i]
                     message = "Moving message"
                     logger.debug(
                         "{0} {1} of {2}: UID {3}".format(
-                            message, i + 1, number_of_forensic_msgs, msg_uid
+                            message, i + 1, number_of_failure_msgs, msg_uid
                         )
                     )
                     try:
-                        connection.move_message(msg_uid, forensic_reports_folder)
+                        connection.move_message(msg_uid, failure_reports_folder)
                     except Exception as e:
                         e = "Error moving message UID {0}: {1}".format(msg_uid, e)
                         logger.error("Mailbox error: {0}".format(e))
@@ -2133,18 +2414,21 @@ def get_dmarc_reports_from_mailbox(
                         logger.error("Mailbox error: {0}".format(e))
     results = {
         "aggregate_reports": aggregate_reports,
-        "forensic_reports": forensic_reports,
+        "failure_reports": failure_reports,
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    if current_time:
-        total_messages = len(
-            connection.fetch_messages(reports_folder, since=current_time)
-        )
+    if not test and not batch_size:
+        if current_time:
+            total_messages = len(
+                connection.fetch_messages(reports_folder, since=current_time)
+            )
+        else:
+            total_messages = len(connection.fetch_messages(reports_folder))
     else:
-        total_messages = len(connection.fetch_messages(reports_folder))
+        total_messages = 0
 
-    if not test and not batch_size and total_messages > 0:
+    if total_messages > 0:
         # Process emails that came in during the last run
         results = get_dmarc_reports_from_mailbox(
             connection=connection,
@@ -2154,6 +2438,7 @@ def get_dmarc_reports_from_mailbox(
             test=test,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
+            dns_retries=dns_retries,
             strip_attachment_payloads=strip_attachment_payloads,
             results=results,
             ip_db_path=ip_db_path,
@@ -2184,9 +2469,12 @@ def watch_inbox(
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
     dns_timeout: float = 6.0,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     batch_size: int = 10,
+    since: Optional[Union[datetime, date, str]] = None,
     normalize_timespan_threshold_hours: float = 24,
+    config_reloading: Optional[Callable] = None,
 ):
     """
     Watches the mailbox for new messages and
@@ -2201,7 +2489,7 @@ def watch_inbox(
         test (bool): Do not move or delete messages after processing them
         check_timeout (int): Number of seconds to wait for a IMAP IDLE response
             or the number of seconds until the next mail check
-        ip_db_path (str): Path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
@@ -2209,10 +2497,15 @@ def watch_inbox(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Set the DNS query timeout
+        dns_retries (int): Number of times to retry DNS queries on timeout
+            or other transient errors
         strip_attachment_payloads (bool): Replace attachment payloads in
-            forensic report samples with None
+            failure report samples with None
         batch_size (int): Number of messages to read and process before saving
+        since: Search for messages since certain time
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config_reloading: Optional callable that returns True when a config
+            reload has been requested (e.g. via SIGHUP)
     """
 
     def check_callback(connection):
@@ -2229,44 +2522,66 @@ def watch_inbox(
             offline=offline,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
+            dns_retries=dns_retries,
             strip_attachment_payloads=strip_attachment_payloads,
             batch_size=batch_size,
+            since=since,
             create_folders=False,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         callback(res)
 
-    mailbox_connection.watch(check_callback=check_callback, check_timeout=check_timeout)
+    watch_kwargs: dict = {
+        "check_callback": check_callback,
+        "check_timeout": check_timeout,
+    }
+    if config_reloading is not None:
+        watch_kwargs["config_reloading"] = config_reloading
+
+    mailbox_connection.watch(**watch_kwargs)
 
 
 def append_json(
     filename: str,
     reports: Union[
         Sequence[AggregateReport],
-        Sequence[ForensicReport],
+        Sequence[FailureReport],
         Sequence[SMTPTLSReport],
     ],
 ) -> None:
-    with open(filename, "a+", newline="\n", encoding="utf-8") as output:
-        output_json = json.dumps(reports, ensure_ascii=False, indent=2)
-        if output.seek(0, os.SEEK_END) != 0:
-            if len(reports) == 0:
-                # not appending anything, don't do any dance to append it
-                # correctly
-                return
-            output.seek(output.tell() - 1)
-            last_char = output.read(1)
-            if last_char == "]":
-                # remove the trailing "\n]", leading "[\n", and replace with
-                # ",\n"
-                output.seek(output.tell() - 2)
-                output.write(",\n")
-                output_json = output_json[2:]
-            else:
-                output.seek(0)
-                output.truncate()
+    """Append ``reports`` to a JSON array on disk, creating the file
+    if needed.
 
-        output.write(output_json)
+    Reads the existing array (if the file exists and parses cleanly),
+    merges the new reports onto the end, and rewrites the file as a
+    single valid JSON array. An earlier version of this used an
+    ``open(..., "a+")`` + ``seek()`` + overwrite pattern, but Python's
+    documentation is explicit that on POSIX, ``a`` / ``a+`` writes
+    *always* go to EOF regardless of seek position — so the second
+    call onto an existing file produced ``[...],\\n[...]``-style
+    corrupted output. Read-merge-write is the only way to get a valid
+    JSON array out of repeated appends.
+    """
+    if len(reports) == 0:
+        # Don't create an empty-array file for an empty input; if a
+        # file already exists, leave it alone.
+        return
+
+    existing: list = []
+    if os.path.isfile(filename) and os.path.getsize(filename) > 0:
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                loaded = json.loads(f.read())
+            if isinstance(loaded, list):
+                existing = loaded
+        except (json.JSONDecodeError, OSError):
+            # Corrupted or unreadable: overwrite cleanly rather than
+            # silently fail to record.
+            existing = []
+
+    merged = existing + list(reports)
+    with open(filename, "w", newline="\n", encoding="utf-8") as output:
+        json.dump(merged, output, ensure_ascii=False, indent=2)
 
 
 def append_csv(filename: str, csv: str) -> None:
@@ -2286,10 +2601,10 @@ def save_output(
     *,
     output_directory: str = "output",
     aggregate_json_filename: str = "aggregate.json",
-    forensic_json_filename: str = "forensic.json",
+    failure_json_filename: str = "failure.json",
     smtp_tls_json_filename: str = "smtp_tls.json",
     aggregate_csv_filename: str = "aggregate.csv",
-    forensic_csv_filename: str = "forensic.csv",
+    failure_csv_filename: str = "failure.csv",
     smtp_tls_csv_filename: str = "smtp_tls.csv",
 ):
     """
@@ -2299,15 +2614,15 @@ def save_output(
         results: Parsing results
         output_directory (str): The path to the directory to save in
         aggregate_json_filename (str): Filename for the aggregate JSON file
-        forensic_json_filename (str): Filename for the forensic JSON file
+        failure_json_filename (str): Filename for the failure JSON file
         smtp_tls_json_filename (str): Filename for the SMTP TLS JSON file
         aggregate_csv_filename (str): Filename for the aggregate CSV file
-        forensic_csv_filename (str): Filename for the forensic CSV file
+        failure_csv_filename (str): Filename for the failure CSV file
         smtp_tls_csv_filename (str): Filename for the SMTP TLS CSV file
     """
 
     aggregate_reports = results["aggregate_reports"]
-    forensic_reports = results["forensic_reports"]
+    failure_reports = results["failure_reports"]
     smtp_tls_reports = results["smtp_tls_reports"]
     output_directory = os.path.expanduser(output_directory)
 
@@ -2326,13 +2641,11 @@ def save_output(
         parsed_aggregate_reports_to_csv(aggregate_reports),
     )
 
-    append_json(
-        os.path.join(output_directory, forensic_json_filename), forensic_reports
-    )
+    append_json(os.path.join(output_directory, failure_json_filename), failure_reports)
 
     append_csv(
-        os.path.join(output_directory, forensic_csv_filename),
-        parsed_forensic_reports_to_csv(forensic_reports),
+        os.path.join(output_directory, failure_csv_filename),
+        parsed_failure_reports_to_csv(failure_reports),
     )
 
     append_json(
@@ -2349,10 +2662,10 @@ def save_output(
         os.makedirs(samples_directory)
 
     sample_filenames = []
-    for forensic_report in forensic_reports:
-        sample = forensic_report["sample"]
+    for failure_report in failure_reports:
+        sample = failure_report["sample"]
         message_count = 0
-        parsed_sample = forensic_report["parsed_sample"]
+        parsed_sample = failure_report["parsed_sample"]
         subject = (
             parsed_sample.get("filename_safe_subject")
             or parsed_sample.get("subject")
@@ -2486,3 +2799,9 @@ def email_results(
         attachments=attachments,
         plain_message=message,
     )
+
+
+# Backward-compatible aliases
+parse_forensic_report = parse_failure_report
+parsed_forensic_reports_to_csv_rows = parsed_failure_reports_to_csv_rows
+parsed_forensic_reports_to_csv = parsed_failure_reports_to_csv

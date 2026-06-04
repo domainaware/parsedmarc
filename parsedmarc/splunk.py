@@ -58,7 +58,7 @@ class HECClient(object):
         self.source = source
         self.session = requests.Session()
         self.timeout = timeout
-        self.session.verify = verify
+        self.verify = verify
         self._common_data: dict[str, Union[str, int, float, dict]] = dict(
             host=self.host, source=self.source, index=self.index
         )
@@ -104,6 +104,9 @@ class HECClient(object):
                 new_report["source_base_domain"] = record["source"]["base_domain"]
                 new_report["source_type"] = record["source"]["type"]
                 new_report["source_name"] = record["source"]["name"]
+                new_report["source_asn"] = record["source"]["asn"]
+                new_report["source_as_name"] = record["source"]["as_name"]
+                new_report["source_as_domain"] = record["source"]["as_domain"]
                 new_report["message_count"] = record["count"]
                 new_report["disposition"] = record["policy_evaluated"]["disposition"]
                 new_report["spf_aligned"] = record["alignment"]["spf"]
@@ -124,47 +127,51 @@ class HECClient(object):
                 data["event"] = new_report.copy()
                 json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
             raise SplunkError(response["text"])
 
-    def save_forensic_reports_to_splunk(
+    def save_failure_reports_to_splunk(
         self,
-        forensic_reports: Union[list[dict[str, Any]], dict[str, Any]],
+        failure_reports: Union[list[dict[str, Any]], dict[str, Any]],
     ):
         """
-        Saves forensic DMARC reports to Splunk
+        Saves failure DMARC reports to Splunk
 
         Args:
-            forensic_reports (list): A list of forensic report dictionaries
+            failure_reports (list): A list of failure report dictionaries
                 to save in Splunk
         """
-        logger.debug("Saving forensic reports to Splunk")
-        if isinstance(forensic_reports, dict):
-            forensic_reports = [forensic_reports]
+        logger.debug("Saving failure reports to Splunk")
+        if isinstance(failure_reports, dict):
+            failure_reports = [failure_reports]
 
-        if len(forensic_reports) < 1:
+        if len(failure_reports) < 1:
             return
 
         json_str = ""
-        for report in forensic_reports:
+        for report in failure_reports:
             data = self._common_data.copy()
-            data["sourcetype"] = "dmarc:forensic"
+            data["sourcetype"] = "dmarc:failure"
             timestamp = human_timestamp_to_unix_timestamp(report["arrival_date_utc"])
             data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
@@ -198,12 +205,22 @@ class HECClient(object):
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
 
-        if not self.session.verify:
+        if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
-            response = self.session.post(self.url, data=json_str, timeout=self.timeout)
+            response = self.session.post(
+                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+            )
             response = response.json()
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
             raise SplunkError(response["text"])
+
+    def close(self):
+        """Close the underlying HTTP session."""
+        self.session.close()
+
+
+# Backward-compatible aliases
+HECClient.save_forensic_reports_to_splunk = HECClient.save_failure_reports_to_splunk

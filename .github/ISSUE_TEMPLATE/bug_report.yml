@@ -1,0 +1,72 @@
+name: Bug report
+description: Report a reproducible parsedmarc bug
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: input
+    id: version
+    attributes:
+      label: parsedmarc version
+      description: Include the parsedmarc version or commit if known.
+      placeholder: 9.x.x
+    validations:
+      required: true
+  - type: dropdown
+    id: input_backend
+    attributes:
+      label: Input backend
+      description: Which input path or mailbox backend is involved?
+      options:
+        - IMAP
+        - MS Graph
+        - Gmail API
+        - Maildir
+        - mbox
+        - Local file / direct parse
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Runtime, container image, OS, Python version, or deployment details.
+      placeholder: Docker on Debian, Python 3.12, parsedmarc installed from PyPI
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Sanitized config
+      description: Include the relevant config fragment with secrets removed.
+      render: ini
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Describe the smallest reproducible sequence you can.
+      placeholder: |
+        1. Configure parsedmarc with ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs actual behavior
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or traceback
+      description: Paste sanitized logs or a traceback if available.
+      render: text
+  - type: textarea
+    id: samples
+    attributes:
+      label: Sample report availability
+      description: If you can share a sanitized sample report or message, note that here.

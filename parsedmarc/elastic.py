@@ -13,6 +13,7 @@ from elasticsearch_dsl import (
     InnerDoc,
     Integer,
     Ip,
+    Keyword,
     Nested,
     Object,
     Search,
@@ -21,13 +22,25 @@ from elasticsearch_dsl import (
 )
 from elasticsearch_dsl.search import Q
 
-from parsedmarc import InvalidForensicReport
+from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
 
 
 class ElasticsearchError(Exception):
     """Raised when an Elasticsearch error occurs"""
+
+
+# Mirror of the ``serverless`` flag passed to ``set_hosts``; consulted by
+# ``create_indexes`` to strip settings Elastic Cloud Serverless rejects.
+# Module-level state is consistent with the existing ``connections.create_connection``
+# global the rest of this module relies on — there is a single default ES
+# connection per process.
+_SERVERLESS = False
+
+# Index settings rejected by Elastic Cloud Serverless with HTTP 400. Other
+# settings (e.g. ``refresh_interval``) are accepted and pass through.
+_SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replicas"})
 
 
 class _PolicyOverride(InnerDoc):
@@ -43,18 +56,23 @@ class _PublishedPolicy(InnerDoc):
     sp = Text()
     pct = Integer()
     fo = Text()
+    np = Keyword()
+    testing = Keyword()
+    discovery_method = Keyword()
 
 
 class _DKIMResult(InnerDoc):
     domain = Text()
     selector = Text()
     result = Text()
+    human_result = Text()
 
 
 class _SPFResult(InnerDoc):
     domain = Text()
     scope = Text()
     results = Text()
+    human_result = Text()
 
 
 class _AggregateReportDoc(Document):
@@ -62,6 +80,7 @@ class _AggregateReportDoc(Document):
         name = "dmarc_aggregate"
 
     xml_schema = Text()
+    xml_namespace = Keyword()
     org_name = Text()
     org_email = Text()
     org_extra_contact_info = Text()
@@ -79,6 +98,9 @@ class _AggregateReportDoc(Document):
     source_base_domain = Text()
     source_type = Text()
     source_name = Text()
+    source_asn = Integer()
+    source_as_name = Text()
+    source_as_domain = Text()
     message_count = Integer
     disposition = Text()
     dkim_aligned = Boolean()
@@ -90,17 +112,45 @@ class _AggregateReportDoc(Document):
     envelope_to = Text()
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
+    np = Keyword()
+    testing = Keyword()
+    discovery_method = Keyword()
+    generator = Text()
 
     def add_policy_override(self, type_: str, comment: str):
         self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))  # pyright: ignore[reportCallIssue]
 
-    def add_dkim_result(self, domain: str, selector: str, result: _DKIMResult):
+    def add_dkim_result(
+        self,
+        domain: str,
+        selector: str,
+        result: _DKIMResult,
+        human_result: str = None,
+    ):
         self.dkim_results.append(
-            _DKIMResult(domain=domain, selector=selector, result=result)
+            _DKIMResult(
+                domain=domain,
+                selector=selector,
+                result=result,
+                human_result=human_result,
+            )
         )  # pyright: ignore[reportCallIssue]
 
-    def add_spf_result(self, domain: str, scope: str, result: _SPFResult):
-        self.spf_results.append(_SPFResult(domain=domain, scope=scope, result=result))  # pyright: ignore[reportCallIssue]
+    def add_spf_result(
+        self,
+        domain: str,
+        scope: str,
+        result: _SPFResult,
+        human_result: str = None,
+    ):
+        self.spf_results.append(
+            _SPFResult(
+                domain=domain,
+                scope=scope,
+                result=result,
+                human_result=human_result,
+            )
+        )  # pyright: ignore[reportCallIssue]
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
@@ -120,7 +170,7 @@ class _EmailAttachmentDoc(Document):
     sha256 = Text()
 
 
-class _ForensicSampleDoc(InnerDoc):
+class _FailureSampleDoc(InnerDoc):
     raw = Text()
     headers = Object()
     headers_only = Boolean()
@@ -157,9 +207,9 @@ class _ForensicSampleDoc(InnerDoc):
         )  # pyright: ignore[reportCallIssue]
 
 
-class _ForensicReportDoc(Document):
+class _FailureReportDoc(Document):
     class Index:
-        name = "dmarc_forensic"
+        name = "dmarc_failure"
 
     feedback_type = Text()
     user_agent = Text()
@@ -173,11 +223,14 @@ class _ForensicReportDoc(Document):
     source_ip_address = Ip()
     source_country = Text()
     source_reverse_dns = Text()
+    source_asn = Integer()
+    source_as_name = Text()
+    source_as_domain = Text()
     source_authentication_mechanisms = Text()
     source_auth_failures = Text()
     dkim_domain = Text()
     original_rcpt_to = Text()
-    sample = Object(_ForensicSampleDoc)
+    sample = Object(_FailureSampleDoc)
 
 
 class _SMTPTLSFailureDetailsDoc(InnerDoc):
@@ -268,10 +321,12 @@ def set_hosts(
     *,
     use_ssl: bool = False,
     ssl_cert_path: Optional[str] = None,
+    skip_certificate_verification: bool = False,
     username: Optional[str] = None,
     password: Optional[str] = None,
     api_key: Optional[str] = None,
     timeout: float = 60.0,
+    serverless: bool = False,
 ):
     """
     Sets the Elasticsearch hosts to use
@@ -280,23 +335,32 @@ def set_hosts(
         hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
         use_ssl (bool): Use an HTTPS connection to the server
         ssl_cert_path (str): Path to the certificate chain
+        skip_certificate_verification (bool): Skip certificate verification
         username (str): The username to use for authentication
         password (str): The password to use for authentication
         api_key (str): The Base64 encoded API key to use for authentication
         timeout (float): Timeout in seconds
+        serverless (bool): Target an Elastic Cloud Serverless project. When True,
+            ``create_indexes`` strips ``number_of_shards`` / ``number_of_replicas``
+            from its settings (which Serverless rejects with HTTP 400) and passes
+            any other settings through unchanged.
     """
+    # Module-global; see the _SERVERLESS comment at the top of the module.
+    global _SERVERLESS
+    _SERVERLESS = serverless
     if not isinstance(hosts, list):
         hosts = [hosts]
     conn_params = {"hosts": hosts, "timeout": timeout}
     if use_ssl:
         conn_params["use_ssl"] = True
         if ssl_cert_path:
-            conn_params["verify_certs"] = True
             conn_params["ca_certs"] = ssl_cert_path
-        else:
+        if skip_certificate_verification:
             conn_params["verify_certs"] = False
+        else:
+            conn_params["verify_certs"] = True
     if username and password:
-        conn_params["http_auth"] = username + ":" + password
+        conn_params["http_auth"] = (username, password)
     if api_key:
         conn_params["api_key"] = api_key
     connections.create_connection(**conn_params)
@@ -308,18 +372,28 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
 
     Args:
         names (list): A list of index names
-        settings (dict): Index settings
-
+        settings (dict): Index settings. In Serverless mode, keys in
+            ``_SERVERLESS_REJECTED_SETTINGS`` are filtered out and the
+            remaining keys are passed through; defaults are skipped entirely.
     """
+    if settings is None:
+        effective_settings: dict[str, Any] = (
+            {} if _SERVERLESS else {"number_of_shards": 1, "number_of_replicas": 0}
+        )
+    elif _SERVERLESS:
+        effective_settings = {
+            k: v for k, v in settings.items() if k not in _SERVERLESS_REJECTED_SETTINGS
+        }
+    else:
+        effective_settings = dict(settings)
+
     for name in names:
         index = Index(name)
         try:
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
-                if settings is None:
-                    index.settings(number_of_shards=1, number_of_replicas=0)
-                else:
-                    index.settings(**settings)
+                if effective_settings:
+                    index.settings(**effective_settings)
                 index.create()
         except Exception as e:
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
@@ -327,20 +401,20 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
 
 def migrate_indexes(
     aggregate_indexes: Optional[list[str]] = None,
-    forensic_indexes: Optional[list[str]] = None,
+    failure_indexes: Optional[list[str]] = None,
 ):
     """
     Updates index mappings
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
-        forensic_indexes (list): A list of forensic index names
+        failure_indexes (list): A list of failure index names
     """
     version = 2
     if aggregate_indexes is None:
         aggregate_indexes = []
-    if forensic_indexes is None:
-        forensic_indexes = []
+    if failure_indexes is None:
+        failure_indexes = []
     for aggregate_index_name in aggregate_indexes:
         if not Index(aggregate_index_name).exists():
             continue
@@ -370,7 +444,7 @@ def migrate_indexes(
             reindex(connections.get_connection(), aggregate_index_name, new_index_name)  # pyright: ignore[reportArgumentType]
             Index(aggregate_index_name).delete()
 
-    for forensic_index in forensic_indexes:
+    for failure_index in failure_indexes:
         pass
 
 
@@ -386,7 +460,7 @@ def save_aggregate_report_to_elasticsearch(
     Saves a parsed DMARC aggregate report to Elasticsearch
 
     Args:
-        aggregate_report (dict): A parsed forensic report
+        aggregate_report (dict): A parsed aggregate report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
@@ -413,8 +487,8 @@ def save_aggregate_report_to_elasticsearch(
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))  # type: ignore
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))  # pyright: ignore[reportArgumentType]
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))  # pyright: ignore[reportArgumentType]
-    begin_date_query = Q(dict(match=dict(date_begin=begin_date)))  # pyright: ignore[reportArgumentType]
-    end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
+    begin_date_query = Q(dict(range=dict(date_begin=dict(gte=begin_date))))  # pyright: ignore[reportArgumentType]
+    end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
         search_index = "dmarc_aggregate_{0}*".format(index_suffix)
@@ -454,6 +528,9 @@ def save_aggregate_report_to_elasticsearch(
         sp=aggregate_report["policy_published"]["sp"],
         pct=aggregate_report["policy_published"]["pct"],
         fo=aggregate_report["policy_published"]["fo"],
+        np=aggregate_report["policy_published"].get("np"),
+        testing=aggregate_report["policy_published"].get("testing"),
+        discovery_method=aggregate_report["policy_published"].get("discovery_method"),
     )
 
     for record in aggregate_report["records"]:
@@ -470,6 +547,7 @@ def save_aggregate_report_to_elasticsearch(
         date_range = [aggregate_report["begin_date"], aggregate_report["end_date"]]
         agg_doc = _AggregateReportDoc(
             xml_schema=aggregate_report["xml_schema"],
+            xml_namespace=aggregate_report.get("xml_namespace"),
             org_name=metadata["org_name"],
             org_email=metadata["org_email"],
             org_extra_contact_info=metadata["org_extra_contact_info"],
@@ -486,6 +564,9 @@ def save_aggregate_report_to_elasticsearch(
             source_base_domain=record["source"]["base_domain"],
             source_type=record["source"]["type"],
             source_name=record["source"]["name"],
+            source_asn=record["source"]["asn"],
+            source_as_name=record["source"]["as_name"],
+            source_as_domain=record["source"]["as_domain"],
             message_count=record["count"],
             disposition=record["policy_evaluated"]["disposition"],
             dkim_aligned=record["policy_evaluated"]["dkim"] is not None
@@ -495,6 +576,12 @@ def save_aggregate_report_to_elasticsearch(
             header_from=record["identifiers"]["header_from"],
             envelope_from=record["identifiers"]["envelope_from"],
             envelope_to=record["identifiers"]["envelope_to"],
+            np=aggregate_report["policy_published"].get("np"),
+            testing=aggregate_report["policy_published"].get("testing"),
+            discovery_method=aggregate_report["policy_published"].get(
+                "discovery_method"
+            ),
+            generator=metadata.get("generator"),
         )
 
         for override in record["policy_evaluated"]["policy_override_reasons"]:
@@ -507,6 +594,7 @@ def save_aggregate_report_to_elasticsearch(
                 domain=dkim_result["domain"],
                 selector=dkim_result["selector"],
                 result=dkim_result["result"],
+                human_result=dkim_result.get("human_result"),
             )
 
         for spf_result in record["auth_results"]["spf"]:
@@ -514,6 +602,7 @@ def save_aggregate_report_to_elasticsearch(
                 domain=spf_result["domain"],
                 scope=spf_result["scope"],
                 result=spf_result["result"],
+                human_result=spf_result.get("human_result"),
             )
 
         index = "dmarc_aggregate"
@@ -535,8 +624,8 @@ def save_aggregate_report_to_elasticsearch(
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
 
 
-def save_forensic_report_to_elasticsearch(
-    forensic_report: dict[str, Any],
+def save_failure_report_to_elasticsearch(
+    failure_report: dict[str, Any],
     index_suffix: Optional[Any] = None,
     index_prefix: Optional[str] = None,
     monthly_indexes: Optional[bool] = False,
@@ -544,10 +633,10 @@ def save_forensic_report_to_elasticsearch(
     number_of_replicas: int = 0,
 ):
     """
-    Saves a parsed DMARC forensic report to Elasticsearch
+    Saves a parsed DMARC failure report to Elasticsearch
 
     Args:
-        forensic_report (dict): A parsed forensic report
+        failure_report (dict): A parsed failure report
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily
@@ -560,26 +649,28 @@ def save_forensic_report_to_elasticsearch(
         AlreadySaved
 
     """
-    logger.info("Saving forensic report to Elasticsearch")
-    forensic_report = forensic_report.copy()
+    logger.info("Saving failure report to Elasticsearch")
+    failure_report = failure_report.copy()
     sample_date = None
-    if forensic_report["parsed_sample"]["date"] is not None:
-        sample_date = forensic_report["parsed_sample"]["date"]
+    if failure_report["parsed_sample"]["date"] is not None:
+        sample_date = failure_report["parsed_sample"]["date"]
         sample_date = human_timestamp_to_datetime(sample_date)
-    original_headers = forensic_report["parsed_sample"]["headers"]
+    original_headers = failure_report["parsed_sample"]["headers"]
     headers: dict[str, Any] = {}
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
-    arrival_date = human_timestamp_to_datetime(forensic_report["arrival_date_utc"])
+    arrival_date = human_timestamp_to_datetime(failure_report["arrival_date_utc"])
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_forensic_{0}*".format(index_suffix)
+        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(index_suffix)
     else:
-        search_index = "dmarc_forensic*"
+        search_index = "dmarc_failure*,dmarc_forensic*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = ",".join(
+            "{0}{1}".format(index_prefix, part) for part in search_index.split(",")
+        )
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))  # pyright: ignore[reportArgumentType]
 
@@ -610,6 +701,16 @@ def save_forensic_report_to_elasticsearch(
         to_["sample.headers.to"] = headers["to"]
         to_query = Q(dict(match_phrase=to_))  # pyright: ignore[reportArgumentType]
         q = q & to_query
+    if "reply-to" in headers:
+        # Flatten the Reply-To header to a string so it can be displayed
+        # and aggregated like From/To. Only the first address is used,
+        # matching the From/To handling above. Not part of the dedup
+        # query.
+        headers["reply-to"] = headers["reply-to"][0]
+        if headers["reply-to"][0] == "":
+            headers["reply-to"] = headers["reply-to"][1]
+        else:
+            headers["reply-to"] = " <".join(headers["reply-to"]) + ">"
     if "subject" in headers:
         subject = headers["subject"]
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
@@ -620,64 +721,67 @@ def save_forensic_report_to_elasticsearch(
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "A forensic sample to {0} from {1} "
+            "A failure sample to {0} from {1} "
             "with a subject of {2} and arrival date of {3} "
             "already exists in "
             "Elasticsearch".format(
-                to_, from_, subject, forensic_report["arrival_date_utc"]
+                to_, from_, subject, failure_report["arrival_date_utc"]
             )
         )
 
-    parsed_sample = forensic_report["parsed_sample"]
-    sample = _ForensicSampleDoc(
-        raw=forensic_report["sample"],
+    parsed_sample = failure_report["parsed_sample"]
+    sample = _FailureSampleDoc(
+        raw=failure_report["sample"],
         headers=headers,
-        headers_only=forensic_report["sample_headers_only"],
+        headers_only=failure_report["sample_headers_only"],
         date=sample_date,
-        subject=forensic_report["parsed_sample"]["subject"],
+        subject=failure_report["parsed_sample"]["subject"],
         filename_safe_subject=parsed_sample["filename_safe_subject"],
-        body=forensic_report["parsed_sample"]["body"],
+        body=failure_report["parsed_sample"]["body"],
     )
 
-    for address in forensic_report["parsed_sample"]["to"]:
+    for address in failure_report["parsed_sample"]["to"]:
         sample.add_to(display_name=address["display_name"], address=address["address"])
-    for address in forensic_report["parsed_sample"]["reply_to"]:
+    for address in failure_report["parsed_sample"]["reply_to"]:
         sample.add_reply_to(
             display_name=address["display_name"], address=address["address"]
         )
-    for address in forensic_report["parsed_sample"]["cc"]:
+    for address in failure_report["parsed_sample"]["cc"]:
         sample.add_cc(display_name=address["display_name"], address=address["address"])
-    for address in forensic_report["parsed_sample"]["bcc"]:
+    for address in failure_report["parsed_sample"]["bcc"]:
         sample.add_bcc(display_name=address["display_name"], address=address["address"])
-    for attachment in forensic_report["parsed_sample"]["attachments"]:
+    for attachment in failure_report["parsed_sample"]["attachments"]:
         sample.add_attachment(
             filename=attachment["filename"],
             content_type=attachment["mail_content_type"],
             sha256=attachment["sha256"],
         )
     try:
-        forensic_doc = _ForensicReportDoc(
-            feedback_type=forensic_report["feedback_type"],
-            user_agent=forensic_report["user_agent"],
-            version=forensic_report["version"],
-            original_mail_from=forensic_report["original_mail_from"],
+        failure_doc = _FailureReportDoc(
+            feedback_type=failure_report["feedback_type"],
+            user_agent=failure_report["user_agent"],
+            version=failure_report["version"],
+            original_mail_from=failure_report["original_mail_from"],
             arrival_date=arrival_date_epoch_milliseconds,
-            domain=forensic_report["reported_domain"],
-            original_envelope_id=forensic_report["original_envelope_id"],
-            authentication_results=forensic_report["authentication_results"],
-            delivery_results=forensic_report["delivery_result"],
-            source_ip_address=forensic_report["source"]["ip_address"],
-            source_country=forensic_report["source"]["country"],
-            source_reverse_dns=forensic_report["source"]["reverse_dns"],
-            source_base_domain=forensic_report["source"]["base_domain"],
-            authentication_mechanisms=forensic_report["authentication_mechanisms"],
-            auth_failure=forensic_report["auth_failure"],
-            dkim_domain=forensic_report["dkim_domain"],
-            original_rcpt_to=forensic_report["original_rcpt_to"],
+            domain=failure_report["reported_domain"],
+            original_envelope_id=failure_report["original_envelope_id"],
+            authentication_results=failure_report["authentication_results"],
+            delivery_results=failure_report["delivery_result"],
+            source_ip_address=failure_report["source"]["ip_address"],
+            source_country=failure_report["source"]["country"],
+            source_reverse_dns=failure_report["source"]["reverse_dns"],
+            source_base_domain=failure_report["source"]["base_domain"],
+            source_asn=failure_report["source"]["asn"],
+            source_as_name=failure_report["source"]["as_name"],
+            source_as_domain=failure_report["source"]["as_domain"],
+            authentication_mechanisms=failure_report["authentication_mechanisms"],
+            auth_failure=failure_report["auth_failure"],
+            dkim_domain=failure_report["dkim_domain"],
+            original_rcpt_to=failure_report["original_rcpt_to"],
             sample=sample,
         )
 
-        index = "dmarc_forensic"
+        index = "dmarc_failure"
         if index_suffix:
             index = "{0}_{1}".format(index, index_suffix)
         if index_prefix:
@@ -691,14 +795,14 @@ def save_forensic_report_to_elasticsearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         create_indexes([index], index_settings)
-        forensic_doc.meta.index = index  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+        failure_doc.meta.index = index  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
         try:
-            forensic_doc.save()
+            failure_doc.save()
         except Exception as e:
             raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
     except KeyError as e:
-        raise InvalidForensicReport(
-            "Forensic report missing required field: {0}".format(e.__str__())
+        raise InvalidFailureReport(
+            "Failure report missing required field: {0}".format(e.__str__())
         )
 
 
@@ -735,6 +839,7 @@ def save_smtp_tls_report_to_elasticsearch(
         index_date = begin_date.strftime("%Y-%m")
     else:
         index_date = begin_date.strftime("%Y-%m-%d")
+    report = report.copy()
     report["begin_date"] = begin_date
     report["end_date"] = end_date
 
@@ -851,3 +956,9 @@ def save_smtp_tls_report_to_elasticsearch(
         smtp_tls_doc.save()
     except Exception as e:
         raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+
+
+# Backward-compatible aliases
+_ForensicSampleDoc = _FailureSampleDoc
+_ForensicReportDoc = _FailureReportDoc
+save_forensic_report_to_elasticsearch = save_failure_report_to_elasticsearch

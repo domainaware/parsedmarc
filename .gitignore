@@ -137,7 +137,7 @@ samples/private
 *.html
 *.sqlite-journal
 
-parsedmarc.ini
+parsedmarc*.ini
 scratch.py
 
 parsedmarc/resources/maps/base_reverse_dns.csv
@@ -145,3 +145,7 @@ parsedmarc/resources/maps/unknown_base_reverse_dns.csv
 parsedmarc/resources/maps/sus_domains.csv
 parsedmarc/resources/maps/unknown_domains.txt
 *.bak
+*.lock
+parsedmarc/resources/maps/domain_info.tsv
+coverage.json
+junit.xml

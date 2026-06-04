@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a new feature or behavior change
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What workflow or limitation are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the feature or behavior you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe workarounds or alternative approaches you considered.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Compatibility or operational impact
+      description: Note config, output, performance, or deployment implications if relevant.

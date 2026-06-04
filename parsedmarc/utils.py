@@ -32,28 +32,100 @@ except ImportError:
 import dns.exception
 import dns.resolver
 import dns.reversename
-import geoip2.database
-import geoip2.errors
+import maxminddb
 import publicsuffixlist
 import requests
 from dateutil.parser import parse as parse_date
 
-import parsedmarc.resources.dbip
+import parsedmarc.resources.ipinfo
 import parsedmarc.resources.maps
-from parsedmarc.constants import USER_AGENT
+from parsedmarc.constants import (
+    DEFAULT_DNS_MAX_RETRIES,
+    DEFAULT_DNS_TIMEOUT,
+    USER_AGENT,
+)
 from parsedmarc.log import logger
+
+# Errors considered transient and retryable by query_dns. LifetimeTimeout is
+# dnspython's deadline expiry; NoNameservers typically wraps a SERVFAIL from
+# upstream; OSError covers socket-level failures during TCP fallback.
+_RETRYABLE_DNS_ERRORS = (
+    dns.resolver.LifetimeTimeout,
+    dns.resolver.NoNameservers,
+    OSError,
+)
 
 parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
-null_file = open(os.devnull, "w")
+null_file = subprocess.DEVNULL
 mailparser_logger = logging.getLogger("mailparser")
 mailparser_logger.setLevel(logging.CRITICAL)
 psl = publicsuffixlist.PublicSuffixList()
-psl_overrides_path = str(files(parsedmarc.resources.maps).joinpath("psl_overrides.txt"))
-with open(psl_overrides_path) as f:
-    psl_overrides = [line.rstrip() for line in f.readlines()]
-    while "" in psl_overrides:
-        psl_overrides.remove("")
+psl_overrides: list[str] = []
+
+
+def load_psl_overrides(
+    *,
+    always_use_local_file: bool = False,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
+    offline: bool = False,
+) -> list[str]:
+    """
+    Loads the PSL overrides list from a URL or local file.
+
+    Clears and repopulates the module-level ``psl_overrides`` list in place,
+    then returns it. The URL is tried first; on failure (or when
+    ``offline``/``always_use_local_file`` is set) the local path is used,
+    defaulting to the bundled ``psl_overrides.txt``.
+
+    Args:
+        always_use_local_file (bool): Always use a local overrides file
+        local_file_path (str): Path to a local overrides file
+        url (str): URL to a PSL overrides file
+        offline (bool): Use the built-in copy of the overrides
+
+    Returns:
+        list[str]: the module-level ``psl_overrides`` list
+    """
+    if url is None:
+        url = (
+            "https://raw.githubusercontent.com/domainaware"
+            "/parsedmarc/master/parsedmarc/"
+            "resources/maps/psl_overrides.txt"
+        )
+
+    psl_overrides.clear()
+
+    def _load_text(text: str) -> None:
+        for line in text.splitlines():
+            s = line.strip()
+            if s:
+                psl_overrides.append(s)
+
+    if not (offline or always_use_local_file):
+        try:
+            logger.debug(f"Trying to fetch PSL overrides from {url}...")
+            headers = {"User-Agent": USER_AGENT}
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            _load_text(response.text)
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch PSL overrides: {e}")
+
+    if len(psl_overrides) == 0:
+        path = local_file_path or str(
+            files(parsedmarc.resources.maps).joinpath("psl_overrides.txt")
+        )
+        logger.info(f"Loading PSL overrides from {path}")
+        with open(path, encoding="utf-8") as f:
+            _load_text(f.read())
+
+    return psl_overrides
+
+
+# Bootstrap with the bundled file at import time — no network call.
+load_psl_overrides(offline=True)
 
 
 class EmailParserError(RuntimeError):
@@ -79,6 +151,9 @@ class IPAddressInfo(TypedDict):
     base_domain: Optional[str]
     name: Optional[str]
     type: Optional[str]
+    asn: Optional[int]
+    as_name: Optional[str]
+    as_domain: Optional[str]
 
 
 def decode_base64(data: str) -> bytes:
@@ -129,7 +204,9 @@ def query_dns(
     *,
     cache: Optional[ExpiringDict] = None,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
+    _attempt: int = 0,
 ) -> list[str]:
     """
     Queries DNS
@@ -139,8 +216,21 @@ def query_dns(
         record_type (str): The record type to query for
         cache (ExpiringDict): Cache storage
         nameservers (list): A list of one or more nameservers to use
-            (Cloudflare's public DNS resolvers by default)
-        timeout (float): Sets the DNS timeout in seconds
+            (Cloudflare's public DNS resolvers by default). Pass
+            ``parsedmarc.constants.RECOMMENDED_DNS_NAMESERVERS`` for a
+            cross-provider mix that fails over when one provider's path is
+            slow or broken.
+        timeout (float): Overall DNS lifetime budget in seconds per
+            configured nameserver. Per-query UDP attempts are capped at
+            ``min(1.0, timeout)`` so dnspython retries within the lifetime on
+            transient UDP packet loss (mirroring ``dig``'s default
+            ``+tries=3`` behavior); with multiple nameservers configured this
+            same cap also makes a slow or broken nameserver fall through to
+            the next quickly.
+        retries (int): Number of times to retry the whole query after a
+            timeout or other transient error (``LifetimeTimeout``,
+            ``NoNameservers``, ``OSError``). Failover between configured
+            nameservers happens within each attempt.
 
     Returns:
         list: A list of answers
@@ -163,12 +253,36 @@ def query_dns(
             "2606:4700:4700::1001",
         ]
     resolver.nameservers = nameservers
-    resolver.timeout = timeout
-    resolver.lifetime = timeout
+    # Cap per-query UDP timeout at 1s so dnspython retries within the
+    # lifetime window on transient packet loss — otherwise with a single
+    # nameserver and timeout == lifetime, one dropped UDP datagram consumes
+    # the whole budget and raises LifetimeTimeout without a retry (dig's
+    # default +tries=3 masks this case). With multiple nameservers the same
+    # cap lets a slow/broken one fall through.
+    resolver.timeout = min(1.0, timeout)
+    if len(resolver.nameservers) > 1:
+        resolver.lifetime = timeout * len(resolver.nameservers)
+    else:
+        resolver.lifetime = timeout
+    try:
+        answers = resolver.resolve(domain, record_type, lifetime=resolver.lifetime)
+    except _RETRYABLE_DNS_ERRORS as e:
+        _attempt += 1
+        if _attempt > retries:
+            raise e
+        return query_dns(
+            domain,
+            record_type,
+            cache=cache,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
+            _attempt=_attempt,
+        )
     records = list(
         map(
             lambda r: r.to_text().replace('"', "").rstrip("."),
-            resolver.resolve(domain, record_type, lifetime=timeout),
+            answers,
         )
     )
     if cache:
@@ -182,7 +296,8 @@ def get_reverse_dns(
     *,
     cache: Optional[ExpiringDict] = None,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
 ) -> Optional[str]:
     """
     Resolves an IP address to a hostname using a reverse DNS query
@@ -193,6 +308,8 @@ def get_reverse_dns(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS query timeout in seconds
+        retries (int): Number of times to retry on timeout or other transient
+            errors
 
     Returns:
         str: The reverse DNS hostname (if any)
@@ -201,12 +318,16 @@ def get_reverse_dns(
     try:
         address = dns.reversename.from_address(ip_address)
         hostname = query_dns(
-            str(address), "PTR", cache=cache, nameservers=nameservers, timeout=timeout
+            str(address),
+            "PTR",
+            cache=cache,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
         )[0]
 
     except dns.exception.DNSException as e:
-        logger.warning(f"get_reverse_dns({ip_address}) exception: {e}")
-        pass
+        logger.debug(f"get_reverse_dns({ip_address}) exception: {e}")
 
     return hostname
 
@@ -272,21 +393,225 @@ def human_timestamp_to_unix_timestamp(human_timestamp: str) -> int:
     return int(human_timestamp_to_datetime(human_timestamp).timestamp())
 
 
-def get_ip_address_country(
-    ip_address: str, *, db_path: Optional[str] = None
-) -> Optional[str]:
+_IP_DB_PATH: Optional[str] = None
+
+
+def load_ip_db(
+    *,
+    always_use_local_file: bool = False,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
+    offline: bool = False,
+) -> None:
     """
-    Returns the ISO code for the country associated
-    with the given IPv4 or IPv6 address
+    Downloads the IP-to-country MMDB database from a URL and caches it
+    locally. Falls back to the bundled copy on failure or when offline.
 
     Args:
-        ip_address (str): The IP address to query for
-        db_path (str): Path to a MMDB file from MaxMind or DBIP
-
-    Returns:
-        str: And ISO country code associated with the given IP address
+        always_use_local_file: Always use a local/bundled database file
+        local_file_path: Path to a local MMDB file
+        url: URL to the MMDB database file
+        offline: Do not make online requests
     """
+    global _IP_DB_PATH
+
+    if url is None:
+        url = (
+            "https://github.com/domainaware/parsedmarc/raw/"
+            "refs/heads/master/parsedmarc/resources/ipinfo/"
+            "ipinfo_lite.mmdb"
+        )
+
+    if local_file_path is not None and os.path.isfile(local_file_path):
+        _IP_DB_PATH = local_file_path
+        logger.info(f"Using local IP database at {local_file_path}")
+        return
+
+    cache_dir = os.path.join(tempfile.gettempdir(), "parsedmarc")
+    cached_path = os.path.join(cache_dir, "ipinfo_lite.mmdb")
+
+    if not (offline or always_use_local_file):
+        try:
+            logger.debug(f"Trying to fetch IP database from {url}...")
+            headers = {"User-Agent": USER_AGENT}
+            response = requests.get(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            os.makedirs(cache_dir, exist_ok=True)
+            tmp_path = cached_path + ".tmp"
+            with open(tmp_path, "wb") as f:
+                f.write(response.content)
+            shutil.move(tmp_path, cached_path)
+            _IP_DB_PATH = cached_path
+            logger.info("IP database updated successfully")
+            return
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch IP database: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to save IP database: {e}")
+
+    # Fall back to a previously cached copy if available
+    if os.path.isfile(cached_path):
+        _IP_DB_PATH = cached_path
+        logger.info("Using cached IP database")
+        return
+
+    # Final fallback: bundled copy
+    _IP_DB_PATH = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+    logger.info("Using bundled IP database")
+
+
+class _IPDatabaseRecord(TypedDict):
+    country: Optional[str]
+    asn: Optional[int]
+    as_name: Optional[str]
+    as_domain: Optional[str]
+
+
+class InvalidIPinfoAPIKey(Exception):
+    """Raised when the IPinfo API rejects the configured token."""
+
+
+# IPinfo Lite REST API. When ``_IPINFO_API_TOKEN`` is set,
+# ``get_ip_address_db_record()`` queries the API first and falls back to the
+# bundled/cached MMDB on any non-2xx response or network error. A 401/403
+# propagates as ``InvalidIPinfoAPIKey`` so the CLI exits fatally.
+#
+# The IPinfo Lite API is documented as having no daily or monthly request
+# limit ("unlimited access"), so there is no rate-limit or quota handling
+# here — adding it would be inventing behavior the service doesn't document.
+# Authentication uses the documented ``?token=`` query parameter.
+_IPINFO_API_URL = "https://api.ipinfo.io/lite"
+_IPINFO_API_TOKEN: Optional[str] = None
+_IPINFO_API_TIMEOUT: float = 5.0
+
+
+def configure_ipinfo_api(
+    token: Optional[str],
+    *,
+    probe: bool = True,
+) -> None:
+    """Configure the IPinfo Lite REST API as the primary source for IP lookups.
+
+    When a token is configured, ``get_ip_address_db_record()`` hits the API
+    first for every lookup and falls back to the MMDB on network errors. An
+    invalid token raises ``InvalidIPinfoAPIKey`` — the CLI catches that and
+    exits fatally.
+
+    Args:
+        token: IPinfo API token. ``None`` or empty disables the API.
+        probe: If ``True``, verify the token by looking up ``1.1.1.1``. A
+            401/403 raises ``InvalidIPinfoAPIKey``; other errors are logged
+            and the token is still accepted so per-request fallback can take
+            over.
+    """
+    global _IPINFO_API_TOKEN
+    _IPINFO_API_TOKEN = token or None
+
+    if not _IPINFO_API_TOKEN or not probe:
+        return
+
+    try:
+        _ipinfo_api_lookup("1.1.1.1")
+    except InvalidIPinfoAPIKey:
+        raise
+    except Exception as e:
+        logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
+    else:
+        logger.info("IPinfo API configured")
+
+
+def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
+    """Look up an IP via the IPinfo Lite REST API.
+
+    Returns the normalized record on success, or ``None`` on network error or
+    any non-2xx response (other than 401/403). 401/403 raises
+    ``InvalidIPinfoAPIKey``.
+    """
+    if not _IPINFO_API_TOKEN:
+        return None
+
+    url = f"{_IPINFO_API_URL}/{ip_address}"
+    params = {"token": _IPINFO_API_TOKEN}
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    try:
+        response = requests.get(
+            url, headers=headers, params=params, timeout=_IPINFO_API_TIMEOUT
+        )
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"IPinfo API request for {ip_address} failed: {e}")
+        return None
+
+    if response.status_code in (401, 403):
+        raise InvalidIPinfoAPIKey(
+            f"IPinfo API rejected the configured token (HTTP {response.status_code})"
+        )
+    if not response.ok:
+        logger.debug(
+            f"IPinfo API returned HTTP {response.status_code} for {ip_address}"
+        )
+        return None
+
+    try:
+        payload = response.json()
+    except ValueError:
+        logger.debug(f"IPinfo API returned non-JSON for {ip_address}")
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    return _normalize_ip_record(payload)
+
+
+def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
+    """Normalize an IPinfo / MaxMind record to the internal shape.
+
+    Shared between the API path and the MMDB path so both schemas produce the
+    same output: country as ISO code, ASN as plain int, as_name string,
+    as_domain lowercased.
+    """
+    country: Optional[str] = None
+    asn: Optional[int] = None
+    as_name: Optional[str] = None
+    as_domain: Optional[str] = None
+
+    code = record.get("country_code")
+    if code is None:
+        nested = record.get("country")
+        if isinstance(nested, dict):
+            code = nested.get("iso_code")
+    if isinstance(code, str):
+        country = code
+
+    raw_asn = record.get("asn")
+    if isinstance(raw_asn, int):
+        asn = raw_asn
+    elif isinstance(raw_asn, str) and raw_asn:
+        digits = raw_asn.removeprefix("AS").removeprefix("as")
+        if digits.isdigit():
+            asn = int(digits)
+    if asn is None:
+        mm_asn = record.get("autonomous_system_number")
+        if isinstance(mm_asn, int):
+            asn = mm_asn
+
+    name = record.get("as_name") or record.get("autonomous_system_organization")
+    if isinstance(name, str) and name:
+        as_name = name
+    domain = record.get("as_domain")
+    if isinstance(domain, str) and domain:
+        as_domain = domain.lower()
+
+    return {
+        "country": country,
+        "asn": asn,
+        "as_name": as_name,
+        "as_domain": as_domain,
+    }
+
+
+def _get_ip_database_path(db_path: Optional[str]) -> str:
     db_paths = [
+        "ipinfo_lite.mmdb",
         "GeoLite2-Country.mmdb",
         "/usr/local/share/GeoIP/GeoLite2-Country.mmdb",
         "/usr/share/GeoIP/GeoLite2-Country.mmdb",
@@ -300,14 +625,13 @@ def get_ip_address_country(
         "dbip-country.mmdb",
     ]
 
-    if db_path is not None:
-        if not os.path.isfile(db_path):
-            db_path = None
-            logger.warning(
-                f"No file exists at {db_path}. Falling back to an "
-                "included copy of the IPDB IP to Country "
-                "Lite database."
-            )
+    if db_path is not None and not os.path.isfile(db_path):
+        logger.warning(
+            f"No file exists at {db_path}. Falling back to an "
+            "included copy of the IPinfo IP to Country "
+            "Lite database."
+        )
+        db_path = None
 
     if db_path is None:
         for system_path in db_paths:
@@ -316,24 +640,154 @@ def get_ip_address_country(
                 break
 
     if db_path is None:
-        db_path = str(
-            files(parsedmarc.resources.dbip).joinpath("dbip-country-lite.mmdb")
-        )
+        if _IP_DB_PATH is not None:
+            db_path = _IP_DB_PATH
+        else:
+            db_path = str(
+                files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb")
+            )
 
     db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
     if db_age > timedelta(days=30):
         logger.warning("IP database is more than a month old")
 
-    db_reader = geoip2.database.Reader(db_path)
+    return db_path
 
-    country = None
 
-    try:
-        country = db_reader.country(ip_address).country.iso_code
-    except geoip2.errors.AddressNotFoundError:
-        pass
+def get_ip_address_db_record(
+    ip_address: str, *, db_path: Optional[str] = None
+) -> _IPDatabaseRecord:
+    """Look up an IP and return country + ASN fields.
 
-    return country
+    If the IPinfo Lite API is configured via ``configure_ipinfo_api()``, the
+    API is queried first; any non-fatal failure (rate limit, quota, network)
+    falls through to the MMDB. An invalid API token raises
+    ``InvalidIPinfoAPIKey`` and is not caught here.
+
+    IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on
+    every record. MaxMind/DBIP country-only databases carry only country, so
+    ``as_name`` / ``as_domain`` come back None for those users.
+    """
+    api_record = _ipinfo_api_lookup(ip_address)
+    if api_record is not None:
+        return api_record
+
+    resolved_path = _get_ip_database_path(db_path)
+    db_reader = maxminddb.open_database(resolved_path)
+    record = db_reader.get(ip_address)
+    if not isinstance(record, dict):
+        return {
+            "country": None,
+            "asn": None,
+            "as_name": None,
+            "as_domain": None,
+        }
+    return _normalize_ip_record(record)
+
+
+def get_ip_address_country(
+    ip_address: str, *, db_path: Optional[str] = None
+) -> Optional[str]:
+    """
+    Returns the ISO code for the country associated
+    with the given IPv4 or IPv6 address.
+
+    Args:
+        ip_address (str): The IP address to query for
+        db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
+
+    Returns:
+        str: And ISO country code associated with the given IP address
+    """
+    return get_ip_address_db_record(ip_address, db_path=db_path)["country"]
+
+
+def load_reverse_dns_map(
+    reverse_dns_map: ReverseDNSMap,
+    *,
+    always_use_local_file: bool = False,
+    local_file_path: Optional[str] = None,
+    url: Optional[str] = None,
+    offline: bool = False,
+    psl_overrides_path: Optional[str] = None,
+    psl_overrides_url: Optional[str] = None,
+) -> None:
+    """
+    Loads the reverse DNS map from a URL or local file.
+
+    Clears and repopulates the given map dict in place. If the map is
+    fetched from a URL, that is tried first; on failure (or if offline/local
+    mode is selected) the bundled CSV is used as a fallback.
+
+    ``psl_overrides.txt`` is reloaded at the same time using the same
+    ``offline`` / ``always_use_local_file`` flags (with separate path/URL
+    kwargs), so map entries that depend on a recent overrides entry fold
+    correctly.
+
+    Args:
+        reverse_dns_map (dict): The map dict to populate (modified in place)
+        always_use_local_file (bool): Always use a local map file
+        local_file_path (str): Path to a local map file
+        url (str): URL to a reverse DNS map
+        offline (bool): Use the built-in copy of the reverse DNS map
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
+    """
+    # Reload PSL overrides first so any map entry that depends on a folded
+    # base domain resolves correctly against the current overrides list.
+    load_psl_overrides(
+        always_use_local_file=always_use_local_file,
+        local_file_path=psl_overrides_path,
+        url=psl_overrides_url,
+        offline=offline,
+    )
+
+    if url is None:
+        url = (
+            "https://raw.githubusercontent.com/domainaware"
+            "/parsedmarc/master/parsedmarc/"
+            "resources/maps/base_reverse_dns_map.csv"
+        )
+
+    reverse_dns_map.clear()
+
+    def load_csv(_csv_file):
+        reader = csv.DictReader(_csv_file)
+        for row in reader:
+            key = row["base_reverse_dns"].lower().strip()
+            reverse_dns_map[key] = {
+                "name": row["name"].strip(),
+                "type": row["type"].strip(),
+            }
+
+    csv_file = io.StringIO()
+
+    if not (offline or always_use_local_file):
+        try:
+            logger.debug(f"Trying to fetch reverse DNS map from {url}...")
+            headers = {"User-Agent": USER_AGENT}
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            csv_file.write(response.text)
+            csv_file.seek(0)
+            load_csv(csv_file)
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch reverse DNS map: {e}")
+        except Exception:
+            logger.warning("Not a valid CSV file")
+            csv_file.seek(0)
+            logging.debug("Response body:")
+            logger.debug(csv_file.read())
+
+    if len(reverse_dns_map) == 0:
+        logger.info("Loading included reverse DNS map...")
+        path = str(
+            files(parsedmarc.resources.maps).joinpath("base_reverse_dns_map.csv")
+        )
+        if local_file_path is not None:
+            path = local_file_path
+        with open(path) as csv_file:
+            load_csv(csv_file)
 
 
 def get_service_from_reverse_dns_base_domain(
@@ -362,55 +816,21 @@ def get_service_from_reverse_dns_base_domain(
     """
 
     base_domain = base_domain.lower().strip()
-    if url is None:
-        url = (
-            "https://raw.githubusercontent.com/domainaware"
-            "/parsedmarc/master/parsedmarc/"
-            "resources/maps/base_reverse_dns_map.csv"
-        )
     reverse_dns_map_value: ReverseDNSMap
     if reverse_dns_map is None:
         reverse_dns_map_value = {}
     else:
         reverse_dns_map_value = reverse_dns_map
 
-    def load_csv(_csv_file):
-        reader = csv.DictReader(_csv_file)
-        for row in reader:
-            key = row["base_reverse_dns"].lower().strip()
-            reverse_dns_map_value[key] = {
-                "name": row["name"],
-                "type": row["type"],
-            }
-
-    csv_file = io.StringIO()
-
-    if not (offline or always_use_local_file) and len(reverse_dns_map_value) == 0:
-        try:
-            logger.debug(f"Trying to fetch reverse DNS map from {url}...")
-            headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            csv_file.write(response.text)
-            csv_file.seek(0)
-            load_csv(csv_file)
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"Failed to fetch reverse DNS map: {e}")
-        except Exception:
-            logger.warning("Not a valid CSV file")
-            csv_file.seek(0)
-            logging.debug("Response body:")
-            logger.debug(csv_file.read())
-
     if len(reverse_dns_map_value) == 0:
-        logger.info("Loading included reverse DNS map...")
-        path = str(
-            files(parsedmarc.resources.maps).joinpath("base_reverse_dns_map.csv")
+        load_reverse_dns_map(
+            reverse_dns_map_value,
+            always_use_local_file=always_use_local_file,
+            local_file_path=local_file_path,
+            url=url,
+            offline=offline,
         )
-        if local_file_path is not None:
-            path = local_file_path
-        with open(path) as csv_file:
-            load_csv(csv_file)
+
     service: ReverseDNSService
     try:
         service = reverse_dns_map_value[base_domain]
@@ -431,7 +851,8 @@ def get_ip_address_info(
     reverse_dns_map: Optional[ReverseDNSMap] = None,
     offline: bool = False,
     nameservers: Optional[list[str]] = None,
-    timeout: float = 2.0,
+    timeout: float = DEFAULT_DNS_TIMEOUT,
+    retries: int = DEFAULT_DNS_MAX_RETRIES,
 ) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
@@ -448,6 +869,8 @@ def get_ip_address_info(
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         timeout (float): Sets the DNS timeout in seconds
+        retries (int): Number of times to retry on timeout or other transient
+            errors
 
     Returns:
         dict: ``ip_address``, ``reverse_dns``, ``country``
@@ -470,16 +893,26 @@ def get_ip_address_info(
         "base_domain": None,
         "name": None,
         "type": None,
+        "asn": None,
+        "as_name": None,
+        "as_domain": None,
     }
     if offline:
         reverse_dns = None
     else:
         reverse_dns = get_reverse_dns(
-            ip_address, nameservers=nameservers, timeout=timeout
+            ip_address,
+            nameservers=nameservers,
+            timeout=timeout,
+            retries=retries,
         )
-    country = get_ip_address_country(ip_address, db_path=ip_db_path)
-    info["country"] = country
+    db_record = get_ip_address_db_record(ip_address, db_path=ip_db_path)
+    info["country"] = db_record["country"]
+    info["asn"] = db_record["asn"]
+    info["as_name"] = db_record["as_name"]
+    info["as_domain"] = db_record["as_domain"]
     info["reverse_dns"] = reverse_dns
+
     if reverse_dns is not None:
         base_domain = get_base_domain(reverse_dns)
         if base_domain is not None:
@@ -494,12 +927,49 @@ def get_ip_address_info(
             info["base_domain"] = base_domain
             info["type"] = service["type"]
             info["name"] = service["name"]
-
-        if cache is not None:
-            cache[ip_address] = info
-            logger.debug(f"IP address {ip_address} added to cache")
     else:
         logger.debug(f"IP address {ip_address} reverse_dns not found")
+        # Fall back to ASN data for source attribution. ``reverse_dns`` and
+        # ``base_domain`` are left null so consumers can still tell an
+        # ASN-derived row apart from one resolved via a real PTR.
+        map_value: ReverseDNSMap = (
+            reverse_dns_map if reverse_dns_map is not None else {}
+        )
+        if len(map_value) == 0:
+            load_reverse_dns_map(
+                map_value,
+                always_use_local_file=always_use_local_files,
+                local_file_path=reverse_dns_map_path,
+                url=reverse_dns_map_url,
+                offline=offline,
+            )
+        if info["as_domain"] and info["as_domain"] in map_value:
+            service = map_value[info["as_domain"]]
+            info["name"] = service["name"]
+            info["type"] = service["type"]
+        elif info["as_name"]:
+            # ASN-domain not in the map: surface the raw AS name with no
+            # classification. Better than leaving the row unattributed.
+            info["name"] = info["as_name"]
+
+    # Don't cache weak-fallback attributions — rows where we had no PTR AND
+    # the ASN domain wasn't in the map, so ``name`` is just the raw ``as_name``
+    # from the MMDB. ``get_reverse_dns()`` swallows every ``DNSException`` as
+    # ``None``, so a transient PTR lookup failure (timeout, SERVFAIL, OSError)
+    # is indistinguishable from a real no-PTR case at this point. Caching the
+    # weak result would poison the 4-hour cache with a misattribution even
+    # after the PTR becomes resolvable again. Re-running on the next lookup
+    # is cheap and either produces a proper PTR-backed match or the same
+    # (still-best-effort) ASN attribution.
+    weak_fallback = (
+        info["reverse_dns"] is None
+        and info["type"] is None
+        and info["name"] is not None
+        and info["name"] == info["as_name"]
+    )
+    if cache is not None and not weak_fallback:
+        cache[ip_address] = info
+        logger.debug(f"IP address {ip_address} added to cache")
 
     return info
 
@@ -663,9 +1133,15 @@ def parse_email(
         parsed_email["date"] = parsed_email["date"].replace("T", " ")
     else:
         parsed_email["date"] = None
-    if "reply_to" in parsed_email:
+    # mailparser's mail_json names these headers with hyphens
+    # ("reply-to", "delivered-to"), not underscores. Reading the
+    # underscored key always missed, so every Reply-To address was
+    # silently dropped. Convert under the underscored name consumers
+    # expect and drop the raw hyphenated key so the body carries a
+    # single representation, matching how "to"/"cc"/"bcc" are handled.
+    if "reply-to" in parsed_email:
         parsed_email["reply_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["reply_to"])
+            map(lambda x: parse_email_address(x), parsed_email.pop("reply-to"))
         )
     else:
         parsed_email["reply_to"] = []
@@ -691,9 +1167,9 @@ def parse_email(
     else:
         parsed_email["bcc"] = []
 
-    if "delivered_to" in parsed_email:
+    if "delivered-to" in parsed_email:
         parsed_email["delivered_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["delivered_to"])
+            map(lambda x: parse_email_address(x), parsed_email.pop("delivered-to"))
         )
 
     if "attachments" not in parsed_email:
