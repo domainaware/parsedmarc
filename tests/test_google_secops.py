@@ -107,8 +107,8 @@ class TestGoogleSecOps(unittest.TestCase):
 
         # Test stdout configuration
         client1 = GoogleSecOpsClient(use_stdout=True)
-        assert client1.include_ruf_payload is False
-        assert client1.ruf_payload_max_bytes == 4096
+        assert client1.include_failure_payload is False
+        assert client1.failure_payload_max_bytes == 4096
         assert client1.static_observer_vendor == "parsedmarc"
         assert client1.static_observer_name is None
         assert client1.static_environment is None
@@ -116,15 +116,15 @@ class TestGoogleSecOps(unittest.TestCase):
 
         # Test custom configuration
         client2 = GoogleSecOpsClient(
-            include_ruf_payload=True,
-            ruf_payload_max_bytes=8192,
+            include_failure_payload=True,
+            failure_payload_max_bytes=8192,
             static_observer_name="test-observer",
             static_observer_vendor="test-vendor",
             static_environment="prod",
             use_stdout=True,
         )
-        assert client2.include_ruf_payload is True
-        assert client2.ruf_payload_max_bytes == 8192
+        assert client2.include_failure_payload is True
+        assert client2.failure_payload_max_bytes == 8192
         assert client2.static_observer_name == "test-observer"
         assert client2.static_observer_vendor == "test-vendor"
         assert client2.static_environment == "prod"
