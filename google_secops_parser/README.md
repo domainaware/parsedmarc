@@ -27,7 +27,7 @@ detects them by a field unique to each and maps them as follows:
 
 | parsedmarc report | Detected by | UDM `metadata.event_type` |
 |---|---|---|
-| DMARC aggregate | `adkim` | `EMAIL_TRANSACTION` |
+| DMARC aggregate | `domain` | `EMAIL_TRANSACTION` |
 | DMARC failure | `feedback_type` | `EMAIL_TRANSACTION` |
 | SMTP TLS (RFC 8460) | `policy_type` | `GENERIC_EVENT` |
 
