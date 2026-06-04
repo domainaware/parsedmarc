@@ -151,19 +151,19 @@ These are **real** single-line outputs from parsedmarc's `[syslog]` serializers
 tool. A live syslog line will also carry a `<PRI>` prefix; the parser strips any
 leading framing before the first `{`.
 
-### Aggregate — DMARC fail (`dmarc_aligned=false`)
+### DMARC Aggregate — fail (`dmarc_aligned=false`)
 
 ```json
 {"xml_schema": "draft", "org_name": "accurateplastics.com", "org_email": "administrator@accurateplastics.com", "org_extra_contact_info": "", "report_id": "example.com:1538463741", "begin_date": "2018-10-01 17:07:12", "end_date": "2018-10-01 17:07:12", "normalized_timespan": false, "errors": "", "domain": "example.com", "adkim": "r", "aspf": "r", "p": "none", "sp": "reject", "np": "", "pct": "100", "fo": "", "testing": "", "discovery_method": "", "source_ip_address": "12.20.127.122", "source_country": "US", "source_reverse_dns": "", "source_base_domain": "", "source_name": "AT&T", "source_type": "ISP", "source_asn": 7018, "source_as_name": "AT&T Enterprises, LLC", "source_as_domain": "att.com", "count": 1, "spf_aligned": false, "dkim_aligned": false, "dmarc_aligned": false, "disposition": "none", "policy_override_reasons": "", "policy_override_comments": "", "envelope_from": "", "header_from": "example.com", "envelope_to": "", "dkim_domains": "", "dkim_selectors": "", "dkim_results": "", "spf_domains": "", "spf_scopes": "", "spf_results": ""}
 ```
 
-### Aggregate — DMARC pass (`dmarc_aligned=true`)
+### DMARC Aggregate — pass (`dmarc_aligned=true`)
 
 ```json
 {"xml_schema": "1.0", "org_name": "example.org", "org_email": "noreply-dmarc-support@example.org", "org_extra_contact_info": "https://support.example.org/dmarc", "report_id": "20240125141224705995", "begin_date": "2024-01-25 05:12:24", "end_date": "2024-01-25 12:28:53", "normalized_timespan": false, "errors": "", "domain": "example.com", "adkim": "r", "aspf": "r", "p": "quarantine", "sp": "quarantine", "np": "", "pct": "100", "fo": "1", "testing": "", "discovery_method": "", "source_ip_address": "198.51.100.123", "source_country": "", "source_reverse_dns": "", "source_base_domain": "", "source_name": "", "source_type": "", "source_asn": "", "source_as_name": "", "source_as_domain": "", "count": 2, "spf_aligned": false, "dkim_aligned": true, "dmarc_aligned": true, "disposition": "none", "policy_override_reasons": "none", "policy_override_comments": "none", "envelope_from": "example.edu", "header_from": "example.com", "envelope_to": "example.net", "dkim_domains": "example.com", "dkim_selectors": "example", "dkim_results": "pass", "spf_domains": "example.edu", "spf_scopes": "mfrom", "spf_results": "pass"}
 ```
 
-### Failure
+### DMARC Failure report
 
 ```json
 {"feedback_type": "auth-failure", "user_agent": "Lua/1.0", "version": "1.0", "original_mail_from": "sharepoint@domain.de", "original_rcpt_to": "peter.pan@domain.de", "arrival_date": "Mon, 01 Oct 2018 11:20:27 +0200", "message_id": "<38.E7.30937.BD6E1BB5@ mailrelay.de>", "authentication_results": "dmarc=fail (p=none, dis=none) header.from=domain.de", "delivery_result": "policy", "auth_failure": "dmarc", "reported_domain": "domain.de", "arrival_date_utc": "2018-10-01 09:20:27", "authentication_mechanisms": "", "original_envelope_id": null, "dkim_domain": null, "sample_headers_only": false, "source_ip_address": "10.10.10.10", "source_reverse_dns": null, "source_base_domain": null, "source_name": null, "source_type": null, "source_asn": null, "source_as_name": null, "source_as_domain": null, "source_country": null, "subject": "Subject"}
@@ -184,11 +184,23 @@ leading framing before the first `{`.
 ## Official references
 
 - [Overview of the UDM](https://cloud.google.com/chronicle/docs/event-processing/udm-overview)
-- [Overview of log parsing](https://cloud.google.com/chronicle/docs/event-processing/parsing-overview)
-- [Parser syntax reference](https://cloud.google.com/chronicle/docs/reference/parser-syntax)
 - [UDM field list](https://cloud.google.com/chronicle/docs/reference/udm-field-list)
 - [SecurityResult reference](https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/SecurityResult)
+- [Overview of log parsing](https://cloud.google.com/chronicle/docs/event-processing/parsing-overview)
+- [Parser syntax reference](https://cloud.google.com/chronicle/docs/reference/parser-syntax)
+- [Tips and troubleshooting when writing parsers](https://cloud.google.com/chronicle/docs/event-processing/parser-tips-troubleshooting) — intermediate fields are discarded unless mapped to `@output`; one parser is active per log type.
+- [Manage prebuilt and custom parsers](https://cloud.google.com/chronicle/docs/event-processing/manage-parser-updates)
+- [UDM search](https://cloud.google.com/chronicle/docs/investigation/udm-search) — `GENERIC_EVENT` events only surface in raw-log / UDM search, not curated views.
+- [Install the Bindplane agent (collector)](https://cloud.google.com/chronicle/docs/install/install-forwarder)
 - [Feed management](https://cloud.google.com/chronicle/docs/administration/feed-management-overview)
+
+## Additional sources and tooling
+
+Community resources (not official Google documentation) that informed this parser's JSON handling and are useful when validating it:
+
+- [Parsing 101: Best Practices & Tips](https://medium.com/@thatsiemguy/parsing-101-best-practices-tips-c2e8b7ce9db8) (Chris Martin / @thatsiemguy) — basis for initializing every `if`-tested field before the `json` filter to avoid `_failed_parsing_`.
+- [Corelight parser for SecOps](https://github.com/corelight/CorelightForSecOps) — a large production CBN parser that demonstrates the "convert JSON booleans/numbers to strings" idiom this parser relies on (the `json` filter preserves the original JSON type).
+- [chronicle/cbn-tool](https://github.com/chronicle/cbn-tool) — CLI for the CBN parser APIs (submit and validate a parser).
 
 ## License
 
