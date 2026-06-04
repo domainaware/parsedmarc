@@ -48,17 +48,23 @@ DMARC types.
 ## Caveats
 
 1. **Unvalidated** — see [Status](#status).
-2. **JSON type handling** — parsedmarc emits `dmarc_aligned` / `spf_aligned` /
-   `dkim_aligned` / `testing` / `normalized_timespan` as JSON booleans and
-   `count` / `*_session_count` / `source_asn` as numbers. Chronicle's `json{}`
-   filter **preserves the original JSON type**, so the parser explicitly
-   converts these to strings (`mutate { convert => { … => "string" } }`) before
-   any comparison — otherwise `[dmarc_aligned] == "false"` would never match.
-   Relatedly, every field tested in an `if` is initialized to `""` *before* the
-   `json` filter, because CBN raises `_failed_parsing_` on a conditional that
-   references a field absent from the log. A DMARC-fail record
-   (`dmarc_aligned=false`) should yield `security_result.category =
-   AUTH_VIOLATION` — still worth confirming in the validation tool.
+2. **JSON types** — Chronicle's `json{}` filter **preserves the original JSON
+   type**, so parsedmarc's booleans and numbers are handled differently:
+   - **Booleans** (`dmarc_aligned` / `spf_aligned` / `dkim_aligned` / `testing`
+     / `normalized_timespan`) are converted to strings so `[dmarc_aligned] ==
+     "false"` works, and stored as `string_value` (Google's content-hub parsers
+     never use `bool_value`).
+   - **Numbers** (`count` / `*_session_count` / `source_asn`) are stored as
+     `number_value` — built as a string, `convert`-ed to `uinteger`, then
+     renamed — so SecOps can range-query and sort them (parsedmarc's "store
+     numbers as numbers" rule).
+
+   Every `if`-tested field is initialized to `""` *before* `json` and guarded
+   with `!= ""`: CBN raises `_failed_parsing_` on a conditional referencing an
+   absent field, and treats an initialized-but-empty field as present. A
+   DMARC-fail record (`dmarc_aligned=false`) should yield
+   `security_result.category = AUTH_VIOLATION` — worth confirming in the
+   validation tool.
 3. **Aggregate count** — a DMARC aggregate record summarizes `count` messages
    from one source IP, not a single message. Each record becomes one
    `EMAIL_TRANSACTION` with `count` carried in `additional.fields`. There is no
