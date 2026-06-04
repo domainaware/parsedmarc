@@ -26,8 +26,8 @@ class GoogleSecOpsClient:
 
     def __init__(
         self,
-        include_ruf_payload: bool = False,
-        ruf_payload_max_bytes: int = 4096,
+        include_failure_payload: bool = False,
+        failure_payload_max_bytes: int = 4096,
         static_observer_name: Optional[str] = None,
         static_observer_vendor: str = "parsedmarc",
         static_environment: Optional[str] = None,
@@ -36,13 +36,16 @@ class GoogleSecOpsClient:
         api_region: str = "us",
         api_log_type: str = "DMARC",
         use_stdout: bool = False,
+        # Backward compatibility parameters (deprecated)
+        include_ruf_payload: Optional[bool] = None,
+        ruf_payload_max_bytes: Optional[int] = None,
     ):
         """
         Initializes the GoogleSecOpsClient
 
         Args:
-            include_ruf_payload: Include RUF message payload in output
-            ruf_payload_max_bytes: Maximum bytes of RUF payload to include
+            include_failure_payload: Include failure report message payload in output
+            failure_payload_max_bytes: Maximum bytes of failure report payload to include
             static_observer_name: Static observer name for telemetry
             static_observer_vendor: Static observer vendor (default: parsedmarc)
             static_environment: Static environment (prod/dev/custom string)
@@ -51,9 +54,19 @@ class GoogleSecOpsClient:
             api_region: Chronicle region (us, europe, asia-southeast1, etc.)
             api_log_type: Log type for Chronicle ingestion (default: DMARC)
             use_stdout: Output to stdout instead of API (default: False)
+            include_ruf_payload: (Deprecated) Use include_failure_payload instead
+            ruf_payload_max_bytes: (Deprecated) Use failure_payload_max_bytes instead
         """
-        self.include_ruf_payload = include_ruf_payload
-        self.ruf_payload_max_bytes = ruf_payload_max_bytes
+        # Handle backward compatibility
+        if include_ruf_payload is not None:
+            logger.warning("include_ruf_payload is deprecated, use include_failure_payload instead")
+            include_failure_payload = include_ruf_payload
+        if ruf_payload_max_bytes is not None:
+            logger.warning("ruf_payload_max_bytes is deprecated, use failure_payload_max_bytes instead")
+            failure_payload_max_bytes = ruf_payload_max_bytes
+            
+        self.include_failure_payload = include_failure_payload
+        self.failure_payload_max_bytes = failure_payload_max_bytes
         self.static_observer_name = static_observer_name
         self.static_observer_vendor = static_observer_vendor
         self.static_environment = static_environment
@@ -443,47 +456,47 @@ class GoogleSecOpsClient:
         # Return events only if using stdout (for CLI to print)
         return events if self.use_stdout else []
 
-    def save_forensic_report_to_google_secops(
-        self, forensic_report: dict[str, Any]
+    def save_failure_report_to_google_secops(
+        self, failure_report: dict[str, Any]
     ) -> list[str]:
         """
-        Convert forensic DMARC report to Google SecOps UDM format and send to Chronicle
+        Convert failure DMARC report to Google SecOps UDM format and send to Chronicle
         
         When use_stdout=False: Events are sent to Chronicle API, returns empty list
         When use_stdout=True: Returns list of NDJSON event strings for stdout
 
         Args:
-            forensic_report: Forensic report dictionary from parsedmarc
+            failure_report: Failure report dictionary from parsedmarc
 
         Returns:
             List of NDJSON event strings (empty if sent to API)
         """
-        logger.debug("Converting forensic report to Google SecOps UDM format")
+        logger.debug("Converting failure report to Google SecOps UDM format")
         events = []
 
         try:
-            source_ip = forensic_report["source"]["ip_address"]
-            source_country = forensic_report["source"].get("country")
-            source_reverse_dns = forensic_report["source"].get("reverse_dns")
-            source_base_domain = forensic_report["source"].get("base_domain")
-            source_name = forensic_report["source"].get("name")
-            source_type = forensic_report["source"].get("type")
+            source_ip = failure_report["source"]["ip_address"]
+            source_country = failure_report["source"].get("country")
+            source_reverse_dns = failure_report["source"].get("reverse_dns")
+            source_base_domain = failure_report["source"].get("base_domain")
+            source_name = failure_report["source"].get("name")
+            source_type = failure_report["source"].get("type")
             
-            reported_domain = forensic_report["reported_domain"]
-            arrival_date = forensic_report["arrival_date_utc"]
-            auth_failure = forensic_report.get("auth_failure", [])
+            reported_domain = failure_report["reported_domain"]
+            arrival_date = failure_report["arrival_date_utc"]
+            auth_failure = failure_report.get("auth_failure", [])
             
-            # Determine severity - forensic reports indicate failures
+            # Determine severity - failure reports indicate authentication failures
             # Default to MEDIUM for authentication failures
             severity = "MEDIUM"
             
             # Build description
             auth_failure_str = ", ".join(auth_failure) if auth_failure else "unknown"
-            description = f"DMARC forensic report: authentication failure ({auth_failure_str})"
+            description = f"DMARC failure report: authentication failure ({auth_failure_str})"
             
             # Build UDM event
             event: dict[str, Any] = {
-                "event_type": "DMARC_FORENSIC",
+                "event_type": "DMARC_FAILURE",
                 "metadata": {
                     "event_timestamp": self._format_timestamp(arrival_date),
                     "event_type": "GENERIC_EVENT",
@@ -528,24 +541,24 @@ class GoogleSecOpsClient:
                     {"key": "source_base_domain", "value": source_base_domain}
                 )
             
-            if forensic_report.get("feedback_type"):
+            if failure_report.get("feedback_type"):
                 additional_context.append(
-                    {"key": "feedback_type", "value": forensic_report["feedback_type"]}
+                    {"key": "feedback_type", "value": failure_report["feedback_type"]}
                 )
             
-            if forensic_report.get("message_id"):
+            if failure_report.get("message_id"):
                 additional_context.append(
-                    {"key": "message_id", "value": forensic_report["message_id"]}
+                    {"key": "message_id", "value": failure_report["message_id"]}
                 )
             
-            if forensic_report.get("authentication_results"):
+            if failure_report.get("authentication_results"):
                 additional_context.append(
-                    {"key": "authentication_results", "value": forensic_report["authentication_results"]}
+                    {"key": "authentication_results", "value": failure_report["authentication_results"]}
                 )
             
-            if forensic_report.get("delivery_result"):
+            if failure_report.get("delivery_result"):
                 additional_context.append(
-                    {"key": "delivery_result", "value": forensic_report["delivery_result"]}
+                    {"key": "delivery_result", "value": failure_report["delivery_result"]}
                 )
             
             if self.static_environment:
@@ -554,10 +567,10 @@ class GoogleSecOpsClient:
                 )
             
             # Add payload excerpt if enabled
-            if self.include_ruf_payload and forensic_report.get("sample"):
-                sample = forensic_report["sample"]
-                if len(sample) > self.ruf_payload_max_bytes:
-                    sample = sample[:self.ruf_payload_max_bytes] + "... [truncated]"
+            if self.include_failure_payload and failure_report.get("sample"):
+                sample = failure_report["sample"]
+                if len(sample) > self.failure_payload_max_bytes:
+                    sample = sample[:self.failure_payload_max_bytes] + "... [truncated]"
                 additional_context.append(
                     {"key": "message_sample", "value": sample}
                 )
@@ -579,7 +592,7 @@ class GoogleSecOpsClient:
             events.append(json.dumps(event, ensure_ascii=False))
         
         except Exception as e:
-            logger.error(f"Error converting forensic report to Google SecOps format: {e}")
+            logger.error(f"Error converting failure report to Google SecOps format: {e}")
             # Generate error event
             error_event: dict[str, Any] = {
                 "event_type": "DMARC_PARSE_ERROR",
@@ -592,7 +605,7 @@ class GoogleSecOpsClient:
                 "security_result": [
                     {
                         "severity": "ERROR",
-                        "description": f"Failed to parse DMARC forensic report: {str(e)}",
+                        "description": f"Failed to parse DMARC failure report: {str(e)}",
                     }
                 ],
             }
@@ -707,3 +720,19 @@ class GoogleSecOpsClient:
         
         # Return events only if using stdout (for CLI to print)
         return events if self.use_stdout else []
+
+    # Backward compatibility alias (deprecated)
+    def save_forensic_report_to_google_secops(
+        self, forensic_report: dict[str, Any]
+    ) -> list[str]:
+        """
+        Deprecated: Use save_failure_report_to_google_secops instead.
+        
+        This method is maintained for backward compatibility and will be removed
+        in a future version. Please update your code to use the new naming.
+        """
+        logger.warning(
+            "save_forensic_report_to_google_secops is deprecated, "
+            "use save_failure_report_to_google_secops instead"
+        )
+        return self.save_failure_report_to_google_secops(forensic_report)

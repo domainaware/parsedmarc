@@ -13,7 +13,7 @@ The recommended approach is to send events directly to Chronicle via the Ingesti
 ```ini
 [general]
 save_aggregate = True
-save_forensic = True
+save_failure = True
 
 [google_secops]
 # Required: Path to Google service account JSON credentials file
@@ -29,12 +29,12 @@ api_region = us
 # Optional: Log type for Chronicle ingestion (default: DMARC)
 api_log_type = DMARC
 
-# Optional: Include forensic report message payload (default: False)
+# Optional: Include failure report message payload (default: False)
 # For privacy, message bodies are excluded by default
-include_ruf_payload = False
+include_failure_payload = False
 
 # Optional: Maximum bytes of forensic message payload to include (default: 4096)
-ruf_payload_max_bytes = 4096
+failure_payload_max_bytes = 4096
 
 # Optional: Static observer name for telemetry identification
 static_observer_name = my-parsedmarc-instance
@@ -56,12 +56,22 @@ If you prefer to use an external log shipper (Fluentd, Logstash, Chronicle forwa
 use_stdout = True
 
 # Other optional configuration options (as above)
-include_ruf_payload = False
-ruf_payload_max_bytes = 4096
+include_failure_payload = False
+failure_payload_max_bytes = 4096
 static_observer_name = my-instance
 static_observer_vendor = parsedmarc
 static_environment = prod
 ```
+
+### Backward Compatibility Note
+
+**parsedmarc 10.0+** aligns with the RFC terminology change from "forensic" to "failure" reports. The configuration now uses:
+- `save_failure` instead of `save_forensic` (in `[general]` section)
+- `include_failure_payload` instead of `include_ruf_payload`
+- `failure_payload_max_bytes` instead of `ruf_payload_max_bytes`
+- Event type `DMARC_FAILURE` instead of `DMARC_FORENSIC`
+
+For backward compatibility, the old parameter names (`include_ruf_payload`, `ruf_payload_max_bytes`) are still supported but will generate deprecation warnings. Please update your configuration to use the new names.
 
 ## Output Format
 
@@ -70,7 +80,7 @@ The Google SecOps output produces newline-delimited JSON (NDJSON) in Chronicle U
 ### Event Types
 
 1. **DMARC_AGGREGATE**: One event per aggregate report row, preserving count and period information
-2. **DMARC_FORENSIC**: One event per forensic report
+2. **DMARC_FAILURE**: One event per failure report
 3. **SMTP_TLS_REPORT**: One event per SMTP TLS failure detail
 4. **DMARC_PARSE_ERROR**: Generated when parsing fails (does not crash)
 
@@ -128,7 +138,7 @@ Each event includes:
 - `dmarc.source_service_name` (optional): Enriched service name from reverse DNS mapping
 - `dmarc.source_service_type` (optional): Enriched service type (e.g., "Email Provider", "Webmail", "Marketing")
 
-**Forensic Report Fields** (`DMARC_FORENSIC` events):
+**Failure Report Fields** (`DMARC_FAILURE` events):
 - `dmarc.auth_failure`: Authentication failure type(s) (dmarc, spf, dkim)
 - `dmarc.reported_domain`: Domain that failed DMARC authentication
 - `dmarc.source_service_name` (optional): Enriched service name from reverse DNS mapping
@@ -201,11 +211,11 @@ Each event includes:
 }
 ```
 
-### Forensic Report Event
+### Failure Report Event
 
 ```json
 {
-  "event_type": "DMARC_FORENSIC",
+  "event_type": "DMARC_FAILURE",
   "metadata": {
     "event_timestamp": "2019-04-30T02:09:00+00:00",
     "event_type": "GENERIC_EVENT",
@@ -222,7 +232,7 @@ Each event includes:
   },
   "security_result": [{
     "severity": "MEDIUM",
-    "description": "DMARC forensic report: authentication failure (dmarc)",
+    "description": "DMARC failure report: authentication failure (dmarc)",
     "detection_fields": [
       {"key": "dmarc.auth_failure", "value": "dmarc"},
       {"key": "dmarc.reported_domain", "value": "example.com"},
@@ -357,17 +367,17 @@ rule repeated_dmarc_failures {
 }
 ```
 
-### Find DMARC forensic reports with authentication failures
+### Find DMARC failure reports with authentication failures
 
 ```yara-l
-rule dmarc_forensic_failures {
+rule dmarc_failure_failures {
   meta:
     author = "parsedmarc"
-    description = "Detect DMARC forensic reports with authentication failures"
+    description = "Detect DMARC failure reports with authentication failures"
     
   events:
     $e.metadata.product_name = "parsedmarc"
-    $e.event_type = "DMARC_FORENSIC"
+    $e.event_type = "DMARC_FAILURE"
     $e.security_result.detection_fields.key = "dmarc.auth_failure"
     
   condition:
@@ -415,10 +425,10 @@ rule smtp_tls_failures {
 
 ## Privacy Considerations
 
-By default, forensic report message bodies are **excluded** from the output to protect privacy. If you need to include message samples for investigation:
+By default, failure report message bodies are **excluded** from the output to protect privacy. If you need to include message samples for investigation:
 
-1. Set `include_ruf_payload = True` in your configuration
-2. Adjust `ruf_payload_max_bytes` to limit the amount of data included (default: 4096 bytes)
+1. Set `include_failure_payload = True` in your configuration
+2. Adjust `failure_payload_max_bytes` to limit the amount of data included (default: 4096 bytes)
 3. Message samples will be truncated if they exceed the configured maximum
 
 **Note**: Be aware of data privacy regulations (GDPR, CCPA, etc.) when including message payloads in security telemetry.
@@ -465,7 +475,7 @@ The Google SecOps output automatically works when monitoring mailboxes via IMAP,
 ```ini
 [general]
 save_aggregate = True
-save_forensic = True
+save_failure = True
 
 [mailbox]
 watch = True
@@ -480,7 +490,7 @@ password = yourpassword
 [google_secops]
 # Use stdout mode for log shipper integration
 use_stdout = True
-include_ruf_payload = False
+include_failure_payload = False
 static_observer_name = mailbox-monitor
 static_environment = prod
 ```

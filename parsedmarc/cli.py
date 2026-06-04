@@ -380,7 +380,7 @@ def _main():
 
                 try:
                     if opts.google_secops:
-                        events = google_secops_client.save_forensic_report_to_google_secops(report)
+                        events = google_secops_client.save_failure_report_to_google_secops(report)
                         for event in events:
                             print(event)
                 except Exception as error_:
@@ -748,8 +748,8 @@ def _main():
         gelf_port=None,
         gelf_mode=None,
         google_secops=False,
-        google_secops_include_ruf_payload=False,
-        google_secops_ruf_payload_max_bytes=4096,
+        google_secops_include_failure_payload=False,
+        google_secops_failure_payload_max_bytes=4096,
         google_secops_static_observer_name=None,
         google_secops_static_observer_vendor="parsedmarc",
         google_secops_static_environment=None,
@@ -1340,12 +1340,26 @@ def _main():
         if "google_secops" in config.sections():
             google_secops_config = config["google_secops"]
             opts.google_secops = True
-            if "include_ruf_payload" in google_secops_config:
-                opts.google_secops_include_ruf_payload = bool(
+            # New parameter names (parsedmarc 10+)
+            if "include_failure_payload" in google_secops_config:
+                opts.google_secops_include_failure_payload = bool(
+                    google_secops_config.getboolean("include_failure_payload")
+                )
+            # Backward compatibility: old parameter name
+            elif "include_ruf_payload" in google_secops_config:
+                logger.warning("include_ruf_payload is deprecated, use include_failure_payload instead")
+                opts.google_secops_include_failure_payload = bool(
                     google_secops_config.getboolean("include_ruf_payload")
                 )
-            if "ruf_payload_max_bytes" in google_secops_config:
-                opts.google_secops_ruf_payload_max_bytes = google_secops_config.getint(
+            # New parameter names (parsedmarc 10+)
+            if "failure_payload_max_bytes" in google_secops_config:
+                opts.google_secops_failure_payload_max_bytes = google_secops_config.getint(
+                    "failure_payload_max_bytes"
+                )
+            # Backward compatibility: old parameter name
+            elif "ruf_payload_max_bytes" in google_secops_config:
+                logger.warning("ruf_payload_max_bytes is deprecated, use failure_payload_max_bytes instead")
+                opts.google_secops_failure_payload_max_bytes = google_secops_config.getint(
                     "ruf_payload_max_bytes"
                 )
             if "static_observer_name" in google_secops_config:
@@ -1562,8 +1576,8 @@ def _main():
     if opts.google_secops:
         try:
             google_secops_client = google_secops.GoogleSecOpsClient(
-                include_ruf_payload=opts.google_secops_include_ruf_payload,
-                ruf_payload_max_bytes=opts.google_secops_ruf_payload_max_bytes,
+                include_failure_payload=opts.google_secops_include_failure_payload,
+                failure_payload_max_bytes=opts.google_secops_failure_payload_max_bytes,
                 static_observer_name=opts.google_secops_static_observer_name,
                 static_observer_vendor=opts.google_secops_static_observer_vendor,
                 static_environment=opts.google_secops_static_environment,

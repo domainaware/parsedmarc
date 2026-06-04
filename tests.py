@@ -186,20 +186,20 @@ class Test(unittest.TestCase):
         
         print("Passed!")
 
-    def testGoogleSecOpsForensicReport(self):
-        """Test Google SecOps forensic report conversion"""
+    def testGoogleSecOpsFailureReport(self):
+        """Test Google SecOps failure report conversion"""
         print()
         from parsedmarc.google_secops import GoogleSecOpsClient
         
         # Test without payload
-        client = GoogleSecOpsClient(include_ruf_payload=False, use_stdout=True)
+        client = GoogleSecOpsClient(include_failure_payload=False, use_stdout=True)
         sample_path = "samples/forensic/dmarc_ruf_report_linkedin.eml"
-        print("Testing Google SecOps forensic conversion (no payload) for {0}: ".format(sample_path), end="")
+        print("Testing Google SecOps failure conversion (no payload) for {0}: ".format(sample_path), end="")
         
         parsed_file = parsedmarc.parse_report_file(sample_path)
         parsed_report = parsed_file["report"]
         
-        events = client.save_forensic_report_to_google_secops(parsed_report)
+        events = client.save_failure_report_to_google_secops(parsed_report)
         
         # Verify we got events
         assert len(events) > 0, "Expected at least one event"
@@ -208,7 +208,7 @@ class Test(unittest.TestCase):
         for event in events:
             event_dict = json.loads(event)
             assert "event_type" in event_dict
-            assert event_dict["event_type"] == "DMARC_FORENSIC"
+            assert event_dict["event_type"] == "DMARC_FAILURE"
             
             # Verify no payload in additional fields
             if "additional" in event_dict and "fields" in event_dict["additional"]:
@@ -219,13 +219,13 @@ class Test(unittest.TestCase):
         
         # Test with payload
         client_with_payload = GoogleSecOpsClient(
-            include_ruf_payload=True,
-            ruf_payload_max_bytes=100,
+            include_failure_payload=True,
+            failure_payload_max_bytes=100,
             use_stdout=True
         )
-        print("Testing Google SecOps forensic conversion (with payload) for {0}: ".format(sample_path), end="")
+        print("Testing Google SecOps failure conversion (with payload) for {0}: ".format(sample_path), end="")
         
-        events_with_payload = client_with_payload.save_forensic_report_to_google_secops(parsed_report)
+        events_with_payload = client_with_payload.save_failure_report_to_google_secops(parsed_report)
         
         # Verify we got events
         assert len(events_with_payload) > 0, "Expected at least one event"
