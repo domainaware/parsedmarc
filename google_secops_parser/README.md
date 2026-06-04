@@ -198,6 +198,7 @@ leading framing before the first `{`.
 - [Parser syntax reference](https://cloud.google.com/chronicle/docs/reference/parser-syntax)
 - [Tips and troubleshooting when writing parsers](https://cloud.google.com/chronicle/docs/event-processing/parser-tips-troubleshooting) — intermediate fields are discarded unless mapped to `@output`; one parser is active per log type.
 - [Manage prebuilt and custom parsers](https://cloud.google.com/chronicle/docs/event-processing/manage-parser-updates)
+- [Chronicle content-hub](https://github.com/chronicle/content-hub) — Google's official repository of third-party SecOps parsers. Its CBN parsers (e.g. [`CLOUDFLARE_PAGESHIELD`](https://github.com/chronicle/content-hub/tree/main/content/parsers/third_party/community/CLOUDFLARE_PAGESHIELD)) use the same conventions this one does: initialize fields before `json`, `convert` JSON types to strings, map to `event.idm.read_only_udm.*`, and finalize with `@output`.
 - [UDM search](https://cloud.google.com/chronicle/docs/investigation/udm-search) — `GENERIC_EVENT` events only surface in raw-log / UDM search, not curated views.
 - [Install the Bindplane agent (collector)](https://cloud.google.com/chronicle/docs/install/install-forwarder)
 - [Feed management](https://cloud.google.com/chronicle/docs/administration/feed-management-overview)
