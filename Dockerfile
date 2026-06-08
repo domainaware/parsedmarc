@@ -27,7 +27,14 @@ COPY --from=build /app/dist/*.whl /tmp/dist/
 RUN set -ex; \
     groupadd --gid ${USER_GID} ${USERNAME}; \
     useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}; \
-    pip install /tmp/dist/*.whl; \
+    # Install the wheel with the [postgresql] extra so the prebuilt image
+    # ships the PostgreSQL output backend (psycopg). Resolve the globbed wheel
+    # path into a variable first: `*.whl[postgresql]` would otherwise be parsed
+    # as a shell bracket glob rather than a pip extras spec. psycopg[binary]
+    # has prebuilt manylinux wheels for both amd64 and arm64, so this adds no
+    # source-build step on either platform.
+    whl="$(ls /tmp/dist/*.whl)"; \
+    pip install "${whl}[postgresql]"; \
     rm -rf /tmp/dist
 
 USER $USERNAME

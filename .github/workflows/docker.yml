@@ -10,6 +10,17 @@ on:
   push:
     branches:
       - master
+  # Validate the multi-arch image build on PRs that touch the build inputs.
+  # The build runs for every listed platform but does not push (push is gated
+  # on the release event below), so this only exercises the build.
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+      - "pyproject.toml"
+  # Allow maintainers to rebuild the images on demand.
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -25,6 +36,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Docker meta
         id: meta
@@ -50,6 +67,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name == 'release' }}
           tags:  ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

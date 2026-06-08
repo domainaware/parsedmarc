@@ -381,7 +381,11 @@ The full set of configuration options are:
   The PostgreSQL backend is an optional extra. Install it with
   `pip install parsedmarc[postgresql]` (it pulls in `psycopg`); the
   prebuilt binary wheels are not available for every platform, which is
-  why it is not a mandatory dependency.
+  why it is not a mandatory dependency. The prebuilt Docker image
+  (`ghcr.io/domainaware/parsedmarc`) already bundles this extra, so the
+  PostgreSQL backend works out of the box in the container — `psycopg`
+  ships `amd64` and `arm64` binary wheels, both of which the image
+  supports.
 
   Tables are created automatically on first run using
   `CREATE TABLE IF NOT EXISTS`, so no manual schema migration is needed
