@@ -1,5 +1,12 @@
 # Changelog
 
+## 10.0.4
+
+### Docker
+
+- **PostgreSQL backend in the prebuilt image** ([#792](https://github.com/domainaware/parsedmarc/issues/792)): the image now installs `parsedmarc[postgresql]`, so the optional PostgreSQL output backend (`psycopg`) works out of the box in the container without a separate `pip install`.
+- **`arm64` images** ([#789](https://github.com/domainaware/parsedmarc/issues/789)): the release workflow now builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`, so `ghcr.io/domainaware/parsedmarc` runs natively on 64-bit ARM hosts such as a Raspberry Pi. All compiled dependencies (`psycopg[binary]`, `lxml`, `maxminddb`, `cryptography`) ship prebuilt `aarch64` wheels, so the build adds no source-compilation step.
+
 ## 10.0.3
 
 ### Bug fixes
