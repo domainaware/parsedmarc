@@ -3,6 +3,7 @@
 
 """A CLI for parsing DMARC reports"""
 
+import atexit
 import http.client
 import json
 import logging
@@ -1363,11 +1364,14 @@ def _close_output_clients(clients):
 
     Clients that do not expose a ``close`` method are silently skipped.
     Errors during closing are logged as warnings and do not propagate.
+    Idempotent: each client is popped as it is closed, so a second call
+    (e.g. the trailing close plus the atexit safety net) is a no-op.
 
     Args:
         clients: dict of client instances returned by :func:`_init_output_clients`.
     """
-    for name, client in clients.items():
+    while clients:
+        name, client = clients.popitem()
         if hasattr(client, "close"):
             try:
                 client.close()
@@ -2135,6 +2139,46 @@ def _main():
                 logger.error("Output client error: {0}".format(error_))
                 exit(1)
 
+    # Always close output clients on the way out (normal return,
+    # exit(N), uncaught exception, or SystemExit from a signal-driven
+    # shutdown). atexit does NOT fire on os._exit(130) — that's
+    # intentional for the SIGINT double-tap. The lambda closes whatever
+    # `clients` currently points at, so a SIGHUP reload that swaps the
+    # dict in-place is still covered.
+    atexit.register(lambda: _close_output_clients(clients))
+
+    # Signal handlers set a cooperative flag polled at safe checkpoints:
+    # the one-shot loops check it between batches; the watch loop relies
+    # on the mailbox backend polling `config_reloading` (which includes
+    # this flag) between checks, including inside the IMAP IDLE loop, so
+    # the current batch finishes before the watcher exits. SIGINT is a
+    # "double tap": the first press is graceful, the second short-circuits
+    # to os._exit(130). os._exit is async-signal-safe; sys.exit and
+    # logging are not, so the handlers only set flags / call os._exit.
+    _reload_requested = False
+    _shutdown_requested = False
+    _sigint_count = 0
+
+    def _handle_sighup(signum, frame):
+        nonlocal _reload_requested
+        _reload_requested = True
+
+    def _handle_sigterm(signum, frame):
+        nonlocal _shutdown_requested
+        _shutdown_requested = True
+
+    def _handle_sigint(signum, frame):
+        nonlocal _shutdown_requested, _sigint_count
+        _sigint_count += 1
+        if _sigint_count >= 2:
+            os._exit(130)
+        _shutdown_requested = True
+
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, _handle_sighup)
+    signal.signal(signal.SIGTERM, _handle_sigterm)
+    signal.signal(signal.SIGINT, _handle_sigint)
+
     file_paths = _expand_file_path_args(args.file_path)
     mbox_paths = []
 
@@ -2165,6 +2209,17 @@ def _main():
     current_log_file = opts.log_file
 
     for batch_index in range((len(file_paths) + n_procs - 1) // n_procs):
+        # Honor a shutdown request between batches before spawning the
+        # next pool. Anything already parsed is still in `results` and
+        # will go through process_reports() in the cleanup path so we
+        # don't lose work the operator already paid for.
+        if _shutdown_requested:
+            logger.info(
+                "Shutdown requested, stopping file processing after %d batch(es)",
+                batch_index,
+            )
+            break
+
         processes = []
         connections = []
 
@@ -2233,6 +2288,9 @@ def _main():
                 smtp_tls_reports.append(result[0]["report"])
 
     for mbox_path in mbox_paths:
+        if _shutdown_requested:
+            logger.info("Shutdown requested, skipping remaining mbox files")
+            break
         normalize_timespan_threshold_hours_value = (
             float(opts.normalize_timespan_threshold_hours)
             if opts.normalize_timespan_threshold_hours is not None
@@ -2374,6 +2432,7 @@ def _main():
             if opts.normalize_timespan_threshold_hours is not None
             else 24.0
         )
+    if mailbox_connection and not _shutdown_requested:
         try:
             reports = get_dmarc_reports_from_mailbox(
                 connection=mailbox_connection,
@@ -2441,20 +2500,8 @@ def _main():
             logger.exception("Failed to email results")
             exit(1)
 
-    # SIGHUP-based config reload for watch mode
-    _reload_requested = False
-
-    def _handle_sighup(signum, frame):
-        nonlocal _reload_requested
-        # Logging is not async-signal-safe; only set the flag here.
-        # The log message is emitted from the main loop when the flag is read.
-        _reload_requested = True
-
-    if hasattr(signal, "SIGHUP"):
-        signal.signal(signal.SIGHUP, _handle_sighup)
-
     if mailbox_connection and opts.mailbox_watch:
-        logger.info("Watching for email - Quit with ctrl-c")
+        logger.info("Watching for email - Ctrl-C once to quit, twice to force")
 
         while True:
             # Re-check mailbox_watch in case a config reload disabled watch mode
@@ -2464,6 +2511,10 @@ def _main():
                 )
                 break
             try:
+                # `config_reloading` returns True on SIGHUP (reload) or
+                # SIGTERM/SIGINT (shutdown); the backend polls it between
+                # checks — including inside the IMAP IDLE loop — and returns
+                # at a safe boundary once the current batch is processed.
                 watch_inbox(
                     mailbox_connection=mailbox_connection,
                     callback=process_reports,
@@ -2484,7 +2535,7 @@ def _main():
                     reverse_dns_map_url=opts.reverse_dns_map_url,
                     offline=opts.offline,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
-                    config_reloading=lambda: _reload_requested,
+                    config_reloading=lambda: _reload_requested or _shutdown_requested,
                 )
             except FileExistsError as error:
                 logger.error("{0}".format(error.__str__()))
@@ -2492,6 +2543,12 @@ def _main():
             except ParserError as error:
                 logger.error(error.__str__())
                 exit(1)
+
+            # Prioritize shutdown over reload if both flags are set (e.g.
+            # SIGHUP followed by SIGTERM). atexit closes output clients.
+            if _shutdown_requested:
+                logger.info("Shutdown requested, exiting watch loop")
+                break
 
             if not _reload_requested:
                 break
@@ -2609,6 +2666,11 @@ def _main():
                 logger.exception(
                     "Config reload failed, continuing with previous config"
                 )
+
+    # Close output clients on the success path (one-shot or graceful
+    # watch-loop exit). atexit-registered above is the safety net for
+    # exit(1) / uncaught-exception paths.
+    _close_output_clients(clients)
 
 
 if __name__ == "__main__":

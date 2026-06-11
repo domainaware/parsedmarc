@@ -818,6 +818,8 @@ After=network.target network-online.target elasticsearch.service
 [Service]
 ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
 ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=60
 User=parsedmarc
 Group=parsedmarc
 Restart=always
@@ -848,6 +850,17 @@ Always restart the service every time you upgrade to a new version of
 sudo service parsedmarc restart
 ```
 
+:::
+
+:::{note}
+On `systemctl stop`/`restart` (or Ctrl-C) `parsedmarc` finishes the
+current batch, flushes its outputs, and exits cleanly. Shutdown is
+observed at batch boundaries, so the worst-case delay is roughly
+`mailbox_check_timeout` (default 30s) plus the batch's processing and
+flush time. Keep `TimeoutStopSec` comfortably above
+`mailbox_check_timeout` (≈2×, and raise both together) or systemd will
+`SIGKILL` mid-batch. In the foreground, a second Ctrl-C force-quits
+immediately, skipping the output flush.
 :::
 
 ### Reloading configuration without restarting

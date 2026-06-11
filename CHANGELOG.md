@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.1.0
+
+### Changes
+
+- **Graceful shutdown on `SIGTERM` / `SIGINT`.** Previously `SIGTERM` (sent by `systemctl stop`, `docker stop`, and Kubernetes pod termination) killed the process mid-batch, tearing output writes and silently dropping Kafka producer buffers. parsedmarc now sets a shutdown flag that is polled at safe boundaries: the one-shot CLI checks it between batches, and the watcher passes it as `config_reloading` so the mailbox backend — including the IMAP IDLE loop — returns once the current batch is processed. Either way the current batch and its output writes finish before the process exits. Ctrl-C is a double-tap: the first press is graceful, the second short-circuits to `os._exit(130)`. This requires the `config_reloading`-aware IMAP IDLE loop from the pinned `mailsuite` fork; with a stock `mailsuite` the IDLE watcher cannot be interrupted cleanly.
+- **Output clients are now closed on every exit path** via `atexit` plus a trailing close at the end of `_main()`, fixing a long-standing leak where one-shot CLI runs and graceful shutdowns never flushed Kafka / closed Elasticsearch / S3 / etc. clients.
+- **Example systemd unit** in `docs/source/usage.md` now sets `KillSignal=SIGTERM` and `TimeoutStopSec=60` so systemd waits long enough for the watcher to drain (keep it above `mailbox_check_timeout`).
+
 ## 10.0.4
 
 ### Docker

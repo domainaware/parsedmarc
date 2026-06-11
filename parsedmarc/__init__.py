@@ -2505,7 +2505,9 @@ def watch_inbox(
         since: Search for messages since certain time
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
         config_reloading: Optional callable that returns True when a config
-            reload has been requested (e.g. via SIGHUP)
+            reload (or shutdown) has been requested (e.g. via SIGHUP/SIGTERM).
+            Polled by the mailbox backend between checks, including the IMAP
+            IDLE loop, so the watcher exits cleanly at a safe boundary.
     """
 
     def check_callback(connection):
