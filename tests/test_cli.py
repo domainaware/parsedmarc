@@ -2010,6 +2010,9 @@ watch = true
 
         def watch_side_effect(*args, **kwargs):
             handler = signal.getsignal(signal.SIGINT)
+            # getsignal() can return SIG_DFL/SIG_IGN/None; narrow the type
+            # so the handler can be invoked directly.
+            assert callable(handler)
             handler(signal.SIGINT, None)  # first press: graceful flag
             handler(signal.SIGINT, None)  # second press: hits os._exit
 
