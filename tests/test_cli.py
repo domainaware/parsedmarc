@@ -2024,26 +2024,30 @@ watch = true
         self.assertIs(cm.exception, sentinel)
         mock_exit.assert_called_once_with(130)
 
-    @patch("parsedmarc.cli.is_mbox", return_value=False)
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mbox")
+    @patch("parsedmarc.cli.is_mbox", side_effect=lambda p: p.endswith(".mbox"))
     @patch("parsedmarc.cli._init_output_clients")
     @patch("parsedmarc.cli.Process")
     @patch("parsedmarc.cli.glob")
-    def testSigtermDuringOneShotStopsBetweenBatches(
+    def testSigtermDuringOneShotStopsBetweenBatchesAndMbox(
         self,
         mock_glob,
         mock_process_cls,
         mock_init_clients,
         mock_is_mbox,
+        mock_get_mbox,
     ):
         """SIGTERM during one-shot processing: the in-flight child is
-        joined normally (no work lost) and the loop stops before spawning
-        the next batch, then output clients are closed.
+        joined normally (no work lost), the file-batch loop stops before
+        spawning the next batch, and the subsequent mbox loop breaks on
+        its first iteration (the flag is already set). Output clients are
+        still closed.
 
-        ``is_mbox`` is mocked so the fake filenames don't trigger
-        ``mailbox.mbox(path, create=True)`` and leave stray .xml files."""
-        # Three files with the default n_procs=1 means three sequential
-        # single-file batches; SIGTERM fires during the first.
-        mock_glob.return_value = ["a.xml", "b.xml", "c.xml"]
+        Two ``.xml`` files give the batch loop a second iteration to hit
+        its break; one ``.mbox`` file routes into ``mbox_paths`` so the
+        mbox break is exercised too. ``is_mbox`` is keyed by suffix so the
+        fake filenames don't trigger ``mailbox.mbox(path, create=True)``."""
+        mock_glob.return_value = ["a.xml", "b.xml", "c.mbox"]
 
         kafka_client = MagicMock(spec=["close"])
         mock_init_clients.return_value = {"kafka": kafka_client}
@@ -2069,11 +2073,13 @@ watch = true
 
         mock_process_cls.side_effect = FakeProc
 
-        with patch.object(sys, "argv", ["parsedmarc", "a.xml", "b.xml", "c.xml"]):
+        with patch.object(sys, "argv", ["parsedmarc", "a.xml", "b.xml", "c.mbox"]):
             parsedmarc.cli._main()
 
-        # Only the first batch ran; the loop broke before the rest.
+        # Only the first xml batch ran before the batch loop broke, and the
+        # mbox loop broke before processing its file.
         self.assertEqual(len(starts), 1)
+        mock_get_mbox.assert_not_called()
         kafka_client.close.assert_called()
 
     @patch("parsedmarc.cli._init_output_clients")
