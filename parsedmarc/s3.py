@@ -115,6 +115,5 @@ class S3Client(object):
         except Exception:
             pass
 
-
-# Backward-compatible aliases
-S3Client.save_forensic_report_to_s3 = S3Client.save_failure_report_to_s3
+    # Backward-compatible alias
+    save_forensic_report_to_s3 = save_failure_report_to_s3

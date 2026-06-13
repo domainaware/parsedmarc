@@ -11,7 +11,7 @@ from kafka.errors import UnknownTopicOrPartitionError
 
 try:
     # kafka-python < 3.0 raises this when the producer cannot bootstrap
-    from kafka.errors import NoBrokersAvailable as _BootstrapError
+    from kafka.errors import NoBrokersAvailable as _BootstrapError  # pyright: ignore[reportAttributeAccessIssue]
 except ImportError:
     # kafka-python >= 3.0 removed NoBrokersAvailable; a failed bootstrap
     # raises KafkaTimeoutError instead
@@ -219,6 +219,5 @@ class KafkaClient(object):
         except Exception as e:
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
-
-# Backward-compatible aliases
-KafkaClient.save_forensic_reports_to_kafka = KafkaClient.save_failure_reports_to_kafka
+    # Backward-compatible alias
+    save_forensic_reports_to_kafka = save_failure_reports_to_kafka

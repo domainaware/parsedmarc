@@ -76,6 +76,5 @@ class GelfClient(object):
         self.logger.removeHandler(self.handler)
         self.handler.close()
 
-
-# Backward-compatible aliases
-GelfClient.save_forensic_report_to_gelf = GelfClient.save_failure_report_to_gelf
+    # Backward-compatible alias
+    save_forensic_report_to_gelf = save_failure_report_to_gelf

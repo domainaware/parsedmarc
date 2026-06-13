@@ -64,8 +64,5 @@ class WebhookClient(object):
         """Close the underlying HTTP session."""
         self.session.close()
 
-
-# Backward-compatible aliases
-WebhookClient.save_forensic_report_to_webhook = (
-    WebhookClient.save_failure_report_to_webhook
-)
+    # Backward-compatible alias
+    save_forensic_report_to_webhook = save_failure_report_to_webhook

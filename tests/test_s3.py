@@ -211,7 +211,7 @@ class TestS3ClientClose(unittest.TestCase):
 class TestS3ClientBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            S3Client.save_forensic_report_to_s3,  # type: ignore[attr-defined]
+            S3Client.save_forensic_report_to_s3,
             S3Client.save_failure_report_to_s3,
         )
 

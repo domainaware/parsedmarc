@@ -185,6 +185,5 @@ class SyslogClient(object):
         self.logger.removeHandler(self.log_handler)
         self.log_handler.close()
 
-
-# Backward-compatible aliases
-SyslogClient.save_forensic_report_to_syslog = SyslogClient.save_failure_report_to_syslog
+    # Backward-compatible alias
+    save_forensic_report_to_syslog = save_failure_report_to_syslog
