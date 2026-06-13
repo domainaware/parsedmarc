@@ -6,7 +6,7 @@ import codecs
 import os
 import sys
 import shutil
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 """
 Locates and optionally corrects bad UTF-8 bytes in a file.
@@ -127,7 +127,9 @@ def detect_encoding_text(path: str) -> Tuple[str, str]:
     return match.encoding, str(match)
 
 
-def convert_to_utf8(src_path: str, out_path: str, src_encoding: str = None) -> str:
+def convert_to_utf8(
+    src_path: str, out_path: str, src_encoding: Optional[str] = None
+) -> str:
     """
     Convert an entire file to UTF-8 (re-decoding everything).
     If src_encoding is provided, use it; else auto-detect.

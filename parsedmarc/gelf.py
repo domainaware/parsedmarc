@@ -12,9 +12,7 @@ from parsedmarc import (
     parsed_failure_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
-from typing import Any
-
-from parsedmarc.types import AggregateReport, SMTPTLSReport
+from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
 
 log_context_data = threading.local()
 
@@ -51,7 +49,9 @@ class GelfClient(object):
         )
         self.logger.addHandler(self.handler)
 
-    def save_aggregate_report_to_gelf(self, aggregate_reports: list[AggregateReport]):
+    def save_aggregate_report_to_gelf(
+        self, aggregate_reports: AggregateReport | list[AggregateReport]
+    ):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             log_context_data.parsedmarc = row
@@ -59,13 +59,17 @@ class GelfClient(object):
 
         log_context_data.parsedmarc = None
 
-    def save_failure_report_to_gelf(self, failure_reports: list[dict[str, Any]]):
+    def save_failure_report_to_gelf(
+        self, failure_reports: FailureReport | list[FailureReport]
+    ):
         rows = parsed_failure_reports_to_csv_rows(failure_reports)
         for row in rows:
             log_context_data.parsedmarc = row
             self.logger.info("parsedmarc failure report")
 
-    def save_smtp_tls_report_to_gelf(self, smtp_tls_reports: SMTPTLSReport):
+    def save_smtp_tls_report_to_gelf(
+        self, smtp_tls_reports: SMTPTLSReport | list[SMTPTLSReport]
+    ):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             log_context_data.parsedmarc = row

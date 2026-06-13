@@ -4,18 +4,21 @@ from __future__ import annotations
 
 import json
 from ssl import SSLContext, create_default_context
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from kafka import KafkaProducer
 from kafka.errors import UnknownTopicOrPartitionError
 
-try:
-    # kafka-python < 3.0 raises this when the producer cannot bootstrap
-    from kafka.errors import NoBrokersAvailable as _BootstrapError  # pyright: ignore[reportAttributeAccessIssue]
-except ImportError:
-    # kafka-python >= 3.0 removed NoBrokersAvailable; a failed bootstrap
-    # raises KafkaTimeoutError instead
+if TYPE_CHECKING:
     from kafka.errors import KafkaTimeoutError as _BootstrapError
+else:
+    try:
+        # kafka-python < 3.0 raises this when the producer cannot bootstrap
+        from kafka.errors import NoBrokersAvailable as _BootstrapError
+    except ImportError:
+        # kafka-python >= 3.0 removed NoBrokersAvailable; a failed bootstrap
+        # raises KafkaTimeoutError instead
+        from kafka.errors import KafkaTimeoutError as _BootstrapError
 
 from parsedmarc import __version__
 from parsedmarc.log import logger
@@ -185,6 +188,9 @@ class KafkaClient(object):
         except Exception as e:
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
 
+    # Backward-compatible alias
+    save_forensic_reports_to_kafka = save_failure_reports_to_kafka
+
     def save_smtp_tls_reports_to_kafka(
         self,
         smtp_tls_reports: Union[list[dict[str, Any]], dict[str, Any]],
@@ -218,6 +224,3 @@ class KafkaClient(object):
             self.producer.flush()
         except Exception as e:
             raise KafkaError("Kafka error: {0}".format(e.__str__()))
-
-    # Backward-compatible alias
-    save_forensic_reports_to_kafka = save_failure_reports_to_kafka

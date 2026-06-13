@@ -9,13 +9,14 @@ import logging.handlers
 import socket
 import ssl
 import time
-from typing import Any, Optional
+from typing import Optional
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
     parsed_failure_reports_to_csv_rows,
     parsed_smtp_tls_reports_to_csv_rows,
 )
+from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
 
 
 class SyslogClient(object):
@@ -103,8 +104,9 @@ class SyslogClient(object):
                             socktype=socket.SOCK_STREAM,
                         )
                         # Set timeout on the socket
-                        if hasattr(handler, "socket") and handler.socket:
-                            handler.socket.settimeout(timeout)
+                        sock = getattr(handler, "socket", None)
+                        if sock is not None:
+                            sock.settimeout(timeout)
                         return handler
                     else:
                         # TLS protocol
@@ -139,12 +141,14 @@ class SyslogClient(object):
                         )
 
                         # Wrap socket with TLS
-                        if hasattr(handler, "socket") and handler.socket:
-                            handler.socket = ssl_context.wrap_socket(
-                                handler.socket,
+                        sock = getattr(handler, "socket", None)
+                        if sock is not None:
+                            tls_sock = ssl_context.wrap_socket(
+                                sock,
                                 server_hostname=server_name,
                             )
-                            handler.socket.settimeout(timeout)
+                            tls_sock.settimeout(timeout)
+                            setattr(handler, "socket", tls_sock)
 
                         return handler
 
@@ -160,22 +164,31 @@ class SyslogClient(object):
                             f"Syslog connection failed after {retry_attempts} attempts: {e}"
                         )
                         raise
+            # Only reachable when retry_attempts < 1, which would otherwise
+            # silently return None and break the caller's addHandler() call.
+            raise ValueError("retry_attempts must be at least 1")
         else:
             raise ValueError(
                 f"Invalid protocol '{protocol}'. Must be 'udp', 'tcp', or 'tls'."
             )
 
-    def save_aggregate_report_to_syslog(self, aggregate_reports: list[dict[str, Any]]):
+    def save_aggregate_report_to_syslog(
+        self, aggregate_reports: AggregateReport | list[AggregateReport]
+    ):
         rows = parsed_aggregate_reports_to_csv_rows(aggregate_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
-    def save_failure_report_to_syslog(self, failure_reports: list[dict[str, Any]]):
+    def save_failure_report_to_syslog(
+        self, failure_reports: FailureReport | list[FailureReport]
+    ):
         rows = parsed_failure_reports_to_csv_rows(failure_reports)
         for row in rows:
             self.logger.info(json.dumps(row))
 
-    def save_smtp_tls_report_to_syslog(self, smtp_tls_reports: list[dict[str, Any]]):
+    def save_smtp_tls_report_to_syslog(
+        self, smtp_tls_reports: SMTPTLSReport | list[SMTPTLSReport]
+    ):
         rows = parsed_smtp_tls_reports_to_csv_rows(smtp_tls_reports)
         for row in rows:
             self.logger.info(json.dumps(row))

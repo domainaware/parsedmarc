@@ -6,11 +6,14 @@ import socket
 import unittest
 from unittest.mock import MagicMock, patch
 
+from typing import cast
+
 from parsedmarc.syslog import SyslogClient
+from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
 
 
-def _sample_aggregate_report():
-    return {
+def _sample_aggregate_report() -> AggregateReport:
+    report = {
         "xml_schema": "draft",
         "xml_namespace": None,
         "report_metadata": {
@@ -70,6 +73,7 @@ def _sample_aggregate_report():
             }
         ],
     }
+    return cast(AggregateReport, report)
 
 
 class _CapturingHandler(logging.Handler):
@@ -259,6 +263,18 @@ class TestSyslogClientInitInvalidProtocol(unittest.TestCase):
         self.assertIn("udb", str(ctx.exception))
         self.assertIn("'udp', 'tcp', or 'tls'", str(ctx.exception))
 
+    def test_zero_retry_attempts_raises_value_error(self):
+        """retry_attempts < 1 means the TCP/TLS connect loop never runs.
+        Before the fix, _create_syslog_handler fell through and returned
+        None, which was then passed to logger.addHandler(); now it raises
+        ValueError instead of silently configuring a broken client."""
+        _fresh_logger()
+        with patch("parsedmarc.syslog.logging.handlers.SysLogHandler") as handler_cls:
+            with self.assertRaises(ValueError) as ctx:
+                SyslogClient("s", 514, protocol="tcp", retry_attempts=0)
+        handler_cls.assert_not_called()
+        self.assertIn("retry_attempts", str(ctx.exception))
+
 
 class TestSyslogClientSave(unittest.TestCase):
     """save_* methods emit one syslog message per CSV row, each as a
@@ -314,7 +330,7 @@ class TestSyslogClientSave(unittest.TestCase):
             "sample": "...",
             "parsed_sample": {"subject": "Test"},
         }
-        client.save_failure_report_to_syslog([failure_report])
+        client.save_failure_report_to_syslog([cast(FailureReport, failure_report)])
         self.assertEqual(len(cap.messages), 1)
         payload = json.loads(cap.messages[0])
         self.assertEqual(payload["reported_domain"], "example.com")
@@ -337,7 +353,7 @@ class TestSyslogClientSave(unittest.TestCase):
                 }
             ],
         }
-        client.save_smtp_tls_report_to_syslog([report])
+        client.save_smtp_tls_report_to_syslog([cast(SMTPTLSReport, report)])
         self.assertEqual(len(cap.messages), 1)
         payload = json.loads(cap.messages[0])
         self.assertEqual(payload["policy_domain"], "example.com")

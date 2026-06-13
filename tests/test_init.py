@@ -568,7 +568,9 @@ class Test(unittest.TestCase):
             always_use_local_files=True,
             offline=True,
         )
-        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(result["report"])
+        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(
+            cast(AggregateReport, result["report"])
+        )
         header = csv_text.splitlines()[0].split(",")
         self.assertIn("source_asn", header)
         self.assertIn("source_as_name", header)
@@ -2330,7 +2332,10 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
 
     def test_none_connection_raises(self):
         with self.assertRaises(ValueError) as ctx:
-            parsedmarc.get_dmarc_reports_from_mailbox(connection=None)
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                # Deliberately invalid: exercises the runtime None check
+                connection=None  # pyright: ignore[reportArgumentType]
+            )
         self.assertIn("connection", str(ctx.exception).lower())
 
 
@@ -2535,7 +2540,8 @@ class TestEmailResultsErrorBranches(unittest.TestCase):
                 },
                 host="smtp.example.com",
                 mail_from="from@example.com",
-                mail_to="admin@example.com",  # str, not list — triggers assert
+                # str, not list — triggers assert
+                mail_to="admin@example.com",  # pyright: ignore[reportArgumentType]
             )
 
 
@@ -2548,7 +2554,7 @@ class TestAppendJson(unittest.TestCase):
             path = tf.name
         os.remove(path)  # ensure file is fresh
         try:
-            parsedmarc.append_json(path, [{"a": 1}])
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"a": 1}]))
             with open(path) as f:
                 data = json.loads(f.read())
             self.assertEqual(data, [{"a": 1}])
@@ -2560,8 +2566,8 @@ class TestAppendJson(unittest.TestCase):
         with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
             path = tf.name
         try:
-            parsedmarc.append_json(path, [{"a": 1}])
-            parsedmarc.append_json(path, [{"b": 2}])
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"a": 1}]))
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"b": 2}]))
             with open(path) as f:
                 data = json.loads(f.read())
             self.assertEqual(data, [{"a": 1}, {"b": 2}])
@@ -2573,7 +2579,7 @@ class TestAppendJson(unittest.TestCase):
         with NamedTemporaryFile("w", suffix=".json", delete=False) as tf:
             path = tf.name
         try:
-            parsedmarc.append_json(path, [{"a": 1}])
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"a": 1}]))
             parsedmarc.append_json(path, [])
             with open(path) as f:
                 data = json.loads(f.read())
@@ -2595,7 +2601,7 @@ class TestAppendJson(unittest.TestCase):
             tf.write("{ this is not valid json at all")
             path = tf.name
         try:
-            parsedmarc.append_json(path, [{"new": "data"}])
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"new": "data"}]))
             with open(path) as f:
                 data = json.loads(f.read())
             self.assertEqual(data, [{"new": "data"}])
@@ -2612,7 +2618,7 @@ class TestAppendJson(unittest.TestCase):
             tf.write('{"not": "a list"}')
             path = tf.name
         try:
-            parsedmarc.append_json(path, [{"new": "data"}])
+            parsedmarc.append_json(path, cast(list[AggregateReport], [{"new": "data"}]))
             with open(path) as f:
                 data = json.loads(f.read())
             self.assertEqual(data, [{"new": "data"}])

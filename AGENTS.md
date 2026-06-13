@@ -25,6 +25,11 @@ pytest tests/test_init.py::Test::testAggregateSamples
 ruff check .
 ruff format .
 
+# Type check (config in pyproject.toml [tool.pyright]; CI enforces zero
+# errors/warnings; needs the [postgresql] extra installed so the optional
+# psycopg import resolves)
+pyright
+
 # Test CLI with sample reports
 parsedmarc --debug -c ci.ini samples/aggregate/*
 parsedmarc --debug -c ci.ini samples/failure/*
@@ -108,6 +113,7 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 ## Code Style
 
 - Ruff for formatting and linting (configured in `.vscode/settings.json`). Run `ruff check .` and `ruff format --check .` after every code edit, before committing.
+- Pyright for type checking (configured in `pyproject.toml` `[tool.pyright]`, pinned in the `[build]` extra, enforced in CI). Run `pyright` from the repo root before committing; the whole codebase — library and tests — must stay at zero errors and warnings. Prefer real fixes (narrowing, `Optional` annotations, `TYPE_CHECKING` imports) over `# pyright: ignore[...]`; reserve targeted ignores for deliberate wrong-type tests and version-conditional imports, and never use a bare blanket ignore.
 - TypedDict for structured data, type hints throughout.
 - Python ≥3.10 required.
 - Tests live under `tests/` as `tests/test_<module>.py`, one per top-level `parsedmarc/*` module (e.g. `tests/test_init.py` for `parsedmarc/__init__.py`, `tests/test_cli.py` for `parsedmarc/cli.py`). All test classes use `unittest`. Sample reports live in `samples/`. Run with `pytest tests/`; run one file with `pytest tests/test_init.py`. New tests go in the file whose module they exercise — do not reintroduce a monolithic test file.

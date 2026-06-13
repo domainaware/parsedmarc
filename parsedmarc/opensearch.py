@@ -116,7 +116,7 @@ class _AggregateReportDoc(Document):
         domain: str,
         selector: str,
         result: _DKIMResult,
-        human_result: str = None,
+        human_result: Optional[str] = None,
     ):
         self.dkim_results.append(
             _DKIMResult(
@@ -132,7 +132,7 @@ class _AggregateReportDoc(Document):
         domain: str,
         scope: str,
         result: _SPFResult,
-        human_result: str = None,
+        human_result: Optional[str] = None,
     ):
         self.spf_results.append(
             _SPFResult(

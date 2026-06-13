@@ -2,11 +2,17 @@
 
 import json
 import unittest
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from kafka.errors import UnknownTopicOrPartitionError
 
 from parsedmarc.kafkaclient import KafkaClient, KafkaError, _BootstrapError
+
+
+def _producer(client: KafkaClient) -> MagicMock:
+    """The patched KafkaProducer as a MagicMock, for assertion access."""
+    return cast(MagicMock, client.producer)
 
 
 def _aggregate_report():
@@ -121,15 +127,15 @@ class TestSaveAggregateReportsToKafka(unittest.TestCase):
         client = self._client()
         client.save_aggregate_reports_to_kafka(_aggregate_report(), "dmarc-aggregate")
         # 2 records in the sample report → 2 producer.send calls.
-        self.assertEqual(client.producer.send.call_count, 2)
+        self.assertEqual(_producer(client).send.call_count, 2)
         # Topic is forwarded verbatim.
-        for call in client.producer.send.call_args_list:
+        for call in _producer(client).send.call_args_list:
             self.assertEqual(call.args[0], "dmarc-aggregate")
 
     def test_each_slice_carries_metadata(self):
         client = self._client()
         client.save_aggregate_reports_to_kafka(_aggregate_report(), "topic")
-        sent = [call.args[1] for call in client.producer.send.call_args_list]
+        sent = [call.args[1] for call in _producer(client).send.call_args_list]
         for slice_ in sent:
             self.assertEqual(slice_["org_name"], "TestOrg")
             self.assertEqual(slice_["org_email"], "test@example.com")
@@ -144,32 +150,32 @@ class TestSaveAggregateReportsToKafka(unittest.TestCase):
     def test_empty_list_is_a_noop(self):
         client = self._client()
         client.save_aggregate_reports_to_kafka([], "topic")
-        client.producer.send.assert_not_called()
+        _producer(client).send.assert_not_called()
 
     def test_dict_input_normalized_to_list(self):
         """Single-report dict input is wrapped to a list."""
         client = self._client()
         client.save_aggregate_reports_to_kafka(_aggregate_report(), "topic")
         # 2 records still sent (one report with 2 records, not multiple reports).
-        self.assertEqual(client.producer.send.call_count, 2)
+        self.assertEqual(_producer(client).send.call_count, 2)
 
     def test_unknown_topic_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = UnknownTopicOrPartitionError()
+        _producer(client).send.side_effect = UnknownTopicOrPartitionError()
         with self.assertRaises(KafkaError) as ctx:
             client.save_aggregate_reports_to_kafka(_aggregate_report(), "missing")
         self.assertIn("Unknown topic or partition", str(ctx.exception))
 
     def test_generic_send_exception_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = RuntimeError("transport failure")
+        _producer(client).send.side_effect = RuntimeError("transport failure")
         with self.assertRaises(KafkaError) as ctx:
             client.save_aggregate_reports_to_kafka(_aggregate_report(), "topic")
         self.assertIn("transport failure", str(ctx.exception))
 
     def test_flush_exception_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.flush.side_effect = RuntimeError("flush failure")
+        _producer(client).flush.side_effect = RuntimeError("flush failure")
         with self.assertRaises(KafkaError) as ctx:
             client.save_aggregate_reports_to_kafka(_aggregate_report(), "topic")
         self.assertIn("flush failure", str(ctx.exception))
@@ -186,35 +192,35 @@ class TestSaveFailureReportsToKafka(unittest.TestCase):
         client = self._client()
         reports = [{"id": "f1"}, {"id": "f2"}]
         client.save_failure_reports_to_kafka(reports, "dmarc-failure")
-        client.producer.send.assert_called_once_with("dmarc-failure", reports)
+        _producer(client).send.assert_called_once_with("dmarc-failure", reports)
 
     def test_dict_input_normalized_to_list(self):
         client = self._client()
         client.save_failure_reports_to_kafka({"id": "single"}, "topic")
         # The send payload is wrapped to a single-element list.
-        args = client.producer.send.call_args.args
+        args = _producer(client).send.call_args.args
         self.assertEqual(args[1], [{"id": "single"}])
 
     def test_empty_list_is_a_noop(self):
         client = self._client()
         client.save_failure_reports_to_kafka([], "topic")
-        client.producer.send.assert_not_called()
+        _producer(client).send.assert_not_called()
 
     def test_unknown_topic_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = UnknownTopicOrPartitionError()
+        _producer(client).send.side_effect = UnknownTopicOrPartitionError()
         with self.assertRaises(KafkaError):
             client.save_failure_reports_to_kafka([{"a": 1}], "missing")
 
     def test_generic_send_error_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = OSError("net")
+        _producer(client).send.side_effect = OSError("net")
         with self.assertRaises(KafkaError):
             client.save_failure_reports_to_kafka([{"a": 1}], "topic")
 
     def test_flush_error_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.flush.side_effect = OSError("flush")
+        _producer(client).flush.side_effect = OSError("flush")
         with self.assertRaises(KafkaError):
             client.save_failure_reports_to_kafka([{"a": 1}], "topic")
 
@@ -228,34 +234,34 @@ class TestSaveSmtpTlsReportsToKafka(unittest.TestCase):
         client = self._client()
         reports = [{"organization_name": "x"}]
         client.save_smtp_tls_reports_to_kafka(reports, "smtp-tls")
-        client.producer.send.assert_called_once_with("smtp-tls", reports)
+        _producer(client).send.assert_called_once_with("smtp-tls", reports)
 
     def test_dict_input_normalized_to_list(self):
         client = self._client()
         client.save_smtp_tls_reports_to_kafka({"organization_name": "x"}, "topic")
-        args = client.producer.send.call_args.args
+        args = _producer(client).send.call_args.args
         self.assertEqual(args[1], [{"organization_name": "x"}])
 
     def test_empty_list_is_a_noop(self):
         client = self._client()
         client.save_smtp_tls_reports_to_kafka([], "topic")
-        client.producer.send.assert_not_called()
+        _producer(client).send.assert_not_called()
 
     def test_unknown_topic_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = UnknownTopicOrPartitionError()
+        _producer(client).send.side_effect = UnknownTopicOrPartitionError()
         with self.assertRaises(KafkaError):
             client.save_smtp_tls_reports_to_kafka([{"a": 1}], "missing")
 
     def test_generic_send_error_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.send.side_effect = RuntimeError("oops")
+        _producer(client).send.side_effect = RuntimeError("oops")
         with self.assertRaises(KafkaError):
             client.save_smtp_tls_reports_to_kafka([{"a": 1}], "topic")
 
     def test_flush_error_translates_to_kafka_error(self):
         client = self._client()
-        client.producer.flush.side_effect = RuntimeError("flush")
+        _producer(client).flush.side_effect = RuntimeError("flush")
         with self.assertRaises(KafkaError):
             client.save_smtp_tls_reports_to_kafka([{"a": 1}], "topic")
 
@@ -265,7 +271,7 @@ class TestKafkaClientClose(unittest.TestCase):
         with patch("parsedmarc.kafkaclient.KafkaProducer"):
             client = KafkaClient(kafka_hosts=["b"])
         client.close()
-        client.producer.close.assert_called_once()
+        _producer(client).close.assert_called_once()
 
 
 class TestKafkaBackwardCompatAlias(unittest.TestCase):

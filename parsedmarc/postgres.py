@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
-try:
+if TYPE_CHECKING:
+    # LiteralString requires Python >= 3.11, so only import it for type checking
+    from typing import LiteralString
+
     import psycopg
-    from psycopg import types as psycopg_types
-except ImportError:
-    psycopg = None  # type: ignore[assignment]
-    psycopg_types = None  # type: ignore[assignment]
+    from psycopg.types import json as psycopg_json
+else:
+    try:
+        import psycopg
+        from psycopg.types import json as psycopg_json
+    except ImportError:
+        psycopg = None
+        psycopg_json = None
 
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_datetime
@@ -156,7 +163,7 @@ class PostgreSQLClient:
         self._conn: Optional[psycopg.Connection] = None
         self._connect()
 
-    def _connect(self) -> None:
+    def _connect(self) -> psycopg.Connection:
         """Open a new database connection using stored parameters.
 
         Raises:
@@ -165,18 +172,20 @@ class PostgreSQLClient:
         logger.debug("Connecting to PostgreSQL")
         try:
             if self._connection_string:
-                self._conn = psycopg.connect(self._connection_string)
+                conn = psycopg.connect(self._connection_string)
             else:
-                self._conn = psycopg.connect(
+                conn = psycopg.connect(
                     host=self._host,
                     port=self._port,
                     user=self._user,
                     password=self._password,
                     dbname=self._database,
                 )
-            self._conn.autocommit = False
+            conn.autocommit = False
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc
+        self._conn = conn
+        return conn
 
     def close(self) -> None:
         """Close the database connection if it is open.
@@ -187,7 +196,7 @@ class PostgreSQLClient:
         if self._conn is not None and not self._conn.closed:
             self._conn.close()
 
-    def _ensure_connected(self) -> None:
+    def _ensure_connected(self) -> psycopg.Connection:
         """Check the connection health and reconnect if necessary.
 
         When *parsedmarc* runs in watch mode the process can stay alive
@@ -197,9 +206,11 @@ class PostgreSQLClient:
         and transparently re-establishes it so that subsequent
         ``save_*`` calls succeed without manual intervention.
         """
-        if self._conn is None or self._conn.closed:
+        conn = self._conn
+        if conn is None or conn.closed:
             logger.warning("PostgreSQL connection lost — attempting to reconnect")
-            self._connect()
+            conn = self._connect()
+        return conn
 
     def create_tables(self) -> None:
         """Creates all required tables if they do not already exist.
@@ -209,8 +220,8 @@ class PostgreSQLClient:
         Raises:
             PostgreSQLError: If table creation fails.
         """
-        self._ensure_connected()
-        ddl_statements = [
+        conn = self._ensure_connected()
+        ddl_statements: list[LiteralString] = [
             # ----------------------------------------------------------------
             # Aggregate reports
             # ----------------------------------------------------------------
@@ -420,8 +431,8 @@ class PostgreSQLClient:
         ]
 
         try:
-            with self._conn.transaction():
-                with self._conn.cursor() as cur:
+            with conn.transaction():
+                with conn.cursor() as cur:
                     for stmt in ddl_statements:
                         cur.execute(stmt)
             logger.debug("PostgreSQL tables verified / created")
@@ -439,13 +450,13 @@ class PostgreSQLClient:
             AlreadySaved: If an identical report is already present.
             PostgreSQLError: If a database error occurs.
         """
-        self._ensure_connected()
+        conn = self._ensure_connected()
         meta = report.get("report_metadata", {})
         pub = report.get("policy_published", {})
 
         try:
-            with self._conn.transaction():
-                with self._conn.cursor() as cur:
+            with conn.transaction():
+                with conn.cursor() as cur:
                     cur.execute(
                         """
                         INSERT INTO dmarc_aggregate_report (
@@ -549,7 +560,8 @@ class PostgreSQLClient:
                                 idens.get("envelope_to"),
                             ),
                         )
-                        record_db_id: int = cur.fetchone()[0]
+                        # INSERT ... RETURNING always yields one row
+                        record_db_id: int = cur.fetchone()[0]  # pyright: ignore[reportOptionalSubscript]
 
                         for dkim in record.get("auth_results", {}).get("dkim", []):
                             cur.execute(
@@ -615,25 +627,21 @@ class PostgreSQLClient:
             AlreadySaved: If a matching failure report is already present.
             PostgreSQLError: If a database error occurs.
         """
-        self._ensure_connected()
+        conn = self._ensure_connected()
         sample = report.get("parsed_sample", {}) or {}
         src = report.get("source", {}) or {}
         arrival_date_utc = _ensure_utc_suffix(report.get("arrival_date_utc"))
         sample_subject = sample.get("subject")
         # JSONB values are reused by both the dedup check and the INSERT.
         sample_headers = (
-            psycopg_types.json.Jsonb(sample["headers"])
-            if sample.get("headers")
-            else None
+            psycopg_json.Jsonb(sample["headers"]) if sample.get("headers") else None
         )
-        sample_from = (
-            psycopg_types.json.Jsonb(sample["from"]) if sample.get("from") else None
-        )
-        sample_to = psycopg_types.json.Jsonb(sample["to"]) if sample.get("to") else None
+        sample_from = psycopg_json.Jsonb(sample["from"]) if sample.get("from") else None
+        sample_to = psycopg_json.Jsonb(sample["to"]) if sample.get("to") else None
 
         try:
-            with self._conn.transaction():
-                with self._conn.cursor() as cur:
+            with conn.transaction():
+                with conn.cursor() as cur:
                     # Failure reports have no natural primary key, so mirror the
                     # Elasticsearch backend's query-then-insert dedup on the same
                     # dimensions it uses: arrival date + From + To + Subject.
@@ -721,7 +729,8 @@ class PostgreSQLClient:
                             sample_to,
                         ),
                     )
-                    report_db_id: int = cur.fetchone()[0]
+                    # INSERT ... RETURNING always yields one row
+                    report_db_id: int = cur.fetchone()[0]  # pyright: ignore[reportOptionalSubscript]
 
                     for addr_type in ("to", "cc", "bcc", "reply_to"):
                         entries = sample.get(addr_type) or []
@@ -759,10 +768,10 @@ class PostgreSQLClient:
             AlreadySaved: If an identical report is already present.
             PostgreSQLError: If a database error occurs.
         """
-        self._ensure_connected()
+        conn = self._ensure_connected()
         try:
-            with self._conn.transaction():
-                with self._conn.cursor() as cur:
+            with conn.transaction():
+                with conn.cursor() as cur:
                     cur.execute(
                         """
                         INSERT INTO smtp_tls_report (
@@ -813,7 +822,8 @@ class PostgreSQLClient:
                                 policy.get("failed_session_count"),
                             ),
                         )
-                        policy_db_id: int = cur.fetchone()[0]
+                        # INSERT ... RETURNING always yields one row
+                        policy_db_id: int = cur.fetchone()[0]  # pyright: ignore[reportOptionalSubscript]
 
                         for detail in policy.get("failure_details", []):
                             cur.execute(

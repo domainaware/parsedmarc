@@ -9,6 +9,11 @@
   - **Example systemd unit** in `docs/source/usage.md` now sets `KillSignal=SIGTERM` and `TimeoutStopSec=60` so systemd waits long enough for the watcher to drain (keep it above `mailbox_check_timeout`).
 - Switch the Kafka client dependency from `kafka-python-ng` back to `kafka-python>=2.3.2` ([#795](https://github.com/domainaware/parsedmarc/issues/795)). `kafka-python-ng` was a fork created while `kafka-python` was unmaintained; upstream `kafka-python` is active again, and the now-archived fork is vulnerable to [CVE-2026-10142](https://nvd.nist.gov/vuln/detail/CVE-2026-10142) and [CVE-2026-10143](https://nvd.nist.gov/vuln/detail/CVE-2026-10143), both fixed in `kafka-python` 2.3.2. Both packages install the same `kafka` module, so if you are upgrading an existing environment in place with `pip`, run `pip uninstall kafka-python-ng` before upgrading parsedmarc so the two distributions don't conflict with each other's files.
   - parsedmarc is compatible with both `kafka-python` 2.3.2+ and 3.x: `kafka-python` 3.0 removed the `NoBrokersAvailable` exception (a failed bootstrap now raises `KafkaTimeoutError`), and parsedmarc handles whichever the installed version provides.
+- The whole codebase (library and tests) now passes `pyright` with zero errors and warnings, and CI enforces this (plus `ruff format --check`) on every push and pull request. Pyright is configured in `pyproject.toml` (`[tool.pyright]`) and pinned in the `[build]` extra. The fixes are annotation-level only (`Optional` parameters, TypedDict-aware signatures on the syslog/GELF save methods, `TYPE_CHECKING`-aware optional imports for `psycopg` and the `kafka-python` 2.x/3.x bootstrap-error fallback) — runtime behavior is unchanged apart from the `SyslogClient` fix below. Builds on the class-body alias declarations from [#797](https://github.com/domainaware/parsedmarc/pull/797).
+
+### Bug fixes
+
+- `SyslogClient`: constructing a TCP/TLS client with `retry_attempts` < 1 now raises `ValueError` instead of silently skipping the connection loop and registering a broken (`None`) log handler.
 
 ## 10.0.4
 

@@ -63,10 +63,12 @@ class HECClient(object):
             host=self.host, source=self.source, index=self.index
         )
 
-        self.session.headers = {
-            "User-Agent": USER_AGENT,
-            "Authorization": "Splunk {0}".format(self.access_token),
-        }
+        self.session.headers.update(
+            {
+                "User-Agent": USER_AGENT,
+                "Authorization": "Splunk {0}".format(self.access_token),
+            }
+        )
 
     def save_aggregate_reports_to_splunk(
         self,
