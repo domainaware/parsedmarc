@@ -1612,7 +1612,7 @@ watch = true
         self.assertEqual(cm.exception.code, 1)
         # watch was still called twice (reload loop continued after failed reload)
         self.assertEqual(mock_watch.call_count, 2)
-        # The failed reload must not have closed the original clients
+        # Old clients should NOT have been closed (reload failed before swap)
         initial_clients["s3_client"].close.assert_not_called()
 
     @unittest.skipUnless(
@@ -1868,6 +1868,254 @@ watch = true
             refreshed,
             "Stale entry should have been cleared by reload",
         )
+
+
+class TestSigtermShutdown(unittest.TestCase):
+    """Tests for graceful SIGTERM/SIGINT shutdown."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
+
+    _BASE_CONFIG = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+"""
+
+    def _write_config(self, body=None):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(body if body is not None else self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    @staticmethod
+    def _empty_reports():
+        return {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+    @staticmethod
+    def _parse_config_side_effect(config, opts):
+        opts.imap_host = "imap.example.com"
+        opts.imap_user = "user"
+        opts.imap_password = "pass"
+        opts.mailbox_watch = True
+        return None
+
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config")
+    @patch("parsedmarc.cli._load_config")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSigtermDuringWatchExitsCleanlyAndClosesClients(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_load_config,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """SIGTERM during watch: the backend polls config_reloading,
+        observes the flag, and returns at a safe boundary; _main breaks
+        the watch loop, returns normally, and closes every output client
+        that exposes a `.close()`."""
+        mock_imap.return_value = object()
+        mock_load_config.return_value = ConfigParser()
+        mock_parse_config.side_effect = self._parse_config_side_effect
+        mock_get_reports.return_value = self._empty_reports()
+
+        kafka_client = MagicMock(spec=["close"])
+        elasticsearch_client = MagicMock(spec=["close"])
+        no_close_client = MagicMock(spec=[])  # no `close` attr → skipped
+        mock_init_clients.return_value = {
+            "kafka": kafka_client,
+            "elasticsearch": elasticsearch_client,
+            "syslog": no_close_client,
+        }
+
+        observed = []
+
+        def watch_side_effect(*args, **kwargs):
+            # SIGTERM lands while watching; the backend then polls
+            # config_reloading at its next safe boundary and returns.
+            os.kill(os.getpid(), signal.SIGTERM)
+            observed.append(kwargs["config_reloading"]())
+
+        mock_watch.side_effect = watch_side_effect
+        cfg_path = self._write_config()
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(mock_watch.call_count, 1)
+        self.assertEqual(observed, [True])
+        kafka_client.close.assert_called()
+        elasticsearch_client.close.assert_called()
+
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config")
+    @patch("parsedmarc.cli._load_config")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testFirstSigintGracefulSecondSigintHardExits(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_load_config,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """First SIGINT → graceful flag, second SIGINT → os._exit(130).
+
+        The installed handler is invoked directly via signal.getsignal()
+        because two POSIX SIGINTs sent in rapid succession from the same
+        process can be coalesced by the kernel (standard signals don't
+        queue)."""
+        mock_imap.return_value = object()
+        mock_load_config.return_value = ConfigParser()
+        mock_parse_config.side_effect = self._parse_config_side_effect
+        mock_get_reports.return_value = self._empty_reports()
+        mock_init_clients.return_value = {}
+
+        sentinel = SystemExit("os._exit was reached")
+
+        def fake_exit(code):
+            raise sentinel
+
+        def watch_side_effect(*args, **kwargs):
+            handler = signal.getsignal(signal.SIGINT)
+            # getsignal() can return SIG_DFL/SIG_IGN/None; narrow the type
+            # so the handler can be invoked directly.
+            assert callable(handler)
+            handler(signal.SIGINT, None)  # first press: graceful flag
+            handler(signal.SIGINT, None)  # second press: hits os._exit
+
+        mock_watch.side_effect = watch_side_effect
+        cfg_path = self._write_config()
+
+        with patch("parsedmarc.cli.os._exit", side_effect=fake_exit) as mock_exit:
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+                with self.assertRaises(SystemExit) as cm:
+                    parsedmarc.cli._main()
+
+        self.assertIs(cm.exception, sentinel)
+        mock_exit.assert_called_once_with(130)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mbox")
+    @patch("parsedmarc.cli.is_mbox", side_effect=lambda p: p.endswith(".mbox"))
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli.Process")
+    @patch("parsedmarc.cli.glob")
+    def testSigtermDuringOneShotStopsBetweenBatchesAndMbox(
+        self,
+        mock_glob,
+        mock_process_cls,
+        mock_init_clients,
+        mock_is_mbox,
+        mock_get_mbox,
+    ):
+        """SIGTERM during one-shot processing: the in-flight child is
+        joined normally (no work lost), the file-batch loop stops before
+        spawning the next batch, and the subsequent mbox loop breaks on
+        its first iteration (the flag is already set). Output clients are
+        still closed.
+
+        Two ``.xml`` files give the batch loop a second iteration to hit
+        its break; one ``.mbox`` file routes into ``mbox_paths`` so the
+        mbox break is exercised too. ``is_mbox`` is keyed by suffix so the
+        fake filenames don't trigger ``mailbox.mbox(path, create=True)``."""
+        mock_glob.return_value = ["a.xml", "b.xml", "c.mbox"]
+
+        kafka_client = MagicMock(spec=["close"])
+        mock_init_clients.return_value = {"kafka": kafka_client}
+
+        starts = []
+
+        class FakeProc:
+            """Stand-in child that finishes its file and sends a result
+            even though SIGTERM arrived mid-batch."""
+
+            def __init__(self, target=None, args=()):
+                self._args = args
+
+            def start(self):
+                starts.append(self._args[0])
+                if len(starts) == 1:
+                    os.kill(os.getpid(), signal.SIGTERM)
+                # Child still completes and reports back over the pipe.
+                self._args[-3].send([None, self._args[0]])
+
+            def join(self, timeout=None):
+                return None
+
+        mock_process_cls.side_effect = FakeProc
+
+        with patch.object(sys, "argv", ["parsedmarc", "a.xml", "b.xml", "c.mbox"]):
+            parsedmarc.cli._main()
+
+        # Only the first xml batch ran before the batch loop broke, and the
+        # mbox loop broke before processing its file.
+        self.assertEqual(len(starts), 1)
+        mock_get_mbox.assert_not_called()
+        kafka_client.close.assert_called()
+
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli.cli_parse")
+    @patch("parsedmarc.cli.glob")
+    def testNormalOneShotExitClosesOutputClients(
+        self,
+        mock_glob,
+        mock_cli_parse,
+        mock_init_clients,
+    ):
+        """A successful one-shot run with no signal still closes its
+        output clients — regression for the long-standing leak where
+        _close_output_clients was only called inside the SIGHUP
+        reload path."""
+        mock_glob.return_value = []
+        kafka_client = MagicMock(spec=["close"])
+        es_client = MagicMock(spec=["close"])
+        mock_init_clients.return_value = {
+            "kafka": kafka_client,
+            "elasticsearch": es_client,
+        }
+
+        # No watch, no mailbox, no files → _main runs through with
+        # empty parsing_results and returns normally.
+        with patch.object(sys, "argv", ["parsedmarc", "nothing-here.xml"]):
+            try:
+                parsedmarc.cli._main()
+            except SystemExit:
+                pass
+
+        kafka_client.close.assert_called_once()
+        es_client.close.assert_called_once()
 
 
 class TestIndexPrefixDomainMapTlsFiltering(unittest.TestCase):
