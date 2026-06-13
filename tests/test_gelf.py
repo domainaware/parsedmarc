@@ -2,15 +2,17 @@
 
 import logging
 import unittest
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from parsedmarc.gelf import ContextFilter, GelfClient, log_context_data
+from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
 
 
-def _sample_aggregate_report():
+def _sample_aggregate_report() -> AggregateReport:
     """Minimal aggregate report shape acceptable to
     parsed_aggregate_reports_to_csv_rows."""
-    return {
+    report = {
         "xml_schema": "draft",
         "xml_namespace": None,
         "report_metadata": {
@@ -87,6 +89,7 @@ def _sample_aggregate_report():
             }
         ],
     }
+    return cast(AggregateReport, report)
 
 
 class _Handler(logging.Handler):
@@ -95,7 +98,7 @@ class _Handler(logging.Handler):
 
     def __init__(self):
         super().__init__()
-        self.records: list[tuple[str, dict]] = []
+        self.records: list[tuple[str, Any]] = []
 
     def emit(self, record):
         # ContextFilter has run by this point so `record.parsedmarc` is
@@ -212,8 +215,8 @@ class TestGelfClientSaveFailure(unittest.TestCase):
     reports. Build one through the CSV-row helper to verify GelfClient
     surfaces the right fields."""
 
-    def _sample_failure_report(self):
-        return {
+    def _sample_failure_report(self) -> FailureReport:
+        report = {
             "feedback_type": "auth-failure",
             "user_agent": "test/1.0",
             "version": "1",
@@ -243,6 +246,7 @@ class TestGelfClientSaveFailure(unittest.TestCase):
             "sample": "...",
             "parsed_sample": {"subject": "Test"},
         }
+        return cast(FailureReport, report)
 
     def test_emits_one_record_per_failure_report(self):
         client = _gelf_client()
@@ -256,8 +260,8 @@ class TestGelfClientSaveFailure(unittest.TestCase):
 
 
 class TestGelfClientSaveSmtpTls(unittest.TestCase):
-    def _sample_smtp_tls(self):
-        return {
+    def _sample_smtp_tls(self) -> SMTPTLSReport:
+        report = {
             "organization_name": "example.com",
             "begin_date": "2024-02-03T00:00:00Z",
             "end_date": "2024-02-04T00:00:00Z",
@@ -272,6 +276,7 @@ class TestGelfClientSaveSmtpTls(unittest.TestCase):
                 }
             ],
         }
+        return cast(SMTPTLSReport, report)
 
     def test_emits_one_record_per_policy(self):
         client = _gelf_client()

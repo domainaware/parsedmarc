@@ -10,6 +10,7 @@ real-sample round trip, so the tests fail if the dict-key mapping regresses.
 import os
 import unittest
 from glob import glob
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import parsedmarc
@@ -27,7 +28,7 @@ OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
 
 # psycopg is an optional dependency and is not installed in CI (which installs
 # only the [build] extra). The save methods mock the connection, but the
-# failure path also references ``psycopg_types.json.Jsonb`` at module scope, so
+# failure path also references ``psycopg_json.Jsonb`` at module scope, so
 # mock that SDK boundary for the whole module when psycopg is absent.
 _types_patcher = None
 
@@ -36,8 +37,8 @@ def setUpModule():
     global _types_patcher
     import parsedmarc.postgres as pg
 
-    if pg.psycopg_types is None:
-        _types_patcher = patch("parsedmarc.postgres.psycopg_types", MagicMock())
+    if pg.psycopg_json is None:
+        _types_patcher = patch("parsedmarc.postgres.psycopg_json", MagicMock())
         _types_patcher.start()
 
 
@@ -99,6 +100,7 @@ class TestPostgreSQLHelpers(unittest.TestCase):
     def test_naive_local_to_timestamptz_valid(self):
         """A valid naive string is returned with a timezone offset."""
         result = _naive_local_to_timestamptz("2024-01-15 10:30:00")
+        assert result is not None
         self.assertIsInstance(result, str)
         self.assertTrue(
             "+" in result or "-" in result[10:],
@@ -125,11 +127,13 @@ class TestPostgreSQLHelpers(unittest.TestCase):
     def test_normalize_arrival_date_iso_naive_utc(self):
         """A naive ISO string (known UTC) is returned with +00 suffix."""
         result = _normalize_arrival_date("2024-01-15 10:30:00")
+        assert result is not None
         self.assertTrue(result.endswith("+00"), f"Expected +00 suffix: {result}")
 
     def test_normalize_arrival_date_rfc2822(self):
         """An RFC 2822 date is converted to UTC with +00 suffix."""
         result = _normalize_arrival_date("Fri, 28 Oct 2022 00:34:24 +0800")
+        assert result is not None
         self.assertTrue(result.endswith("+00"), f"Expected +00 suffix: {result}")
         # 00:34:24 +0800 is 16:34:24 UTC on 27 Oct 2022.
         self.assertIn("2022-10-27", result)
@@ -138,6 +142,7 @@ class TestPostgreSQLHelpers(unittest.TestCase):
     def test_normalize_arrival_date_already_utc(self):
         """A string already ending with +00 still works."""
         result = _normalize_arrival_date("2024-01-15 10:30:00+00")
+        assert result is not None
         self.assertTrue(result.endswith("+00"), f"Expected +00 suffix: {result}")
 
     def test_normalize_arrival_date_unparseable(self):
@@ -167,7 +172,8 @@ class TestPostgreSQLHelpers(unittest.TestCase):
 
     def test_contact_info_to_text_numeric(self):
         """Non-string scalars are converted via str()."""
-        self.assertEqual(_contact_info_to_text(123), "123")
+        # Deliberately outside the annotated parameter types
+        self.assertEqual(_contact_info_to_text(123), "123")  # pyright: ignore[reportArgumentType]
 
 
 def _make_client():
@@ -180,8 +186,8 @@ def _make_client():
         client = PostgreSQLClient(
             host="localhost", database="test", user="test", password="test"
         )
+    mock_conn.closed = False
     client._conn = mock_conn
-    client._conn.closed = False
     return client, mock_conn
 
 
@@ -211,6 +217,7 @@ def _named_params(call):
 
     sql = call.args[0]
     m = re.search(r"\(([^)]*?)\)\s*VALUES", sql, re.S)
+    assert m is not None
     cols = [c.strip() for c in m.group(1).split(",") if c.strip()]
     return dict(zip(cols, call.args[1]))
 
@@ -758,7 +765,7 @@ class TestPostgreSQLWithSamples(unittest.TestCase):
             num_records = len(report.get("records", []))
             _mock_cursor(mock_conn, [(rid,) for rid in range(1, 2 + num_records)])
             try:
-                client.save_aggregate_report_to_postgresql(report)
+                client.save_aggregate_report_to_postgresql(cast(dict, report))
                 saved += 1
             except Exception as exc:
                 self.fail(f"aggregate save failed for {sample_path}: {exc}")
@@ -783,7 +790,7 @@ class TestPostgreSQLWithSamples(unittest.TestCase):
                 # Dedup SELECT returns None (not a dup), then the INSERT id.
                 _mock_cursor(mock_conn, [None, (1,)])
                 try:
-                    client.save_failure_report_to_postgresql(report)
+                    client.save_failure_report_to_postgresql(cast(dict, report))
                     saved += 1
                 except Exception as exc:
                     self.fail(f"failure save failed for {sample_path}: {exc}")
@@ -807,7 +814,7 @@ class TestPostgreSQLWithSamples(unittest.TestCase):
             num_policies = len(report.get("policies", []))
             _mock_cursor(mock_conn, [(rid,) for rid in range(1, 2 + num_policies)])
             try:
-                client.save_smtp_tls_report_to_postgresql(report)
+                client.save_smtp_tls_report_to_postgresql(cast(dict, report))
                 saved += 1
             except Exception as exc:
                 self.fail(f"smtp_tls save failed for {sample_path}: {exc}")

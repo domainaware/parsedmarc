@@ -22,10 +22,16 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install .[build]
+        # postgresql extra included so pyright can resolve the optional
+        # psycopg import in parsedmarc/postgres.py
+        pip install .[build,postgresql]
     - name: Check code style
       run: |
         ruff check .
+        ruff format --check .
+    - name: Check types
+      run: |
+        pyright
     - name: Test building documentation
       run: |
         cd docs

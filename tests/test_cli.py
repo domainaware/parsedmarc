@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import parsedmarc
 import parsedmarc.cli
+import parsedmarc.elastic
 import parsedmarc.opensearch as opensearch_module
 
 
@@ -34,7 +35,7 @@ class _DummyMailboxConnection(parsedmarc.MailboxConnection):
         self.fetch_calls.append({"reports_folder": reports_folder, **kwargs})
         return []
 
-    def fetch_message(self, message_id) -> str:
+    def fetch_message(self, message_id, **kwargs) -> str:
         return ""
 
     def delete_message(self, message_id):

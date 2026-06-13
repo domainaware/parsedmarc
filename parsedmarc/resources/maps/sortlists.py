@@ -107,7 +107,7 @@ def sort_csv(
     case_insensitive_sort: bool = False,
     required_fields: Optional[Iterable[str]] = None,
     allowed_values: Optional[Mapping[str, Collection[str]]] = None,
-) -> List[Dict[str, str]]:
+) -> None:
     """
     Read a CSV, optionally normalize rows (strip whitespace, lowercase certain fields),
     validate field values, and write the sorted CSV back to the same path.
@@ -124,8 +124,7 @@ def sort_csv(
     required_fields = set(required_fields or [])
     lower_set = set(fields_to_lowercase or [])
     allowed_sets = {k: set(v) for k, v in (allowed_values or {}).items()}
-    if sort_field_value_must_be_unique:
-        seen_sort_field_values = []
+    seen_sort_field_values: list[str] = []
 
     with path.open("r", newline="") as infile:
         reader = csv.DictReader(infile)

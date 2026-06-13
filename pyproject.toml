@@ -70,6 +70,10 @@ build = [
     "hatch>=1.14.0",
     "myst-parser[linkify]",
     "nose",
+    # Pinned exactly: pyright's checks evolve between releases, so an
+    # unpinned version could break CI without any code change. Bump
+    # deliberately (and fix any new findings) rather than implicitly.
+    "pyright==1.1.410",
     "pytest",
     "pytest-cov",
     "ruff",
@@ -102,6 +106,15 @@ exclude = [
     # which must keep shipping for `importlib.resources.files()` lookups).
     "parsedmarc/resources/maps/[!_]*.py",
 ]
+
+[tool.pyright]
+# The whole codebase passes pyright with zero errors and warnings; CI
+# enforces this (see .github/workflows/python-tests.yml). Run locally with
+# `pyright` from the repo root. Requires the [postgresql] extra to be
+# installed so the optional psycopg import in parsedmarc/postgres.py
+# resolves.
+include = ["parsedmarc", "tests", "docs"]
+typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
 # Default to the per-module test layout under tests/. New tests should go
