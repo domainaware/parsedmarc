@@ -7,7 +7,9 @@ the bound parameters that a real PostgreSQL server would receive, plus the
 real-sample round trip, so the tests fail if the dict-key mapping regresses.
 """
 
+import importlib.util
 import os
+import sys
 import unittest
 from glob import glob
 from typing import cast
@@ -45,6 +47,51 @@ def setUpModule():
 def tearDownModule():
     if _types_patcher is not None:
         _types_patcher.stop()
+
+
+class TestPsycopgImportFallback(unittest.TestCase):
+    """The module-level psycopg import has two arms — psycopg installed
+    and psycopg missing — and a normal test run only ever executes the
+    arm that matches the environment. Re-execute the module's source
+    with sys.modules manipulated to force each arm, so both are
+    exercised (and covered) whether or not psycopg is installed."""
+
+    def _exec_fresh_module_with(self, modules):
+        """Execute parsedmarc.postgres's source into a fresh, throwaway
+        module object under a patched sys.modules, and return the
+        (psycopg, psycopg_json) it bound. The canonical module in
+        sys.modules is untouched, so the identity of its classes
+        (PostgreSQLError, AlreadySaved, ...) that other tests hold
+        references to is preserved."""
+        spec = importlib.util.find_spec("parsedmarc.postgres")
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, modules):
+            spec.loader.exec_module(mod)
+        return mod.psycopg, mod.psycopg_json
+
+    def test_missing_psycopg_falls_back_to_none(self):
+        """A None entry in sys.modules makes ``import psycopg`` raise
+        ImportError, exercising the fallback arm."""
+        psycopg_mod, json_mod = self._exec_fresh_module_with(
+            {"psycopg": None, "psycopg.types": None, "psycopg.types.json": None}
+        )
+        self.assertIsNone(psycopg_mod)
+        self.assertIsNone(json_mod)
+
+    def test_installed_psycopg_binds_module_and_json_submodule(self):
+        fake_json = MagicMock()
+        fake_types = MagicMock(json=fake_json)
+        fake_psycopg = MagicMock(types=fake_types)
+        psycopg_mod, json_mod = self._exec_fresh_module_with(
+            {
+                "psycopg": fake_psycopg,
+                "psycopg.types": fake_types,
+                "psycopg.types.json": fake_json,
+            }
+        )
+        self.assertIs(psycopg_mod, fake_psycopg)
+        self.assertIs(json_mod, fake_json)
 
 
 class TestPostgreSQLHelpers(unittest.TestCase):
