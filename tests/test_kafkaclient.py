@@ -4,9 +4,9 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
+from kafka.errors import UnknownTopicOrPartitionError
 
-from parsedmarc.kafkaclient import KafkaClient, KafkaError
+from parsedmarc.kafkaclient import KafkaClient, KafkaError, _BootstrapError
 
 
 def _aggregate_report():
@@ -85,7 +85,7 @@ class TestKafkaClientInit(unittest.TestCase):
     def test_init_no_brokers_available_raises_kafka_error(self):
         with patch(
             "parsedmarc.kafkaclient.KafkaProducer",
-            side_effect=NoBrokersAvailable(),
+            side_effect=_BootstrapError(),
         ):
             with self.assertRaises(KafkaError) as ctx:
                 KafkaClient(kafka_hosts=["unreachable:9092"])

@@ -7,7 +7,15 @@ from ssl import SSLContext, create_default_context
 from typing import Any, Optional, Union
 
 from kafka import KafkaProducer
-from kafka.errors import NoBrokersAvailable, UnknownTopicOrPartitionError
+from kafka.errors import UnknownTopicOrPartitionError
+
+try:
+    # kafka-python < 3.0 raises this when the producer cannot bootstrap
+    from kafka.errors import NoBrokersAvailable as _BootstrapError
+except ImportError:
+    # kafka-python >= 3.0 removed NoBrokersAvailable; a failed bootstrap
+    # raises KafkaTimeoutError instead
+    from kafka.errors import KafkaTimeoutError as _BootstrapError
 
 from parsedmarc import __version__
 from parsedmarc.log import logger
@@ -59,7 +67,7 @@ class KafkaClient(object):
                 config["sasl_plain_password"] = password or ""
         try:
             self.producer = KafkaProducer(**config)
-        except NoBrokersAvailable:
+        except _BootstrapError:
             raise KafkaError("No Kafka brokers available")
 
     def close(self):

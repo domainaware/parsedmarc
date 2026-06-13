@@ -39,7 +39,7 @@ dependencies = [
     "elasticsearch-dsl==7.4.0",
     "elasticsearch<7.14.0",
     "expiringdict>=1.1.4",
-    "kafka-python-ng>=2.2.2",
+    "kafka-python>=2.3.2",
     "lxml>=4.4.0",
     "mailsuite[gmail,msgraph]>=2.2.1",
     "maxminddb>=2.0.0",
