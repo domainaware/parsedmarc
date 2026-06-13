@@ -271,7 +271,7 @@ class TestKafkaClientClose(unittest.TestCase):
 class TestKafkaBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            KafkaClient.save_forensic_reports_to_kafka,  # type: ignore[attr-defined]
+            KafkaClient.save_forensic_reports_to_kafka,
             KafkaClient.save_failure_reports_to_kafka,
         )
 

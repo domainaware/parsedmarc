@@ -325,7 +325,7 @@ class TestGelfClientClose(unittest.TestCase):
 class TestGelfClientBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            GelfClient.save_forensic_report_to_gelf,  # type: ignore[attr-defined]
+            GelfClient.save_forensic_report_to_gelf,
             GelfClient.save_failure_report_to_gelf,
         )
 

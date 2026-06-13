@@ -420,7 +420,7 @@ class TestHECClientClose(unittest.TestCase):
 class TestSplunkBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            HECClient.save_forensic_reports_to_splunk,  # type: ignore[attr-defined]
+            HECClient.save_forensic_reports_to_splunk,
             HECClient.save_failure_reports_to_splunk,
         )
 

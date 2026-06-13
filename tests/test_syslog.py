@@ -356,7 +356,7 @@ class TestSyslogClientClose(unittest.TestCase):
 class TestSyslogBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            SyslogClient.save_forensic_report_to_syslog,  # type: ignore[attr-defined]
+            SyslogClient.save_forensic_report_to_syslog,
             SyslogClient.save_failure_report_to_syslog,
         )
 

@@ -112,7 +112,7 @@ class TestWebhookClientClose(unittest.TestCase):
 class TestWebhookBackwardCompatAlias(unittest.TestCase):
     def test_forensic_alias_points_to_failure_method(self):
         self.assertIs(
-            WebhookClient.save_forensic_report_to_webhook,  # type: ignore[attr-defined]
+            WebhookClient.save_forensic_report_to_webhook,
             WebhookClient.save_failure_report_to_webhook,
         )
 

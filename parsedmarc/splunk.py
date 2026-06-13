@@ -221,6 +221,5 @@ class HECClient(object):
         """Close the underlying HTTP session."""
         self.session.close()
 
-
-# Backward-compatible aliases
-HECClient.save_forensic_reports_to_splunk = HECClient.save_failure_reports_to_splunk
+    # Backward-compatible alias
+    save_forensic_reports_to_splunk = save_failure_reports_to_splunk
