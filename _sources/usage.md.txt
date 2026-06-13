@@ -381,7 +381,11 @@ The full set of configuration options are:
   The PostgreSQL backend is an optional extra. Install it with
   `pip install parsedmarc[postgresql]` (it pulls in `psycopg`); the
   prebuilt binary wheels are not available for every platform, which is
-  why it is not a mandatory dependency.
+  why it is not a mandatory dependency. The prebuilt Docker image
+  (`ghcr.io/domainaware/parsedmarc`) already bundles this extra, so the
+  PostgreSQL backend works out of the box in the container — `psycopg`
+  ships `amd64` and `arm64` binary wheels, both of which the image
+  supports.
 
   Tables are created automatically on first run using
   `CREATE TABLE IF NOT EXISTS`, so no manual schema migration is needed
@@ -814,6 +818,8 @@ After=network.target network-online.target elasticsearch.service
 [Service]
 ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
 ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=60
 User=parsedmarc
 Group=parsedmarc
 Restart=always
@@ -844,6 +850,17 @@ Always restart the service every time you upgrade to a new version of
 sudo service parsedmarc restart
 ```
 
+:::
+
+:::{note}
+On `systemctl stop`/`restart` (or Ctrl-C) `parsedmarc` finishes the
+current batch, flushes its outputs, and exits cleanly. Shutdown is
+observed at batch boundaries, so the worst-case delay is roughly
+`mailbox_check_timeout` (default 30s) plus the batch's processing and
+flush time. Keep `TimeoutStopSec` comfortably above
+`mailbox_check_timeout` (≈2×, and raise both together) or systemd will
+`SIGKILL` mid-batch. In the foreground, a second Ctrl-C force-quits
+immediately, skipping the output flush.
 :::
 
 ### Reloading configuration without restarting

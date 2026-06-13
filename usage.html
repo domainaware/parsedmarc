@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 10.0.3 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 10.0.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=04a1028e"></script>
+      <script src="_static/documentation_options.js?v=cf289243"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -508,7 +508,11 @@ all individual parameters above are ignored.</p></li>
 <p>The PostgreSQL backend is an optional extra. Install it with
 <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">parsedmarc[postgresql]</span></code> (it pulls in <code class="docutils literal notranslate"><span class="pre">psycopg</span></code>); the
 prebuilt binary wheels are not available for every platform, which is
-why it is not a mandatory dependency.</p>
+why it is not a mandatory dependency. The prebuilt Docker image
+(<code class="docutils literal notranslate"><span class="pre">ghcr.io/domainaware/parsedmarc</span></code>) already bundles this extra, so the
+PostgreSQL backend works out of the box in the container — <code class="docutils literal notranslate"><span class="pre">psycopg</span></code>
+ships <code class="docutils literal notranslate"><span class="pre">amd64</span></code> and <code class="docutils literal notranslate"><span class="pre">arm64</span></code> binary wheels, both of which the image
+supports.</p>
 <p>Tables are created automatically on first run using
 <code class="docutils literal notranslate"><span class="pre">CREATE</span> <span class="pre">TABLE</span> <span class="pre">IF</span> <span class="pre">NOT</span> <span class="pre">EXISTS</span></code>, so no manual schema migration is needed
 for fresh installations.</p>
@@ -962,6 +966,8 @@ sudo<span class="w"> </span>chmod<span class="w"> </span><span class="nv">u</spa
 <span class="k">[Service]</span>
 <span class="na">ExecStart</span><span class="o">=</span><span class="s">/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini</span>
 <span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -HUP $MAINPID</span>
+<span class="na">KillSignal</span><span class="o">=</span><span class="s">SIGTERM</span>
+<span class="na">TimeoutStopSec</span><span class="o">=</span><span class="s">60</span>
 <span class="na">User</span><span class="o">=</span><span class="s">parsedmarc</span>
 <span class="na">Group</span><span class="o">=</span><span class="s">parsedmarc</span>
 <span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
@@ -989,6 +995,17 @@ sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>service<span class="w"> </span>parsedmarc<span class="w"> </span>restart
 </pre></div>
 </div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On <code class="docutils literal notranslate"><span class="pre">systemctl</span> <span class="pre">stop</span></code>/<code class="docutils literal notranslate"><span class="pre">restart</span></code> (or Ctrl-C) <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> finishes the
+current batch, flushes its outputs, and exits cleanly. Shutdown is
+observed at batch boundaries, so the worst-case delay is roughly
+<code class="docutils literal notranslate"><span class="pre">mailbox_check_timeout</span></code> (default 30s) plus the batch’s processing and
+flush time. Keep <code class="docutils literal notranslate"><span class="pre">TimeoutStopSec</span></code> comfortably above
+<code class="docutils literal notranslate"><span class="pre">mailbox_check_timeout</span></code> (≈2×, and raise both together) or systemd will
+<code class="docutils literal notranslate"><span class="pre">SIGKILL</span></code> mid-batch. In the foreground, a second Ctrl-C force-quits
+immediately, skipping the output flush.</p>
 </div>
 <section id="reloading-configuration-without-restarting">
 <h3>Reloading configuration without restarting<a class="headerlink" href="#reloading-configuration-without-restarting" title="Link to this heading"></a></h3>
