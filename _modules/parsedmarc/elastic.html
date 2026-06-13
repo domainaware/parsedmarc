@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 10.0.4 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 10.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=cf289243"></script>
+      <script src="../../_static/documentation_options.js?v=428cc2bd"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -210,7 +210,7 @@
         <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">result</span><span class="p">:</span> <span class="n">_DKIMResult</span><span class="p">,</span>
-        <span class="n">human_result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">human_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_DKIMResult</span><span class="p">(</span>
@@ -226,7 +226,7 @@
         <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">result</span><span class="p">:</span> <span class="n">_SPFResult</span><span class="p">,</span>
-        <span class="n">human_result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">human_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_SPFResult</span><span class="p">(</span>
