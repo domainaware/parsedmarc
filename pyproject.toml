@@ -41,7 +41,7 @@ dependencies = [
     "expiringdict>=1.1.4",
     "kafka-python>=2.3.2",
     "lxml>=4.4.0",
-    "mailsuite[gmail,msgraph]>=2.2.1",
+    "mailsuite[gmail,msgraph]>=2.2.2",
     "maxminddb>=2.0.0",
     "opensearch-py>=2.4.2,<=4.0.0",
     "publicsuffixlist>=0.10.0",
