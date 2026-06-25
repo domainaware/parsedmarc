@@ -1137,8 +1137,6 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
         else:
             raise ParserError("Not a valid zip, gzip, json, or xml file")
 
-    except UnicodeDecodeError as error:
-        raise ParserError("File objects must be opened in binary (rb) mode") from error
     except Exception as error:
         raise ParserError(
             "Invalid archive file: {0}{1}".format(error.__str__(), _exc_origin(error))

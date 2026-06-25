@@ -5,6 +5,8 @@ parse_aggregate_report_xml, parse_failure_report, parse_smtp_tls_report_json,
 extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 """
 
+import base64
+import gzip
 import json
 import logging
 import mailbox
@@ -1863,6 +1865,20 @@ class TestMalformedXmlRecovery(unittest.TestCase):
         # caller can inspect which field was absent.
         self.assertIsInstance(ctx.exception.__cause__, KeyError)
 
+    def testReportMetadataNotAStructureRaises(self):
+        """A non-structured report_metadata trips the AttributeError branch"""
+        # report_metadata is plain text rather than nested elements, so the
+        # parser's attribute access on it fails with AttributeError.
+        xml = (
+            "<feedback><report_metadata>x</report_metadata>"
+            "<policy_published><domain>x.com</domain></policy_published>"
+            "<record></record></feedback>"
+        )
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn("missing required section", str(ctx.exception))
+        self.assertIsInstance(ctx.exception.__cause__, AttributeError)
+
 
 class TestPolicyPublishedEdgeCases(unittest.TestCase):
     """Tests for edge cases in policy_published parsing"""
@@ -2092,6 +2108,17 @@ class TestParseReportFile(unittest.TestCase):
         self.assertIn("source_ip", message)
         self.assertNotIn("Not a valid report", message)
 
+    def testParseReportFileUnrecognizedGzip(self):
+        """Gzipped junk decompresses to a str that matches no format.
+
+        Exercises the str branch of the content sniff (the decompressed
+        payload is a str, not bytes).
+        """
+        blob = gzip.compress(b"plain junk not a report")
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(blob, offline=True)
+        self.assertIn("recognized report format", str(ctx.exception))
+
     def testParseReportFileUnrecognizedFormat(self):
         """Content matching no known format says so explicitly"""
         with self.assertRaises(parsedmarc.ParserError) as ctx:
@@ -2180,6 +2207,69 @@ This is not a DMARC report."""
         with self.assertRaises(parsedmarc.ParserError) as ctx:
             parsedmarc.parse_report_email(email_str, offline=True)
         self.assertIn("not-a-real-date", str(ctx.exception))
+
+    def testFailureTextReportParses(self):
+        """A valid legacy text/plain failure report parses to a failure
+        report (the success path that builds the synthetic feedback report
+        and extracts the message sample)"""
+        # The field-name regex matches letters and spaces only, so the legacy
+        # fields are space-separated ("Received Date", "Sender IP Address").
+        eml = (
+            "From: report@example.com\nSubject: Failure Report\n"
+            "Content-Type: text/plain\n\n"
+            "A message claiming to be from you has failed authentication.\n"
+            "Received Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+            "Sender IP Address: 192.0.2.1\n"
+            "detected.\n"
+            "From: spoof@example.com\nTo: victim@example.com\nSubject: spam\n"
+        )
+        result = parsedmarc.parse_report_email(eml, offline=True)
+        self.assertEqual(result["report_type"], "failure")
+        self.assertEqual(result["report"]["source"]["ip_address"], "192.0.2.1")
+
+    def testFailureTextMissingFieldsRaises(self):
+        """A text/plain failure report missing its fields is rejected with
+        the subject named (not silently dropped)"""
+        # Has the trigger phrase and "detected." but none of the
+        # Received-Date / Sender-IP-Address fields, so building the synthetic
+        # feedback report raises KeyError, surfaced as InvalidDMARCReport.
+        eml = (
+            "From: a@b.c\nSubject: Failure\nContent-Type: text/plain\n\n"
+            "A message claiming to be from you has failed. "
+            "No fields here detected. nothing\n"
+        )
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(eml, offline=True)
+        self.assertIn("Failure", str(ctx.exception))
+
+    def testAttachmentMalformedXmlRaises(self):
+        """A base64 attachment of malformed aggregate XML is rejected"""
+        att = base64.b64encode(b"<feedback></feedback>").decode()
+        eml = (
+            "From: a@b.c\nSubject: Agg\nMIME-Version: 1.0\n"
+            "Content-Type: application/octet-stream\n"
+            "Content-Transfer-Encoding: base64\n\n" + att + "\n"
+        )
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_email(eml, offline=True)
+        self.assertIn("not a valid DMARC report", str(ctx.exception))
+
+    def testAttachmentInvalidJsonRaises(self):
+        """A base64 attachment of invalid SMTP TLS JSON is rejected.
+
+        parse_smtp_tls_report_json raises InvalidSMTPTLSReport, a sibling of
+        InvalidDMARCReport, so it falls through to the generic catch-all and
+        becomes a ParserError naming the subject.
+        """
+        att = base64.b64encode(b"{not valid json").decode()
+        eml = (
+            "From: a@b.c\nSubject: Tls\nMIME-Version: 1.0\n"
+            "Content-Type: application/octet-stream\n"
+            "Content-Transfer-Encoding: base64\n\n" + att + "\n"
+        )
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_email(eml, offline=True)
+        self.assertIn("Tls", str(ctx.exception))
 
 
 class TestFailureReportParsing(unittest.TestCase):
@@ -2401,6 +2491,24 @@ class TestSmtpTlsReportErrors(unittest.TestCase):
         with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
             parsedmarc.parse_smtp_tls_report_json("not json {{{")
         self.assertIsInstance(ctx.exception.__cause__, json.JSONDecodeError)
+
+    def testNestedMissingKeyNamesTheField(self):
+        """A KeyError on a nested field reports which field was missing"""
+        # All five required top-level fields are present, so this gets past the
+        # top-level check and raises KeyError on date-range["start-datetime"].
+        report = json.dumps(
+            {
+                "organization-name": "x",
+                "date-range": {},
+                "contact-info": "x",
+                "report-id": "x",
+                "policies": [],
+            }
+        )
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(report)
+        self.assertIn("start-datetime", str(ctx.exception))
+        self.assertIsInstance(ctx.exception.__cause__, KeyError)
 
 
 class TestBucketIntervalEdgeCases(unittest.TestCase):

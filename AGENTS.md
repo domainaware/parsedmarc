@@ -60,6 +60,8 @@ To skip DNS lookups during testing, set `GITHUB_ACTIONS=true`.
 
 `ReportType = Literal["aggregate", "failure", "smtp_tls"]`. Exception hierarchy: `ParserError` → `InvalidDMARCReport` → `InvalidAggregateReport`/`InvalidFailureReport`, and `InvalidSMTPTLSReport`. Legacy alias `InvalidForensicReport = InvalidFailureReport` preserved.
 
+**Terminology: say "failure report", never "forensic report".** RUF reports are **failure reports** (RFC 9991 terminology) everywhere in new code, test names, docstrings, comments, CHANGELOG entries, and prose. "Forensic" is the legacy term, kept *only* as backward-compatible API aliases (`parse_forensic_report`, `InvalidForensicReport`, `parsed_forensic_reports_to_csv`, `ForensicReport`, the `Forensic` archive-folder name). Use "forensic" only when naming one of those literal pre-existing identifiers — never as a generic description of the report type.
+
 ### RFC 9989 / RFC 9990 / RFC 9991 support
 
 Aggregate reports parse under both RFC 7489 and RFC 9990 in one code path. RFC 9990 adds these fields, all surfaced through `AggregatePolicyPublished` / `AggregateReportMetadata` / `AggregateAuthResult*`:
