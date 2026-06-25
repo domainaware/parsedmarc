@@ -6,6 +6,7 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 """
 
 import json
+import logging
 import mailbox
 import os
 import unittest
@@ -1822,8 +1823,11 @@ class TestMalformedXmlRecovery(unittest.TestCase):
     <auth_results><spf><domain>example.com</domain><result>pass</result></spf></auth_results>
   </record>
 </feedback>"""
-        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
             parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        # The missing-field error chains the underlying KeyError so a library
+        # caller can inspect which field was absent.
+        self.assertIsInstance(ctx.exception.__cause__, KeyError)
 
 
 class TestPolicyPublishedEdgeCases(unittest.TestCase):
@@ -1994,6 +1998,78 @@ class TestParseReportFile(unittest.TestCase):
         """parse_report_file raises ParserError for invalid content"""
         with self.assertRaises(parsedmarc.ParserError):
             parsedmarc.parse_report_file(b"this is not a report", offline=True)
+
+    def testParseReportFileInvalidAggregateReason(self):
+        """Malformed aggregate XML explains the aggregate-specific reason"""
+        xml = (
+            b'<?xml version="1.0"?>\n<feedback>\n'
+            b"<report_metadata><email>dmarc@example.com</email>"
+            b"<report_id>no-org</report_id></report_metadata>\n"
+            b"<policy_published><domain>example.com</domain><p>none</p>"
+            b"</policy_published>\n</feedback>"
+        )
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(xml, offline=True)
+        message = str(ctx.exception)
+        # The reason must name the aggregate format and the missing field,
+        # not collapse to a bare "Not a valid report".
+        self.assertIn("aggregate", message.lower())
+        self.assertIn("org_name", message)
+        self.assertNotIn("Not a valid report", message)
+
+    def testParseReportFileInvalidSmtpTlsReason(self):
+        """Malformed SMTP TLS JSON explains the SMTP-TLS-specific reason"""
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(b'{"organization-name": "x"}', offline=True)
+        message = str(ctx.exception)
+        self.assertIn("SMTP TLS", message)
+        self.assertIn("date-range", message)
+
+    def testParseReportFileUnrecognizedFormat(self):
+        """Content matching no known format says so explicitly"""
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(b"this is not a report", offline=True)
+        self.assertIn("recognized report format", str(ctx.exception))
+
+    def testParseReportFilePreservesCause(self):
+        """The raised ParserError chains the underlying parse failure"""
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(b"<feedback></feedback>", offline=True)
+        # raise ... from email_error must populate __cause__ for callers and
+        # tracebacks, even though the cross-format message is content-sniffed.
+        self.assertIsNotNone(ctx.exception.__cause__)
+
+    def _parse_unexpected_error(self):
+        # <feedback></feedback> parses as XML but trips a NoneType subscript
+        # deep in the aggregate parser, hitting the catch-all "Unexpected
+        # error" branch (not a narrow KeyError/ExpatError).
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(b"<feedback></feedback>", offline=True)
+        return str(ctx.exception)
+
+    def testUnexpectedErrorOmitsOriginWhenNotDebug(self):
+        """Catch-all errors stay clean when the logger is above DEBUG"""
+        logger = logging.getLogger("parsedmarc.log")
+        previous = logger.level
+        logger.setLevel(logging.WARNING)
+        try:
+            message = self._parse_unexpected_error()
+        finally:
+            logger.setLevel(previous)
+        self.assertIn("Unexpected error", message)
+        self.assertNotIn("raised at", message)
+
+    def testUnexpectedErrorCitesOriginInDebug(self):
+        """Catch-all errors cite the source file:line when the logger is DEBUG"""
+        logger = logging.getLogger("parsedmarc.log")
+        previous = logger.level
+        logger.setLevel(logging.DEBUG)
+        try:
+            message = self._parse_unexpected_error()
+        finally:
+            logger.setLevel(previous)
+        self.assertIn("raised at", message)
+        self.assertIn("__init__.py:", message)
 
 
 class TestParseReportEmail(unittest.TestCase):
@@ -2231,6 +2307,12 @@ class TestSmtpTlsReportErrors(unittest.TestCase):
         """Invalid JSON raises InvalidSMTPTLSReport"""
         with self.assertRaises(parsedmarc.InvalidSMTPTLSReport):
             parsedmarc.parse_smtp_tls_report_json("not json {{{")
+
+    def testInvalidJsonPreservesCause(self):
+        """Invalid JSON chains the underlying JSONDecodeError"""
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json("not json {{{")
+        self.assertIsInstance(ctx.exception.__cause__, json.JSONDecodeError)
 
 
 class TestBucketIntervalEdgeCases(unittest.TestCase):

@@ -8,11 +8,13 @@ import binascii
 import email
 import email.utils
 import json
+import logging
 import mailbox
 import os
 import re
 import shutil
 import tempfile
+import traceback
 import xml.parsers.expat as expat
 import zipfile
 import zlib
@@ -142,6 +144,26 @@ class InvalidFailureReport(InvalidDMARCReport):
 
 # Backward-compatible alias
 InvalidForensicReport = InvalidFailureReport
+
+
+def _exc_origin(error: BaseException) -> str:
+    """Returns a ``" (raised at <file>:<line>)"`` suffix pointing at where an
+    unexpected exception actually originated, but only when the parsedmarc
+    logger is at ``DEBUG`` level. Returns ``""`` otherwise, so normal output is
+    unchanged.
+
+    The deepest traceback frame is the line that raised, which is the useful
+    breadcrumb when a catch-all ``except Exception`` turns an unforeseen error
+    into a generic ``Invalid*Report`` -- without it, the message says *what*
+    failed but not *where*.
+    """
+    if not logger.isEnabledFor(logging.DEBUG):
+        return ""
+    frames = traceback.extract_tb(error.__traceback__)
+    if not frames:
+        return ""
+    last = frames[-1]
+    return " (raised at {0}:{1})".format(last.filename, last.lineno)
 
 
 def _text(value: Any) -> Optional[str]:
@@ -568,9 +590,11 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
         return new_failure_details
 
     except KeyError as e:
-        raise InvalidSMTPTLSReport(f"Missing required failure details field: {e}")
+        raise InvalidSMTPTLSReport(
+            f"Missing required failure details field: {e}"
+        ) from e
     except Exception as e:
-        raise InvalidSMTPTLSReport(str(e))
+        raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
 def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
@@ -608,9 +632,9 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         return new_policy
 
     except KeyError as e:
-        raise InvalidSMTPTLSReport(f"Missing required policy field: {e}")
+        raise InvalidSMTPTLSReport(f"Missing required policy field: {e}") from e
     except Exception as e:
-        raise InvalidSMTPTLSReport(str(e))
+        raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
 def parse_smtp_tls_report_json(report: Union[str, bytes]) -> SMTPTLSReport:
@@ -650,9 +674,9 @@ def parse_smtp_tls_report_json(report: Union[str, bytes]) -> SMTPTLSReport:
         return new_report
 
     except KeyError as e:
-        raise InvalidSMTPTLSReport(f"Missing required field: {e}")
+        raise InvalidSMTPTLSReport(f"Missing required field: {e}") from e
     except Exception as e:
-        raise InvalidSMTPTLSReport(str(e))
+        raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
 def parsed_smtp_tls_reports_to_csv_rows(
@@ -1026,15 +1050,21 @@ def parse_aggregate_report_xml(
         return cast(AggregateReport, new_report)
 
     except expat.ExpatError as error:
-        raise InvalidAggregateReport("Invalid XML: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Invalid XML: {0}".format(error.__str__())
+        ) from error
 
     except KeyError as error:
-        raise InvalidAggregateReport("Missing field: {0}".format(error.__str__()))
-    except AttributeError:
-        raise InvalidAggregateReport("Report missing required section")
+        raise InvalidAggregateReport(
+            "Missing field: {0}".format(error.__str__())
+        ) from error
+    except AttributeError as error:
+        raise InvalidAggregateReport("Report missing required section") from error
 
     except Exception as error:
-        raise InvalidAggregateReport("Unexpected error: {0}".format(error.__str__()))
+        raise InvalidAggregateReport(
+            "Unexpected error: {0}{1}".format(error.__str__(), _exc_origin(error))
+        ) from error
 
 
 def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
@@ -1112,10 +1142,12 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
         else:
             raise ParserError("Not a valid zip, gzip, json, or xml file")
 
-    except UnicodeDecodeError:
-        raise ParserError("File objects must be opened in binary (rb) mode")
+    except UnicodeDecodeError as error:
+        raise ParserError("File objects must be opened in binary (rb) mode") from error
     except Exception as error:
-        raise ParserError("Invalid archive file: {0}".format(error.__str__()))
+        raise ParserError(
+            "Invalid archive file: {0}{1}".format(error.__str__(), _exc_origin(error))
+        ) from error
     finally:
         if file_object:
             try:
@@ -1176,7 +1208,7 @@ def parse_aggregate_report_file(
     try:
         xml = extract_report(_input)
     except Exception as e:
-        raise InvalidAggregateReport(e)
+        raise InvalidAggregateReport(str(e) + _exc_origin(e)) from e
 
     return parse_aggregate_report_xml(
         xml,
@@ -1557,10 +1589,14 @@ def parse_failure_report(
         return cast(FailureReport, parsed_report)
 
     except KeyError as error:
-        raise InvalidFailureReport("Missing value: {0}".format(error.__str__()))
+        raise InvalidFailureReport(
+            "Missing value: {0}".format(error.__str__())
+        ) from error
 
     except Exception as error:
-        raise InvalidFailureReport("Unexpected error: {0}".format(error.__str__()))
+        raise InvalidFailureReport(
+            "Unexpected error: {0}{1}".format(error.__str__(), _exc_origin(error))
+        ) from error
 
 
 def parsed_failure_reports_to_csv_rows(
@@ -1728,7 +1764,7 @@ def parse_report_email(
         msg = email.message_from_string(input_str)
 
     except Exception as e:
-        raise ParserError(e.__str__())
+        raise ParserError(e.__str__() + _exc_origin(e)) from e
     subject = None
     feedback_report = None
     smtp_tls_report = None
@@ -1785,10 +1821,10 @@ def parse_report_email(
                         fields["received-date"], fields["sender-ip-address"]
                     )
                 except Exception as e:
-                    error = 'Unable to parse message with subject "{0}": {1}'.format(
-                        subject, e
+                    error = 'Unable to parse message with subject "{0}": {1}{2}'.format(
+                        subject, e, _exc_origin(e)
                     )
-                    raise InvalidDMARCReport(error)
+                    raise InvalidDMARCReport(error) from e
 
                 sample = parts[1].lstrip()
                 logger.debug(sample)
@@ -1827,17 +1863,18 @@ def parse_report_email(
             except (TypeError, ValueError, binascii.Error):
                 pass
 
-            except InvalidDMARCReport:
-                error = 'Message with subject "{0}" is not a valid DMARC report'.format(
-                    subject
+            except InvalidDMARCReport as e:
+                error = (
+                    'Message with subject "{0}" is not a valid '
+                    "DMARC report: {1}".format(subject, e)
                 )
-                raise ParserError(error)
+                raise ParserError(error) from e
 
             except Exception as e:
-                error = 'Unable to parse message with subject "{0}": {1}'.format(
-                    subject, e
+                error = 'Unable to parse message with subject "{0}": {1}{2}'.format(
+                    subject, e, _exc_origin(e)
                 )
-                raise ParserError(error)
+                raise ParserError(error) from e
 
     if feedback_report and sample:
         try:
@@ -1861,9 +1898,9 @@ def parse_report_email(
                 "is not a valid "
                 "failure DMARC report: {1}".format(subject, e)
             )
-            raise InvalidFailureReport(error)
+            raise InvalidFailureReport(error) from e
         except Exception as e:
-            raise InvalidFailureReport(e.__str__())
+            raise InvalidFailureReport(e.__str__() + _exc_origin(e)) from e
 
         result = {"report_type": "failure", "report": failure_report}
         return result
@@ -1873,6 +1910,53 @@ def parse_report_email(
         raise InvalidDMARCReport(error)
 
     return result
+
+
+# An RFC 5322 header field name (printable ASCII excluding the colon) followed
+# by a colon at the start of a line, or an mbox "From " separator.
+_email_header_regex = re.compile(r"^(From |[\x21-\x39\x3b-\x7e]+:)")
+
+
+def _looks_like_email(text: str) -> bool:
+    """Returns True if the first non-empty line looks like an email header."""
+    for line in text.splitlines():
+        if line.strip() == "":
+            continue
+        return _email_header_regex.match(line) is not None
+    return False
+
+
+def _describe_parse_failure(
+    content: Union[str, bytes],
+    aggregate_error: InvalidAggregateReport,
+    smtp_tls_error: InvalidSMTPTLSReport,
+    email_error: InvalidDMARCReport,
+) -> str:
+    """Builds a human-readable reason for a parse_report_file failure.
+
+    parse_report_file tries the aggregate XML, SMTP TLS JSON, and report-email
+    parsers in turn; when all three reject the input, only the parser for the
+    format the content actually resembles produced a meaningful error. The
+    other two are noise -- a malformed aggregate report is also "not JSON" and
+    "not an email". Sniff the leading non-whitespace byte to surface the single
+    relevant reason.
+    """
+    if isinstance(content, (bytes, bytearray, memoryview)):
+        sniff = bytes(content)[:512].decode("utf-8", errors="replace")
+    else:
+        sniff = content[:512]
+    sniff = sniff.lstrip()
+
+    if sniff.startswith("<"):
+        return "Invalid aggregate report: {0}".format(aggregate_error)
+    if sniff.startswith("{"):
+        return "Invalid SMTP TLS report: {0}".format(smtp_tls_error)
+    if _looks_like_email(sniff):
+        return "Invalid report email: {0}".format(email_error)
+    return (
+        "Not a recognized report format (not a DMARC aggregate XML report, "
+        "an SMTP TLS JSON report, or a DMARC report email)"
+    )
 
 
 def parse_report_file(
@@ -1930,6 +2014,10 @@ def parse_report_file(
 
     results: Optional[ParsedReport] = None
 
+    # parse_report_file tries the three report formats in turn. When all three
+    # reject the input, keep each format's specific error so the final message
+    # can explain *why* the file is invalid instead of a bare "Not a valid
+    # report" (see _describe_parse_failure).
     try:
         report = parse_aggregate_report_file(
             content,
@@ -1945,11 +2033,11 @@ def parse_report_file(
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         results = {"report_type": "aggregate", "report": report}
-    except InvalidAggregateReport:
+    except InvalidAggregateReport as aggregate_error:
         try:
             report = parse_smtp_tls_report_json(content)
             results = {"report_type": "smtp_tls", "report": report}
-        except InvalidSMTPTLSReport:
+        except InvalidSMTPTLSReport as smtp_tls_error:
             try:
                 results = parse_report_email(
                     content,
@@ -1965,8 +2053,12 @@ def parse_report_file(
                     keep_alive=keep_alive,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
-            except InvalidDMARCReport:
-                raise ParserError("Not a valid report")
+            except InvalidDMARCReport as email_error:
+                raise ParserError(
+                    _describe_parse_failure(
+                        content, aggregate_error, smtp_tls_error, email_error
+                    )
+                ) from email_error
 
     if results is None:
         raise ParserError("Not a valid report")
