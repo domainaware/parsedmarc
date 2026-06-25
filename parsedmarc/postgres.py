@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     # LiteralString requires Python >= 3.11, so only import it for type checking
@@ -39,7 +39,7 @@ _PSYCOPG_INSTALL_HINT = (
 # Aggregate *record* interval_begin/end and SMTP-TLS begin/end are already
 # **UTC** naive strings, so they only need a ``+00`` suffix via
 # ``_ensure_utc_suffix``. Using the wrong helper silently shifts timestamps.
-def _ensure_utc_suffix(value: Optional[str]) -> Optional[str]:
+def _ensure_utc_suffix(value: str | None) -> str | None:
     """Append ``+00`` to a timestamp string if it lacks timezone info.
 
     Several parsers produce ``YYYY-MM-DD HH:MM:SS`` format strings that
@@ -52,7 +52,7 @@ def _ensure_utc_suffix(value: Optional[str]) -> Optional[str]:
     return value
 
 
-def _naive_local_to_timestamptz(value: Optional[str]) -> Optional[str]:
+def _naive_local_to_timestamptz(value: str | None) -> str | None:
     """Convert a naive local-time string to an ISO 8601 string with offset.
 
     ``timestamp_to_human()`` produces ``YYYY-MM-DD HH:MM:SS`` in
@@ -72,7 +72,7 @@ def _naive_local_to_timestamptz(value: Optional[str]) -> Optional[str]:
     return aware.isoformat()
 
 
-def _normalize_arrival_date(value: Optional[str]) -> Optional[str]:
+def _normalize_arrival_date(value: str | None) -> str | None:
     """Normalize a failure-report ``arrival_date`` for safe TIMESTAMPTZ insert.
 
     The arrival date may be an RFC 2822 string (e.g.
@@ -92,12 +92,12 @@ def _normalize_arrival_date(value: Optional[str]) -> Optional[str]:
 
 
 def _contact_info_to_text(
-    value: Union[str, list, None],
-) -> Optional[str]:
+    value: str | list | None,
+) -> str | None:
     """Ensure ``contact_info`` is a plain string.
 
     The TLS-RPT ``contact-info`` field is normally a single string, but
-    the TypedDict allows ``Union[str, List[str]]``.  If a list is
+    the TypedDict allows ``str | list[str]``.  If a list is
     encountered, join the entries so they fit into a ``TEXT`` column.
     """
     if value is None:
@@ -125,12 +125,12 @@ class PostgreSQLClient:
 
     def __init__(
         self,
-        connection_string: Optional[str] = None,
-        host: Optional[str] = None,
+        connection_string: str | None = None,
+        host: str | None = None,
         port: int = 5432,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        database: Optional[str] = None,
+        user: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
     ) -> None:
         """
         Initializes the PostgreSQLClient and opens a database connection.
@@ -160,7 +160,7 @@ class PostgreSQLClient:
         self._password = password
         self._database = database
 
-        self._conn: Optional[psycopg.Connection] = None
+        self._conn: psycopg.Connection | None = None
         self._connect()
 
     def _connect(self) -> psycopg.Connection:

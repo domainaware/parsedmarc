@@ -22,15 +22,10 @@ from base64 import b64decode
 from csv import DictWriter
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
+from collections.abc import Callable, Sequence
 from typing import (
     Any,
     BinaryIO,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Union,
     cast,
 )
 
@@ -166,7 +161,7 @@ def _exc_origin(error: BaseException) -> str:
     return " (raised at {0}:{1})".format(last.filename, last.lineno)
 
 
-def _text(value: Any) -> Optional[str]:
+def _text(value: Any) -> str | None:
     """Unwrap a possibly-langAttrString value parsed by xmltodict.
 
     RFC 9990 changed several aggregate-report elements (extra_contact_info,
@@ -190,7 +185,7 @@ def _bucket_interval_by_day(
     begin: datetime,
     end: datetime,
     total_count: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Split the interval [begin, end) into daily buckets and distribute
     `total_count` proportionally across those buckets.
@@ -252,7 +247,7 @@ def _bucket_interval_by_day(
     if day_cursor > begin:
         day_cursor -= timedelta(days=1)
 
-    day_buckets: List[Dict[str, Any]] = []
+    day_buckets: list[dict[str, Any]] = []
 
     while day_cursor < end:
         day_start = day_cursor
@@ -284,12 +279,12 @@ def _bucket_interval_by_day(
     # Then apply a "largest remainder" rounding strategy to ensure the sum
     # equals exactly total_count.
 
-    exact_values: List[float] = [
+    exact_values: list[float] = [
         (b["seconds"] / interval_seconds) * total_count for b in day_buckets
     ]
 
-    floor_values: List[int] = [int(x) for x in exact_values]
-    fractional_parts: List[float] = [x - int(x) for x in exact_values]
+    floor_values: list[int] = [int(x) for x in exact_values]
+    fractional_parts: list[float] = [x - int(x) for x in exact_values]
 
     # How many counts do we still need to distribute after flooring?
     remainder = total_count - sum(floor_values)
@@ -309,7 +304,7 @@ def _bucket_interval_by_day(
         final_counts[idx] += 1
 
     # --- Step 3: Build the final per-day result list -------------------------
-    results: List[Dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
     for bucket, count in zip(day_buckets, final_counts):
         if count > 0:
             results.append(
@@ -370,12 +365,12 @@ def _append_parsed_record(
 def _parse_report_record(
     record: dict[str, Any],
     *,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     is_rfc_9990: bool = False,
@@ -632,7 +627,7 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
-def parse_smtp_tls_report_json(report: Union[str, bytes]) -> SMTPTLSReport:
+def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
     """Parses and validates an SMTP TLS report"""
     required_fields = [
         "organization-name",
@@ -675,7 +670,7 @@ def parse_smtp_tls_report_json(report: Union[str, bytes]) -> SMTPTLSReport:
 
 
 def parsed_smtp_tls_reports_to_csv_rows(
-    reports: Union[SMTPTLSReport, list[SMTPTLSReport]],
+    reports: SMTPTLSReport | list[SMTPTLSReport],
 ) -> list[dict[str, Any]]:
     """Converts one oor more parsed SMTP TLS reports into a list of single
     layer dict objects suitable for use in a CSV"""
@@ -715,7 +710,7 @@ def parsed_smtp_tls_reports_to_csv_rows(
 
 
 def parsed_smtp_tls_reports_to_csv(
-    reports: Union[SMTPTLSReport, list[SMTPTLSReport]],
+    reports: SMTPTLSReport | list[SMTPTLSReport],
 ) -> str:
     """
     Converts one or more parsed SMTP TLS reports to flat CSV format, including
@@ -764,15 +759,15 @@ def parsed_smtp_tls_reports_to_csv(
 def parse_aggregate_report_xml(
     xml: str,
     *,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> AggregateReport:
     """Parses a DMARC XML report string and returns a consistent dict
@@ -809,7 +804,7 @@ def parse_aggregate_report_xml(
     # The final `is_rfc_9990` decision is made post-parse so that
     # RFC 9990-only fields (np, testing, discovery_method, generator,
     # human_result) can also vote it in.
-    xml_namespace: Optional[str] = None
+    xml_namespace: str | None = None
     namespace_match = xml_namespace_regex.search(xml)
     if namespace_match:
         xml_namespace = namespace_match.group(1)
@@ -1062,7 +1057,7 @@ def parse_aggregate_report_xml(
         ) from error
 
 
-def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
+def extract_report(content: bytes | str | BinaryIO) -> str:
     """
     Extracts text from a zip or gzip file, as a base64-encoded string,
     file-like object, or bytes.
@@ -1075,7 +1070,7 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
         str: The extracted text
 
     """
-    file_object: Optional[BinaryIO] = None
+    file_object: BinaryIO | None = None
     header: bytes
     try:
         if isinstance(content, str):
@@ -1152,7 +1147,7 @@ def extract_report(content: Union[bytes, str, BinaryIO]) -> str:
 
 
 def extract_report_from_file_path(
-    file_path: Union[str, bytes, os.PathLike[str], os.PathLike[bytes]],
+    file_path: str | bytes | os.PathLike[str] | os.PathLike[bytes],
 ) -> str:
     """Extracts report from a file at the given file_path"""
     try:
@@ -1163,17 +1158,17 @@ def extract_report_from_file_path(
 
 
 def parse_aggregate_report_file(
-    _input: Union[str, bytes, BinaryIO],
+    _input: str | bytes | BinaryIO,
     *,
     offline: bool = False,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
-    ip_db_path: Optional[str] = None,
-    nameservers: Optional[list[str]] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
+    ip_db_path: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> AggregateReport:
     """Parses a file at the given path, a file-like object. or bytes as an
@@ -1219,7 +1214,7 @@ def parse_aggregate_report_file(
 
 
 def parsed_aggregate_reports_to_csv_rows(
-    reports: Union[AggregateReport, list[AggregateReport]],
+    reports: AggregateReport | list[AggregateReport],
 ) -> list[dict[str, Any]]:
     """
     Converts one or more parsed aggregate reports to list of dicts in flat CSV
@@ -1354,7 +1349,7 @@ def parsed_aggregate_reports_to_csv_rows(
 
 
 def parsed_aggregate_reports_to_csv(
-    reports: Union[AggregateReport, list[AggregateReport]],
+    reports: AggregateReport | list[AggregateReport],
 ) -> str:
     """
     Converts one or more parsed aggregate reports to flat CSV format, including
@@ -1433,11 +1428,11 @@ def parse_failure_report(
     msg_date: datetime,
     *,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    ip_db_path: Optional[str] = None,
-    nameservers: Optional[list[str]] = None,
+    ip_db_path: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
@@ -1593,7 +1588,7 @@ def parse_failure_report(
 
 
 def parsed_failure_reports_to_csv_rows(
-    reports: Union[FailureReport, list[FailureReport]],
+    reports: FailureReport | list[FailureReport],
 ) -> list[dict[str, Any]]:
     """
     Converts one or more parsed failure reports to a list of dicts in flat CSV
@@ -1634,7 +1629,7 @@ def parsed_failure_reports_to_csv_rows(
 
 
 def parsed_failure_reports_to_csv(
-    reports: Union[FailureReport, list[FailureReport]],
+    reports: FailureReport | list[FailureReport],
 ) -> str:
     """
     Converts one or more parsed failure reports to flat CSV format, including
@@ -1691,18 +1686,18 @@ def parsed_failure_reports_to_csv(
 
 
 def parse_report_email(
-    input_: Union[bytes, str],
+    input_: bytes | str,
     *,
     offline: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
-    nameservers: Optional[list[str]] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> ParsedReport:
     """
@@ -1729,11 +1724,11 @@ def parse_report_email(
         * ``report_type``: ``aggregate`` or ``failure``
         * ``report``: The parsed report
     """
-    result: Optional[ParsedReport] = None
+    result: ParsedReport | None = None
     msg_date: datetime = datetime.now(timezone.utc)
 
     try:
-        input_data: Union[str, bytes, bytearray, memoryview] = input_
+        input_data: str | bytes | bytearray | memoryview = input_
         if isinstance(input_data, (bytes, bytearray, memoryview)):
             input_bytes = bytes(input_data)
             if is_outlook_msg(input_bytes):
@@ -1919,7 +1914,7 @@ def _looks_like_email(text: str) -> bool:
 
 
 def _describe_parse_failure(
-    content: Union[str, bytes],
+    content: str | bytes,
     aggregate_error: InvalidAggregateReport,
     smtp_tls_error: InvalidSMTPTLSReport,
     email_error: InvalidDMARCReport,
@@ -1952,18 +1947,18 @@ def _describe_parse_failure(
 
 
 def parse_report_file(
-    input_: Union[bytes, str, os.PathLike[str], os.PathLike[bytes], BinaryIO],
+    input_: bytes | str | os.PathLike[str] | os.PathLike[bytes] | BinaryIO,
     *,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    keep_alive: Optional[Callable] = None,
+    keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24,
 ) -> ParsedReport:
     """Parses a DMARC aggregate or failure file at the given path, a
@@ -2004,7 +1999,7 @@ def parse_report_file(
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 
-    results: Optional[ParsedReport] = None
+    results: ParsedReport | None = None
 
     # parse_report_file tries the three report formats in turn. When all three
     # reject the input, keep each format's specific error so the final message
@@ -2060,14 +2055,14 @@ def parse_report_file(
 def get_dmarc_reports_from_mbox(
     input_: str,
     *,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
     normalize_timespan_threshold_hours: float = 24.0,
 ) -> ParsingResults:
@@ -2203,18 +2198,18 @@ def get_dmarc_reports_from_mailbox(
     archive_folder: str = "Archive",
     delete: bool = False,
     test: bool = False,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 6.0,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
-    results: Optional[ParsingResults] = None,
+    results: ParsingResults | None = None,
     batch_size: int = 10,
-    since: Optional[Union[datetime, date, str]] = None,
+    since: datetime | date | str | None = None,
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24,
 ) -> ParsingResults:
@@ -2257,7 +2252,7 @@ def get_dmarc_reports_from_mailbox(
         raise ValueError("Must supply a connection")
 
     # current_time useful to fetch_messages later in the program
-    current_time: Optional[Union[datetime, date, str]] = None
+    current_time: datetime | date | str | None = None
 
     aggregate_reports: list[AggregateReport] = []
     failure_reports: list[FailureReport] = []
@@ -2344,7 +2339,7 @@ def get_dmarc_reports_from_mailbox(
                 i + 1, message_limit, msg_uid
             )
         )
-        message_id: Union[int, str]
+        message_id: int | str
         if isinstance(connection, IMAPConnection):
             message_id = int(msg_uid)
             msg_content = connection.fetch_message(message_id)
@@ -2546,19 +2541,19 @@ def watch_inbox(
     delete: bool = False,
     test: bool = False,
     check_timeout: int = 30,
-    ip_db_path: Optional[str] = None,
+    ip_db_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_path: Optional[str] = None,
-    reverse_dns_map_url: Optional[str] = None,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
     offline: bool = False,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     dns_timeout: float = 6.0,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     batch_size: int = 10,
-    since: Optional[Union[datetime, date, str]] = None,
+    since: datetime | date | str | None = None,
     normalize_timespan_threshold_hours: float = 24,
-    config_reloading: Optional[Callable] = None,
+    config_reloading: Callable | None = None,
 ):
     """
     Watches the mailbox for new messages and
@@ -2629,11 +2624,9 @@ def watch_inbox(
 
 def append_json(
     filename: str,
-    reports: Union[
-        Sequence[AggregateReport],
-        Sequence[FailureReport],
-        Sequence[SMTPTLSReport],
-    ],
+    reports: Sequence[AggregateReport]
+    | Sequence[FailureReport]
+    | Sequence[SMTPTLSReport],
 ) -> None:
     """Append ``reports`` to a JSON array on disk, creating the file
     if needed.
@@ -2820,18 +2813,18 @@ def email_results(
     results: ParsingResults,
     host: str,
     mail_from: str,
-    mail_to: Optional[list[str]],
+    mail_to: list[str] | None,
     *,
-    mail_cc: Optional[list[str]] = None,
-    mail_bcc: Optional[list[str]] = None,
+    mail_cc: list[str] | None = None,
+    mail_bcc: list[str] | None = None,
     port: int = 0,
     require_encryption: bool = False,
     verify: bool = True,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    subject: Optional[str] = None,
-    attachment_filename: Optional[str] = None,
-    message: Optional[str] = None,
+    username: str | None = None,
+    password: str | None = None,
+    subject: str | None = None,
+    attachment_filename: str | None = None,
+    message: str | None = None,
 ):
     """
     Emails parsing results as a zip file

@@ -6,7 +6,6 @@ import codecs
 import os
 import sys
 import shutil
-from typing import List, Optional, Tuple
 
 """
 Locates and optionally corrects bad UTF-8 bytes in a file.
@@ -98,7 +97,7 @@ def scan_file_for_utf8_errors(path: str, context: int, limit: int):
 # -------------------------
 
 
-def detect_encoding_text(path: str) -> Tuple[str, str]:
+def detect_encoding_text(path: str) -> tuple[str, str]:
     """
     Use charset-normalizer to detect file encoding.
     Return (encoding_name, decoded_text). Falls back to cp1252 if needed.
@@ -128,7 +127,7 @@ def detect_encoding_text(path: str) -> Tuple[str, str]:
 
 
 def convert_to_utf8(
-    src_path: str, out_path: str, src_encoding: Optional[str] = None
+    src_path: str, out_path: str, src_encoding: str | None = None
 ) -> str:
     """
     Convert an entire file to UTF-8 (re-decoding everything).
@@ -155,7 +154,7 @@ def convert_to_utf8(
     return used
 
 
-def verify_utf8_file(path: str) -> Tuple[bool, str]:
+def verify_utf8_file(path: str) -> tuple[bool, str]:
     try:
         with open(path, "rb") as fb:
             fb.read().decode("utf-8", errors="strict")
@@ -182,17 +181,17 @@ def iter_lines_with_offsets(b: bytes):
         yield b[start:], start
 
 
-def detect_probable_fallbacks() -> List[str]:
+def detect_probable_fallbacks() -> list[str]:
     # Good defaults for Western/Portuguese text
     return ["cp1252", "iso-8859-1", "iso-8859-15"]
 
 
-def repair_mixed_utf8_line(line: bytes, base_offset: int, fallback_chain: List[str]):
+def repair_mixed_utf8_line(line: bytes, base_offset: int, fallback_chain: list[str]):
     """
     Strictly validate UTF-8 and fix *only* the exact offending byte when an error occurs.
     This avoids touching adjacent valid UTF-8 (prevents mojibake like 'Ã©').
     """
-    out_fragments: List[str] = []
+    out_fragments: list[str] = []
     fixes = []
     pos = 0
     n = len(line)
@@ -253,7 +252,7 @@ def repair_mixed_utf8_line(line: bytes, base_offset: int, fallback_chain: List[s
 def targeted_fix_to_utf8(
     src_path: str,
     out_path: str,
-    fallback_chain: List[str],
+    fallback_chain: list[str],
     dry_run: bool,
     max_fixes: int,
 ):
@@ -261,7 +260,7 @@ def targeted_fix_to_utf8(
         data = fb.read()
 
     total_fixes = 0
-    repaired_lines: List[str] = []
+    repaired_lines: list[str] = []
     line_no = 0
     max_val = max_fixes if max_fixes != 0 else float("inf")
 

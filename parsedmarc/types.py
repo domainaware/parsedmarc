@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
-# NOTE: This module is intentionally Python 3.10 compatible.
-# - No PEP 604 unions (A | B)
-# - No typing.NotRequired / Required (3.11+) to avoid an extra dependency.
-#   For optional keys, use total=False TypedDicts.
+# NOTE: This module targets Python 3.10.
+# - PEP 604 unions (A | B) and PEP 585 generics (list[str]) are used; both are
+#   available in 3.10.
+# - No typing.NotRequired / Required (3.11+); for optional TypedDict keys, use
+#   total=False TypedDicts.
 
 
 ReportType = Literal["aggregate", "failure", "smtp_tls"]
@@ -14,14 +15,14 @@ ReportType = Literal["aggregate", "failure", "smtp_tls"]
 class AggregateReportMetadata(TypedDict):
     org_name: str
     org_email: str
-    org_extra_contact_info: Optional[str]
+    org_extra_contact_info: str | None
     report_id: str
     begin_date: str
     end_date: str
     timespan_requires_normalization: bool
     original_timespan_seconds: int
-    errors: List[str]
-    generator: Optional[str]
+    errors: list[str]
+    generator: str | None
 
 
 class AggregatePolicyPublished(TypedDict):
@@ -30,23 +31,23 @@ class AggregatePolicyPublished(TypedDict):
     aspf: str
     p: str
     sp: str
-    pct: Optional[str]
-    fo: Optional[str]
-    np: Optional[str]
-    testing: Optional[str]
-    discovery_method: Optional[str]
+    pct: str | None
+    fo: str | None
+    np: str | None
+    testing: str | None
+    discovery_method: str | None
 
 
 class IPSourceInfo(TypedDict):
     ip_address: str
-    country: Optional[str]
-    reverse_dns: Optional[str]
-    base_domain: Optional[str]
-    name: Optional[str]
-    type: Optional[str]
-    asn: Optional[int]
-    as_name: Optional[str]
-    as_domain: Optional[str]
+    country: str | None
+    reverse_dns: str | None
+    base_domain: str | None
+    name: str | None
+    type: str | None
+    asn: int | None
+    as_name: str | None
+    as_domain: str | None
 
 
 class AggregateAlignment(TypedDict):
@@ -57,39 +58,39 @@ class AggregateAlignment(TypedDict):
 
 class AggregateIdentifiers(TypedDict):
     header_from: str
-    envelope_from: Optional[str]
-    envelope_to: Optional[str]
+    envelope_from: str | None
+    envelope_to: str | None
 
 
 class AggregatePolicyOverrideReason(TypedDict):
-    type: Optional[str]
-    comment: Optional[str]
+    type: str | None
+    comment: str | None
 
 
 class AggregateAuthResultDKIM(TypedDict):
     domain: str
     result: str
     selector: str
-    human_result: Optional[str]
+    human_result: str | None
 
 
 class AggregateAuthResultSPF(TypedDict):
     domain: str
     result: str
     scope: str
-    human_result: Optional[str]
+    human_result: str | None
 
 
 class AggregateAuthResults(TypedDict):
-    dkim: List[AggregateAuthResultDKIM]
-    spf: List[AggregateAuthResultSPF]
+    dkim: list[AggregateAuthResultDKIM]
+    spf: list[AggregateAuthResultSPF]
 
 
 class AggregatePolicyEvaluated(TypedDict):
     disposition: str
     dkim: str
     spf: str
-    policy_override_reasons: List[AggregatePolicyOverrideReason]
+    policy_override_reasons: list[AggregatePolicyOverrideReason]
 
 
 class AggregateRecord(TypedDict):
@@ -106,23 +107,23 @@ class AggregateRecord(TypedDict):
 
 class AggregateReport(TypedDict):
     xml_schema: str
-    xml_namespace: Optional[str]
+    xml_namespace: str | None
     report_metadata: AggregateReportMetadata
     policy_published: AggregatePolicyPublished
-    records: List[AggregateRecord]
+    records: list[AggregateRecord]
 
 
 class EmailAddress(TypedDict):
-    display_name: Optional[str]
+    display_name: str | None
     address: str
-    local: Optional[str]
-    domain: Optional[str]
+    local: str | None
+    domain: str | None
 
 
 class EmailAttachment(TypedDict, total=False):
-    filename: Optional[str]
-    mail_content_type: Optional[str]
-    sha256: Optional[str]
+    filename: str | None
+    mail_content_type: str | None
+    sha256: str | None
 
 
 ParsedEmail = TypedDict(
@@ -130,16 +131,16 @@ ParsedEmail = TypedDict(
     {
         # This is a lightly-specified version of mailsuite/mailparser JSON.
         # It focuses on the fields parsedmarc uses in failure report handling.
-        "headers": Dict[str, Any],
-        "subject": Optional[str],
-        "filename_safe_subject": Optional[str],
-        "date": Optional[str],
+        "headers": dict[str, Any],
+        "subject": str | None,
+        "filename_safe_subject": str | None,
+        "date": str | None,
         "from": EmailAddress,
-        "to": List[EmailAddress],
-        "cc": List[EmailAddress],
-        "bcc": List[EmailAddress],
-        "attachments": List[EmailAttachment],
-        "body": Optional[str],
+        "to": list[EmailAddress],
+        "cc": list[EmailAddress],
+        "bcc": list[EmailAddress],
+        "attachments": list[EmailAttachment],
+        "body": str | None,
         "has_defects": bool,
         "defects": Any,
         "defects_categories": Any,
@@ -149,19 +150,19 @@ ParsedEmail = TypedDict(
 
 
 class FailureReport(TypedDict):
-    feedback_type: Optional[str]
-    user_agent: Optional[str]
-    version: Optional[str]
-    original_envelope_id: Optional[str]
-    original_mail_from: Optional[str]
-    original_rcpt_to: Optional[str]
+    feedback_type: str | None
+    user_agent: str | None
+    version: str | None
+    original_envelope_id: str | None
+    original_mail_from: str | None
+    original_rcpt_to: str | None
     arrival_date: str
     arrival_date_utc: str
-    authentication_results: Optional[str]
-    delivery_result: Optional[str]
-    auth_failure: List[str]
-    authentication_mechanisms: List[str]
-    dkim_domain: Optional[str]
+    authentication_results: str | None
+    delivery_result: str | None
+    auth_failure: list[str]
+    authentication_mechanisms: list[str]
+    dkim_domain: str | None
     reported_domain: str
     sample_headers_only: bool
     source: IPSourceInfo
@@ -196,18 +197,18 @@ class SMTPTLSPolicySummary(TypedDict):
 
 
 class SMTPTLSPolicy(SMTPTLSPolicySummary, total=False):
-    policy_strings: List[str]
-    mx_host_patterns: List[str]
-    failure_details: List[SMTPTLSFailureDetailsOptional]
+    policy_strings: list[str]
+    mx_host_patterns: list[str]
+    failure_details: list[SMTPTLSFailureDetailsOptional]
 
 
 class SMTPTLSReport(TypedDict):
     organization_name: str
     begin_date: str
     end_date: str
-    contact_info: Union[str, List[str]]
+    contact_info: str | list[str]
     report_id: str
-    policies: List[SMTPTLSPolicy]
+    policies: list[SMTPTLSPolicy]
 
 
 class AggregateParsedReport(TypedDict):
@@ -229,10 +230,10 @@ class SMTPTLSParsedReport(TypedDict):
     report: SMTPTLSReport
 
 
-ParsedReport = Union[AggregateParsedReport, FailureParsedReport, SMTPTLSParsedReport]
+ParsedReport = AggregateParsedReport | FailureParsedReport | SMTPTLSParsedReport
 
 
 class ParsingResults(TypedDict):
-    aggregate_reports: List[AggregateReport]
-    failure_reports: List[FailureReport]
-    smtp_tls_reports: List[SMTPTLSReport]
+    aggregate_reports: list[AggregateReport]
+    failure_reports: list[FailureReport]
+    smtp_tls_reports: list[SMTPTLSReport]
