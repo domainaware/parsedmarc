@@ -1047,7 +1047,8 @@ class Test(unittest.TestCase):
         """A non-dict failure-details value hits the catch-all (TypeError,
         not KeyError) and is wrapped as InvalidSMTPTLSReport"""
         with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
-            parsedmarc._parse_smtp_tls_failure_details("not a dict")
+            # Deliberate wrong type to exercise the non-KeyError catch-all.
+            parsedmarc._parse_smtp_tls_failure_details("not a dict")  # pyright: ignore[reportArgumentType]
         self.assertIsInstance(ctx.exception.__cause__, TypeError)
 
     def testParseSmtpTlsReportPolicyValid(self):
@@ -2225,7 +2226,8 @@ This is not a DMARC report."""
         )
         result = parsedmarc.parse_report_email(eml, offline=True)
         self.assertEqual(result["report_type"], "failure")
-        self.assertEqual(result["report"]["source"]["ip_address"], "192.0.2.1")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["source"]["ip_address"], "192.0.2.1")
 
     def testFailureTextMissingFieldsRaises(self):
         """A text/plain failure report missing its fields is rejected with
