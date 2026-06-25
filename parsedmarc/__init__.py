@@ -1899,8 +1899,6 @@ def parse_report_email(
                 "failure DMARC report: {1}".format(subject, e)
             )
             raise InvalidFailureReport(error) from e
-        except Exception as e:
-            raise InvalidFailureReport(e.__str__() + _exc_origin(e)) from e
 
         result = {"report_type": "failure", "report": failure_report}
         return result
@@ -1918,12 +1916,13 @@ _email_header_regex = re.compile(r"^(From |[\x21-\x39\x3b-\x7e]+:)")
 
 
 def _looks_like_email(text: str) -> bool:
-    """Returns True if the first non-empty line looks like an email header."""
-    for line in text.splitlines():
-        if line.strip() == "":
-            continue
-        return _email_header_regex.match(line) is not None
-    return False
+    """Returns True if the first line looks like an email header.
+
+    Callers pass already-``lstrip()``-ed text, so the first line is the first
+    meaningful line.
+    """
+    first_line = text.split("\n", 1)[0]
+    return _email_header_regex.match(first_line) is not None
 
 
 def _describe_parse_failure(

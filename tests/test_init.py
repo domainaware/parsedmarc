@@ -1014,6 +1014,13 @@ class Test(unittest.TestCase):
         with self.assertRaises(parsedmarc.InvalidSMTPTLSReport):
             parsedmarc._parse_smtp_tls_failure_details({"result-type": "err"})
 
+    def testParseSmtpTlsFailureDetailsNonDict(self):
+        """A non-dict failure-details value hits the catch-all (TypeError,
+        not KeyError) and is wrapped as InvalidSMTPTLSReport"""
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc._parse_smtp_tls_failure_details("not a dict")
+        self.assertIsInstance(ctx.exception.__cause__, TypeError)
+
     def testParseSmtpTlsReportPolicyValid(self):
         """Valid STS policy parses correctly"""
         policy = {
@@ -2104,6 +2111,18 @@ class TestParseReportFile(unittest.TestCase):
         self.assertIn("raised at", message)
         self.assertIn("__init__.py:", message)
 
+    def testExcOriginEmptyWhenNoTraceback(self):
+        """_exc_origin returns '' for an exception with no traceback"""
+        logger = logging.getLogger("parsedmarc.log")
+        previous = logger.level
+        logger.setLevel(logging.DEBUG)
+        try:
+            # A never-raised exception has __traceback__ is None, so there is
+            # no origin frame to cite even though debug logging is on.
+            self.assertEqual(parsedmarc._exc_origin(ValueError("x")), "")
+        finally:
+            logger.setLevel(previous)
+
 
 class TestParseReportEmail(unittest.TestCase):
     """Tests for parse_report_email edge cases"""
@@ -2125,6 +2144,15 @@ Content-Type: text/plain
 This is not a DMARC report."""
         with self.assertRaises(parsedmarc.InvalidDMARCReport):
             parsedmarc.parse_report_email(email_str, offline=True)
+
+    def testUnparseableDateRaisesParserError(self):
+        """An unparseable Date header trips the initial mail-parse catch-all"""
+        # human_timestamp_to_datetime() raises on a junk Date, which the
+        # catch-all around the initial parse turns into a ParserError.
+        email_str = "From: a@b.c\nDate: not-a-real-date\nSubject: x\n\nbody"
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_email(email_str, offline=True)
+        self.assertIn("not-a-real-date", str(ctx.exception))
 
 
 class TestFailureReportParsing(unittest.TestCase):
