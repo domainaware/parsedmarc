@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import socket
-from typing import Any, Union
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -59,7 +59,7 @@ class HECClient(object):
         self.session = requests.Session()
         self.timeout = timeout
         self.verify = verify
-        self._common_data: dict[str, Union[str, int, float, dict]] = dict(
+        self._common_data: dict[str, str | int | float | dict] = dict(
             host=self.host, source=self.source, index=self.index
         )
 
@@ -72,7 +72,7 @@ class HECClient(object):
 
     def save_aggregate_reports_to_splunk(
         self,
-        aggregate_reports: Union[list[dict[str, Any]], dict[str, Any]],
+        aggregate_reports: list[dict[str, Any]] | dict[str, Any],
     ):
         """
         Saves aggregate DMARC reports to Splunk
@@ -93,7 +93,7 @@ class HECClient(object):
         json_str = ""
         for report in aggregate_reports:
             for record in report["records"]:
-                new_report: dict[str, Union[str, int, float, dict]] = dict()
+                new_report: dict[str, str | int | float | dict] = dict()
                 for metadata in report["report_metadata"]:
                     new_report[metadata] = report["report_metadata"][metadata]
                 new_report["interval_begin"] = record["interval_begin"]
@@ -143,7 +143,7 @@ class HECClient(object):
 
     def save_failure_reports_to_splunk(
         self,
-        failure_reports: Union[list[dict[str, Any]], dict[str, Any]],
+        failure_reports: list[dict[str, Any]] | dict[str, Any],
     ):
         """
         Saves failure DMARC reports to Splunk
@@ -181,7 +181,7 @@ class HECClient(object):
             raise SplunkError(response["text"])
 
     def save_smtp_tls_reports_to_splunk(
-        self, reports: Union[list[dict[str, Any]], dict[str, Any]]
+        self, reports: list[dict[str, Any]] | dict[str, Any]
     ):
         """
         Saves aggregate DMARC reports to Splunk

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from ssl import SSLContext, create_default_context
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from kafka import KafkaProducer
 from kafka.errors import UnknownTopicOrPartitionError
@@ -34,10 +34,10 @@ class KafkaClient(object):
         self,
         kafka_hosts: list[str],
         *,
-        ssl: Optional[bool] = False,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        ssl_context: Optional[SSLContext] = None,
+        ssl: bool | None = False,
+        username: str | None = None,
+        password: str | None = None,
+        ssl_context: SSLContext | None = None,
     ):
         """
         Initializes the Kafka client
@@ -111,7 +111,7 @@ class KafkaClient(object):
 
     def save_aggregate_reports_to_kafka(
         self,
-        aggregate_reports: Union[dict[str, Any], list[dict[str, Any]]],
+        aggregate_reports: dict[str, Any] | list[dict[str, Any]],
         aggregate_topic: str,
     ):
         """
@@ -156,7 +156,7 @@ class KafkaClient(object):
 
     def save_failure_reports_to_kafka(
         self,
-        failure_reports: Union[dict[str, Any], list[dict[str, Any]]],
+        failure_reports: dict[str, Any] | list[dict[str, Any]],
         failure_topic: str,
     ):
         """
@@ -193,7 +193,7 @@ class KafkaClient(object):
 
     def save_smtp_tls_reports_to_kafka(
         self,
-        smtp_tls_reports: Union[list[dict[str, Any]], dict[str, Any]],
+        smtp_tls_reports: list[dict[str, Any]] | dict[str, Any],
         smtp_tls_topic: str,
     ):
         """

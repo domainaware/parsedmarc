@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any
 
 import requests
 
@@ -18,7 +18,7 @@ class WebhookClient(object):
         aggregate_url: str,
         failure_url: str,
         smtp_tls_url: str,
-        timeout: Optional[int] = 60,
+        timeout: int | None = 60,
     ):
         """
         Initializes the WebhookClient
@@ -49,9 +49,7 @@ class WebhookClient(object):
     def save_aggregate_report_to_webhook(self, report: str):
         self._send_to_webhook(self.aggregate_url, report)
 
-    def _send_to_webhook(
-        self, webhook_url: str, payload: Union[bytes, str, dict[str, Any]]
-    ):
+    def _send_to_webhook(self, webhook_url: str, payload: bytes | str | dict[str, Any]):
         # All HTTP / network errors are swallowed and logged: a failing
         # webhook should never abort the surrounding parse-and-output
         # batch. The outer save_* methods previously wrapped this in a

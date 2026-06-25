@@ -113,6 +113,18 @@ exclude = [
     "parsedmarc/resources/maps/[!_]*.py",
 ]
 
+[tool.ruff.lint]
+# Enforce modern type-hint syntax on top of ruff's default rules. With
+# requires-python >=3.10, PEP 585 builtins (list[int]) and PEP 604 unions
+# (X | Y, X | None) are available, so keep the deprecated typing.List /
+# Union / Optional spellings out of the codebase.
+extend-select = [
+    "UP006", # non-pep585-annotation: List -> list, Dict -> dict
+    "UP007", # non-pep604-annotation-union: Union[X, Y] -> X | Y
+    "UP035", # deprecated-import: typing.List etc. / typing -> collections.abc
+    "UP045", # non-pep604-annotation-optional: Optional[X] -> X | None
+]
+
 [tool.pyright]
 # The whole codebase passes pyright with zero errors and warnings; CI
 # enforces this (see .github/workflows/python-tests.yml). Run locally with

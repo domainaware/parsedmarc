@@ -9,7 +9,6 @@ import logging.handlers
 import socket
 import ssl
 import time
-from typing import Optional
 
 from parsedmarc import (
     parsed_aggregate_reports_to_csv_rows,
@@ -27,9 +26,9 @@ class SyslogClient(object):
         server_name: str,
         server_port: int,
         protocol: str = "udp",
-        cafile_path: Optional[str] = None,
-        certfile_path: Optional[str] = None,
-        keyfile_path: Optional[str] = None,
+        cafile_path: str | None = None,
+        certfile_path: str | None = None,
+        keyfile_path: str | None = None,
         timeout: float = 5.0,
         retry_attempts: int = 3,
         retry_delay: int = 5,
@@ -77,9 +76,9 @@ class SyslogClient(object):
         server_name: str,
         server_port: int,
         protocol: str,
-        cafile_path: Optional[str],
-        certfile_path: Optional[str],
-        keyfile_path: Optional[str],
+        cafile_path: str | None,
+        certfile_path: str | None,
+        keyfile_path: str | None,
         timeout: float,
         retry_attempts: int,
         retry_delay: int,

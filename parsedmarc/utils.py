@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
-from typing import Optional, TypedDict, Union, cast
+from typing import TypedDict, cast
 
 import mailparser
 from expiringdict import ExpiringDict
@@ -67,8 +67,8 @@ psl_overrides: list[str] = []
 def load_psl_overrides(
     *,
     always_use_local_file: bool = False,
-    local_file_path: Optional[str] = None,
-    url: Optional[str] = None,
+    local_file_path: str | None = None,
+    url: str | None = None,
     offline: bool = False,
 ) -> list[str]:
     """
@@ -138,7 +138,7 @@ class DownloadError(RuntimeError):
 
 class ReverseDNSService(TypedDict):
     name: str
-    type: Optional[str]
+    type: str | None
 
 
 ReverseDNSMap = dict[str, ReverseDNSService]
@@ -146,14 +146,14 @@ ReverseDNSMap = dict[str, ReverseDNSService]
 
 class IPAddressInfo(TypedDict):
     ip_address: str
-    reverse_dns: Optional[str]
-    country: Optional[str]
-    base_domain: Optional[str]
-    name: Optional[str]
-    type: Optional[str]
-    asn: Optional[int]
-    as_name: Optional[str]
-    as_domain: Optional[str]
+    reverse_dns: str | None
+    country: str | None
+    base_domain: str | None
+    name: str | None
+    type: str | None
+    asn: int | None
+    as_name: str | None
+    as_domain: str | None
 
 
 def decode_base64(data: str) -> bytes:
@@ -174,7 +174,7 @@ def decode_base64(data: str) -> bytes:
     return base64.b64decode(data_bytes)
 
 
-def get_base_domain(domain: str) -> Optional[str]:
+def get_base_domain(domain: str) -> str | None:
     """
     Gets the base domain name for the given domain
 
@@ -202,8 +202,8 @@ def query_dns(
     domain: str,
     record_type: str,
     *,
-    cache: Optional[ExpiringDict] = None,
-    nameservers: Optional[list[str]] = None,
+    cache: ExpiringDict | None = None,
+    nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
     _attempt: int = 0,
@@ -294,11 +294,11 @@ def query_dns(
 def get_reverse_dns(
     ip_address,
     *,
-    cache: Optional[ExpiringDict] = None,
-    nameservers: Optional[list[str]] = None,
+    cache: ExpiringDict | None = None,
+    nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
-) -> Optional[str]:
+) -> str | None:
     """
     Resolves an IP address to a hostname using a reverse DNS query
 
@@ -393,14 +393,14 @@ def human_timestamp_to_unix_timestamp(human_timestamp: str) -> int:
     return int(human_timestamp_to_datetime(human_timestamp).timestamp())
 
 
-_IP_DB_PATH: Optional[str] = None
+_IP_DB_PATH: str | None = None
 
 
 def load_ip_db(
     *,
     always_use_local_file: bool = False,
-    local_file_path: Optional[str] = None,
-    url: Optional[str] = None,
+    local_file_path: str | None = None,
+    url: str | None = None,
     offline: bool = False,
 ) -> None:
     """
@@ -461,10 +461,10 @@ def load_ip_db(
 
 
 class _IPDatabaseRecord(TypedDict):
-    country: Optional[str]
-    asn: Optional[int]
-    as_name: Optional[str]
-    as_domain: Optional[str]
+    country: str | None
+    asn: int | None
+    as_name: str | None
+    as_domain: str | None
 
 
 class InvalidIPinfoAPIKey(Exception):
@@ -481,12 +481,12 @@ class InvalidIPinfoAPIKey(Exception):
 # here — adding it would be inventing behavior the service doesn't document.
 # Authentication uses the documented ``?token=`` query parameter.
 _IPINFO_API_URL = "https://api.ipinfo.io/lite"
-_IPINFO_API_TOKEN: Optional[str] = None
+_IPINFO_API_TOKEN: str | None = None
 _IPINFO_API_TIMEOUT: float = 5.0
 
 
 def configure_ipinfo_api(
-    token: Optional[str],
+    token: str | None,
     *,
     probe: bool = True,
 ) -> None:
@@ -520,7 +520,7 @@ def configure_ipinfo_api(
         logger.info("IPinfo API configured")
 
 
-def _ipinfo_api_lookup(ip_address: str) -> Optional[_IPDatabaseRecord]:
+def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     """Look up an IP via the IPinfo Lite REST API.
 
     Returns the normalized record on success, or ``None`` on network error or
@@ -569,10 +569,10 @@ def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
     same output: country as ISO code, ASN as plain int, as_name string,
     as_domain lowercased.
     """
-    country: Optional[str] = None
-    asn: Optional[int] = None
-    as_name: Optional[str] = None
-    as_domain: Optional[str] = None
+    country: str | None = None
+    asn: int | None = None
+    as_name: str | None = None
+    as_domain: str | None = None
 
     code = record.get("country_code")
     if code is None:
@@ -609,7 +609,7 @@ def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
     }
 
 
-def _get_ip_database_path(db_path: Optional[str]) -> str:
+def _get_ip_database_path(db_path: str | None) -> str:
     db_paths = [
         "ipinfo_lite.mmdb",
         "GeoLite2-Country.mmdb",
@@ -655,7 +655,7 @@ def _get_ip_database_path(db_path: Optional[str]) -> str:
 
 
 def get_ip_address_db_record(
-    ip_address: str, *, db_path: Optional[str] = None
+    ip_address: str, *, db_path: str | None = None
 ) -> _IPDatabaseRecord:
     """Look up an IP and return country + ASN fields.
 
@@ -686,8 +686,8 @@ def get_ip_address_db_record(
 
 
 def get_ip_address_country(
-    ip_address: str, *, db_path: Optional[str] = None
-) -> Optional[str]:
+    ip_address: str, *, db_path: str | None = None
+) -> str | None:
     """
     Returns the ISO code for the country associated
     with the given IPv4 or IPv6 address.
@@ -706,11 +706,11 @@ def load_reverse_dns_map(
     reverse_dns_map: ReverseDNSMap,
     *,
     always_use_local_file: bool = False,
-    local_file_path: Optional[str] = None,
-    url: Optional[str] = None,
+    local_file_path: str | None = None,
+    url: str | None = None,
     offline: bool = False,
-    psl_overrides_path: Optional[str] = None,
-    psl_overrides_url: Optional[str] = None,
+    psl_overrides_path: str | None = None,
+    psl_overrides_url: str | None = None,
 ) -> None:
     """
     Loads the reverse DNS map from a URL or local file.
@@ -794,10 +794,10 @@ def get_service_from_reverse_dns_base_domain(
     base_domain,
     *,
     always_use_local_file: bool = False,
-    local_file_path: Optional[str] = None,
-    url: Optional[str] = None,
+    local_file_path: str | None = None,
+    url: str | None = None,
     offline: bool = False,
-    reverse_dns_map: Optional[ReverseDNSMap] = None,
+    reverse_dns_map: ReverseDNSMap | None = None,
 ) -> ReverseDNSService:
     """
     Returns the service name of a given base domain name from reverse DNS.
@@ -843,14 +843,14 @@ def get_service_from_reverse_dns_base_domain(
 def get_ip_address_info(
     ip_address,
     *,
-    ip_db_path: Optional[str] = None,
-    reverse_dns_map_path: Optional[str] = None,
+    ip_db_path: str | None = None,
+    reverse_dns_map_path: str | None = None,
     always_use_local_files: bool = False,
-    reverse_dns_map_url: Optional[str] = None,
-    cache: Optional[ExpiringDict] = None,
-    reverse_dns_map: Optional[ReverseDNSMap] = None,
+    reverse_dns_map_url: str | None = None,
+    cache: ExpiringDict | None = None,
+    reverse_dns_map: ReverseDNSMap | None = None,
     offline: bool = False,
-    nameservers: Optional[list[str]] = None,
+    nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
 ) -> IPAddressInfo:
@@ -974,7 +974,7 @@ def get_ip_address_info(
     return info
 
 
-def parse_email_address(original_address: str) -> dict[str, Optional[str]]:
+def parse_email_address(original_address: str) -> dict[str, str | None]:
     if original_address[0] == "":
         display_name = None
     else:
@@ -1089,9 +1089,7 @@ def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     return rfc822
 
 
-def parse_email(
-    data: Union[bytes, str], *, strip_attachment_payloads: bool = False
-) -> dict:
+def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -> dict:
     """
     A simplified email parser
 

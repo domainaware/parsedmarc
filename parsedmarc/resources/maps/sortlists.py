@@ -6,7 +6,7 @@ import os
 import csv
 import re
 from pathlib import Path
-from typing import Mapping, Iterable, Optional, Collection, Union, List, Dict
+from collections.abc import Mapping, Iterable, Collection
 
 
 _TYPES_LIST_RE = re.compile(
@@ -15,9 +15,9 @@ _TYPES_LIST_RE = re.compile(
 )
 
 
-def _parse_types_block(block: str, source: str) -> List[str]:
+def _parse_types_block(block: str, source: str) -> list[str]:
     """Extract type names from the raw text between the marker comments."""
-    types: List[str] = []
+    types: list[str] = []
     for line in block.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -30,7 +30,7 @@ def _parse_types_block(block: str, source: str) -> List[str]:
     return types
 
 
-def normalize_types_in_readme(readme_path: Union[str, Path]) -> List[str]:
+def normalize_types_in_readme(readme_path: str | Path) -> list[str]:
     """Validate, normalize, and load the authoritative `type` list from README.md.
 
     Trims leading/trailing whitespace from each item, deduplicates
@@ -52,7 +52,7 @@ def normalize_types_in_readme(readme_path: Union[str, Path]) -> List[str]:
     if not raw_types:
         raise ValueError(f"{path}: types-list block is empty")
 
-    seen: Dict[str, str] = {}
+    seen: dict[str, str] = {}
     for t in raw_types:
         key = t.lower()
         if key in seen and seen[key] != t:
@@ -71,7 +71,7 @@ def normalize_types_in_readme(readme_path: Union[str, Path]) -> List[str]:
     return normalized
 
 
-def load_types_from_readme(readme_path: Union[str, Path]) -> List[str]:
+def load_types_from_readme(readme_path: str | Path) -> list[str]:
     """Read the authoritative `type` list out of README.md without rewriting.
 
     Use `normalize_types_in_readme` to additionally sort, dedupe, and
@@ -98,15 +98,15 @@ class CSVValidationError(Exception):
 
 
 def sort_csv(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     field: str,
     *,
     sort_field_value_must_be_unique: bool = True,
     strip_whitespace: bool = True,
-    fields_to_lowercase: Optional[Iterable[str]] = None,
+    fields_to_lowercase: Iterable[str] | None = None,
     case_insensitive_sort: bool = False,
-    required_fields: Optional[Iterable[str]] = None,
-    allowed_values: Optional[Mapping[str, Collection[str]]] = None,
+    required_fields: Iterable[str] | None = None,
+    allowed_values: Mapping[str, Collection[str]] | None = None,
 ) -> None:
     """
     Read a CSV, optionally normalize rows (strip whitespace, lowercase certain fields),
@@ -138,7 +138,7 @@ def sort_csv(
             )
         rows = list(reader)
 
-    def normalize_row(row: Dict[str, str]) -> None:
+    def normalize_row(row: dict[str, str]) -> None:
         if strip_whitespace:
             for k, v in row.items():
                 if isinstance(v, str):
@@ -148,7 +148,7 @@ def sort_csv(
                 row[fld] = row[fld].lower()
 
     def validate_row(
-        row: Dict[str, str], sort_field: str, line_no: int, errors: list[str]
+        row: dict[str, str], sort_field: str, line_no: int, errors: list[str]
     ) -> None:
         if sort_field_value_must_be_unique:
             if row[sort_field] in seen_sort_field_values:
@@ -178,7 +178,7 @@ def sort_csv(
     if errors:
         raise CSVValidationError(errors)
 
-    def sort_key(r: Dict[str, str]):
+    def sort_key(r: dict[str, str]):
         v = r.get(field, "")
         if isinstance(v, str) and case_insensitive_sort:
             return v.casefold()
@@ -193,14 +193,14 @@ def sort_csv(
 
 
 def sort_list_file(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     *,
     lowercase: bool = True,
     strip: bool = True,
     deduplicate: bool = True,
     remove_blank_lines: bool = True,
     ending_newline: bool = True,
-    newline: Optional[str] = "\n",
+    newline: str | None = "\n",
 ):
     """Read a list from a file, sort it, optionally strip and deduplicate the values,
     then write that list back to the file.

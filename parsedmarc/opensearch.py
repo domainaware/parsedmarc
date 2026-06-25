@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any
 
 import boto3
 from opensearchpy import (
@@ -116,7 +116,7 @@ class _AggregateReportDoc(Document):
         domain: str,
         selector: str,
         result: _DKIMResult,
-        human_result: Optional[str] = None,
+        human_result: str | None = None,
     ):
         self.dkim_results.append(
             _DKIMResult(
@@ -132,7 +132,7 @@ class _AggregateReportDoc(Document):
         domain: str,
         scope: str,
         result: _SPFResult,
-        human_result: Optional[str] = None,
+        human_result: str | None = None,
     ):
         self.spf_results.append(
             _SPFResult(
@@ -245,15 +245,15 @@ class _SMTPTLSPolicyDoc(InnerDoc):
 
     def add_failure_details(
         self,
-        result_type: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        receiving_ip: Optional[str] = None,
-        receiving_mx_helo: Optional[str] = None,
-        failed_session_count: Optional[int] = None,
-        sending_mta_ip: Optional[str] = None,
-        receiving_mx_hostname: Optional[str] = None,
-        additional_information_uri: Optional[str] = None,
-        failure_reason_code: Union[str, int, None] = None,
+        result_type: str | None = None,
+        ip_address: str | None = None,
+        receiving_ip: str | None = None,
+        receiving_mx_helo: str | None = None,
+        failed_session_count: int | None = None,
+        sending_mta_ip: str | None = None,
+        receiving_mx_hostname: str | None = None,
+        additional_information_uri: str | None = None,
+        failure_reason_code: str | int | None = None,
     ):
         _details = _SMTPTLSFailureDetailsDoc(
             result_type=result_type,
@@ -288,9 +288,9 @@ class _SMTPTLSReportDoc(Document):
         successful_session_count: int,
         failed_session_count: int,
         *,
-        policy_string: Optional[str] = None,
-        mx_host_patterns: Optional[list[str]] = None,
-        failure_details: Optional[str] = None,
+        policy_string: str | None = None,
+        mx_host_patterns: list[str] | None = None,
+        failure_details: str | None = None,
     ):
         self.policies.append(
             policy_type=policy_type,
@@ -308,17 +308,17 @@ class AlreadySaved(ValueError):
 
 
 def set_hosts(
-    hosts: Union[str, list[str]],
+    hosts: str | list[str],
     *,
-    use_ssl: Optional[bool] = False,
-    ssl_cert_path: Optional[str] = None,
+    use_ssl: bool | None = False,
+    ssl_cert_path: str | None = None,
     skip_certificate_verification: bool = False,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    api_key: Optional[str] = None,
-    timeout: Optional[float] = 60.0,
+    username: str | None = None,
+    password: str | None = None,
+    api_key: str | None = None,
+    timeout: float | None = 60.0,
     auth_type: str = "basic",
-    aws_region: Optional[str] = None,
+    aws_region: str | None = None,
     aws_service: str = "es",
 ):
     """
@@ -376,7 +376,7 @@ def set_hosts(
     connections.create_connection(**conn_params)
 
 
-def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
+def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
     """
     Create OpenSearch indexes
 
@@ -400,8 +400,8 @@ def create_indexes(names: list[str], settings: Optional[dict[str, Any]] = None):
 
 
 def migrate_indexes(
-    aggregate_indexes: Optional[list[str]] = None,
-    failure_indexes: Optional[list[str]] = None,
+    aggregate_indexes: list[str] | None = None,
+    failure_indexes: list[str] | None = None,
 ):
     """
     Updates index mappings
@@ -450,8 +450,8 @@ def migrate_indexes(
 
 def save_aggregate_report_to_opensearch(
     aggregate_report: dict[str, Any],
-    index_suffix: Optional[str] = None,
-    index_prefix: Optional[str] = None,
+    index_suffix: str | None = None,
+    index_prefix: str | None = None,
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
@@ -626,8 +626,8 @@ def save_aggregate_report_to_opensearch(
 
 def save_failure_report_to_opensearch(
     failure_report: dict[str, Any],
-    index_suffix: Optional[str] = None,
-    index_prefix: Optional[str] = None,
+    index_suffix: str | None = None,
+    index_prefix: str | None = None,
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
@@ -806,8 +806,8 @@ def save_failure_report_to_opensearch(
 
 def save_smtp_tls_report_to_opensearch(
     report: dict[str, Any],
-    index_suffix: Optional[str] = None,
-    index_prefix: Optional[str] = None,
+    index_suffix: str | None = None,
+    index_prefix: str | None = None,
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
