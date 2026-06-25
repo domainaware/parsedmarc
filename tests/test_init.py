@@ -2025,6 +2025,39 @@ class TestParseReportFile(unittest.TestCase):
         self.assertIn("SMTP TLS", message)
         self.assertIn("date-range", message)
 
+    def testParseReportFileInvalidFailureReason(self):
+        """A malformed failure report (email path) explains the reason"""
+        # A real DMARC failure report arrives as a multipart/report email;
+        # parse_report_file reaches it only via the email branch. Omit the
+        # required Source-IP so parse_failure_report rejects it.
+        eml = (
+            b"From: dmarc-noreply@example.com\n"
+            b"Subject: DMARC Failure Report\n"
+            b"MIME-Version: 1.0\n"
+            b"Content-Type: multipart/report; "
+            b'report-type=feedback-report; boundary="b"\n\n'
+            b"--b\n"
+            b"Content-Type: text/plain\n\n"
+            b"This is a DMARC failure report.\n"
+            b"--b\n"
+            b"Content-Type: message/feedback-report\n\n"
+            b"Feedback-Type: auth-failure\n"
+            b"Version: 1\n"
+            b"--b\n"
+            b"Content-Type: message/rfc822\n\n"
+            b"From: spoof@victim.example\n"
+            b"Subject: hi\n"
+            b"--b--\n"
+        )
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(eml, offline=True)
+        message = str(ctx.exception)
+        # The reason must name the failure format and the missing field,
+        # not collapse to a bare "Not a valid report".
+        self.assertIn("failure", message.lower())
+        self.assertIn("source_ip", message)
+        self.assertNotIn("Not a valid report", message)
+
     def testParseReportFileUnrecognizedFormat(self):
         """Content matching no known format says so explicitly"""
         with self.assertRaises(parsedmarc.ParserError) as ctx:
