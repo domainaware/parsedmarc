@@ -532,7 +532,14 @@ def _parse_report_record(
             new_result["human_result"] = _text(result.get("human_result"))
             new_record["auth_results"]["spf"].append(new_result)
 
-    if "envelope_from" not in new_record["identifiers"]:
+    # Backfill envelope_from from the last SPF result's domain when the
+    # reporter omitted the identifier or sent it empty. These were two
+    # near-identical branches that drifted: the "is None" branch gated on the
+    # raw auth_results["spf"] list but indexed the filtered
+    # new_record["auth_results"]["spf"] list, raising IndexError whenever a raw
+    # SPF result had no domain (so the filtered list was empty). Both cases now
+    # share one code path that gates and indexes the same raw list.
+    if new_record["identifiers"].get("envelope_from") is None:
         envelope_from = None
         if len(auth_results["spf"]) > 0:
             spf_result = auth_results["spf"][-1]
@@ -541,13 +548,6 @@ def _parse_report_record(
         if envelope_from is not None:
             envelope_from = str(envelope_from).lower()
         new_record["identifiers"]["envelope_from"] = envelope_from
-
-    elif new_record["identifiers"]["envelope_from"] is None:
-        if len(auth_results["spf"]) > 0:
-            envelope_from = new_record["auth_results"]["spf"][-1]["domain"]
-            if envelope_from is not None:
-                envelope_from = str(envelope_from).lower()
-            new_record["identifiers"]["envelope_from"] = envelope_from
 
     envelope_to = None
     if "envelope_to" in new_record["identifiers"]:

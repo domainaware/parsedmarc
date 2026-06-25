@@ -936,6 +936,33 @@ class Test(unittest.TestCase):
         result = parsedmarc._parse_report_record(record, offline=True)
         self.assertEqual(result["identifiers"]["envelope_from"], "spf.example.com")
 
+    def testParseReportRecordEnvelopeFromNullNoSpfDomain(self):
+        """envelope_from=None with SPF results that carry no domain must not
+        raise IndexError (regression: the branch gated on the raw SPF list but
+        indexed the filtered list, which is empty when no result has a domain)"""
+        record = {
+            "row": {
+                "source_ip": "192.0.2.1",
+                "count": "1",
+                "policy_evaluated": {
+                    "disposition": "none",
+                    "dkim": "pass",
+                    "spf": "pass",
+                },
+            },
+            "identifiers": {
+                "header_from": "example.com",
+                "envelope_from": None,
+            },
+            # A raw SPF result with no "domain" -> filtered list is empty.
+            "auth_results": {
+                "dkim": [],
+                "spf": [{"scope": "mfrom", "result": "pass"}],
+            },
+        }
+        result = parsedmarc._parse_report_record(record, offline=True)
+        self.assertIsNone(result["identifiers"]["envelope_from"])
+
     def testParseReportRecordEnvelopeTo(self):
         """envelope_to is preserved and moved correctly"""
         record = {

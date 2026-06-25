@@ -8,6 +8,10 @@
 - **Original exceptions are now chained.** Every parser catch site re-raises with `raise … from <original>`, so the underlying `ExpatError`, `json.JSONDecodeError`, `KeyError`, and archive/decompression errors are preserved on `__cause__` for library callers and tracebacks instead of being flattened into a string. Behavior is otherwise unchanged — the same exception *types* are still raised.
 - **Unexpected errors cite their origin in debug mode.** When a catch-all branch turns an unforeseen exception into a generic `Unexpected error: …` / archive / mail-parse failure, the message now appends `(raised at <file>:<line>)` pinpointing the deepest traceback frame — but only when the `parsedmarc` logger is at `DEBUG` level (e.g. the CLI's `--debug`). Normal-level output is unchanged.
 
+### Bug fixes
+
+- **Fixed an `IndexError` when backfilling `envelope_from` from SPF results.** In `_parse_report_record()`, when an aggregate report's `<identifiers>` carried an empty `envelope_from`, the fallback checked the raw `auth_results["spf"]` list for length but then indexed the *filtered* `new_record["auth_results"]["spf"]` list (which only contains results that have a `domain`). A reporter that sent an SPF auth result with no `domain` made the filtered list empty while the raw list was non-empty, so the `[-1]` index raised `IndexError` and the whole record failed to parse. The two near-identical `envelope_from` backfill branches (one for a missing identifier, one for an empty one) are now a single code path that gates and indexes the same list, matching the already-correct missing-identifier branch.
+
 ## 10.1.1
 
 ### Changes
