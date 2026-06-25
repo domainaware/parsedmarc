@@ -1,5 +1,17 @@
 # Changelog
 
+## 10.2.0
+
+### Changes
+
+- **Invalid reports now explain *why* they are invalid.** The parser still catches broadly so one malformed report can never crash a batch, but the diagnostics are no longer a bare `Not a valid report`. `parse_report_file()` keeps each format parser's specific error as it tries aggregate XML → SMTP TLS JSON → report email, and when all three reject the input it sniffs the content shape to surface the single relevant reason — e.g. `Invalid aggregate report: Missing field: 'org_name'`, `Invalid SMTP TLS report: Missing required field: date-range`, or `Not a recognized report format (not a DMARC aggregate XML report, an SMTP TLS JSON report, or a DMARC report email)`. This is the message the CLI already logs (`Failed to parse <file> - <reason>`), so operators see the cause without a code change on their end.
+- **Original exceptions are now chained.** Every parser catch site re-raises with `raise … from <original>`, so the underlying `ExpatError`, `json.JSONDecodeError`, `KeyError`, and archive/decompression errors are preserved on `__cause__` for library callers and tracebacks instead of being flattened into a string. Behavior is otherwise unchanged — the same exception *types* are still raised.
+- **Unexpected errors cite their origin in debug mode.** When a catch-all branch turns an unforeseen exception into a generic `Unexpected error: …` / archive / mail-parse failure, the message now appends `(raised at <file>:<line>)` pinpointing the deepest traceback frame — but only when the `parsedmarc` logger is at `DEBUG` level (e.g. the CLI's `--debug`). Normal-level output is unchanged.
+
+### Bug fixes
+
+- **Fixed an `IndexError` when backfilling `envelope_from` from SPF results.** In `_parse_report_record()`, when an aggregate report's `<identifiers>` carried an empty `envelope_from`, the fallback checked the raw `auth_results["spf"]` list for length but then indexed the *filtered* `new_record["auth_results"]["spf"]` list (which only contains results that have a `domain`). A reporter that sent an SPF auth result with no `domain` made the filtered list empty while the raw list was non-empty, so the `[-1]` index raised `IndexError` and the whole record failed to parse. The two near-identical `envelope_from` backfill branches (one for a missing identifier, one for an empty one) are now a single code path that gates and indexes the same list, matching the already-correct missing-identifier branch.
+
 ## 10.1.1
 
 ### Changes
