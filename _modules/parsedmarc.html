@@ -103,15 +103,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">csv</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictWriter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">tzinfo</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span><span class="p">,</span> <span class="n">StringIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">BinaryIO</span><span class="p">,</span>
-    <span class="n">Callable</span><span class="p">,</span>
-    <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">List</span><span class="p">,</span>
-    <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Sequence</span><span class="p">,</span>
-    <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -262,7 +257,7 @@
     <span class="k">return</span> <span class="s2">&quot; (raised at </span><span class="si">{0}</span><span class="s2">:</span><span class="si">{1}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">last</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_text</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_text</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Unwrap a possibly-langAttrString value parsed by xmltodict.</span>
 
 <span class="sd">    RFC 9990 changed several aggregate-report elements (extra_contact_info,</span>
@@ -286,7 +281,7 @@
     <span class="n">begin</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">total_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split the interval [begin, end) into daily buckets and distribute</span>
 <span class="sd">    `total_count` proportionally across those buckets.</span>
@@ -348,7 +343,7 @@
     <span class="k">if</span> <span class="n">day_cursor</span> <span class="o">&gt;</span> <span class="n">begin</span><span class="p">:</span>
         <span class="n">day_cursor</span> <span class="o">-=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">day_buckets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">day_buckets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">while</span> <span class="n">day_cursor</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
         <span class="n">day_start</span> <span class="o">=</span> <span class="n">day_cursor</span>
@@ -380,12 +375,12 @@
     <span class="c1"># Then apply a &quot;largest remainder&quot; rounding strategy to ensure the sum</span>
     <span class="c1"># equals exactly total_count.</span>
 
-    <span class="n">exact_values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">exact_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&quot;seconds&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">interval_seconds</span><span class="p">)</span> <span class="o">*</span> <span class="n">total_count</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">day_buckets</span>
     <span class="p">]</span>
 
-    <span class="n">floor_values</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
-    <span class="n">fractional_parts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
+    <span class="n">floor_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
+    <span class="n">fractional_parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">exact_values</span><span class="p">]</span>
 
     <span class="c1"># How many counts do we still need to distribute after flooring?</span>
     <span class="n">remainder</span> <span class="o">=</span> <span class="n">total_count</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">floor_values</span><span class="p">)</span>
@@ -405,7 +400,7 @@
         <span class="n">final_counts</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="c1"># --- Step 3: Build the final per-day result list -------------------------</span>
-    <span class="n">results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">day_buckets</span><span class="p">,</span> <span class="n">final_counts</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -466,12 +461,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_report_record</span><span class="p">(</span>
     <span class="n">record</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">is_rfc_9990</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -730,7 +725,7 @@
 
 <div class="viewcode-block" id="parse_smtp_tls_report_json">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_smtp_tls_report_json">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">SMTPTLSReport</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_smtp_tls_report_json</span><span class="p">(</span><span class="n">report</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SMTPTLSReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses and validates an SMTP TLS report&quot;&quot;&quot;</span>
     <span class="n">required_fields</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;organization-name&quot;</span><span class="p">,</span>
@@ -776,7 +771,7 @@
 <div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv_rows</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">SMTPTLSReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts one oor more parsed SMTP TLS reports into a list of single</span>
 <span class="sd">    layer dict objects suitable for use in a CSV&quot;&quot;&quot;</span>
@@ -819,7 +814,7 @@
 <div class="viewcode-block" id="parsed_smtp_tls_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_smtp_tls_reports_to_csv</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">SMTPTLSReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed SMTP TLS reports to flat CSV format, including</span>
@@ -871,15 +866,15 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_xml</span><span class="p">(</span>
     <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AggregateReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent dict</span>
@@ -916,7 +911,7 @@
     <span class="c1"># The final `is_rfc_9990` decision is made post-parse so that</span>
     <span class="c1"># RFC 9990-only fields (np, testing, discovery_method, generator,</span>
     <span class="c1"># human_result) can also vote it in.</span>
-    <span class="n">xml_namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">xml_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">namespace_match</span> <span class="o">=</span> <span class="n">xml_namespace_regex</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">namespace_match</span><span class="p">:</span>
         <span class="n">xml_namespace</span> <span class="o">=</span> <span class="n">namespace_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -1172,7 +1167,7 @@
 
 <div class="viewcode-block" id="extract_report">
 <a class="viewcode-back" href="../api.html#parsedmarc.extract_report">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">BinaryIO</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extracts text from a zip or gzip file, as a base64-encoded string,</span>
 <span class="sd">    file-like object, or bytes.</span>
@@ -1185,7 +1180,7 @@
 <span class="sd">        str: The extracted text</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">file_object</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BinaryIO</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">file_object</span><span class="p">:</span> <span class="n">BinaryIO</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">header</span><span class="p">:</span> <span class="nb">bytes</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -1265,7 +1260,7 @@
 <div class="viewcode-block" id="extract_report_from_file_path">
 <a class="viewcode-back" href="../api.html#parsedmarc.extract_report_from_file_path">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">extract_report_from_file_path</span><span class="p">(</span>
-    <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]],</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts report from a file at the given file_path&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
@@ -1279,17 +1274,17 @@
 <div class="viewcode-block" id="parse_aggregate_report_file">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_file</span><span class="p">(</span>
-    <span class="n">_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span>
+    <span class="n">_input</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="n">BinaryIO</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AggregateReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a file at the given path, a file-like object. or bytes as an</span>
@@ -1338,7 +1333,7 @@
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv_rows">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv_rows</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">AggregateReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to list of dicts in flat CSV</span>
@@ -1476,7 +1471,7 @@
 <div class="viewcode-block" id="parsed_aggregate_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_aggregate_reports_to_csv">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_aggregate_reports_to_csv</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">AggregateReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed aggregate reports to flat CSV format, including</span>
@@ -1558,11 +1553,11 @@
     <span class="n">msg_date</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1721,7 +1716,7 @@
 <div class="viewcode-block" id="parsed_failure_reports_to_csv_rows">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_failure_reports_to_csv_rows">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_failure_reports_to_csv_rows</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">FailureReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed failure reports to a list of dicts in flat CSV</span>
@@ -1765,7 +1760,7 @@
 <div class="viewcode-block" id="parsed_failure_reports_to_csv">
 <a class="viewcode-back" href="../api.html#parsedmarc.parsed_failure_reports_to_csv">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parsed_failure_reports_to_csv</span><span class="p">(</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">FailureReport</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts one or more parsed failure reports to flat CSV format, including</span>
@@ -1825,18 +1820,18 @@
 <div class="viewcode-block" id="parse_report_email">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_report_email">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_report_email</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParsedReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1863,11 +1858,11 @@
 <span class="sd">        * ``report_type``: ``aggregate`` or ``failure``</span>
 <span class="sd">        * ``report``: The parsed report</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParsedReport</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">result</span><span class="p">:</span> <span class="n">ParsedReport</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">msg_date</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">input_data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_</span>
+        <span class="n">input_data</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="nb">memoryview</span> <span class="o">=</span> <span class="n">input_</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_data</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">)):</span>
             <span class="n">input_bytes</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">input_data</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">is_outlook_msg</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">):</span>
@@ -2054,7 +2049,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_describe_parse_failure</span><span class="p">(</span>
-    <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">,</span>
     <span class="n">aggregate_error</span><span class="p">:</span> <span class="n">InvalidAggregateReport</span><span class="p">,</span>
     <span class="n">smtp_tls_error</span><span class="p">:</span> <span class="n">InvalidSMTPTLSReport</span><span class="p">,</span>
     <span class="n">email_error</span><span class="p">:</span> <span class="n">InvalidDMARCReport</span><span class="p">,</span>
@@ -2089,18 +2084,18 @@
 <div class="viewcode-block" id="parse_report_file">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_report_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_report_file</span><span class="p">(</span>
-    <span class="n">input_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">BinaryIO</span><span class="p">],</span>
+    <span class="n">input_</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span> <span class="o">|</span> <span class="n">BinaryIO</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keep_alive</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParsedReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC aggregate or failure file at the given path, a</span>
@@ -2141,7 +2136,7 @@
     <span class="k">if</span> <span class="n">content</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">)</span> <span class="ow">or</span> <span class="n">content</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">MAGIC_GZIP</span><span class="p">):</span>
         <span class="n">content</span> <span class="o">=</span> <span class="n">extract_report</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
 
-    <span class="n">results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParsedReport</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">ParsedReport</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># parse_report_file tries the three report formats in turn. When all three</span>
     <span class="c1"># reject the input, keep each format&#39;s specific error so the final message</span>
@@ -2200,14 +2195,14 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_dmarc_reports_from_mbox</span><span class="p">(</span>
     <span class="n">input_</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParsingResults</span><span class="p">:</span>
@@ -2346,18 +2341,18 @@
     <span class="n">archive_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Archive&quot;</span><span class="p">,</span>
     <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ParsingResults</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">ParsingResults</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="n">since</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="n">date</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">create_folders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParsingResults</span><span class="p">:</span>
@@ -2400,7 +2395,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must supply a connection&quot;</span><span class="p">)</span>
 
     <span class="c1"># current_time useful to fetch_messages later in the program</span>
-    <span class="n">current_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">current_time</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="n">date</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">aggregate_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">failure_reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2487,7 +2482,7 @@
                 <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message_limit</span><span class="p">,</span> <span class="n">msg_uid</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">message_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+        <span class="n">message_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">IMAPConnection</span><span class="p">):</span>
             <span class="n">message_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">msg_uid</span><span class="p">)</span>
             <span class="n">msg_content</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">fetch_message</span><span class="p">(</span><span class="n">message_id</span><span class="p">)</span>
@@ -2692,19 +2687,19 @@
     <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">check_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
-    <span class="n">ip_db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">nameservers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span><span class="p">,</span>
     <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
     <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="n">since</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">since</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="n">date</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
-    <span class="n">config_reloading</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config_reloading</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Watches the mailbox for new messages and</span>
@@ -2778,11 +2773,9 @@
 <a class="viewcode-back" href="../api.html#parsedmarc.append_json">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">append_json</span><span class="p">(</span>
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">reports</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
-        <span class="n">Sequence</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">],</span>
-        <span class="n">Sequence</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">],</span>
-        <span class="n">Sequence</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">],</span>
-    <span class="p">],</span>
+    <span class="n">reports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">AggregateReport</span><span class="p">]</span>
+    <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">FailureReport</span><span class="p">]</span>
+    <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SMTPTLSReport</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Append ``reports`` to a JSON array on disk, creating the file</span>
 <span class="sd">    if needed.</span>
@@ -2978,18 +2971,18 @@
     <span class="n">results</span><span class="p">:</span> <span class="n">ParsingResults</span><span class="p">,</span>
     <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">mail_from</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">mail_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">mail_to</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">mail_cc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">mail_bcc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">mail_cc</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">mail_bcc</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">require_encryption</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">password</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">subject</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">attachment_filename</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">username</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">subject</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">attachment_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Emails parsing results as a zip file</span>
