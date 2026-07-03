@@ -10,7 +10,7 @@ Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project
 
 :::{note}
 
-This is a project is maintained by one developer.
+This project is maintained by one developer.
 Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if you or your organization benefit from it.
 :::
 
