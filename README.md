@@ -23,7 +23,7 @@ ProofPoint Email Fraud Defense, and Valimail.
 
 ## Sponsors
 
-This is a project is maintained by one developer.
+This project is maintained by one developer.
 Please consider [sponsoring my work](https://github.com/sponsors/seanthegeek) if you or your organization benefit from it.
 
 ## Features
