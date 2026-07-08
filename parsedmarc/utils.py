@@ -359,7 +359,7 @@ def timestamp_to_human(timestamp: int) -> str:
 
 
 def human_timestamp_to_datetime(
-    human_timestamp: str, *, to_utc: bool = False
+    human_timestamp: str, *, to_utc: bool = False, assume_utc: bool = False
 ) -> datetime:
     """
     Converts a human-readable timestamp into a Python ``datetime`` object
@@ -367,6 +367,11 @@ def human_timestamp_to_datetime(
     Args:
         human_timestamp (str): A timestamp string
         to_utc (bool): Convert the timestamp to UTC
+        assume_utc (bool): Treat a timestamp that carries no UTC offset as
+            UTC wall-clock time instead of local time. Pass this when the
+            string is known to be UTC (e.g. an ``arrival_date_utc`` value);
+            otherwise naive results are interpreted as local time by
+            ``datetime.astimezone()`` / ``datetime.timestamp()``.
 
     Returns:
         datetime: The converted timestamp
@@ -376,21 +381,29 @@ def human_timestamp_to_datetime(
     human_timestamp = parenthesis_regex.sub("", human_timestamp)
 
     dt = parse_date(human_timestamp)
+    if assume_utc and dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc) if to_utc else dt
 
 
-def human_timestamp_to_unix_timestamp(human_timestamp: str) -> int:
+def human_timestamp_to_unix_timestamp(
+    human_timestamp: str, *, assume_utc: bool = False
+) -> int:
     """
     Converts a human-readable timestamp into a UNIX timestamp
 
     Args:
         human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+        assume_utc (bool): Treat a timestamp that carries no UTC offset as
+            UTC wall-clock time instead of local time
 
     Returns:
         float: The converted timestamp
     """
     human_timestamp = human_timestamp.replace("T", " ")
-    return int(human_timestamp_to_datetime(human_timestamp).timestamp())
+    return int(
+        human_timestamp_to_datetime(human_timestamp, assume_utc=assume_utc).timestamp()
+    )
 
 
 _IP_DB_PATH: str | None = None

@@ -6,6 +6,8 @@ transformation logic — document construction, index naming, deduplication
 queries, error wrapping — without needing a running Elasticsearch cluster.
 """
 
+import os
+import time
 import unittest
 from unittest.mock import MagicMock, call, patch
 
@@ -659,6 +661,36 @@ class TestSaveFailureReport(unittest.TestCase):
             )
             index_calls = [c.args[0] for c in mock_index_cls.call_args_list]
         self.assertIn("dmarc_failure-2024-01", index_calls)
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX time.tzset()")
+    def test_arrival_date_epoch_is_utc_regardless_of_host_timezone(self):
+        """arrival_date_utc is a UTC wall-clock string; the epoch-ms
+        value stored in the document (and used in the dedup query) must
+        be its true UTC epoch on any host. Regression test for
+        https://github.com/domainaware/parsedmarc/issues/811 (bug 1):
+        the naive parse used to shift the stored epoch by the host's
+        UTC offset."""
+        old_tz = os.environ.get("TZ")
+        os.environ["TZ"] = "Europe/Warsaw"
+        time.tzset()
+
+        def restore():
+            if old_tz is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = old_tz
+            time.tzset()
+
+        self.addCleanup(restore)
+
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index"),
+            patch("parsedmarc.elastic._FailureReportDoc") as mock_doc_cls,
+        ):
+            save_failure_report_to_elasticsearch(_failure_report())
+        # Fixture arrival_date_utc is 2024-01-01 00:00:00 UTC.
+        self.assertEqual(mock_doc_cls.call_args.kwargs["arrival_date"], 1704067200000)
 
     def test_failure_search_index_with_suffix_and_prefix(self):
         """When both suffix and prefix are set, the dedup search
