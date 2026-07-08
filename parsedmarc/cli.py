@@ -711,6 +711,14 @@ def _parse_config(config: ConfigParser, opts):
             if "certificate_password" in graph_config:
                 opts.graph_certificate_password = graph_config["certificate_password"]
 
+        if opts.graph_auth_method == AuthMethod.ClientAssertion.name:
+            if "client_assertion" in graph_config:
+                opts.graph_client_assertion = graph_config["client_assertion"]
+            else:
+                raise ConfigurationError(
+                    "client_assertion setting missing from the msgraph config section"
+                )
+
         if "client_id" in graph_config:
             opts.graph_client_id = graph_config["client_id"]
         else:
@@ -1944,6 +1952,7 @@ def _main():
         graph_client_secret=None,
         graph_certificate_path=None,
         graph_certificate_password=None,
+        graph_client_assertion=None,
         graph_tenant_id=None,
         graph_mailbox=None,
         graph_allow_unencrypted_storage=False,
@@ -2391,6 +2400,7 @@ def _main():
                 client_secret=opts.graph_client_secret,
                 certificate_path=opts.graph_certificate_path,
                 certificate_password=opts.graph_certificate_password,
+                client_assertion=opts.graph_client_assertion,
                 username=opts.graph_user,
                 password=opts.graph_password,
                 token_file=opts.graph_token_file,

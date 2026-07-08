@@ -1433,6 +1433,149 @@ certificate_path = /tmp/msgraph-cert.pem
 
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliPassesMsGraphClientAssertionAuthSettings(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = ClientAssertion
+client_id = client-id
+client_assertion = signed-jwt-assertion
+tenant_id = tenant-id
+mailbox = shared@example.com
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("auth_method"),
+            "ClientAssertion",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("client_assertion"),
+            "signed-jwt-assertion",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("tenant_id"), "tenant-id"
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("mailbox"),
+            "shared@example.com",
+        )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRequiresMsGraphClientAssertionForClientAssertionAuth(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = ClientAssertion
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "client_assertion setting missing from the msgraph config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRequiresMsGraphTenantIdForClientAssertionAuth(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = ClientAssertion
+client_id = client-id
+client_assertion = signed-jwt-assertion
+mailbox = shared@example.com
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "tenant_id setting missing from the msgraph config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRequiresMsGraphMailboxForClientAssertionAuth(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = ClientAssertion
+client_id = client-id
+client_assertion = signed-jwt-assertion
+tenant_id = tenant-id
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "mailbox setting missing from the msgraph config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
     def testCliAcceptsLowercaseMsGraphCertificateAuthMethod(
         self, mock_graph_connection, mock_get_mailbox_reports
     ):
