@@ -82,6 +82,26 @@ class ConfigurationError(Exception):
     pass
 
 
+def _normalize_graph_auth_method(value: str) -> str:
+    """Return the canonical :class:`AuthMethod` member name for *value*.
+
+    Matching is case-insensitive so config values like ``certificate`` are
+    accepted alongside the canonical ``Certificate``.
+
+    Raises:
+        ConfigurationError: When *value* does not match a known auth method.
+    """
+    value_lower = value.lower()
+    for method in AuthMethod:
+        if method.name.lower() == value_lower:
+            return method.name
+    raise ConfigurationError(
+        "Invalid msgraph auth_method: {0!r}. Valid values are: {1}".format(
+            value, ", ".join(m.name for m in AuthMethod)
+        )
+    )
+
+
 def _str_to_list(s):
     """Converts a comma separated string to a list"""
     _list = s.split(",")
@@ -635,7 +655,9 @@ def _parse_config(config: ConfigParser, opts):
             )
             opts.graph_auth_method = AuthMethod.UsernamePassword.name
         else:
-            opts.graph_auth_method = graph_config["auth_method"]
+            opts.graph_auth_method = _normalize_graph_auth_method(
+                graph_config["auth_method"]
+            )
 
         if opts.graph_auth_method == AuthMethod.UsernamePassword.name:
             if "user" in graph_config:
@@ -2360,6 +2382,7 @@ def _main():
     if opts.graph_client_id:
         try:
             mailbox = opts.graph_mailbox or opts.graph_user
+            logger.info("Connecting to Microsoft Graph mailbox %s", mailbox)
             mailbox_connection = MSGraphConnection(
                 auth_method=opts.graph_auth_method,
                 mailbox=mailbox,

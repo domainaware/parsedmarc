@@ -1431,6 +1431,129 @@ certificate_path = /tmp/msgraph-cert.pem
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
 
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliAcceptsLowercaseMsGraphCertificateAuthMethod(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """auth_method values are case-insensitive (e.g. ``certificate``)."""
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = certificate
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = cert-pass
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("auth_method"), "Certificate"
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("mailbox"),
+            "shared@example.com",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_path"),
+            "/tmp/msgraph-cert.pem",
+        )
+        self.assertEqual(
+            mock_graph_connection.call_args.kwargs.get("certificate_password"),
+            "cert-pass",
+        )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliRejectsInvalidMsGraphAuthMethod(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = NotARealMethod
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once()
+        critical_message = mock_logger.critical.call_args.args[0]
+        self.assertIn("Invalid msgraph auth_method", critical_message)
+        self.assertIn("NotARealMethod", critical_message)
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliLogsMsGraphConnectionAttempt(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """An INFO log is emitted when parsedmarc starts a Graph connection."""
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config_text = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id
+tenant_id = tenant-id
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, "--verbose"]):
+            with self.assertLogs("parsedmarc.log", level="INFO") as cm:
+                parsedmarc.cli._main()
+
+        self.assertTrue(
+            any(
+                "Connecting to Microsoft Graph mailbox shared@example.com" in message
+                for message in cm.output
+            )
+        )
+
 
 class TestSighupReload(unittest.TestCase):
     """Tests for SIGHUP-driven configuration reload in watch mode."""
