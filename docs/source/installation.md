@@ -119,12 +119,28 @@ This installs the `msgconvert` script to `/usr/local/bin/msgconvert`.
 
 ## Using MaxMind GeoLite2 (optional)
 
-`parsedmarc` will pick up the [MaxMind GeoLite2 Country database] if
-it is installed at one of the standard system paths (e.g.
-`/usr/share/GeoIP/GeoLite2-Country.mmdb`,
-`/var/lib/GeoIP/GeoLite2-Country.mmdb`, or the equivalent location on
-Windows). **Use this only if you specifically prefer MaxMind data over
-the bundled IPinfo Lite database — most users do not need it.**
+To use the [MaxMind GeoLite2 Country database] instead of the bundled
+IPinfo Lite database, point the `ip_db_path` option at it explicitly:
+
+```ini
+[general]
+ip_db_path = /usr/share/GeoIP/GeoLite2-Country.mmdb
+```
+
+**Use this only if you specifically prefer MaxMind data over the
+bundled IPinfo Lite database — most users do not need it.** Country
+databases like GeoLite2 carry no ASN data, so source attribution for
+IP addresses without reverse DNS is reduced when one is used.
+
+:::{note}
+parsedmarc no longer picks up a GeoLite2/DBIP database from standard
+system paths (e.g. `/usr/share/GeoIP/GeoLite2-Country.mmdb`)
+automatically — a GeoIP file installed by an unrelated distro package
+would silently override the bundled database and disable ASN
+enrichment. System paths are now only consulted as a last resort when
+the bundled database is missing. If you previously relied on the
+automatic pickup, set `ip_db_path` as shown above.
+:::
 
 Install [geoipupdate] for your platform:
 

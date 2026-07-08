@@ -623,6 +623,12 @@ def _normalize_ip_record(record: dict) -> _IPDatabaseRecord:
 
 
 def _get_ip_database_path(db_path: str | None) -> str:
+    # Last-resort fallbacks for unusual installs where the bundled database
+    # is missing. Country-only databases (GeoLite2 / DBIP) lack the ASN
+    # fields source attribution depends on, so an incidental system GeoIP
+    # file must never shadow the parsedmarc-managed database
+    # (https://github.com/domainaware/parsedmarc/issues/810). To use
+    # MaxMind or DBIP data deliberately, set the ip_db_path option.
     db_paths = [
         "ipinfo_lite.mmdb",
         "GeoLite2-Country.mmdb",
@@ -646,19 +652,29 @@ def _get_ip_database_path(db_path: str | None) -> str:
         )
         db_path = None
 
-    if db_path is None:
-        for system_path in db_paths:
-            if os.path.exists(system_path):
-                db_path = system_path
-                break
+    # The database parsedmarc manages takes precedence: the one selected by
+    # load_ip_db() (downloaded, cached, or bundled), or the bundled copy
+    # directly for library callers that never call load_ip_db().
+    if db_path is None and _IP_DB_PATH is not None:
+        db_path = _IP_DB_PATH
 
     if db_path is None:
-        if _IP_DB_PATH is not None:
-            db_path = _IP_DB_PATH
+        bundled_path = str(
+            files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb")
+        )
+        if os.path.isfile(bundled_path):
+            db_path = bundled_path
         else:
-            db_path = str(
-                files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb")
-            )
+            for system_path in db_paths:
+                if os.path.exists(system_path):
+                    db_path = system_path
+                    break
+            else:
+                # Nothing found anywhere; return the bundled path so the
+                # caller's open_database() raises the clearest error.
+                db_path = bundled_path
+
+    logger.debug(f"Using IP database at {db_path}")
 
     db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
     if db_age > timedelta(days=30):
