@@ -218,8 +218,8 @@ The full set of configuration options are:
   - `password` - str: The IMAP password
 - `msgraph`
   - `auth_method` - str: Authentication method, valid types are
-      `UsernamePassword`, `DeviceCode`, `ClientSecret`, or `Certificate`
-      (Default: `UsernamePassword`).
+      `UsernamePassword`, `DeviceCode`, `ClientSecret`, `Certificate`, or
+      `ClientAssertion` (Default: `UsernamePassword`).
   - `user` - str: The M365 user, required when the auth method is
       UsernamePassword
   - `password` - str: The user password, required when the auth
@@ -231,6 +231,17 @@ The full set of configuration options are:
       `Certificate`
   - `certificate_password` - str: Optional password for the
       certificate file when using `Certificate` auth
+  - `client_assertion` - str: A signed JWT client assertion, required
+      when the auth method is `ClientAssertion`
+
+    :::{note}
+    `client_assertion` is a static value, so it is only usable for as
+    long as the JWT it contains remains unexpired (assertions are
+    typically short-lived, on the order of minutes). It is best suited
+    to short one-shot runs; for long-running `watch` mode, prefer
+    `Certificate` or `ClientSecret` auth, which can refresh
+    indefinitely.
+    :::
   - `tenant_id` - str: The Azure AD tenant ID. This is required
       for all auth methods except UsernamePassword.
   - `mailbox` - str: The mailbox name. This defaults to the
@@ -269,7 +280,7 @@ The full set of configuration options are:
     ```
 
     The same application permission and mailbox scoping guidance
-    applies to the `Certificate` auth method.
+    applies to the `Certificate` and `ClientAssertion` auth methods.
 
     :::
 - `elasticsearch`
