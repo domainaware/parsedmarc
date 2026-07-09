@@ -1,10 +1,12 @@
 """Tests for parsedmarc.splunk"""
 
 import json
+import time
 import unittest
 from unittest.mock import MagicMock
 
 from parsedmarc.splunk import HECClient, SplunkError
+from tests.tzutil import force_tz
 
 
 def _aggregate_report():
@@ -322,6 +324,24 @@ class TestSaveFailureReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.save_failure_reports_to_splunk([])
         client.session.post.assert_not_called()
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX time.tzset()")
+    def test_event_time_treats_arrival_date_utc_as_utc(self):
+        """arrival_date_utc is a UTC wall-clock string; the HEC event
+        `time` must be its true UTC epoch regardless of the host
+        timezone. Regression test for
+        https://github.com/domainaware/parsedmarc/issues/811 (bug 1):
+        the naive parse used to shift the epoch by the host's UTC
+        offset (-3600 s under Europe/Warsaw in January)."""
+        force_tz(self)
+
+        client = _client()
+        client.session = MagicMock()
+        client.session.post.return_value = _ok_response()
+        client.save_failure_reports_to_splunk(_failure_report())
+        event = json.loads(client.session.post.call_args.kwargs["data"].strip())
+        # Fixture arrival_date_utc is 2024-01-01 00:00:00 UTC.
+        self.assertEqual(event["time"], 1704067200)
 
     def test_non_zero_response_code_raises_splunk_error(self):
         client = _client()

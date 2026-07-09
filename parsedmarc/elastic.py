@@ -660,7 +660,12 @@ def save_failure_report_to_elasticsearch(
     for original_header in original_headers:
         headers[original_header.lower()] = original_headers[original_header]
 
-    arrival_date = human_timestamp_to_datetime(failure_report["arrival_date_utc"])
+    # arrival_date_utc is a UTC wall-clock string; without assume_utc the
+    # naive .timestamp() below would interpret it as local time and skew
+    # the epoch by the host's UTC offset.
+    arrival_date = human_timestamp_to_datetime(
+        failure_report["arrival_date_utc"], assume_utc=True
+    )
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:

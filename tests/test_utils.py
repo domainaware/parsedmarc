@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+import time
 import unittest
 from datetime import datetime, timezone
 from tempfile import NamedTemporaryFile
@@ -13,6 +14,7 @@ from expiringdict import ExpiringDict
 
 import parsedmarc
 import parsedmarc.utils
+from tests.tzutil import force_tz
 
 
 class Test(unittest.TestCase):
@@ -548,6 +550,58 @@ class TestUtilsDnsCaching(unittest.TestCase):
         ):
             result = parsedmarc.utils.get_reverse_dns("203.0.113.1")
             self.assertIsNone(result)
+
+
+@unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX time.tzset()")
+class TestTimestampAssumeUtc(unittest.TestCase):
+    """Timestamp helpers must not re-interpret known-UTC strings as local
+    time. Per the Python docs, naive ``datetime.timestamp()`` and
+    ``datetime.astimezone()`` assume the naive value is *local* time
+    (https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp),
+    so a UTC wall-clock string like ``arrival_date_utc`` parsed naive comes
+    out skewed by the host's UTC offset. ``assume_utc=True`` attaches
+    ``timezone.utc`` instead. Regression tests for
+    https://github.com/domainaware/parsedmarc/issues/811 (bug 1)."""
+
+    # 2024-01-15 12:00:00 UTC
+    UTC_STRING = "2024-01-15 12:00:00"
+    TRUE_EPOCH = 1705320000
+
+    def setUp(self):
+        # Fixed non-UTC zone (UTC+1 in January) so the local-time
+        # misinterpretation this guards against would shift the epoch.
+        force_tz(self)
+
+    def testAssumeUtcYieldsAwareUtcDatetime(self):
+        dt = parsedmarc.utils.human_timestamp_to_datetime(
+            self.UTC_STRING, assume_utc=True
+        )
+        self.assertEqual(dt.tzinfo, timezone.utc)
+        self.assertEqual(int(dt.timestamp()), self.TRUE_EPOCH)
+
+    def testWithoutAssumeUtcNaiveIsLocal(self):
+        """Documents the default: a naive parse followed by .timestamp()
+        uses local time — off by one hour under Europe/Warsaw in January.
+        This is the behavior arrival_date_utc consumers must avoid."""
+        dt = parsedmarc.utils.human_timestamp_to_datetime(self.UTC_STRING)
+        self.assertIsNone(dt.tzinfo)
+        self.assertEqual(int(dt.timestamp()), self.TRUE_EPOCH - 3600)
+
+    def testUnixTimestampHelperAssumeUtc(self):
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_unix_timestamp(
+                self.UTC_STRING, assume_utc=True
+            ),
+            self.TRUE_EPOCH,
+        )
+
+    def testAssumeUtcDoesNotOverrideExplicitOffset(self):
+        """A timestamp that carries its own offset keeps it; assume_utc
+        only applies to naive parses."""
+        dt = parsedmarc.utils.human_timestamp_to_datetime(
+            "2024-01-15 13:00:00 +0100", assume_utc=True
+        )
+        self.assertEqual(int(dt.timestamp()), self.TRUE_EPOCH)
 
 
 class TestUtilsIpDbPaths(unittest.TestCase):

@@ -163,7 +163,11 @@ class HECClient(object):
         for report in failure_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:failure"
-            timestamp = human_timestamp_to_unix_timestamp(report["arrival_date_utc"])
+            # arrival_date_utc is a UTC wall-clock string; assume_utc keeps
+            # it from being re-interpreted as local time on non-UTC hosts.
+            timestamp = human_timestamp_to_unix_timestamp(
+                report["arrival_date_utc"], assume_utc=True
+            )
             data["time"] = timestamp
             data["event"] = report.copy()
             json_str += "{0}\n".format(json.dumps(data))
