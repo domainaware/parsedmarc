@@ -398,7 +398,7 @@ def human_timestamp_to_unix_timestamp(
             UTC wall-clock time instead of local time
 
     Returns:
-        float: The converted timestamp
+        int: The converted timestamp
     """
     human_timestamp = human_timestamp.replace("T", " ")
     return int(

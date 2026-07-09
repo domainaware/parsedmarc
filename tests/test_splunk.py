@@ -1,12 +1,12 @@
 """Tests for parsedmarc.splunk"""
 
 import json
-import os
 import time
 import unittest
 from unittest.mock import MagicMock
 
 from parsedmarc.splunk import HECClient, SplunkError
+from tests.tzutil import force_tz
 
 
 def _aggregate_report():
@@ -333,18 +333,7 @@ class TestSaveFailureReportsToSplunk(unittest.TestCase):
         https://github.com/domainaware/parsedmarc/issues/811 (bug 1):
         the naive parse used to shift the epoch by the host's UTC
         offset (-3600 s under Europe/Warsaw in January)."""
-        old_tz = os.environ.get("TZ")
-        os.environ["TZ"] = "Europe/Warsaw"
-        time.tzset()
-
-        def restore():
-            if old_tz is None:
-                os.environ.pop("TZ", None)
-            else:
-                os.environ["TZ"] = old_tz
-            time.tzset()
-
-        self.addCleanup(restore)
+        force_tz(self)
 
         client = _client()
         client.session = MagicMock()

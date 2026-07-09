@@ -6,7 +6,6 @@ transformation logic — document construction, index naming, deduplication
 queries, error wrapping — without needing a running Elasticsearch cluster.
 """
 
-import os
 import time
 import unittest
 from unittest.mock import MagicMock, call, patch
@@ -23,6 +22,7 @@ from parsedmarc.elastic import (
     save_smtp_tls_report_to_elasticsearch,
     set_hosts,
 )
+from tests.tzutil import force_tz
 
 
 # ---------------------------------------------------------------------------
@@ -670,18 +670,7 @@ class TestSaveFailureReport(unittest.TestCase):
         https://github.com/domainaware/parsedmarc/issues/811 (bug 1):
         the naive parse used to shift the stored epoch by the host's
         UTC offset."""
-        old_tz = os.environ.get("TZ")
-        os.environ["TZ"] = "Europe/Warsaw"
-        time.tzset()
-
-        def restore():
-            if old_tz is None:
-                os.environ.pop("TZ", None)
-            else:
-                os.environ["TZ"] = old_tz
-            time.tzset()
-
-        self.addCleanup(restore)
+        force_tz(self)
 
         with (
             patch("parsedmarc.elastic.Search", return_value=_empty_search()),

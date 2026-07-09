@@ -14,6 +14,7 @@ from expiringdict import ExpiringDict
 
 import parsedmarc
 import parsedmarc.utils
+from tests.tzutil import force_tz
 
 
 class Test(unittest.TestCase):
@@ -567,20 +568,9 @@ class TestTimestampAssumeUtc(unittest.TestCase):
     TRUE_EPOCH = 1705320000
 
     def setUp(self):
-        old_tz = os.environ.get("TZ")
         # Fixed non-UTC zone (UTC+1 in January) so the local-time
         # misinterpretation this guards against would shift the epoch.
-        os.environ["TZ"] = "Europe/Warsaw"
-        time.tzset()
-
-        def restore():
-            if old_tz is None:
-                os.environ.pop("TZ", None)
-            else:
-                os.environ["TZ"] = old_tz
-            time.tzset()
-
-        self.addCleanup(restore)
+        force_tz(self)
 
     def testAssumeUtcYieldsAwareUtcDatetime(self):
         dt = parsedmarc.utils.human_timestamp_to_datetime(
