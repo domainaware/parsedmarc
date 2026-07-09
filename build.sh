@@ -2,11 +2,11 @@
 
 set -e
 
-if [ ! -d "venv" ]; then
-  virtualenv venv || exit
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv || exit
 fi
 
-. venv/bin/activate
+. .venv/bin/activate
 pip install .[build]
 ruff format .
 cd docs
