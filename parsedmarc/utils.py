@@ -408,6 +408,10 @@ def human_timestamp_to_unix_timestamp(
 
 _IP_DB_PATH: str | None = None
 
+# The last database path logged by _get_ip_database_path(), so the
+# selection is logged when it changes rather than on every lookup.
+_LAST_LOGGED_IP_DB_PATH: str | None = None
+
 
 def load_ip_db(
     *,
@@ -670,11 +674,17 @@ def _get_ip_database_path(db_path: str | None) -> str:
                     db_path = system_path
                     break
             else:
-                # Nothing found anywhere; return the bundled path so the
-                # caller's open_database() raises the clearest error.
+                # Nothing found anywhere; use the bundled path so the
+                # os.stat() below raises a FileNotFoundError naming the
+                # expected install location.
                 db_path = bundled_path
 
-    logger.debug(f"Using IP database at {db_path}")
+    global _LAST_LOGGED_IP_DB_PATH
+    if db_path != _LAST_LOGGED_IP_DB_PATH:
+        # Log per selected path, not per lookup — this function runs on
+        # every uncached IP lookup and would flood --debug output.
+        logger.debug(f"Using IP database at {db_path}")
+        _LAST_LOGGED_IP_DB_PATH = db_path
 
     db_age = datetime.now() - datetime.fromtimestamp(os.stat(db_path).st_mtime)
     if db_age > timedelta(days=30):

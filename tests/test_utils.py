@@ -613,12 +613,17 @@ class TestUtilsIpDbPaths(unittest.TestCase):
     def setUp(self):
         # These tests exercise the db-path fallback chain, which reads the
         # module-level _IP_DB_PATH set by load_ip_db(); pin it to a known
-        # state and restore afterwards.
+        # state and restore afterwards. The log-dedup marker is reset so
+        # the "Using IP database at ..." selection log fires regardless of
+        # which test (or prior lookup) ran first.
         old_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        old_logged_path = parsedmarc.utils._LAST_LOGGED_IP_DB_PATH
         parsedmarc.utils._IP_DB_PATH = None
+        parsedmarc.utils._LAST_LOGGED_IP_DB_PATH = None
 
         def restore():
             parsedmarc.utils._IP_DB_PATH = old_ip_db_path
+            parsedmarc.utils._LAST_LOGGED_IP_DB_PATH = old_logged_path
 
         self.addCleanup(restore)
 
@@ -681,6 +686,84 @@ class TestUtilsIpDbPaths(unittest.TestCase):
         self.assertTrue(
             any(
                 f"Using IP database at {loaded_copy}" in message
+                for message in cm.output
+            )
+        )
+
+    def testDbSelectionIsLoggedOncePerPath(self):
+        """The "Using IP database at ..." debug log fires when the
+        selected path changes, not on every lookup, so --debug runs over
+        large report batches aren't flooded with one line per IP."""
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+            parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+            parsedmarc.utils.get_ip_address_db_record("1.1.1.1")
+        selection_logs = [m for m in cm.output if "Using IP database at" in m]
+        self.assertEqual(len(selection_logs), 1)
+
+    def testSystemPathUsedWhenBundledDbMissing(self):
+        """When the bundled database file is missing (tier 4 of the
+        precedence chain), a system/CWD GeoIP path is consulted as a last
+        resort. The bundled resource can't be deleted from an installed
+        package, so ``parsedmarc.utils.files`` is patched to point at a
+        nonexistent path; the assertion is on observable behavior — the
+        record comes from the decoy file, per the selection log."""
+        tmp_dir = tempfile.mkdtemp()
+        old_cwd = os.getcwd()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        decoy = os.path.join(tmp_dir, "GeoLite2-Country.mmdb")
+        shutil.copyfile(bundled, decoy)
+        os.chdir(tmp_dir)
+
+        missing = os.path.join(tmp_dir, "does-not-exist.mmdb")
+        with patch("parsedmarc.utils.files") as mock_files:
+            mock_files.return_value.joinpath.return_value = missing
+            with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+                record = parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertEqual(record["country"], "US")
+        self.assertTrue(
+            any(
+                "Using IP database at GeoLite2-Country.mmdb" in message
+                for message in cm.output
+            )
+        )
+
+    def testMissingEverythingRaisesFileNotFoundError(self):
+        """When neither the bundled database nor any system path exists,
+        the error names the expected bundled install location."""
+        tmp_dir = tempfile.mkdtemp()
+        old_cwd = os.getcwd()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+        os.chdir(tmp_dir)
+
+        missing = os.path.join(tmp_dir, "does-not-exist.mmdb")
+        with patch("parsedmarc.utils.files") as mock_files:
+            mock_files.return_value.joinpath.return_value = missing
+            with self.assertRaises(FileNotFoundError) as ctx:
+                parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertIn(missing, str(ctx.exception))
+
+    def testOldDatabaseFileWarns(self):
+        """A database file older than 30 days triggers the staleness
+        warning."""
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(tmp_dir))
+
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        old_copy = os.path.join(tmp_dir, "old.mmdb")
+        shutil.copyfile(bundled, old_copy)
+        forty_days_ago = time.time() - 40 * 24 * 3600
+        os.utime(old_copy, (forty_days_ago, forty_days_ago))
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            record = parsedmarc.utils.get_ip_address_db_record(
+                "8.8.8.8", db_path=old_copy
+            )
+        self.assertEqual(record["asn"], 15169)
+        self.assertTrue(
+            any(
+                "IP database is more than a month old" in message
                 for message in cm.output
             )
         )
