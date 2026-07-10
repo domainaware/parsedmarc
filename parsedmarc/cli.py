@@ -322,6 +322,9 @@ def _configure_logging(log_level, log_file=None):
 # their records — including azure-identity's AADSTS token-endpoint errors,
 # which are what distinguish a local config problem from an Exchange
 # Online / Entra ID one — are silently dropped even with --debug.
+# The Graph SDK's kiota middleware (kiota_http etc.) is deliberately
+# absent: it does not use Python logging (its observability is
+# OpenTelemetry tracing), so there are no records to enable.
 _DEPENDENCY_LOGGERS = (
     "mailsuite",
     "azure",
@@ -341,13 +344,16 @@ def _configure_dependency_logging(level: int) -> None:
     Handlers are synced to exactly the parsedmarc logger's own handlers
     (console and optional file), so dependency records reach the same
     destinations, and a SIGHUP reload that swaps the log file neither
-    duplicates output nor keeps writing to a closed handler. CLI-only:
-    library consumers configure logging themselves.
+    duplicates output nor keeps writing to a closed handler. Propagation
+    to the root logger is disabled so that a stray ``logging.basicConfig()``
+    anywhere in the process cannot double-print every dependency record.
+    CLI-only: library consumers configure logging themselves.
     """
     dep_level = min(level, logging.WARNING)
     for name in _DEPENDENCY_LOGGERS:
         dep_logger = logging.getLogger(name)
         dep_logger.setLevel(dep_level)
+        dep_logger.propagate = False
         for existing in list(dep_logger.handlers):
             if existing not in logger.handlers:
                 dep_logger.removeHandler(existing)

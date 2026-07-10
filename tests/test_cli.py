@@ -1685,13 +1685,14 @@ certificate_password = s3cret-cert-pass
         saved = {}
         for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
             dep = logging.getLogger(name)
-            saved[name] = (dep.level, list(dep.handlers))
+            saved[name] = (dep.level, list(dep.handlers), dep.propagate)
 
         def restore():
-            for name, (level, handlers) in saved.items():
+            for name, (level, handlers, propagate) in saved.items():
                 dep = logging.getLogger(name)
                 dep.setLevel(level)
                 dep.handlers = handlers
+                dep.propagate = propagate
 
         self.addCleanup(restore)
 
@@ -1801,6 +1802,9 @@ client_assertion = s3cret-signed-jwt-assertion
         for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
             dep = logging.getLogger(name)
             self.assertEqual(dep.level, logging.DEBUG, name)
+            # Propagation is disabled so a stray logging.basicConfig()
+            # elsewhere in the process can't double-print these records.
+            self.assertFalse(dep.propagate, name)
             for wanted in parsedmarc_logger.handlers:
                 self.assertIn(wanted, dep.handlers, name)
 
