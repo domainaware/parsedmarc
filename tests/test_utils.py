@@ -1,10 +1,12 @@
 """Tests for parsedmarc.utils"""
 
 import os
+import shutil
 import tempfile
 import time
 import unittest
 from datetime import datetime, timezone
+from importlib.resources import files
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +15,7 @@ import requests
 from expiringdict import ExpiringDict
 
 import parsedmarc
+import parsedmarc.resources.ipinfo
 import parsedmarc.utils
 from tests.tzutil import force_tz
 
@@ -607,6 +610,23 @@ class TestTimestampAssumeUtc(unittest.TestCase):
 class TestUtilsIpDbPaths(unittest.TestCase):
     """Tests for IP database path validation"""
 
+    def setUp(self):
+        # These tests exercise the db-path fallback chain, which reads the
+        # module-level _IP_DB_PATH set by load_ip_db(); pin it to a known
+        # state and restore afterwards. The log-dedup marker is reset so
+        # the "Using IP database at ..." selection log fires regardless of
+        # which test (or prior lookup) ran first.
+        old_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        old_logged_path = parsedmarc.utils._LAST_LOGGED_IP_DB_PATH
+        parsedmarc.utils._IP_DB_PATH = None
+        parsedmarc.utils._LAST_LOGGED_IP_DB_PATH = None
+
+        def restore():
+            parsedmarc.utils._IP_DB_PATH = old_ip_db_path
+            parsedmarc.utils._LAST_LOGGED_IP_DB_PATH = old_logged_path
+
+        self.addCleanup(restore)
+
     def testCustomPathFallsBack(self):
         """Non-existent custom db path falls back to default"""
         result = parsedmarc.utils.get_ip_address_country(
@@ -618,6 +638,135 @@ class TestUtilsIpDbPaths(unittest.TestCase):
         """Bundled IP database returns results"""
         result = parsedmarc.utils.get_ip_address_country("8.8.8.8")
         self.assertEqual(result, "US")
+
+    def testSystemGeoIpFileDoesNotShadowBundledDb(self):
+        """A country-only system GeoIP file must not shadow the bundled
+        IPinfo database — shadowing silently disables ASN enrichment
+        because GeoLite2/DBIP country databases carry no ASN fields.
+        Regression test for
+        https://github.com/domainaware/parsedmarc/issues/810.
+
+        The fallback list includes CWD-relative names, so a decoy
+        ``GeoLite2-Country.mmdb`` in the working directory reproduces the
+        system-file shadowing on any machine, including CI runners with no
+        /usr/share/GeoIP. On the unfixed code the decoy won the path
+        search before the bundled database was ever considered."""
+        old_cwd = os.getcwd()
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+        with open(os.path.join(tmp_dir, "GeoLite2-Country.mmdb"), "wb"):
+            pass
+        os.chdir(tmp_dir)
+
+        record = parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertEqual(record["asn"], 15169)
+        self.assertEqual(record["as_name"], "Google LLC")
+        self.assertEqual(record["as_domain"], "google.com")
+
+    def testLoadedDbPathTakesPrecedenceOverSystemFiles(self):
+        """The database selected by load_ip_db() (_IP_DB_PATH) wins over
+        any system GeoIP file. Uses a copy of the bundled database at a
+        distinct path and verifies via the selection debug log that the
+        copy — not a CWD decoy — is the file actually opened."""
+        tmp_dir = tempfile.mkdtemp()
+        old_cwd = os.getcwd()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+        with open(os.path.join(tmp_dir, "GeoLite2-Country.mmdb"), "wb"):
+            pass
+
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        loaded_copy = os.path.join(tmp_dir, "loaded.mmdb")
+        shutil.copyfile(bundled, loaded_copy)
+        parsedmarc.utils._IP_DB_PATH = loaded_copy
+        os.chdir(tmp_dir)
+
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+            record = parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertEqual(record["asn"], 15169)
+        self.assertTrue(
+            any(
+                f"Using IP database at {loaded_copy}" in message
+                for message in cm.output
+            )
+        )
+
+    def testDbSelectionIsLoggedOncePerPath(self):
+        """The "Using IP database at ..." debug log fires when the
+        selected path changes, not on every lookup, so --debug runs over
+        large report batches aren't flooded with one line per IP."""
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+            parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+            parsedmarc.utils.get_ip_address_db_record("1.1.1.1")
+        selection_logs = [m for m in cm.output if "Using IP database at" in m]
+        self.assertEqual(len(selection_logs), 1)
+
+    def testSystemPathUsedWhenBundledDbMissing(self):
+        """When the bundled database file is missing (tier 4 of the
+        precedence chain), a system/CWD GeoIP path is consulted as a last
+        resort. The bundled resource can't be deleted from an installed
+        package, so ``parsedmarc.utils.files`` is patched to point at a
+        nonexistent path; the assertion is on observable behavior — the
+        record comes from the decoy file, per the selection log."""
+        tmp_dir = tempfile.mkdtemp()
+        old_cwd = os.getcwd()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        decoy = os.path.join(tmp_dir, "GeoLite2-Country.mmdb")
+        shutil.copyfile(bundled, decoy)
+        os.chdir(tmp_dir)
+
+        missing = os.path.join(tmp_dir, "does-not-exist.mmdb")
+        with patch("parsedmarc.utils.files") as mock_files:
+            mock_files.return_value.joinpath.return_value = missing
+            with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+                record = parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertEqual(record["country"], "US")
+        self.assertTrue(
+            any(
+                "Using IP database at GeoLite2-Country.mmdb" in message
+                for message in cm.output
+            )
+        )
+
+    def testMissingEverythingRaisesFileNotFoundError(self):
+        """When neither the bundled database nor any system path exists,
+        the error names the expected bundled install location."""
+        tmp_dir = tempfile.mkdtemp()
+        old_cwd = os.getcwd()
+        self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
+        os.chdir(tmp_dir)
+
+        missing = os.path.join(tmp_dir, "does-not-exist.mmdb")
+        with patch("parsedmarc.utils.files") as mock_files:
+            mock_files.return_value.joinpath.return_value = missing
+            with self.assertRaises(FileNotFoundError) as ctx:
+                parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        self.assertIn(missing, str(ctx.exception))
+
+    def testOldDatabaseFileWarns(self):
+        """A database file older than 30 days triggers the staleness
+        warning."""
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(tmp_dir))
+
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        old_copy = os.path.join(tmp_dir, "old.mmdb")
+        shutil.copyfile(bundled, old_copy)
+        forty_days_ago = time.time() - 40 * 24 * 3600
+        os.utime(old_copy, (forty_days_ago, forty_days_ago))
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            record = parsedmarc.utils.get_ip_address_db_record(
+                "8.8.8.8", db_path=old_copy
+            )
+        self.assertEqual(record["asn"], 15169)
+        self.assertTrue(
+            any(
+                "IP database is more than a month old" in message
+                for message in cm.output
+            )
+        )
 
 
 class TestUtilsParseEmail(unittest.TestCase):
