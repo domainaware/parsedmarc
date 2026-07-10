@@ -263,6 +263,18 @@ The full set of configuration options are:
     username, you must grant the app `Mail.ReadWrite.Shared`.
     :::
 
+    :::{tip}
+    **Troubleshooting connections.** Run with `--verbose` to log a
+    redacted connection summary (auth method, tenant, client ID,
+    mailbox, Graph URL) before the connection attempt, and with
+    `--debug` to additionally surface the underlying library activity —
+    `azure.identity` token acquisition (including `AADSTS` error codes
+    from Entra ID, which distinguish a local configuration problem from
+    an Exchange Online-side one), Microsoft Graph SDK requests, and
+    `httpx` HTTP request lines. Secret values (passwords, client
+    secrets, certificate passwords) are never written to logs.
+    :::
+
     :::{warning}
     If you are using the `ClientSecret` auth method, you need to
     grant the `Mail.ReadWrite` (application) permission to the

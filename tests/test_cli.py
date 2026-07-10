@@ -3,6 +3,7 @@ env-var overrides, mailbox watch wiring, and SIGHUP reload."""
 
 import io
 import json
+import logging
 import os
 import signal
 import sys
@@ -1657,45 +1658,174 @@ certificate_path = /tmp/msgraph-cert.pem
         mock_graph_connection.assert_not_called()
         mock_get_mailbox_reports.assert_not_called()
 
+
+class TestMSGraphConnectionLogging(unittest.TestCase):
+    """MS Graph connection observability (issue #814): a redacted
+    connection summary is logged before connecting, timing after, secret
+    values never appear in log output, and the dependency loggers that
+    carry the actual auth/HTTP activity (mailsuite, azure, msgraph,
+    httpx, httpcore) follow parsedmarc's --verbose/--debug level."""
+
+    CERT_CONFIG = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id-1234
+tenant_id = tenant-id-5678
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = s3cret-cert-pass
+"""
+
+    def setUp(self):
+        # _configure_dependency_logging mutates process-global loggers;
+        # snapshot and restore their levels and handlers so these tests
+        # don't leak state into the rest of the suite.
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (dep.level, list(dep.handlers), dep.propagate)
+
+        def restore():
+            for name, (level, handlers, propagate) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+
+        self.addCleanup(restore)
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _run_main(self, cfg_path, *cli_args):
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *cli_args]):
+            parsedmarc.cli._main()
+
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.MSGraphConnection")
-    def testCliLogsMsGraphConnectionAttempt(
+    def testCliLogsMsGraphConnectionSummaryAndTiming(
         self, mock_graph_connection, mock_get_mailbox_reports
     ):
-        """An INFO log is emitted when parsedmarc starts a Graph connection."""
+        """The INFO summary identifies the auth method, tenant, client,
+        mailbox, and Graph URL before any network I/O, and a timing line
+        follows once the connection object is initialized."""
         mock_graph_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
             "aggregate_reports": [],
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
+        cfg_path = self._write_config(self.CERT_CONFIG)
 
-        config_text = """[general]
+        with self.assertLogs("parsedmarc.log", level="INFO") as cm:
+            self._run_main(cfg_path, "--verbose")
+
+        output = "\n".join(cm.output)
+        self.assertIn("Connecting to Microsoft Graph", output)
+        self.assertIn("auth_method=Certificate", output)
+        self.assertIn("tenant_id=tenant-id-5678", output)
+        self.assertIn("client_id=client-id-1234", output)
+        self.assertIn("mailbox=shared@example.com", output)
+        self.assertIn("graph_url=https://graph.microsoft.com", output)
+        self.assertIn("Microsoft Graph connection initialized in", output)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliMsGraphLoggingNeverLogsSecretValues(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """Even at --debug, secret values (certificate_password and
+        client_assertion here) must not appear anywhere in parsedmarc's
+        log output — the debug detail line reports set/not-set flags
+        instead."""
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config(self.CERT_CONFIG)
+
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+            self._run_main(cfg_path, "--debug")
+
+        output = "\n".join(cm.output)
+        self.assertNotIn("s3cret-cert-pass", output)
+        self.assertIn("certificate_path=/tmp/msgraph-cert.pem", output)
+        self.assertIn("certificate_password set", output)
+        self.assertIn("client_assertion not set", output)
+
+        assertion_config = """[general]
 silent = true
 
 [msgraph]
-auth_method = Certificate
-client_id = client-id
-tenant_id = tenant-id
+auth_method = ClientAssertion
+client_id = client-id-1234
+tenant_id = tenant-id-5678
 mailbox = shared@example.com
-certificate_path = /tmp/msgraph-cert.pem
+client_assertion = s3cret-signed-jwt-assertion
 """
+        cfg_path = self._write_config(assertion_config)
 
-        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
-            cfg.write(config_text)
-            cfg_path = cfg.name
-        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as cm:
+            self._run_main(cfg_path, "--debug")
 
-        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, "--verbose"]):
-            with self.assertLogs("parsedmarc.log", level="INFO") as cm:
-                parsedmarc.cli._main()
+        output = "\n".join(cm.output)
+        self.assertNotIn("s3cret-signed-jwt-assertion", output)
+        self.assertIn("client_assertion set", output)
 
-        self.assertTrue(
-            any(
-                "Connecting to Microsoft Graph mailbox shared@example.com" in message
-                for message in cm.output
-            )
-        )
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliDebugEnablesDependencyLoggers(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """--debug propagates DEBUG level and parsedmarc's handlers to the
+        mailsuite/azure/msgraph/httpx/httpcore loggers, so token and HTTP
+        activity reaches the console (and log file) instead of being
+        dropped."""
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config(self.CERT_CONFIG)
+        self._run_main(cfg_path, "--debug")
+
+        parsedmarc_logger = logging.getLogger("parsedmarc.log")
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            self.assertEqual(dep.level, logging.DEBUG, name)
+            # Propagation is disabled so a stray logging.basicConfig()
+            # elsewhere in the process can't double-print these records.
+            self.assertFalse(dep.propagate, name)
+            for wanted in parsedmarc_logger.handlers:
+                self.assertIn(wanted, dep.handlers, name)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliDefaultKeepsDependencyLoggersAtWarning(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """Without --verbose/--debug, dependency loggers sit at WARNING —
+        their warnings surface (formatted) but no new noise appears."""
+        mock_graph_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config(self.CERT_CONFIG)
+        self._run_main(cfg_path)
+
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            self.assertEqual(logging.getLogger(name).level, logging.WARNING, name)
 
 
 class TestSighupReload(unittest.TestCase):
