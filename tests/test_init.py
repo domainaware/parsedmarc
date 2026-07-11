@@ -2954,5 +2954,165 @@ class TestAppendCsv(unittest.TestCase):
                 os.remove(path)
 
 
+def _minimal_aggregate_xml(
+    policy_published: str = (
+        "<policy_published><domain>example.com</domain><p>none</p></policy_published>"
+    ),
+    org_name: str = "TestOrg",
+    email: str = "test@example.com",
+    reason: str = "",
+) -> str:
+    """A minimal, valid aggregate report with substitutable sections."""
+    return f"""<?xml version="1.0"?>
+    <feedback>
+        <report_metadata>
+            <org_name>{org_name}</org_name>
+            <email>{email}</email>
+            <report_id>edge-case</report_id>
+            <date_range><begin>1704067200</begin><end>1704153599</end></date_range>
+        </report_metadata>
+        {policy_published}
+        <record>
+            <row>
+                <source_ip>192.0.2.1</source_ip>
+                <count>1</count>
+                <policy_evaluated>
+                    <disposition>none</disposition>
+                    <dkim>pass</dkim>
+                    <spf>pass</spf>
+                    {reason}
+                </policy_evaluated>
+            </row>
+            <identifiers><header_from>example.com</header_from></identifiers>
+            <auth_results>
+                <spf><domain>example.com</domain><result>pass</result></spf>
+            </auth_results>
+        </record>
+    </feedback>"""
+
+
+class TestAggregateReportEdgeCases(unittest.TestCase):
+    """Parsing edge cases for aggregate report XML documents."""
+
+    def testBytesInputIsDecoded(self):
+        """parse_aggregate_report_xml accepts bytes input"""
+        xml = _minimal_aggregate_xml().encode("utf-8")
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["report_metadata"]["report_id"], "edge-case")
+
+    def testPolicyPublishedListUsesFirstEntry(self):
+        """When a reporter emits multiple policy_published elements, the
+        first one is used"""
+        policies = (
+            "<policy_published><domain>example.com</domain><p>reject</p>"
+            "</policy_published>"
+            "<policy_published><domain>other.example</domain><p>none</p>"
+            "</policy_published>"
+        )
+        report = parsedmarc.parse_aggregate_report_xml(
+            _minimal_aggregate_xml(policy_published=policies), offline=True
+        )
+        self.assertEqual(report["policy_published"]["domain"], "example.com")
+        self.assertEqual(report["policy_published"]["p"], "reject")
+
+    def testUnknownPolicyOverrideTypeWarnsUnderRFC9990(self):
+        """An override reason type that RFC 9990 does not define (and RFC
+        7489 never defined) logs an 'Unknown policy override reason type'
+        warning; it is stored as-is. RFC 9990's PolicyOverrideType
+        enumeration is {local_policy, mailing_list, other,
+        policy_test_mode, trusted_forwarder}."""
+        policies = (
+            "<policy_published><domain>example.com</domain><p>none</p>"
+            "<np>none</np></policy_published>"
+        )
+        reason = "<reason><type>banana</type></reason>"
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            report = parsedmarc.parse_aggregate_report_xml(
+                _minimal_aggregate_xml(policy_published=policies, reason=reason),
+                offline=True,
+            )
+        self.assertTrue(
+            any(
+                "Unknown policy override reason type" in message
+                for message in cm.output
+            )
+        )
+        reasons = report["records"][0]["policy_evaluated"]["policy_override_reasons"]
+        self.assertEqual(reasons[0]["type"], "banana")
+
+    def testMissingOrgNameAndEmailIsInvalid(self):
+        """A report with empty org_name and email raises
+        InvalidAggregateReport, since org_name has no fallback source"""
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(
+                _minimal_aggregate_xml(org_name="", email=""), offline=True
+            )
+        self.assertIn("Organization name is missing", str(ctx.exception))
+
+    def testMalformedEmailAttributeOnlyIsDiscarded(self):
+        """An <email> element that xmltodict turns into an attributes-only
+        dict (no text) is discarded rather than crashing"""
+        xml = _minimal_aggregate_xml().replace(
+            "<email>test@example.com</email>", '<email xml:lang="en"></email>'
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIsNone(report["report_metadata"]["org_email"])
+
+
+class _NonSeekableStream:
+    """A minimal non-seekable stream, like sys.stdin / a socket file."""
+
+    def __init__(self, data):
+        self._data = data
+        self._pos = 0
+
+    def seekable(self):
+        return False
+
+    def read(self, size=-1):
+        if size < 0:
+            result = self._data[self._pos :]
+            self._pos = len(self._data)
+        else:
+            result = self._data[self._pos : self._pos + size]
+            self._pos += size
+        return result
+
+
+class _BrokenSeekableStream(_NonSeekableStream):
+    """A stream whose seekable() itself raises, as some wrapped streams do."""
+
+    def seekable(self):
+        raise OSError("stream does not support seekable()")
+
+
+class TestExtractReportStreams(unittest.TestCase):
+    """extract_report accepts file objects that cannot seek (stdin, pipes,
+    sockets) and must reject text-mode streams with a clear error."""
+
+    def testNonSeekableTextStreamRaisesParserError(self):
+        """A non-seekable text-mode stream raises ParserError instead of
+        failing later on a bytes/str mismatch"""
+        with open("samples/extract_report/nice-input.xml") as f:
+            text = f.read()
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.extract_report(cast(BinaryIO, _NonSeekableStream(text)))
+        self.assertIn("binary", str(ctx.exception))
+
+    def testNonSeekableBytesStreamIsExtracted(self):
+        """A non-seekable binary stream is buffered and extracted"""
+        with open("samples/extract_report/nice-input.xml", "rb") as f:
+            data = f.read()
+        result = parsedmarc.extract_report(cast(BinaryIO, _NonSeekableStream(data)))
+        self.assertIn("<feedback>", result)
+
+    def testStreamWithBrokenSeekableIsExtracted(self):
+        """A stream whose seekable() raises is treated as non-seekable"""
+        with open("samples/extract_report/nice-input.xml", "rb") as f:
+            data = f.read()
+        result = parsedmarc.extract_report(cast(BinaryIO, _BrokenSeekableStream(data)))
+        self.assertIn("<feedback>", result)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

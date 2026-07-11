@@ -22,11 +22,7 @@ from typing import TypedDict, cast
 import mailparser
 from expiringdict import ExpiringDict
 
-try:
-    from importlib.resources import files
-except ImportError:
-    # Try backported to PY<3 `importlib_resources`
-    from importlib.resources import files
+from importlib.resources import files
 
 
 import dns.exception
@@ -527,12 +523,11 @@ def configure_ipinfo_api(
     if not _IPINFO_API_TOKEN or not probe:
         return
 
-    try:
-        _ipinfo_api_lookup("1.1.1.1")
-    except InvalidIPinfoAPIKey:
-        raise
-    except Exception as e:
-        logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
+    # _ipinfo_api_lookup() raises InvalidIPinfoAPIKey on 401/403 (which
+    # must propagate) and returns None on any other failure — network
+    # errors, non-2xx responses, malformed bodies.
+    if _ipinfo_api_lookup("1.1.1.1") is None:
+        logger.warning("IPinfo API probe failed (will fall back per-request)")
     else:
         logger.info("IPinfo API configured")
 
@@ -1158,10 +1153,11 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
                     received["date_utc"] = received["date_utc"].replace("T", " ")
 
     if "from" not in parsed_email:
-        if "From" in parsed_email["headers"]:
-            parsed_email["from"] = parsed_email["Headers"]["From"]
-        else:
-            parsed_email["from"] = None
+        # mailparser omits "from" from mail_json when the From header is
+        # present but unparseable (e.g. an empty "From:"); headers_json may
+        # still carry a "From" entry, which can be an empty list — treat
+        # that the same as a missing header.
+        parsed_email["from"] = parsed_email["headers"].get("From") or None
 
     if parsed_email["from"] is not None:
         parsed_email["from"] = parse_email_address(parsed_email["from"][0])

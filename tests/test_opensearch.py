@@ -579,6 +579,32 @@ class TestSaveAggregateReport(unittest.TestCase):
         self.assertIn("cust_dmarc_aggregate_tenant_a*", search_index)
 
 
+class TestAggregateDocPassedDmarc(unittest.TestCase):
+    """The _AggregateReportDoc.save() override derives passed_dmarc — the
+    field dashboards filter on for DMARC pass/fail — from SPF/DKIM
+    alignment. The SDK parent (opensearchpy.Document.save) is mocked so
+    no cluster is needed."""
+
+    def test_passed_dmarc_derived_from_alignment(self):
+        cases = [
+            (True, False, True),
+            (False, True, True),
+            (True, True, True),
+            (False, False, False),
+        ]
+        for spf_aligned, dkim_aligned, expected in cases:
+            with self.subTest(spf=spf_aligned, dkim=dkim_aligned):
+                with patch.object(
+                    opensearch_module.Document, "save", return_value=None
+                ) as mock_super_save:
+                    doc = opensearch_module._AggregateReportDoc(
+                        spf_aligned=spf_aligned, dkim_aligned=dkim_aligned
+                    )
+                    doc.save()
+                mock_super_save.assert_called_once()
+                self.assertEqual(bool(doc.passed_dmarc), expected)
+
+
 # ---------------------------------------------------------------------------
 # save_failure_report_to_opensearch
 # ---------------------------------------------------------------------------

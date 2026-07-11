@@ -281,27 +281,6 @@ class _SMTPTLSReportDoc(Document):
     report_id = Text()
     policies = Nested(_SMTPTLSPolicyDoc)
 
-    def add_policy(
-        self,
-        policy_type: str,
-        policy_domain: str,
-        successful_session_count: int,
-        failed_session_count: int,
-        *,
-        policy_string: str | None = None,
-        mx_host_patterns: list[str] | None = None,
-        failure_details: str | None = None,
-    ):
-        self.policies.append(
-            policy_type=policy_type,
-            policy_domain=policy_domain,
-            successful_session_count=successful_session_count,
-            failed_session_count=failed_session_count,
-            policy_string=policy_string,
-            mx_host_patterns=mx_host_patterns,
-            failure_details=failure_details,
-        )
-
 
 class AlreadySaved(ValueError):
     """Raised when a report to be saved matches an existing report"""
@@ -409,12 +388,12 @@ def migrate_indexes(
     Args:
         aggregate_indexes (list): A list of aggregate index names
         failure_indexes (list): A list of failure index names
+            (accepted for API compatibility; no migrations are
+            currently needed for failure indexes)
     """
     version = 2
     if aggregate_indexes is None:
         aggregate_indexes = []
-    if failure_indexes is None:
-        failure_indexes = []
     for aggregate_index_name in aggregate_indexes:
         if not Index(aggregate_index_name).exists():
             continue
@@ -443,9 +422,6 @@ def migrate_indexes(
             Index(new_index_name).put_mapping(doc_type=doc, body=body)
             reindex(connections.get_connection(), aggregate_index_name, new_index_name)
             Index(aggregate_index_name).delete()
-
-    for failure_index in failure_indexes:
-        pass
 
 
 def save_aggregate_report_to_opensearch(

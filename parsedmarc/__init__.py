@@ -757,7 +757,7 @@ def parsed_smtp_tls_reports_to_csv(
 
 
 def parse_aggregate_report_xml(
-    xml: str,
+    xml: str | bytes,
     *,
     ip_db_path: str | None = None,
     always_use_local_files: bool = False,
@@ -773,7 +773,8 @@ def parse_aggregate_report_xml(
     """Parses a DMARC XML report string and returns a consistent dict
 
     Args:
-        xml (str): A string of DMARC aggregate report XML
+        xml (str | bytes): DMARC aggregate report XML (bytes are decoded
+            with errors ignored)
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
@@ -1112,9 +1113,6 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
                 header = bytes(header_raw)
                 remainder = stream.read()
                 file_object = BytesIO(header + bytes(remainder))
-
-        if file_object is None:
-            raise ParserError("Invalid report content")
 
         if header[: len(MAGIC_ZIP)] == MAGIC_ZIP:
             _zip = zipfile.ZipFile(file_object)
