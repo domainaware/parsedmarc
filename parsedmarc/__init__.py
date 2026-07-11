@@ -853,9 +853,10 @@ def parse_aggregate_report_xml(
         # revision. Reports in the wild omit <version> entirely or send an
         # empty <version/> (which xmltodict parses as None) or one carrying
         # attributes (a dict). Only a non-empty text value may override the
-        # "draft" default: xml_schema must never be empty, because flat-row
-        # consumers (e.g. the Google SecOps parser's report-type detection)
-        # rely on it being present on every aggregate row.
+        # "draft" default: xml_schema must never be empty, because consumers
+        # of the flattened JSON/CSV output (e.g. the Google SecOps parser's
+        # report-type detection) rely on it being non-empty on every line
+        # serialized from an aggregate report.
         schema = "draft"
         if "version" in report:
             version = _text(report["version"])
