@@ -34,6 +34,13 @@
   `policy_strings` / `mx_host_patterns` from an earlier policy were reused for
   a later policy that did not define them, because the row template dict was
   built once per report instead of once per policy.
+- **`xml_schema` can no longer be empty on aggregate rows.** The `<feedback>`
+  root element is what identifies an aggregate report; `<version>` is optional
+  metadata (RFC 7489 Appendix C) that reporters omit or leave empty in the
+  wild. An empty or whitespace-only `<version/>` previously produced
+  `xml_schema=None` (an empty string in the flat CSV/JSON rows), breaking
+  consumers that detect aggregate rows by a non-empty `xml_schema`. The
+  "draft" fallback now applies unless `<version>` carries non-empty text.
 
 ## 10.2.1
 

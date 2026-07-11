@@ -848,9 +848,19 @@ def parse_aggregate_report_xml(
                     report_metadata["email"],
                 )
             report_metadata["email"] = unwrapped
+        # The <feedback> root element (anchored above) is what identifies an
+        # aggregate report; <version> is only metadata about the schema
+        # revision. Reports in the wild omit <version> entirely or send an
+        # empty <version/> (which xmltodict parses as None) or one carrying
+        # attributes (a dict). Only a non-empty text value may override the
+        # "draft" default: xml_schema must never be empty, because flat-row
+        # consumers (e.g. the Google SecOps parser's report-type detection)
+        # rely on it being present on every aggregate row.
         schema = "draft"
         if "version" in report:
-            schema = report["version"]
+            version = _text(report["version"])
+            if isinstance(version, str) and version.strip():
+                schema = version.strip()
         new_report: dict[str, Any] = {
             "xml_schema": schema,
             "xml_namespace": xml_namespace,

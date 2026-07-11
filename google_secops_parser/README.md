@@ -57,7 +57,10 @@ The `or` fallbacks matter: text-format failure reports have no `Feedback-Type`
 field (parsedmarc emits no `feedback_type` key for them, but always computes
 `arrival_date_utc`), and SMTP TLS failure-detail rows from parsedmarc versions
 older than this parser lack `policy_type` (every RFC 8460 failure detail has a
-`result_type`).
+`result_type`). `xml_schema` needs no fallback: the `<feedback>` XML root
+element is what identifies an aggregate report, and parsedmarc guarantees a
+non-empty `xml_schema` on every aggregate row ("draft" whenever `<version>`
+is missing, empty, or whitespace).
 
 `EMAIL_TRANSACTION` and `GENERIC_EVENT` are both valid `metadata.event_type`
 values. Note that **`GENERIC_EVENT` events only appear in raw-log and UDM
