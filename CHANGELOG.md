@@ -34,17 +34,6 @@
   `policy_strings` / `mx_host_patterns` from an earlier policy were reused for
   a later policy that did not define them, because the row template dict was
   built once per report instead of once per policy.
-- **The `xml_schema` field of a parsed aggregate report can no longer be
-  empty.** parsedmarc reports the schema revision of an aggregate report in a
-  synthesized `xml_schema` field (surfaced in the JSON/CSV output for every
-  record), defaulting to `"draft"` when the report omits the optional
-  `<version>` element (RFC 7489 Appendix C). That default did not cover an
-  empty `<version/>` or a whitespace-only value, which produced
-  `xml_schema=None` — an empty string in the flat JSON/CSV output — so
-  consumers that identify aggregate records by a non-empty `xml_schema`
-  (such as the Google SecOps parser's report-type detection) dropped those
-  records. The `"draft"` fallback now applies unless `<version>` contains
-  non-empty text.
 
 ## 10.2.1
 

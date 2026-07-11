@@ -49,7 +49,7 @@ detects them by a field unique to each and maps them as follows:
 
 | parsedmarc report | Detected by | UDM `metadata.event_type` |
 | --- | --- | --- |
-| DMARC aggregate | `xml_schema` (the serialized marker of the `<feedback>` XML root) | `EMAIL_TRANSACTION` |
+| DMARC aggregate | `xml_schema` | `EMAIL_TRANSACTION` |
 | DMARC failure | `feedback_type` or `arrival_date_utc` | `EMAIL_TRANSACTION` |
 | SMTP TLS (RFC 8460) | `policy_type` or `result_type` | `GENERIC_EVENT` |
 
@@ -58,14 +58,6 @@ field (parsedmarc emits no `feedback_type` key for them, but always computes
 `arrival_date_utc`), and SMTP TLS failure-detail rows from parsedmarc versions
 older than this parser lack `policy_type` (every RFC 8460 failure detail has a
 `result_type`).
-
-`xml_schema` needs no fallback because it is not something the report
-supplies. What actually identifies an aggregate report is its `<feedback>`
-XML root element — but the raw XML never reaches SecOps: parsedmarc parses
-it and only the flattened JSON rows go over syslog. `xml_schema` is the
-field parsedmarc synthesizes on every row that came from a `<feedback>`
-document ("draft" whenever `<version>` is missing, empty, or whitespace), so
-testing it is one-to-one equivalent to testing for the `<feedback>` root.
 
 `EMAIL_TRANSACTION` and `GENERIC_EVENT` are both valid `metadata.event_type`
 values. Note that **`GENERIC_EVENT` events only appear in raw-log and UDM
