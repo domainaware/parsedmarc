@@ -1540,6 +1540,75 @@ class Test(unittest.TestCase):
         self.assertTrue(len(rows) >= 2)
         self.assertEqual(rows[0]["organization_name"], "Org")
         self.assertEqual(rows[0]["policy_domain"], "example.com")
+        # Failure-detail rows must carry the policy identity too: RFC 8460
+        # §4.3 nests failure-details inside a policy, so each detail row
+        # belongs to exactly one policy. Without these keys, downstream
+        # consumers (CSV policy_domain/policy_type columns, the syslog JSON
+        # shape) cannot attribute a failure row to its policy.
+        failure_row = rows[1]
+        self.assertEqual(failure_row["result_type"], "cert-expired")
+        self.assertEqual(failure_row["policy_domain"], "example.com")
+        self.assertEqual(failure_row["policy_type"], "sts")
+
+    def testSmtpTlsCsvRowsNoCrossPolicyLeak(self):
+        """Per-policy fields must not leak into a later policy's rows
+
+        RFC 8460 §4.3: policy-string and mx-host-pattern are properties of a
+        single policy object. The serializer previously reused one shared
+        record dict across the policies loop, so a policy without
+        policy-string inherited the previous policy's value.
+        """
+        report_json = json.dumps(
+            {
+                "organization-name": "Org",
+                "date-range": {
+                    "start-datetime": "2024-01-01T00:00:00Z",
+                    "end-datetime": "2024-01-02T00:00:00Z",
+                },
+                "contact-info": "a@b.com",
+                "report-id": "r1",
+                "policies": [
+                    {
+                        "policy": {
+                            "policy-type": "sts",
+                            "policy-domain": "first.example",
+                            "policy-string": ["v: STSv1"],
+                            "mx-host-pattern": ["*.first.example"],
+                        },
+                        "summary": {
+                            "total-successful-session-count": 10,
+                            "total-failure-session-count": 0,
+                        },
+                    },
+                    {
+                        "policy": {
+                            "policy-type": "tlsa",
+                            "policy-domain": "second.example",
+                        },
+                        "summary": {
+                            "total-successful-session-count": 5,
+                            "total-failure-session-count": 1,
+                        },
+                        "failure-details": [
+                            {
+                                "result-type": "validation-failure",
+                                "failed-session-count": 1,
+                            }
+                        ],
+                    },
+                ],
+            }
+        )
+        parsed = parsedmarc.parse_smtp_tls_report_json(report_json)
+        rows = parsedmarc.parsed_smtp_tls_reports_to_csv_rows(parsed)
+        second_policy_rows = [
+            row for row in rows if row["policy_domain"] == "second.example"
+        ]
+        self.assertEqual(len(second_policy_rows), 2)
+        for row in second_policy_rows:
+            self.assertEqual(row["policy_type"], "tlsa")
+            self.assertNotIn("policy_strings", row)
+            self.assertNotIn("mx_host_patterns", row)
 
     def testParsedAggregateReportsToCsvRowsList(self):
         """parsed_aggregate_reports_to_csv_rows handles list of reports"""

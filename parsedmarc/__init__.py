@@ -685,15 +685,20 @@ def parsed_smtp_tls_reports_to_csv_rows(
             "end_date": report["end_date"],
             "report_id": report["report_id"],
         }
-        record: dict[str, Any] = common_fields.copy()
         for policy in report["policies"]:
+            # Rebuild the shared base per policy so per-policy fields cannot
+            # leak into a later policy that omits them, and so failure-detail
+            # rows carry the policy identity (policy_domain / policy_type) —
+            # RFC 8460 §4.3 nests failure-details inside a policy, so every
+            # detail row belongs to exactly one policy.
+            record: dict[str, Any] = common_fields.copy()
+            record["policy_domain"] = policy["policy_domain"]
+            record["policy_type"] = policy["policy_type"]
             if "policy_strings" in policy:
                 record["policy_strings"] = "|".join(policy["policy_strings"])
             if "mx_host_patterns" in policy:
                 record["mx_host_patterns"] = "|".join(policy["mx_host_patterns"])
             successful_record = record.copy()
-            successful_record["policy_domain"] = policy["policy_domain"]
-            successful_record["policy_type"] = policy["policy_type"]
             successful_record["successful_session_count"] = policy[
                 "successful_session_count"
             ]
