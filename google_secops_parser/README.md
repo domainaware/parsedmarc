@@ -274,7 +274,7 @@ Suggested order:
 Community resources (not official Google documentation) that informed this parser's JSON handling and are useful when validating it:
 
 - [Parsing 101: Best Practices & Tips](https://medium.com/@thatsiemguy/parsing-101-best-practices-tips-c2e8b7ce9db8) (Chris Martin / @thatsiemguy) — basis for initializing every `if`-tested field before the `json` filter to avoid `_failed_parsing_`.
-- [Corelight parser for SecOps](https://github.com/corelight/CorelightForSecOps) — a large production CBN parser that demonstrates the "convert JSON booleans/numbers to strings" idiom this parser relies on (the `json` filter preserves the original JSON type).
+- [Corelight parser for SecOps](https://github.com/corelight/CorelightForSecOps) — a large production CBN parser that demonstrates converting type-preserved JSON booleans to strings before testing them in conditionals, which this parser does in step 1b (storage is a separate matter: this parser stores booleans as typed `bool_value` per Google's parser extension examples).
 - [chronicle/cbn-tool](https://github.com/chronicle/cbn-tool) — CLI for the CBN parser APIs (submit and validate a parser).
 
 ## License
