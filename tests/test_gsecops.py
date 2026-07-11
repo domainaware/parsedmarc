@@ -1,5 +1,6 @@
 """Tests for parsedmarc.gsecops"""
 
+import copy
 import unittest
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -104,6 +105,28 @@ class TestAggregateUdmEvents(unittest.TestCase):
         self.assertNotIn("dmarc_testing", additional)
         self.assertNotIn("dkim_domains", additional)
 
+    def test_additional_drops_literal_none_policy_overrides(self):
+        """parsedmarc writes the literal string "none" for
+        policy_override_reasons / policy_override_comments when a record has
+        no overrides; that placeholder must not reach the API."""
+        report = cast(
+            AggregateReport, _parse_sample("samples/aggregate/empty_reason.xml")
+        )
+        events = aggregate_report_to_udm_events(report)
+        additional = events[0]["udm"]["additional"]
+        self.assertNotIn("policy_override_reasons", additional)
+        self.assertNotIn("policy_override_comments", additional)
+
+    def test_principal_hostname_from_reverse_dns(self):
+        """When enrichment resolved a reverse DNS name for the source IP, it
+        becomes the principal hostname."""
+        report = copy.deepcopy(_aggregate_report())
+        report["records"][0]["source"]["reverse_dns"] = "mail.example.net"
+        events = aggregate_report_to_udm_events(report)
+        principal = events[0]["udm"]["principal"]
+        self.assertEqual(principal["hostname"], "mail.example.net")
+        self.assertEqual(principal["ip"], ["12.20.127.122"])
+
 
 class TestFailureUdmEvents(unittest.TestCase):
     def test_event_shape(self):
@@ -171,6 +194,31 @@ class TestSmtpTlsUdmEvents(unittest.TestCase):
             failure["additional"]["failure_reason_code"],
             "bad https response code: 404",
         )
+
+    def test_failure_detail_mta_nouns(self):
+        """Failure details carry the sending MTA IP as the principal and the
+        receiving IP alongside the policy domain in the target (RFC 8460
+        Appendix B sample)."""
+        report = cast(SMTPTLSReport, _parse_sample("samples/smtp_tls/rfc8460.json"))
+        events = smtp_tls_report_to_udm_events(report)
+        # one policy summary row + three failure details
+        self.assertEqual(len(events), 4)
+        starttls = events[2]["udm"]
+        self.assertEqual(starttls["principal"]["ip"], ["2001:db8:abcd:0013::1"])
+        self.assertEqual(starttls["target"]["hostname"], "company-y.example")
+        self.assertEqual(starttls["target"]["ip"], ["203.0.113.56"])
+
+    def test_target_hostname_falls_back_to_receiving_mx(self):
+        """A report whose policy carries an empty policy-domain (violating
+        RFC 8460 §4.2, but accepted by the parser) still gets a target
+        hostname on failure details, from receiving-mx-hostname."""
+        report = copy.deepcopy(
+            cast(SMTPTLSReport, _parse_sample("samples/smtp_tls/rfc8460.json"))
+        )
+        report["policies"][0]["policy_domain"] = ""
+        events = smtp_tls_report_to_udm_events(report)
+        starttls = events[2]["udm"]
+        self.assertEqual(starttls["target"]["hostname"], "mx2.mail.company-y.example")
 
 
 def _client() -> tuple[GoogleSecOpsClient, MagicMock]:
