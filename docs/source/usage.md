@@ -503,6 +503,13 @@ The full set of configuration options are:
   retry_delay = 5
   ```
 
+  :::{note}
+  To ingest the syslog output into Google SecOps (Chronicle), a custom UDM
+  parser is available in the
+  [google_secops_parser](https://github.com/domainaware/parsedmarc/tree/master/google_secops_parser)
+  directory.
+  :::
+
 - `gmail_api`
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)
