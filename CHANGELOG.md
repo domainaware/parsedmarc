@@ -34,6 +34,9 @@
   `policy_strings` / `mx_host_patterns` from an earlier policy were reused for
   a later policy that did not define them, because the row template dict was
   built once per report instead of once per policy.
+- Ensure that the JSON or CSV output from a parsed DMARC aggregate report
+  always has an `xml_schema` value, so that the reports can be detected by
+  Google SecOps and other output parsers.
 
 ## 10.2.1
 

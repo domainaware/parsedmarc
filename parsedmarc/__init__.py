@@ -848,9 +848,14 @@ def parse_aggregate_report_xml(
                     report_metadata["email"],
                 )
             report_metadata["email"] = unwrapped
+        # Always give xml_schema a non-empty value, even when <version> is
+        # missing, empty, or attribute-wrapped, so that output parsers
+        # (e.g. Google SecOps) can detect aggregate rows by it.
         schema = "draft"
         if "version" in report:
-            schema = report["version"]
+            version = _text(report["version"])
+            if isinstance(version, str) and version.strip():
+                schema = version.strip()
         new_report: dict[str, Any] = {
             "xml_schema": schema,
             "xml_namespace": xml_namespace,
