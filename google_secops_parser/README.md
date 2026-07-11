@@ -5,6 +5,15 @@ custom parser (configuration-based normalizer / CBN) that maps the JSON events
 parsedmarc emits through its built-in `[syslog]` output to the Unified Data
 Model (UDM).
 
+> **Prefer an API-based setup?** parsedmarc also ships a `[gsecops]` output
+> that sends the same UDM events directly to the Chronicle API
+> (`events.import`), with no collector or custom parser to install — see the
+> `gsecops` section of the parsedmarc usage documentation. Use this parser
+> instead when you want collector-based ingestion with raw-log retention, or
+> when you already run a Bindplane pipeline. Both paths use the same UDM
+> mapping and the same `additional` field keys, so searches and dashboards
+> port between them.
+
 This is a **SecOps-side parser** — parsedmarc already ships structured JSON
 over syslog, and the DMARC→UDM mapping lives here so that a downstream UDM
 schema change is a parser edit rather than a parsedmarc release. One paired
@@ -39,7 +48,7 @@ parsedmarc emits three flat JSON shapes (one object per syslog line). The parser
 detects them by a field unique to each and maps them as follows:
 
 | parsedmarc report | Detected by | UDM `metadata.event_type` |
-|---|---|---|
+| --- | --- | --- |
 | DMARC aggregate | `xml_schema` | `EMAIL_TRANSACTION` |
 | DMARC failure | `feedback_type` or `arrival_date_utc` | `EMAIL_TRANSACTION` |
 | SMTP TLS (RFC 8460) | `policy_type` or `result_type` | `GENERIC_EVENT` |
@@ -106,7 +115,7 @@ and [SecurityResult reference](https://docs.cloud.google.com/chronicle/docs/refe
 ### DMARC aggregate → `EMAIL_TRANSACTION`
 
 | parsedmarc field | UDM field |
-|---|---|
+| --- | --- |
 | `begin_date` | `metadata.event_timestamp` (via `date{}`) |
 | `report_id` | `metadata.product_log_id` |
 | `source_ip_address` | `principal.ip` |
@@ -121,7 +130,7 @@ and [SecurityResult reference](https://docs.cloud.google.com/chronicle/docs/refe
 ### DMARC failure → `EMAIL_TRANSACTION`
 
 | parsedmarc field | UDM field |
-|---|---|
+| --- | --- |
 | `arrival_date_utc` | `metadata.event_timestamp` (via `date{}`) |
 | `message_id` | `metadata.product_log_id`, `network.email.mail_id` |
 | `source_ip_address` | `principal.ip` |
@@ -137,7 +146,7 @@ and [SecurityResult reference](https://docs.cloud.google.com/chronicle/docs/refe
 ### SMTP TLS → `GENERIC_EVENT`
 
 | parsedmarc field | UDM field |
-|---|---|
+| --- | --- |
 | `begin_date` | `metadata.event_timestamp` (ISO 8601, via `date{}`) |
 | `report_id` | `metadata.product_log_id` |
 | `policy_domain` | `target.hostname` (the noun; falls back to `receiving_mx_hostname` when absent) |

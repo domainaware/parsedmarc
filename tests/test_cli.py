@@ -3752,6 +3752,64 @@ class TestParseConfigWebhook(unittest.TestCase):
         self.assertEqual(opts.webhook_failure_url, "https://old.example.com/fail")
 
 
+class TestParseConfigGsecops(unittest.TestCase):
+    def test_gsecops_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "gsecops",
+            {
+                "project_id": "my-project",
+                "instance_id": "my-instance",
+                "region": "europe",
+                "credentials_file": "~/gsecops-key.json",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.gsecops_project_id, "my-project")
+        self.assertEqual(opts.gsecops_instance_id, "my-instance")
+        self.assertEqual(opts.gsecops_region, "europe")
+        # file path config values must be wrapped with _expand_path
+        self.assertEqual(
+            opts.gsecops_credentials_file,
+            os.path.expanduser("~/gsecops-key.json"),
+        )
+
+    def test_gsecops_missing_project_id_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("gsecops", {"instance_id": "my-instance"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_gsecops_missing_instance_id_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("gsecops", {"project_id": "my-project"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_gsecops_env_vars_resolve_to_section(self):
+        """PARSEDMARC_GSECOPS_* env vars round-trip into the gsecops
+        section via longest-prefix section matching."""
+        from argparse import Namespace
+        from parsedmarc.cli import _load_config, _parse_config
+
+        env = {
+            "PARSEDMARC_GSECOPS_PROJECT_ID": "env-project",
+            "PARSEDMARC_GSECOPS_INSTANCE_ID": "env-instance",
+            "PARSEDMARC_GSECOPS_REGION": "asia-southeast1",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            config = _load_config(None)
+        opts = Namespace()
+        _parse_config(config, opts)
+        self.assertEqual(opts.gsecops_project_id, "env-project")
+        self.assertEqual(opts.gsecops_instance_id, "env-instance")
+        self.assertEqual(opts.gsecops_region, "asia-southeast1")
+
+
 class TestConfigureLogging(unittest.TestCase):
     """_configure_logging is called in every child process for parallel
     parsing — if it stops attaching a handler, log output goes dark in

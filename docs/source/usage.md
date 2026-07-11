@@ -565,6 +565,27 @@ The full set of configuration options are:
   - `smtp_tls_url` - str: URL of the webhook which should receive the smtp_tls reports
   - `timeout` - int: Interval in which the webhook call should timeout
 
+- `gsecops` - Send reports to [Google SecOps](https://cloud.google.com/security/products/security-operations)
+  (Chronicle) as Unified Data Model (UDM) events via the v1 Chronicle API
+  [`events.import`](https://docs.cloud.google.com/chronicle/docs/reference/ingestion-methods)
+  method. Pre-normalized UDM events bypass SecOps's server-side parsing, so no
+  custom parser needs to be installed in the tenant (the alternative,
+  raw-log-preserving path is the syslog output plus the parser in the
+  [google_secops_parser](https://github.com/domainaware/parsedmarc/tree/master/google_secops_parser)
+  directory).
+  - `project_id` - str: The Google Cloud project ID linked to the SecOps
+      instance at onboarding. A correctly-permissioned account in any other
+      project will fail to authenticate.
+  - `instance_id` - str: The SecOps instance (customer) GUID, shown under
+      **SIEM Settings > Profile** in the SecOps console
+  - `region` - str: The SecOps instance region, e.g. `us` or `europe`
+      (Default: `us`)
+  - `credentials_file` - str: Path to a Google service account JSON key file.
+      When not set, [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials)
+      are used. Either way, the account must hold the **Chronicle API Editor**
+      IAM role (the `chronicle.events.import` permission) in the linked
+      project.
+
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
 setting. By default, `parsedmarc` uses
@@ -766,6 +787,7 @@ For sections with underscores in the name, the full section name is used:
 | `log_analytics` | `PARSEDMARC_LOG_ANALYTICS_` |
 | `gelf` | `PARSEDMARC_GELF_` |
 | `webhook` | `PARSEDMARC_WEBHOOK_` |
+| `gsecops` | `PARSEDMARC_GSECOPS_` |
 
 ## Performance tuning
 

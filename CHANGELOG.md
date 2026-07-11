@@ -4,14 +4,23 @@
 
 ### Features
 
+- **Google SecOps (Chronicle) output** (`[gsecops]` config section). Sends
+  reports to a Google SecOps instance as pre-normalized Unified Data Model
+  (UDM) events via the GA v1 Chronicle API `events.import` method — DMARC
+  aggregate and failure reports as `EMAIL_TRANSACTION` events, SMTP TLS
+  reports as `GENERIC_EVENT` events. Uses standard Google Cloud authentication
+  (a service account key file, or Application Default Credentials), batches
+  per the documented API best practices, and isolates invalid events by
+  bisecting rejected batches so one bad event cannot discard a whole run.
+  Because the events arrive already normalized, no parser needs to be
+  installed in the SecOps tenant.
 - **Google SecOps (Chronicle) UDM parser** (`google_secops_parser/`). A
   configuration-based normalizer (CBN) that maps the JSON events parsedmarc
-  emits through the `[syslog]` output to the Unified Data Model: DMARC
-  aggregate and failure reports become `EMAIL_TRANSACTION` events, SMTP TLS
-  reports become `GENERIC_EVENT` events. Ships with real sample events for the
-  SecOps parser-validation tool; see `google_secops_parser/README.md` for
-  installation, field mappings, and caveats (not yet validated against a live
-  tenant).
+  emits through its `[syslog]` output to the same UDM shape as the `[gsecops]`
+  output, for deployments that prefer collector-based ingestion with raw-log
+  retention. Ships with real sample events for the SecOps parser-validation
+  tool; see `google_secops_parser/README.md` for installation, field mappings,
+  and caveats (not yet validated against a live tenant).
 
 ### Bug fixes
 
