@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- Removed dead code found while extending test coverage: the unused `_SMTPTLSReportDoc.add_policy()` helpers in the Elasticsearch and OpenSearch outputs (the save paths construct policy documents directly), a no-op `failure_indexes` loop in both `migrate_indexes()` implementations (the parameter is still accepted; no failure-index migrations are currently needed), an unreachable `importlib.resources` ImportError fallback in `parsedmarc.utils` (it re-imported the same module, and `importlib.resources.files` always exists on the supported Python ≥3.10), and an unreachable "Invalid report content" guard in `extract_report()` (every input branch either assigns the file object or raises first, confirmed by pyright narrowing).
+
+### Bug fixes
+
+- **`parse_email()` no longer crashes with `KeyError: 'Headers'` on messages whose `From` header is present but empty/unparseable** (e.g. a bare `From:` line). mailparser omits `"from"` from `mail_json` for such messages, and the fallback read `parsed_email["Headers"]` — a key that is never set; the parsed headers are stored under lowercase `"headers"` (see the assignment at the top of `parse_email()`). The fallback now reads the correct key and treats an empty parsed header list the same as a missing header, yielding `from=None`.
+- **A failed IPinfo API token probe no longer logs "IPinfo API configured".** `configure_ipinfo_api(..., probe=True)` documents that non-fatal probe errors are logged as warnings with the token still accepted, but `_ipinfo_api_lookup()` returns `None` on network errors instead of raising, so the probe's exception handler never fired and a probe that couldn't reach the API logged the success message. The probe now checks the lookup result and logs a warning when verification failed. Invalid tokens (401/403) still raise `InvalidIPinfoAPIKey`.
+
 ## 10.2.1
 
 ### Changes

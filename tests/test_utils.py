@@ -11,6 +11,7 @@ from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
 
 import dns.exception
+import dns.resolver
 import requests
 from expiringdict import ExpiringDict
 
@@ -866,13 +867,82 @@ Body"""
         for att in result["attachments"]:
             self.assertNotIn("payload", att)
 
+    def testEmptyFromHeaderYieldsNone(self):
+        """An email whose From header is present but empty parses with
+        from=None instead of crashing.
+
+        Regression: mailparser omits "from" from mail_json when the From
+        header value is unparseable, and the headers fallback read
+        ``parsed_email["Headers"]`` — a key that is never set (the parsed
+        headers are stored under lowercase "headers", see parse_email) —
+        so any such message raised KeyError: 'Headers'.
+        """
+        email_str = "From:\r\nTo: a@b.com\r\nSubject: t\r\n\r\nbody\r\n"
+        result = parsedmarc.utils.parse_email(email_str)
+        self.assertIsNone(result["from"])
+
+    def testCcAndBccHeadersAreParsed(self):
+        """Cc and Bcc headers are parsed into address dicts"""
+        email_str = (
+            "From: a@b.com\r\n"
+            "To: t@e.com\r\n"
+            "Cc: c@d.com, C Two <c2@d.com>\r\n"
+            "Bcc: e@f.com\r\n"
+            "Subject: Hi\r\n\r\nBody\r\n"
+        )
+        result = parsedmarc.utils.parse_email(email_str)
+        self.assertEqual([a["address"] for a in result["cc"]], ["c@d.com", "c2@d.com"])
+        self.assertEqual(result["cc"][1]["display_name"], "C Two")
+        self.assertEqual([a["address"] for a in result["bcc"]], ["e@f.com"])
+
+    @staticmethod
+    def _multipart_email(transfer_encoding: str, payload: str) -> str:
+        return (
+            "From: a@b.com\r\nTo: t@e.com\r\nSubject: att\r\n"
+            "MIME-Version: 1.0\r\n"
+            'Content-Type: multipart/mixed; boundary="B"\r\n\r\n'
+            "--B\r\nContent-Type: text/plain\r\n\r\nbody\r\n"
+            '--B\r\nContent-Type: application/octet-stream; name="a.bin"\r\n'
+            f"Content-Transfer-Encoding: {transfer_encoding}\r\n"
+            'Content-Disposition: attachment; filename="a.bin"\r\n\r\n'
+            f"{payload}\r\n"
+            "--B--\r\n"
+        )
+
+    def testNonBase64AttachmentIsHashed(self):
+        """A non-base64 attachment's sha256 is computed over the encoded
+        payload text"""
+        import hashlib
+
+        result = parsedmarc.utils.parse_email(
+            self._multipart_email("7bit", "hello world")
+        )
+        attachments = result["attachments"]
+        self.assertEqual(len(attachments), 1)
+        self.assertEqual(
+            attachments[0]["sha256"], hashlib.sha256(b"hello world").hexdigest()
+        )
+
+    def testUndecodableAttachmentIsKeptWithoutHash(self):
+        """An attachment whose base64 payload cannot be decoded is kept,
+        just without a sha256, and parsing does not crash"""
+        result = parsedmarc.utils.parse_email(
+            self._multipart_email("base64", "!!!notb64!!!")
+        )
+        attachments = result["attachments"]
+        self.assertEqual(len(attachments), 1)
+        self.assertNotIn("sha256", attachments[0])
+        self.assertEqual(attachments[0]["payload"], "!!!notb64!!!")
+
 
 class TestUtilsOutlookMsg(unittest.TestCase):
     """Tests for Outlook MSG detection and conversion"""
 
+    MSG_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
     def testIsOutlookMsg(self):
         """is_outlook_msg detects MSG magic bytes"""
-        msg_magic = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 100
+        msg_magic = self.MSG_MAGIC + b"\x00" * 100
         self.assertTrue(parsedmarc.utils.is_outlook_msg(msg_magic))
 
     def testIsNotOutlookMsg(self):
@@ -884,6 +954,58 @@ class TestUtilsOutlookMsg(unittest.TestCase):
         """convert_outlook_msg raises ValueError for non-MSG bytes"""
         with self.assertRaises(ValueError):
             parsedmarc.utils.convert_outlook_msg(b"not an msg file")
+
+    def testConvertOutlookMsgMissingUtility(self):
+        """A missing msgconvert utility raises EmailParserError, and the
+        working directory is restored"""
+        old_cwd = os.getcwd()
+        with patch(
+            "parsedmarc.utils.subprocess.check_call",
+            side_effect=FileNotFoundError("msgconvert"),
+        ):
+            with self.assertRaises(parsedmarc.utils.EmailParserError):
+                parsedmarc.utils.convert_outlook_msg(self.MSG_MAGIC + b"\x00" * 100)
+        self.assertEqual(os.getcwd(), old_cwd)
+
+    def testConvertOutlookMsgReadsConvertedFile(self):
+        """convert_outlook_msg writes the .msg for msgconvert, reads back
+        the .eml it produces, and restores the working directory. The
+        subprocess boundary is mocked with a fake msgconvert that converts
+        the temp .msg into a fixed RFC 822 message."""
+        rfc822 = b"From: a@b.com\r\nSubject: converted\r\n\r\nhi\r\n"
+
+        def fake_msgconvert(args, stdout=None, stderr=None):
+            # msgconvert is invoked in a temp dir containing sample.msg
+            # and writes sample.eml next to it.
+            self.assertEqual(args, ["msgconvert", "sample.msg"])
+            with open("sample.msg", "rb") as f:
+                self.assertTrue(parsedmarc.utils.is_outlook_msg(f.read()))
+            with open("sample.eml", "wb") as f:
+                f.write(rfc822)
+
+        old_cwd = os.getcwd()
+        with patch(
+            "parsedmarc.utils.subprocess.check_call", side_effect=fake_msgconvert
+        ):
+            result = parsedmarc.utils.convert_outlook_msg(
+                self.MSG_MAGIC + b"\x00" * 100
+            )
+        self.assertEqual(result, rfc822)
+        self.assertEqual(os.getcwd(), old_cwd)
+
+    def testParseEmailConvertsOutlookMsgBytes(self):
+        """parse_email detects Outlook MSG bytes and parses the converted
+        RFC 822 output"""
+
+        def fake_msgconvert(args, stdout=None, stderr=None):
+            with open("sample.eml", "wb") as f:
+                f.write(b"From: a@b.com\r\nSubject: from msg\r\n\r\nhi\r\n")
+
+        with patch(
+            "parsedmarc.utils.subprocess.check_call", side_effect=fake_msgconvert
+        ):
+            result = parsedmarc.utils.parse_email(self.MSG_MAGIC + b"\x00" * 100)
+        self.assertEqual(result["subject"], "from msg")
 
 
 class TestUtilsReverseDnsMap(unittest.TestCase):
@@ -920,6 +1042,33 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
         ):
             parsedmarc.utils.load_reverse_dns_map(rdns_map)
         self.assertTrue(len(rdns_map) > 0)
+
+    def testLoadReverseDnsMapInvalidCsvFallback(self):
+        """A fetch that returns a non-map CSV body logs a warning and
+        falls back to the bundled map"""
+        response = MagicMock()
+        response.text = "not,the,map\nfoo,bar,baz\n"
+        response.raise_for_status.return_value = None
+        rdns_map = {}
+        with patch("parsedmarc.utils.requests.get", return_value=response):
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                parsedmarc.utils.load_reverse_dns_map(rdns_map)
+        self.assertTrue(any("Not a valid CSV file" in message for message in cm.output))
+        self.assertGreater(len(rdns_map), 0)
+
+    def testGetServiceUsesProvidedMap(self):
+        """get_service_from_reverse_dns_base_domain consults a caller-
+        provided non-empty map without loading anything"""
+        provided: parsedmarc.utils.ReverseDNSMap = {
+            "custom.example": {"name": "Custom Co", "type": "SaaS"}
+        }
+        with patch("parsedmarc.utils.load_reverse_dns_map") as mock_load:
+            service = parsedmarc.utils.get_service_from_reverse_dns_base_domain(
+                "Custom.Example", reverse_dns_map=provided
+            )
+        mock_load.assert_not_called()
+        self.assertEqual(service["name"], "Custom Co")
+        self.assertEqual(service["type"], "SaaS")
 
 
 class TestPslOverrides(unittest.TestCase):
@@ -959,6 +1108,263 @@ class TestIsMbox(unittest.TestCase):
     def testNonExistentNotMbox(self):
         """is_mbox returns False for non-existent file"""
         self.assertFalse(parsedmarc.utils.is_mbox("/nonexistent/file.mbox"))
+
+
+class TestQueryDnsRetries(unittest.TestCase):
+    """Tests for the query_dns transient-error retry loop, mocking at the
+    dnspython SDK boundary (Resolver.resolve)."""
+
+    def testTransientErrorIsRetried(self):
+        """A retryable error (OSError is in _RETRYABLE_DNS_ERRORS) on the
+        first attempt is retried, and the second attempt's answers are
+        returned. A single nameserver is passed so the single-nameserver
+        lifetime branch is exercised too."""
+        answer = MagicMock()
+        answer.to_text.return_value = "mail.example.com."
+        with patch.object(
+            dns.resolver.Resolver,
+            "resolve",
+            side_effect=[OSError("transient network error"), [answer]],
+        ) as mock_resolve:
+            records = parsedmarc.utils.query_dns(
+                "example.com",
+                "A",
+                nameservers=["192.0.2.53"],
+                timeout=0.1,
+                retries=1,
+            )
+        self.assertEqual(records, ["mail.example.com"])
+        self.assertEqual(mock_resolve.call_count, 2)
+
+    def testErrorRaisedAfterRetriesExhausted(self):
+        """When every attempt fails, the last error propagates after
+        retries+1 total attempts."""
+        with patch.object(
+            dns.resolver.Resolver,
+            "resolve",
+            side_effect=OSError("persistent network error"),
+        ) as mock_resolve:
+            with self.assertRaises(OSError):
+                parsedmarc.utils.query_dns(
+                    "example.com",
+                    "A",
+                    nameservers=["192.0.2.53"],
+                    timeout=0.1,
+                    retries=2,
+                )
+        self.assertEqual(mock_resolve.call_count, 3)
+
+
+class TestLoadIpDb(unittest.TestCase):
+    """Tests for the load_ip_db() download/cache/bundled fallback chain,
+    mocking at the requests SDK boundary."""
+
+    def setUp(self):
+        old_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        parsedmarc.utils._IP_DB_PATH = None
+
+        def restore():
+            parsedmarc.utils._IP_DB_PATH = old_ip_db_path
+
+        self.addCleanup(restore)
+
+        # Redirect the download cache into a per-test directory so the
+        # tests never touch (or depend on) the real tempdir cache.
+        self.tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(self.tmp_dir, ignore_errors=True))
+        patcher = patch(
+            "parsedmarc.utils.tempfile.gettempdir", return_value=self.tmp_dir
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def testExistingLocalFileIsUsedDirectly(self):
+        """An existing local_file_path wins without any network request"""
+        local_path = os.path.join(self.tmp_dir, "local.mmdb")
+        with open(local_path, "wb") as f:
+            f.write(b"local db")
+        with patch("parsedmarc.utils.requests.get") as mock_get:
+            parsedmarc.utils.load_ip_db(local_file_path=local_path)
+        mock_get.assert_not_called()
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, local_path)
+
+    def testDownloadSuccessWritesCacheFile(self):
+        """A successful download is written to the cache path and selected"""
+        response = MagicMock()
+        response.content = b"downloaded db bytes"
+        response.raise_for_status.return_value = None
+        with patch("parsedmarc.utils.requests.get", return_value=response) as mock_get:
+            parsedmarc.utils.load_ip_db(url="https://example.com/db.mmdb")
+        self.assertEqual(mock_get.call_args.args[0], "https://example.com/db.mmdb")
+        cached_path = os.path.join(self.tmp_dir, "parsedmarc", "ipinfo_lite.mmdb")
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, cached_path)
+        with open(cached_path, "rb") as f:
+            self.assertEqual(f.read(), b"downloaded db bytes")
+
+    def testDownloadFailureFallsBackToCachedCopy(self):
+        """On a network error, a previously cached copy is selected"""
+        cache_dir = os.path.join(self.tmp_dir, "parsedmarc")
+        os.makedirs(cache_dir)
+        cached_path = os.path.join(cache_dir, "ipinfo_lite.mmdb")
+        with open(cached_path, "wb") as f:
+            f.write(b"stale cached db")
+        with patch(
+            "parsedmarc.utils.requests.get",
+            side_effect=requests.exceptions.ConnectionError("no network"),
+        ):
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                parsedmarc.utils.load_ip_db()
+        self.assertTrue(
+            any("Failed to fetch IP database" in message for message in cm.output)
+        )
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, cached_path)
+
+    def testDownloadFailureFallsBackToBundledCopy(self):
+        """On a network error with no cached copy, the bundled db is used"""
+        with patch(
+            "parsedmarc.utils.requests.get",
+            side_effect=requests.exceptions.ConnectionError("no network"),
+        ):
+            parsedmarc.utils.load_ip_db()
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, bundled)
+
+    def testSaveFailureFallsBackToBundledCopy(self):
+        """A download that cannot be written to disk logs a warning and
+        falls back to the bundled db instead of crashing. The cache dir is
+        made uncreatable by pointing gettempdir at a regular file."""
+        blocker = os.path.join(self.tmp_dir, "blocker")
+        with open(blocker, "wb") as f:
+            f.write(b"not a directory")
+        response = MagicMock()
+        response.content = b"downloaded db bytes"
+        response.raise_for_status.return_value = None
+        with patch("parsedmarc.utils.tempfile.gettempdir", return_value=blocker):
+            with patch("parsedmarc.utils.requests.get", return_value=response):
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    parsedmarc.utils.load_ip_db()
+        self.assertTrue(
+            any("Failed to save IP database" in message for message in cm.output)
+        )
+        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, bundled)
+
+
+class TestConfigureIpinfoApiProbe(unittest.TestCase):
+    """Tests for the configure_ipinfo_api() token probe."""
+
+    def setUp(self):
+        self.addCleanup(parsedmarc.utils.configure_ipinfo_api, None)
+
+    @staticmethod
+    def _response(status_code, json_body=None):
+        response = MagicMock()
+        response.status_code = status_code
+        response.ok = 200 <= status_code < 300
+        response.json.return_value = json_body if json_body is not None else {}
+        return response
+
+    def testProbeSuccessLogsConfigured(self):
+        """A successful probe logs that the API is configured"""
+        api_json = {"ip": "1.1.1.1", "asn": "AS13335", "country_code": "US"}
+        with patch(
+            "parsedmarc.utils.requests.get",
+            return_value=self._response(200, api_json),
+        ):
+            with self.assertLogs("parsedmarc.log", level="INFO") as cm:
+                parsedmarc.utils.configure_ipinfo_api("fake-token", probe=True)
+        self.assertTrue(
+            any("IPinfo API configured" in message for message in cm.output)
+        )
+
+    def testProbeNetworkErrorKeepsToken(self):
+        """A probe network error logs a warning but keeps the token so
+        per-request fallback can take over later"""
+        with patch(
+            "parsedmarc.utils.requests.get",
+            side_effect=requests.exceptions.ConnectionError("no network"),
+        ):
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                parsedmarc.utils.configure_ipinfo_api("fake-token", probe=True)
+        self.assertTrue(
+            any("IPinfo API probe failed" in message for message in cm.output)
+        )
+        self.assertEqual(parsedmarc.utils._IPINFO_API_TOKEN, "fake-token")
+
+    def testProbeInvalidKeyRaises(self):
+        """A 401 during the probe raises InvalidIPinfoAPIKey"""
+        with patch("parsedmarc.utils.requests.get", return_value=self._response(401)):
+            with self.assertRaises(parsedmarc.utils.InvalidIPinfoAPIKey):
+                parsedmarc.utils.configure_ipinfo_api("bad-token", probe=True)
+
+
+class TestIpinfoApiLookupFallbacks(unittest.TestCase):
+    """API lookup failures other than 401/403 must fall back to the MMDB
+    silently: network errors, non-JSON bodies, and non-dict payloads."""
+
+    def setUp(self):
+        parsedmarc.utils.configure_ipinfo_api("fake-token", probe=False)
+        self.addCleanup(parsedmarc.utils.configure_ipinfo_api, None)
+
+    def _assert_mmdb_fallback(self, response=None, side_effect=None):
+        with patch(
+            "parsedmarc.utils.requests.get",
+            return_value=response,
+            side_effect=side_effect,
+        ):
+            record = parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+        # The bundled MMDB attributes 8.8.8.8 to Google's ASN.
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertEqual(record["asn"], 15169)
+
+    def testNetworkErrorFallsBackToMmdb(self):
+        self._assert_mmdb_fallback(
+            side_effect=requests.exceptions.ConnectionError("no network")
+        )
+
+    def testNonJsonBodyFallsBackToMmdb(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.ok = True
+        response.json.side_effect = ValueError("not JSON")
+        self._assert_mmdb_fallback(response=response)
+
+    def testNonDictPayloadFallsBackToMmdb(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.ok = True
+        response.json.return_value = ["not", "a", "dict"]
+        self._assert_mmdb_fallback(response=response)
+
+
+class TestNormalizeIpRecord(unittest.TestCase):
+    """_normalize_ip_record must produce the same internal shape from both
+    the IPinfo API schema and the MaxMind MMDB schema."""
+
+    def testMaxMindSchema(self):
+        """MaxMind-style records (nested country iso_code, ASN under
+        autonomous_system_number/organization) normalize correctly"""
+        record = parsedmarc.utils._normalize_ip_record(
+            {
+                "country": {"iso_code": "US"},
+                "autonomous_system_number": 15169,
+                "autonomous_system_organization": "Google LLC",
+            }
+        )
+        self.assertEqual(record["country"], "US")
+        self.assertEqual(record["asn"], 15169)
+        self.assertEqual(record["as_name"], "Google LLC")
+        self.assertIsNone(record["as_domain"])
+
+    def testIntegerAsnPassesThrough(self):
+        """An already-integer asn field is stored as-is, and as_domain is
+        lowercased on the way in"""
+        record = parsedmarc.utils._normalize_ip_record(
+            {"country_code": "US", "asn": 64496, "as_domain": "EXAMPLE.com"}
+        )
+        self.assertEqual(record["asn"], 64496)
+        self.assertEqual(record["as_domain"], "example.com")
 
 
 if __name__ == "__main__":
