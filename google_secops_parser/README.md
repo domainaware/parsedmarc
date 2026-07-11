@@ -71,17 +71,25 @@ DMARC types.
 2. **JSON types** — Chronicle's `json{}` filter **preserves the original JSON
    type**, so parsedmarc's booleans and numbers are handled differently:
    - **Booleans** (`dmarc_aligned` / `spf_aligned` / `dkim_aligned` /
-     `normalized_timespan`) are converted to strings so `[dmarc_aligned] ==
-     "false"` works, and stored as `string_value` (Google's content-hub parsers
-     never use `bool_value`). Note that `testing` is **not** a boolean —
-     parsedmarc emits the RFC 9990 `t=` flag as the string `"y"`/`"n"` — so it
-     is passed through as a string and guarded with `!= ""`.
+     `normalized_timespan`) are converted to strings because CBN conditionals
+     compare against the preserved type, so `[dmarc_aligned] == "false"` needs
+     a string. In `additional.fields` they are stored as typed **`bool_value`**
+     — built as a string, `convert`-ed back to `boolean`, then renamed — the
+     boolean pattern from Google's
+     [parser extension examples](https://docs.cloud.google.com/chronicle/docs/event-processing/parser-extension-examples);
+     UDM search matches them with `value.bool_value`. Note that `testing` is
+     **not** a boolean — parsedmarc emits the RFC 9990 `t=` flag as the string
+     `"y"`/`"n"` — so it is passed through as a string and guarded with
+     `!= ""`.
    - **Numbers** (`count` / `*_session_count` / `source_asn`) are stored as
      `number_value` — built as a string, `convert`-ed to `uinteger`, then
      renamed — so SecOps can range-query and sort them (parsedmarc's "store
      numbers as numbers" rule). Each numeric interpolation carries `on_error`
      so a tenant where `%{}` rejects non-string fields degrades to a missing
      `additional.fields` entry instead of `_failed_parsing_`.
+
+   Both value types match what the `[gsecops]` API output emits, so UDM
+   searches and dashboards port between the two delivery paths unchanged.
 
    Every `if`-tested field is initialized to `""` *before* `json` and guarded
    with `!= ""`: CBN raises `_failed_parsing_` on a conditional referencing an
@@ -205,7 +213,8 @@ Suggested order:
    depends on.
 2. The two aggregates — confirm the `dmarc_aligned=false` one yields
    `security_result.category = AUTH_VIOLATION`, that `count` and `source_asn`
-   land as `number_value`, and that the boolean→string handling holds.
+   land as `number_value`, and that the alignment booleans land as
+   `bool_value` (queryable as `additional.fields["dmarc_aligned"].value.bool_value`).
 3. The SMTP TLS rows — confirm the success row produces a `GENERIC_EVENT` with
    `target.hostname` and no `security_result`, and the failure rows produce
    `security_result.action = FAIL`.
