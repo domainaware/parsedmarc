@@ -1054,7 +1054,7 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                 parsedmarc.utils.load_reverse_dns_map(rdns_map)
         self.assertTrue(any("Not a valid CSV file" in message for message in cm.output))
-        self.assertTrue(len(rdns_map) > 0)
+        self.assertGreater(len(rdns_map), 0)
 
     def testGetServiceUsesProvidedMap(self):
         """get_service_from_reverse_dns_base_domain consults a caller-
