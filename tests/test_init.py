@@ -1497,6 +1497,73 @@ class Test(unittest.TestCase):
         self.assertIsNone(pp["testing"])
         self.assertIsNone(pp["discovery_method"])
 
+    def testEmptyVersionElementFallsBackToDraftSchema(self):
+        """An empty <version/> must not blank out xml_schema.
+
+        The <feedback> root element is what identifies an aggregate report;
+        <version> is optional metadata (RFC 7489 Appendix C) that reporters
+        omit or leave empty in the wild. xmltodict parses an empty
+        <version/> as None, which previously became xml_schema=None and an
+        empty string in the flat rows — breaking downstream consumers that
+        detect aggregate rows by a non-empty xml_schema (the Google SecOps
+        parser's report-type cascade).
+        """
+        xml = """<?xml version="1.0"?>
+        <feedback>
+            <version/>
+            <report_metadata>
+                <org_name>TestOrg</org_name>
+                <email>test@example.com</email>
+                <report_id>test-empty-version</report_id>
+                <date_range><begin>1704067200</begin><end>1704153599</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated><disposition>none</disposition><dkim>pass</dkim><spf>pass</spf></policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results><spf><domain>example.com</domain><result>pass</result></spf></auth_results>
+            </record>
+        </feedback>"""
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["xml_schema"], "draft")
+        rows = parsedmarc.parsed_aggregate_reports_to_csv_rows(report)
+        self.assertEqual(rows[0]["xml_schema"], "draft")
+
+    def testWhitespaceVersionElementFallsBackToDraftSchema(self):
+        """A whitespace-only <version> value also falls back to 'draft'."""
+        xml = """<?xml version="1.0"?>
+        <feedback>
+            <version>  </version>
+            <report_metadata>
+                <org_name>TestOrg</org_name>
+                <email>test@example.com</email>
+                <report_id>test-ws-version</report_id>
+                <date_range><begin>1704067200</begin><end>1704153599</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated><disposition>none</disposition><dkim>pass</dkim><spf>pass</spf></policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results><spf><domain>example.com</domain><result>pass</result></spf></auth_results>
+            </record>
+        </feedback>"""
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["xml_schema"], "draft")
+
     def testMagicXmlTagDetection(self):
         """XML without declaration (starting with '<') is extracted"""
         xml_no_decl = b"<feedback><report_metadata><org_name>T</org_name><email>a@b.com</email><report_id>r1</report_id><date_range><begin>1704067200</begin><end>1704153599</end></date_range></report_metadata><policy_published><domain>example.com</domain><p>none</p></policy_published><record><row><source_ip>192.0.2.1</source_ip><count>1</count><policy_evaluated><disposition>none</disposition><dkim>pass</dkim><spf>pass</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers><auth_results><spf><domain>example.com</domain><result>pass</result></spf></auth_results></record></feedback>"
@@ -1540,6 +1607,75 @@ class Test(unittest.TestCase):
         self.assertTrue(len(rows) >= 2)
         self.assertEqual(rows[0]["organization_name"], "Org")
         self.assertEqual(rows[0]["policy_domain"], "example.com")
+        # Failure-detail rows must carry the policy identity too: RFC 8460
+        # §4.3 nests failure-details inside a policy, so each detail row
+        # belongs to exactly one policy. Without these keys, downstream
+        # consumers (CSV policy_domain/policy_type columns, the syslog JSON
+        # shape) cannot attribute a failure row to its policy.
+        failure_row = rows[1]
+        self.assertEqual(failure_row["result_type"], "cert-expired")
+        self.assertEqual(failure_row["policy_domain"], "example.com")
+        self.assertEqual(failure_row["policy_type"], "sts")
+
+    def testSmtpTlsCsvRowsNoCrossPolicyLeak(self):
+        """Per-policy fields must not leak into a later policy's rows
+
+        RFC 8460 §4.3: policy-string and mx-host-pattern are properties of a
+        single policy object. The serializer previously reused one shared
+        record dict across the policies loop, so a policy without
+        policy-string inherited the previous policy's value.
+        """
+        report_json = json.dumps(
+            {
+                "organization-name": "Org",
+                "date-range": {
+                    "start-datetime": "2024-01-01T00:00:00Z",
+                    "end-datetime": "2024-01-02T00:00:00Z",
+                },
+                "contact-info": "a@b.com",
+                "report-id": "r1",
+                "policies": [
+                    {
+                        "policy": {
+                            "policy-type": "sts",
+                            "policy-domain": "first.example",
+                            "policy-string": ["v: STSv1"],
+                            "mx-host-pattern": ["*.first.example"],
+                        },
+                        "summary": {
+                            "total-successful-session-count": 10,
+                            "total-failure-session-count": 0,
+                        },
+                    },
+                    {
+                        "policy": {
+                            "policy-type": "tlsa",
+                            "policy-domain": "second.example",
+                        },
+                        "summary": {
+                            "total-successful-session-count": 5,
+                            "total-failure-session-count": 1,
+                        },
+                        "failure-details": [
+                            {
+                                "result-type": "validation-failure",
+                                "failed-session-count": 1,
+                            }
+                        ],
+                    },
+                ],
+            }
+        )
+        parsed = parsedmarc.parse_smtp_tls_report_json(report_json)
+        rows = parsedmarc.parsed_smtp_tls_reports_to_csv_rows(parsed)
+        second_policy_rows = [
+            row for row in rows if row["policy_domain"] == "second.example"
+        ]
+        self.assertEqual(len(second_policy_rows), 2)
+        for row in second_policy_rows:
+            self.assertEqual(row["policy_type"], "tlsa")
+            self.assertNotIn("policy_strings", row)
+            self.assertNotIn("mx_host_patterns", row)
 
     def testParsedAggregateReportsToCsvRowsList(self):
         """parsed_aggregate_reports_to_csv_rows handles list of reports"""

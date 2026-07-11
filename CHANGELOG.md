@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- **Google SecOps (Chronicle) output** (`[gsecops]` config section). Sends
+  reports to a Google SecOps instance as pre-normalized Unified Data Model
+  (UDM) events via the GA v1 Chronicle API `events.import` method — DMARC
+  aggregate and failure reports as `EMAIL_TRANSACTION` events, SMTP TLS
+  reports as `GENERIC_EVENT` events. Uses standard Google Cloud authentication
+  (a service account key file, or Application Default Credentials), batches
+  per the documented API best practices, and isolates invalid events by
+  bisecting rejected batches so one bad event cannot discard a whole run.
+  Because the events arrive already normalized, no parser needs to be
+  installed in the SecOps tenant.
+- **Google SecOps (Chronicle) UDM parser** (`google_secops_parser/`). A
+  configuration-based normalizer (CBN) that maps the JSON events parsedmarc
+  emits through its `[syslog]` output to the same UDM shape as the `[gsecops]`
+  output, for deployments that prefer collector-based ingestion with raw-log
+  retention. Ships with real sample events for the SecOps parser-validation
+  tool; see `google_secops_parser/README.md` for installation, field mappings,
+  and caveats (not yet validated against a live tenant).
+
+### Bug fixes
+
+- **SMTP TLS failure-detail rows now carry `policy_domain` and `policy_type`**
+  in the flat row output (`parsed_smtp_tls_reports_to_csv_rows`). RFC 8460 §4.3
+  nests each failure detail inside a policy, but the serializer only attached
+  the policy identity to the per-policy summary row, so the `policy_domain` and
+  `policy_type` CSV columns were always empty on failure-detail rows and JSON
+  consumers (syslog, GELF) could not attribute a failure detail to its policy.
+- **Per-policy fields no longer leak across policies** in the same serializer:
+  `policy_strings` / `mx_host_patterns` from an earlier policy were reused for
+  a later policy that did not define them, because the row template dict was
+  built once per report instead of once per policy.
+- Ensure that the JSON or CSV output from a parsed DMARC aggregate report
+  always has an `xml_schema` value, so that the reports can be detected by
+  Google SecOps and other output parsers.
+
 ## 10.2.1
 
 ### Changes

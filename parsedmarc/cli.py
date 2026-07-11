@@ -31,6 +31,7 @@ from parsedmarc import (
     gelf,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
+    gsecops,
     kafkaclient,
     loganalytics,
     opensearch,
@@ -155,6 +156,7 @@ _KNOWN_SECTIONS = frozenset(
         "log_analytics",
         "gelf",
         "webhook",
+        "gsecops",
     }
 )
 
@@ -175,6 +177,7 @@ _DIRECT_FILE_KEYS = frozenset(
         "MSGRAPH_TOKEN_FILE",
         "GMAIL_API_CREDENTIALS_FILE",
         "GMAIL_API_TOKEN_FILE",
+        "GSECOPS_CREDENTIALS_FILE",
     ]
 )
 
@@ -1169,6 +1172,27 @@ def _parse_config(config: ConfigParser, opts):
         if "timeout" in webhook_config:
             opts.webhook_timeout = webhook_config.getint("timeout")
 
+    if "gsecops" in config.sections():
+        gsecops_config = config["gsecops"]
+        if "project_id" in gsecops_config:
+            opts.gsecops_project_id = gsecops_config["project_id"]
+        else:
+            raise ConfigurationError(
+                "project_id setting missing from the gsecops config section"
+            )
+        if "instance_id" in gsecops_config:
+            opts.gsecops_instance_id = gsecops_config["instance_id"]
+        else:
+            raise ConfigurationError(
+                "instance_id setting missing from the gsecops config section"
+            )
+        if "region" in gsecops_config:
+            opts.gsecops_region = gsecops_config["region"]
+        if "credentials_file" in gsecops_config:
+            opts.gsecops_credentials_file = _expand_path(
+                gsecops_config["credentials_file"]
+            )
+
     return index_prefix_domain_map
 
 
@@ -1841,6 +1865,25 @@ def _main():
             except Exception as e:
                 log_output_error("Log Analytics", f"Unknown publishing error: {e}")
 
+        if opts.gsecops_project_id:
+            try:
+                gsecops_client = gsecops.GoogleSecOpsClient(
+                    project_id=opts.gsecops_project_id,
+                    instance_id=opts.gsecops_instance_id,
+                    region=opts.gsecops_region,
+                    credentials_file=opts.gsecops_credentials_file,
+                )
+                gsecops_client.publish_results(
+                    reports_,
+                    opts.save_aggregate,
+                    opts.save_failure,
+                    opts.save_smtp_tls,
+                )
+            except gsecops.GoogleSecOpsError as e:
+                log_output_error("Google SecOps", e.__str__())
+            except Exception as e:
+                log_output_error("Google SecOps", f"Unknown publishing error: {e}")
+
         if opts.fail_on_output_error and output_errors:
             raise ParserError(
                 "Output destination failures detected: {0}".format(
@@ -2104,6 +2147,10 @@ def _main():
         webhook_failure_url=None,
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
+        gsecops_project_id=None,
+        gsecops_instance_id=None,
+        gsecops_region="us",
+        gsecops_credentials_file=None,
         normalize_timespan_threshold_hours=24.0,
         postgresql_host=None,
         postgresql_port=5432,
