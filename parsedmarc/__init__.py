@@ -2210,6 +2210,7 @@ def get_dmarc_reports_from_mailbox(
     since: datetime | date | str | None = None,
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24,
+    save_callback: Callable[[ParsingResults], bool | None] | None = None,
 ) -> ParsingResults:
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2239,6 +2240,23 @@ def get_dmarc_reports_from_mailbox(
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        save_callback: Optional callable invoked once per fetched batch with
+            a ``ParsingResults`` dict containing only that batch's newly
+            parsed reports, after parsing but before messages are deleted or
+            moved out of ``reports_folder``. Returning ``False`` leaves the
+            batch's messages in place for retry on the next run (and does
+            not update the aggregate-report dedup cache, so the batch is
+            reprocessed rather than silently dropped); raising propagates
+            and also leaves messages untouched; any other return value
+            (including ``None``) commits the batch as today. With
+            ``save_callback=None`` (the default), this preserves prior
+            behavior for any batch that completes without an unhandled
+            exception; a mid-batch crash now leaves the aggregate-report
+            dedup cache unmodified for that batch instead of partially
+            populated, which is a related, strictly safer change. Ignored
+            when ``test`` is ``True``, except that it is still invoked
+            (mailbox state is never mutated in test mode regardless of the
+            result).
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2255,6 +2273,10 @@ def get_dmarc_reports_from_mailbox(
     aggregate_reports: list[AggregateReport] = []
     failure_reports: list[FailureReport] = []
     smtp_tls_reports: list[SMTPTLSReport] = []
+    batch_aggregate_reports: list[AggregateReport] = []
+    batch_failure_reports: list[FailureReport] = []
+    batch_smtp_tls_reports: list[SMTPTLSReport] = []
+    batch_seen_aggregate_keys: set[str] = set()
     aggregate_report_msg_uids = []
     failure_report_msg_uids = []
     smtp_tls_msg_uids = []
@@ -2370,19 +2392,22 @@ def get_dmarc_reports_from_mailbox(
                 report_org = parsed_email["report"]["report_metadata"]["org_name"]
                 report_id = parsed_email["report"]["report_metadata"]["report_id"]
                 report_key = f"{report_org}_{report_id}"
-                if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                    SEEN_AGGREGATE_REPORT_IDS[report_key] = True
-                    aggregate_reports.append(parsed_email["report"])
+                if (
+                    report_key not in SEEN_AGGREGATE_REPORT_IDS
+                    and report_key not in batch_seen_aggregate_keys
+                ):
+                    batch_seen_aggregate_keys.add(report_key)
+                    batch_aggregate_reports.append(parsed_email["report"])
                 else:
                     logger.debug(
                         f"Skipping duplicate aggregate report with ID: {report_id}"
                     )
                 aggregate_report_msg_uids.append(message_id)
             elif parsed_email["report_type"] == "failure":
-                failure_reports.append(parsed_email["report"])
+                batch_failure_reports.append(parsed_email["report"])
                 failure_report_msg_uids.append(message_id)
             elif parsed_email["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(parsed_email["report"])
+                batch_smtp_tls_reports.append(parsed_email["report"])
                 smtp_tls_msg_uids.append(message_id)
         except ParserError as error:
             logger.warning(error.__str__())
@@ -2404,98 +2429,128 @@ def get_dmarc_reports_from_mailbox(
                     else:
                         connection.move_message(str(message_id), invalid_reports_folder)
 
-    if not test:
-        if delete:
-            processed_messages = (
-                aggregate_report_msg_uids + failure_report_msg_uids + smtp_tls_msg_uids
-            )
+    batch_results: ParsingResults = {
+        "aggregate_reports": batch_aggregate_reports,
+        "failure_reports": batch_failure_reports,
+        "smtp_tls_reports": batch_smtp_tls_reports,
+    }
+    persisted = True
+    if save_callback is not None:
+        persisted = save_callback(batch_results) is not False
 
-            number_of_processed_msgs = len(processed_messages)
-            for i in range(number_of_processed_msgs):
-                msg_uid = processed_messages[i]
-                logger.debug(
-                    "Deleting message {0} of {1}: UID {2}".format(
-                        i + 1, number_of_processed_msgs, msg_uid
-                    )
+    if persisted:
+        for key in batch_seen_aggregate_keys:
+            SEEN_AGGREGATE_REPORT_IDS[key] = True
+        if not test:
+            if delete:
+                processed_messages = (
+                    aggregate_report_msg_uids
+                    + failure_report_msg_uids
+                    + smtp_tls_msg_uids
                 )
-                try:
-                    connection.delete_message(msg_uid)
 
-                except Exception as e:
-                    message = "Error deleting message UID"
-                    e = "{0} {1}: {2}".format(message, msg_uid, e)
-                    logger.error("Mailbox error: {0}".format(e))
-        else:
-            if len(aggregate_report_msg_uids) > 0:
-                log_message = "Moving aggregate report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(
-                        log_message, reports_folder, aggregate_reports_folder
-                    )
-                )
-                number_of_agg_report_msgs = len(aggregate_report_msg_uids)
-                for i in range(number_of_agg_report_msgs):
-                    msg_uid = aggregate_report_msg_uids[i]
+                number_of_processed_msgs = len(processed_messages)
+                for i in range(number_of_processed_msgs):
+                    msg_uid = processed_messages[i]
                     logger.debug(
-                        "Moving message {0} of {1}: UID {2}".format(
-                            i + 1, number_of_agg_report_msgs, msg_uid
+                        "Deleting message {0} of {1}: UID {2}".format(
+                            i + 1, number_of_processed_msgs, msg_uid
                         )
                     )
                     try:
-                        connection.move_message(msg_uid, aggregate_reports_folder)
+                        connection.delete_message(msg_uid)
+
                     except Exception as e:
-                        message = "Error moving message UID"
+                        message = "Error deleting message UID"
                         e = "{0} {1}: {2}".format(message, msg_uid, e)
                         logger.error("Mailbox error: {0}".format(e))
-            if len(failure_report_msg_uids) > 0:
-                message = "Moving failure report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(
-                        message, reports_folder, failure_reports_folder
-                    )
-                )
-                number_of_failure_msgs = len(failure_report_msg_uids)
-                for i in range(number_of_failure_msgs):
-                    msg_uid = failure_report_msg_uids[i]
-                    message = "Moving message"
+            else:
+                if len(aggregate_report_msg_uids) > 0:
+                    log_message = "Moving aggregate report messages from"
                     logger.debug(
-                        "{0} {1} of {2}: UID {3}".format(
-                            message, i + 1, number_of_failure_msgs, msg_uid
+                        "{0} {1} to {2}".format(
+                            log_message, reports_folder, aggregate_reports_folder
                         )
                     )
-                    try:
-                        connection.move_message(msg_uid, failure_reports_folder)
-                    except Exception as e:
-                        e = "Error moving message UID {0}: {1}".format(msg_uid, e)
-                        logger.error("Mailbox error: {0}".format(e))
-            if len(smtp_tls_msg_uids) > 0:
-                message = "Moving SMTP TLS report messages from"
-                logger.debug(
-                    "{0} {1} to {2}".format(
-                        message, reports_folder, smtp_tls_reports_folder
-                    )
-                )
-                number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
-                for i in range(number_of_smtp_tls_uids):
-                    msg_uid = smtp_tls_msg_uids[i]
-                    message = "Moving message"
+                    number_of_agg_report_msgs = len(aggregate_report_msg_uids)
+                    for i in range(number_of_agg_report_msgs):
+                        msg_uid = aggregate_report_msg_uids[i]
+                        logger.debug(
+                            "Moving message {0} of {1}: UID {2}".format(
+                                i + 1, number_of_agg_report_msgs, msg_uid
+                            )
+                        )
+                        try:
+                            connection.move_message(msg_uid, aggregate_reports_folder)
+                        except Exception as e:
+                            message = "Error moving message UID"
+                            e = "{0} {1}: {2}".format(message, msg_uid, e)
+                            logger.error("Mailbox error: {0}".format(e))
+                if len(failure_report_msg_uids) > 0:
+                    message = "Moving failure report messages from"
                     logger.debug(
-                        "{0} {1} of {2}: UID {3}".format(
-                            message, i + 1, number_of_smtp_tls_uids, msg_uid
+                        "{0} {1} to {2}".format(
+                            message, reports_folder, failure_reports_folder
                         )
                     )
-                    try:
-                        connection.move_message(msg_uid, smtp_tls_reports_folder)
-                    except Exception as e:
-                        e = "Error moving message UID {0}: {1}".format(msg_uid, e)
-                        logger.error("Mailbox error: {0}".format(e))
+                    number_of_failure_msgs = len(failure_report_msg_uids)
+                    for i in range(number_of_failure_msgs):
+                        msg_uid = failure_report_msg_uids[i]
+                        message = "Moving message"
+                        logger.debug(
+                            "{0} {1} of {2}: UID {3}".format(
+                                message, i + 1, number_of_failure_msgs, msg_uid
+                            )
+                        )
+                        try:
+                            connection.move_message(msg_uid, failure_reports_folder)
+                        except Exception as e:
+                            e = "Error moving message UID {0}: {1}".format(msg_uid, e)
+                            logger.error("Mailbox error: {0}".format(e))
+                if len(smtp_tls_msg_uids) > 0:
+                    message = "Moving SMTP TLS report messages from"
+                    logger.debug(
+                        "{0} {1} to {2}".format(
+                            message, reports_folder, smtp_tls_reports_folder
+                        )
+                    )
+                    number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
+                    for i in range(number_of_smtp_tls_uids):
+                        msg_uid = smtp_tls_msg_uids[i]
+                        message = "Moving message"
+                        logger.debug(
+                            "{0} {1} of {2}: UID {3}".format(
+                                message, i + 1, number_of_smtp_tls_uids, msg_uid
+                            )
+                        )
+                        try:
+                            connection.move_message(msg_uid, smtp_tls_reports_folder)
+                        except Exception as e:
+                            e = "Error moving message UID {0}: {1}".format(msg_uid, e)
+                            logger.error("Mailbox error: {0}".format(e))
+    else:
+        batch_msg_count = (
+            len(aggregate_report_msg_uids)
+            + len(failure_report_msg_uids)
+            + len(smtp_tls_msg_uids)
+        )
+        logger.warning(
+            "Results were not confirmed saved; leaving %d messages in %s for retry",
+            batch_msg_count,
+            reports_folder,
+        )
+
+    aggregate_reports += batch_aggregate_reports
+    failure_reports += batch_failure_reports
+    smtp_tls_reports += batch_smtp_tls_reports
+
     results = {
         "aggregate_reports": aggregate_reports,
         "failure_reports": failure_reports,
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    if not test and not batch_size:
+    if persisted and not test and not batch_size:
         if current_time:
             total_messages = len(
                 connection.fetch_messages(reports_folder, since=current_time)
@@ -2525,6 +2580,7 @@ def get_dmarc_reports_from_mailbox(
             offline=offline,
             since=current_time,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+            save_callback=save_callback,
         )
 
     return results
@@ -2559,7 +2615,15 @@ def watch_inbox(
 
     Args:
         mailbox_connection: The mailbox connection object
-        callback: The callback function to receive the parsing results
+        callback: The callback function to receive the parsing results.
+            Passed to ``get_dmarc_reports_from_mailbox()`` as
+            ``save_callback``, so it now runs once per fetched batch
+            *before* that batch's messages are deleted or moved out of
+            ``reports_folder``, rather than being invoked afterward.
+            Returning ``False`` leaves the batch's messages in place and
+            defers the dedup-cache update, so they are retried on the
+            next check instead of being lost; raising also leaves the
+            messages untouched and propagates the exception.
         reports_folder (str): The IMAP folder where reports can be found
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete  messages after processing them
@@ -2588,7 +2652,7 @@ def watch_inbox(
     """
 
     def check_callback(connection):
-        res = get_dmarc_reports_from_mailbox(
+        get_dmarc_reports_from_mailbox(
             connection=connection,
             reports_folder=reports_folder,
             archive_folder=archive_folder,
@@ -2607,8 +2671,8 @@ def watch_inbox(
             since=since,
             create_folders=False,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+            save_callback=callback,
         )
-        callback(res)
 
     watch_kwargs: dict = {
         "check_callback": check_callback,

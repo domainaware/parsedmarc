@@ -168,11 +168,20 @@ aws_service = aoss
     ):
         """CLI should exit with code 1 when fail_on_output_error is enabled"""
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
+        reports_dict = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
+
+        def _fetch_and_save(**kwargs):
+            # Simulate the real get_dmarc_reports_from_mailbox contract:
+            # save_callback is invoked with the batch before this function
+            # returns.
+            kwargs["save_callback"](reports_dict)
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "simulated output failure"
         )
@@ -218,11 +227,17 @@ hosts = localhost
         mock_save_aggregate,
     ):
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
+        reports_dict = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
+
+        def _fetch_and_save(**kwargs):
+            kwargs["save_callback"](reports_dict)
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "simulated output failure"
         )
@@ -274,11 +289,17 @@ hosts = localhost
         mock_save_failure_opensearch,
     ):
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
+        reports_dict = {
             "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
             "failure_reports": [{"reported_domain": "example.com"}],
             "smtp_tls_reports": [],
         }
+
+        def _fetch_and_save(**kwargs):
+            kwargs["save_callback"](reports_dict)
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "aggregate sink failed"
         )
@@ -317,6 +338,74 @@ hosts = localhost
         self.assertEqual(ctx.exception.code, 1)
         mock_save_aggregate.assert_called_once()
         mock_save_failure_opensearch.assert_called_once()
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSingleShotMailboxSaveCallbackReflectsOutputErrors(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """The save_callback the single-shot path passes to
+        get_dmarc_reports_from_mailbox is a callable that reports whether
+        the batch was actually saved: truthy when process_reports recorded
+        no output errors, False when it did. This is the contract
+        get_dmarc_reports_from_mailbox relies on to decide whether it is
+        safe to archive/delete the batch's mailbox messages."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        config = """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        save_callback = mock_get_reports.call_args.kwargs.get("save_callback")
+        self.assertTrue(callable(save_callback))
+
+        passing_batch = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        self.assertIsNot(save_callback(passing_batch), False)
+
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+        failing_batch = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        self.assertFalse(save_callback(failing_batch))
 
     def test_resolve_section_key_simple(self):
         """Simple section names resolve correctly."""
@@ -945,6 +1034,54 @@ since = 2d
 
         self.assertEqual(system_exit.exception.code, 1)
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testWatchCallbackIsSameAdapterAsSingleShotSaveCallback(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_mailbox_reports
+    ):
+        """watch_inbox's callback must be the exact same save-then-report
+        adapter passed as save_callback to the single-shot mailbox fetch,
+        not process_reports directly -- otherwise watch mode would still
+        archive/delete messages before confirming the save, which is the
+        data-loss bug this feature fixes (#242)."""
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+"""
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        single_shot_save_callback = mock_get_mailbox_reports.call_args.kwargs.get(
+            "save_callback"
+        )
+        watch_callback = mock_watch_inbox.call_args.kwargs.get("callback")
+        self.assertTrue(callable(single_shot_save_callback))
+        self.assertIs(watch_callback, single_shot_save_callback)
 
 
 class TestMailboxPerformance(unittest.TestCase):
@@ -2528,7 +2665,7 @@ class TestIndexPrefixDomainMapTlsFiltering(unittest.TestCase):
     ):
         """TLS reports for domains not in the map should be silently dropped."""
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
+        reports_dict = {
             "aggregate_reports": [],
             "failure_reports": [],
             "smtp_tls_reports": [
@@ -2580,6 +2717,12 @@ class TestIndexPrefixDomainMapTlsFiltering(unittest.TestCase):
             ],
         }
 
+        def _fetch_and_save(**kwargs):
+            kwargs["save_callback"](reports_dict)
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
+
         domain_map = {"tenant_a": ["example.com"]}
         with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
             import yaml
@@ -2612,6 +2755,135 @@ password = test-password
         tls_reports = output["smtp_tls_reports"]
         self.assertEqual(len(tls_reports), 2)
         report_ids = {r["report_id"] for r in tls_reports}
+        self.assertIn("allowed-1", report_ids)
+        self.assertIn("mixed-case-1", report_ids)
+        self.assertNotIn("unmapped-1", report_ids)
+
+    @patch("parsedmarc.cli.email_results")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testTlsReportsFilteredForEmailResults(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        mock_email_results,
+    ):
+        """The shared parsing_results dict handed to email_results() must
+        be filtered by index_prefix_domain_map exactly like the batches
+        process_reports() actually saves.
+
+        Regression test: get_dmarc_reports_from_mailbox() builds its
+        returned results independently of whatever process_reports()
+        mutated inside save_callback's batch dict, so filtering applied
+        only inside process_reports() never reached the parsing_results
+        copy that feeds email_results(). The mock mirrors that by handing
+        save_callback a *copy* of the TLS reports (so process_reports()'s
+        in-place filtering can't leak back) while mock_get_reports still
+        returns the full, unfiltered set — matching production, where the
+        mailbox function's return value is built from the accumulated
+        report lists, not from the batch dict passed to save_callback."""
+        mock_imap_connection.return_value = object()
+        reports_dict = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [
+                {
+                    "organization_name": "Allowed Org",
+                    "begin_date": "2024-01-01T00:00:00Z",
+                    "end_date": "2024-01-01T23:59:59Z",
+                    "report_id": "allowed-1",
+                    "contact_info": "tls@allowed.example.com",
+                    "policies": [
+                        {
+                            "policy_domain": "allowed.example.com",
+                            "policy_type": "sts",
+                            "successful_session_count": 1,
+                            "failed_session_count": 0,
+                        }
+                    ],
+                },
+                {
+                    "organization_name": "Unmapped Org",
+                    "begin_date": "2024-01-01T00:00:00Z",
+                    "end_date": "2024-01-01T23:59:59Z",
+                    "report_id": "unmapped-1",
+                    "contact_info": "tls@unmapped.example.net",
+                    "policies": [
+                        {
+                            "policy_domain": "unmapped.example.net",
+                            "policy_type": "sts",
+                            "successful_session_count": 5,
+                            "failed_session_count": 0,
+                        }
+                    ],
+                },
+                {
+                    "organization_name": "Mixed Case Org",
+                    "begin_date": "2024-01-01T00:00:00Z",
+                    "end_date": "2024-01-01T23:59:59Z",
+                    "report_id": "mixed-case-1",
+                    "contact_info": "tls@mixedcase.example.com",
+                    "policies": [
+                        {
+                            "policy_domain": "MixedCase.Example.Com",
+                            "policy_type": "sts",
+                            "successful_session_count": 2,
+                            "failed_session_count": 0,
+                        }
+                    ],
+                },
+            ],
+        }
+
+        def _fetch_and_save(**kwargs):
+            batch = {
+                "aggregate_reports": list(reports_dict["aggregate_reports"]),
+                "failure_reports": list(reports_dict["failure_reports"]),
+                "smtp_tls_reports": list(reports_dict["smtp_tls_reports"]),
+            }
+            kwargs["save_callback"](batch)
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
+
+        domain_map = {"tenant_a": ["example.com"]}
+        with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
+            import yaml
+
+            yaml.dump(domain_map, map_file)
+            map_path = map_file.name
+        self.addCleanup(lambda: os.path.exists(map_path) and os.remove(map_path))
+
+        config = f"""[general]
+save_smtp_tls = true
+silent = true
+index_prefix_domain_map = {map_path}
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        with NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        mock_email_results.assert_called_once()
+        emailed_results = mock_email_results.call_args.args[0]
+        tls_reports = emailed_results["smtp_tls_reports"]
+        report_ids = {r["report_id"] for r in tls_reports}
+        self.assertEqual(len(tls_reports), 2)
         self.assertIn("allowed-1", report_ids)
         self.assertIn("mixed-case-1", report_ids)
         self.assertNotIn("unmapped-1", report_ids)
@@ -3421,15 +3693,21 @@ host = db.example.com
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
 
         report = {"policy_published": {"domain": "example.com"}, "records": []}
+        reports_dict = {
+            "aggregate_reports": [report],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        def _fetch_and_save(**kwargs):
+            kwargs["save_callback"](reports_dict)
+            return reports_dict
+
         with (
             patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
             patch(
                 "parsedmarc.cli.get_dmarc_reports_from_mailbox",
-                return_value={
-                    "aggregate_reports": [report],
-                    "failure_reports": [],
-                    "smtp_tls_reports": [],
-                },
+                side_effect=_fetch_and_save,
             ),
             patch("parsedmarc.cli.IMAPConnection", return_value=object()),
             patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
@@ -3467,11 +3745,18 @@ host = db.example.com
             config_path = config_file.name
         self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
 
+        def _fetch_and_save(**kwargs):
+            # Simulate the real get_dmarc_reports_from_mailbox contract:
+            # save_callback is invoked with the batch before this function
+            # returns.
+            kwargs["save_callback"](reports)
+            return reports
+
         with (
             patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
             patch(
                 "parsedmarc.cli.get_dmarc_reports_from_mailbox",
-                return_value=reports,
+                side_effect=_fetch_and_save,
             ),
             patch("parsedmarc.cli.IMAPConnection", return_value=object()),
             patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),

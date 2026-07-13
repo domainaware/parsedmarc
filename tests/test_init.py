@@ -2803,6 +2803,110 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
         self.assertFalse(conn.folder_exists("Archive/Failure"))
 
+    def test_failed_save_callback_leaves_messages_in_inbox(self):
+        """A save_callback returning False leaves the batch's messages in
+        the INBOX untouched, but the parsed reports are still returned to
+        the caller."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(save_callback=lambda batch: False)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_failed_save_then_retry_is_not_deduplicated(self):
+        """A failed save must not poison the aggregate-report dedup cache:
+        the message stays in the INBOX and, on retry, the same report is
+        parsed and handed to save_callback again rather than being
+        silently skipped as a duplicate."""
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=lambda batch: False)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        received = []
+
+        def _record(batch):
+            received.append(batch)
+            return None
+
+        conn, result = self._run(save_callback=_record)
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+    def test_save_callback_exception_leaves_messages(self):
+        """An exception raised by save_callback propagates and leaves the
+        batch's messages untouched, since the delete/move logic runs only
+        after the callback returns."""
+        self._deliver(self.AGGREGATE)
+
+        def _boom(batch):
+            raise RuntimeError("sink is down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=_boom)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_successful_save_callback_archives_messages(self):
+        """A save_callback returning None (or any non-False value) commits
+        the batch exactly as when no callback is supplied, and is invoked
+        with that batch's parsed reports before archiving happens."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+
+        received = []
+
+        def _record(batch):
+            received.append(batch)
+            return None
+
+        conn, result = self._run(save_callback=_record)
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(received[0]["failure_reports"]), 1)
+        self.assertEqual(len(received[0]["smtp_tls_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+
+    def test_failed_save_callback_with_delete_does_not_delete(self):
+        """delete=True does not bypass the save_callback contract: a
+        failing save leaves the message in place instead of deleting it."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(delete=True, save_callback=lambda batch: False)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_invalid_message_still_filed_when_save_fails(self):
+        """An unparseable message carries no report data, so it is filed to
+        Archive/Invalid regardless of save_callback's outcome; only the
+        successfully-parsed report's message is held back for retry."""
+        self._deliver(self.JUNK)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=lambda batch: False)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
 
 class TestEmailResultsErrorBranches(unittest.TestCase):
     """email_results requires mail_to to be a list — this is enforced

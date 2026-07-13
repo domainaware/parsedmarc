@@ -164,6 +164,20 @@ The full set of configuration options are:
   - `fail_on_output_error` - bool: Exit with a non-zero status code if
       any configured output destination fails while saving/publishing
       reports (Default: `False`)
+
+    :::{note}
+    Independent of this option, when reports come from a mailbox and
+    any output destination fails to save a batch, that batch's
+    messages are always left in place in the mailbox for retry on the
+    next run or poll, instead of being archived or deleted. This
+    option only controls the process exit code, not whether mailbox
+    messages are retained. If `mailbox.since` is configured, a
+    message old enough to fall outside that window will stop being
+    fetched and thus stop being retried automatically once the
+    window moves past it — the message itself is never deleted or
+    lost, but automatic retry requires it to still be within the
+    configured since-window.
+    :::
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of process to run in parallel when
       parsing in CLI mode (Default: `1`)
