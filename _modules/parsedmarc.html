@@ -5,16 +5,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc &mdash; parsedmarc 10.2.0 documentation</title>
+  <title>parsedmarc &mdash; parsedmarc 10.2.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d0f31c56"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=43731225"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -864,7 +864,7 @@
 <div class="viewcode-block" id="parse_aggregate_report_xml">
 <a class="viewcode-back" href="../api.html#parsedmarc.parse_aggregate_report_xml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_aggregate_report_xml</span><span class="p">(</span>
-    <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -880,7 +880,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses a DMARC XML report string and returns a consistent dict</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        xml (str): A string of DMARC aggregate report XML</span>
+<span class="sd">        xml (str | bytes): DMARC aggregate report XML (bytes are decoded</span>
+<span class="sd">            with errors ignored)</span>
 <span class="sd">        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP</span>
 <span class="sd">        always_use_local_files (bool): Do not download files</span>
 <span class="sd">        reverse_dns_map_path (str): Path to a reverse DNS map file</span>
@@ -1222,9 +1223,6 @@
                 <span class="n">header</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">header_raw</span><span class="p">)</span>
                 <span class="n">remainder</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                 <span class="n">file_object</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">remainder</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="n">file_object</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;Invalid report content&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">header</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">MAGIC_ZIP</span><span class="p">)]</span> <span class="o">==</span> <span class="n">MAGIC_ZIP</span><span class="p">:</span>
             <span class="n">_zip</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file_object</span><span class="p">)</span>

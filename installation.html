@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; parsedmarc 10.2.0 documentation</title>
+  <title>Installation &mdash; parsedmarc 10.2.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=d0f31c56"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=43731225"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -195,12 +195,26 @@ sudo<span class="w"> </span>cpan<span class="w"> </span>-i<span class="w"> </spa
 </section>
 <section id="using-maxmind-geolite2-optional">
 <h2>Using MaxMind GeoLite2 (optional)<a class="headerlink" href="#using-maxmind-geolite2-optional" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> will pick up the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> if
-it is installed at one of the standard system paths (e.g.
-<code class="docutils literal notranslate"><span class="pre">/usr/share/GeoIP/GeoLite2-Country.mmdb</span></code>,
-<code class="docutils literal notranslate"><span class="pre">/var/lib/GeoIP/GeoLite2-Country.mmdb</span></code>, or the equivalent location on
-Windows). <strong>Use this only if you specifically prefer MaxMind data over
-the bundled IPinfo Lite database — most users do not need it.</strong></p>
+<p>To use the <a class="reference external" href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind GeoLite2 Country database</a> instead of the bundled
+IPinfo Lite database, point the <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> option at it explicitly:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[general]</span>
+<span class="na">ip_db_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/usr/share/GeoIP/GeoLite2-Country.mmdb</span>
+</pre></div>
+</div>
+<p><strong>Use this only if you specifically prefer MaxMind data over the
+bundled IPinfo Lite database — most users do not need it.</strong> Country
+databases like GeoLite2 carry no ASN data, so source attribution for
+IP addresses without reverse DNS is reduced when one is used.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>parsedmarc no longer picks up a GeoLite2/DBIP database from standard
+system paths (e.g. <code class="docutils literal notranslate"><span class="pre">/usr/share/GeoIP/GeoLite2-Country.mmdb</span></code>)
+automatically — a GeoIP file installed by an unrelated distro package
+would silently override the bundled database and disable ASN
+enrichment. System paths are now only consulted as a last resort when
+the bundled database is missing. If you previously relied on the
+automatic pickup, set <code class="docutils literal notranslate"><span class="pre">ip_db_path</span></code> as shown above.</p>
+</div>
 <p>Install <a class="reference external" href="https://github.com/maxmind/geoipupdate">geoipupdate</a> for your platform:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Debian 10+ (requires the contrib component in apt sources)</span>
 sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>geoipupdate

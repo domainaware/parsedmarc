@@ -5,16 +5,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.splunk &mdash; parsedmarc 10.2.0 documentation</title>
+  <title>parsedmarc.splunk &mdash; parsedmarc 10.2.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d0f31c56"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=43731225"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -211,8 +211,10 @@
                     <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;spf_results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;auth_results&quot;</span><span class="p">][</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
 
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:aggregate&quot;</span>
+                <span class="c1"># interval_begin is a UTC wall-clock string; assume_utc keeps</span>
+                <span class="c1"># it from being re-interpreted as local time on non-UTC hosts.</span>
                 <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
-                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">]</span>
+                    <span class="n">new_report</span><span class="p">[</span><span class="s2">&quot;interval_begin&quot;</span><span class="p">],</span> <span class="n">assume_utc</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
                 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -255,7 +257,11 @@
         <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">failure_reports</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_common_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sourcetype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dmarc:failure&quot;</span>
-            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">])</span>
+            <span class="c1"># arrival_date_utc is a UTC wall-clock string; assume_utc keeps</span>
+            <span class="c1"># it from being re-interpreted as local time on non-UTC hosts.</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
+                <span class="n">report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">],</span> <span class="n">assume_utc</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">json_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>

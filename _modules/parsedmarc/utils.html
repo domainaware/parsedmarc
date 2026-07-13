@@ -5,16 +5,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 10.2.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 10.2.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d0f31c56"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=43731225"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -104,11 +104,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">mailparser</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">expiringdict</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExpiringDict</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="c1"># Try backported to PY&lt;3 `importlib_resources`</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">files</span>
 
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">dns.exception</span>
@@ -476,7 +472,7 @@
 <div class="viewcode-block" id="human_timestamp_to_datetime">
 <a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_datetime">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">human_timestamp_to_datetime</span><span class="p">(</span>
-    <span class="n">human_timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">to_utc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">human_timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">to_utc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">assume_utc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a Python ``datetime`` object</span>
@@ -484,6 +480,11 @@
 <span class="sd">    Args:</span>
 <span class="sd">        human_timestamp (str): A timestamp string</span>
 <span class="sd">        to_utc (bool): Convert the timestamp to UTC</span>
+<span class="sd">        assume_utc (bool): Treat a timestamp that carries no UTC offset as</span>
+<span class="sd">            UTC wall-clock time instead of local time. Pass this when the</span>
+<span class="sd">            string is known to be UTC (e.g. an ``arrival_date_utc`` value);</span>
+<span class="sd">            otherwise naive results are interpreted as local time by</span>
+<span class="sd">            ``datetime.astimezone()`` / ``datetime.timestamp()``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        datetime: The converted timestamp</span>
@@ -493,28 +494,40 @@
     <span class="n">human_timestamp</span> <span class="o">=</span> <span class="n">parenthesis_regex</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">human_timestamp</span><span class="p">)</span>
 
     <span class="n">dt</span> <span class="o">=</span> <span class="n">parse_date</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">assume_utc</span> <span class="ow">and</span> <span class="n">dt</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="k">if</span> <span class="n">to_utc</span> <span class="k">else</span> <span class="n">dt</span></div>
 
 
 
 <div class="viewcode-block" id="human_timestamp_to_unix_timestamp">
 <a class="viewcode-back" href="../../api.html#parsedmarc.utils.human_timestamp_to_unix_timestamp">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">human_timestamp_to_unix_timestamp</span><span class="p">(</span>
+    <span class="n">human_timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">assume_utc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Converts a human-readable timestamp into a UNIX timestamp</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format</span>
+<span class="sd">        assume_utc (bool): Treat a timestamp that carries no UTC offset as</span>
+<span class="sd">            UTC wall-clock time instead of local time</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        float: The converted timestamp</span>
+<span class="sd">        int: The converted timestamp</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">human_timestamp</span> <span class="o">=</span> <span class="n">human_timestamp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span></div>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span>
+        <span class="n">human_timestamp_to_datetime</span><span class="p">(</span><span class="n">human_timestamp</span><span class="p">,</span> <span class="n">assume_utc</span><span class="o">=</span><span class="n">assume_utc</span><span class="p">)</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+    <span class="p">)</span></div>
 
 
 
 <span class="n">_IP_DB_PATH</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># The last database path logged by _get_ip_database_path(), so the</span>
+<span class="c1"># selection is logged when it changes rather than on every lookup.</span>
+<span class="n">_LAST_LOGGED_IP_DB_PATH</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="load_ip_db">
@@ -639,12 +652,11 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_IPINFO_API_TOKEN</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">probe</span><span class="p">:</span>
         <span class="k">return</span>
 
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">_ipinfo_api_lookup</span><span class="p">(</span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">InvalidIPinfoAPIKey</span><span class="p">:</span>
-        <span class="k">raise</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;IPinfo API probe failed (will fall back per-request): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># _ipinfo_api_lookup() raises InvalidIPinfoAPIKey on 401/403 (which</span>
+    <span class="c1"># must propagate) and returns None on any other failure — network</span>
+    <span class="c1"># errors, non-2xx responses, malformed bodies.</span>
+    <span class="k">if</span> <span class="n">_ipinfo_api_lookup</span><span class="p">(</span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;IPinfo API probe failed (will fall back per-request)&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;IPinfo API configured&quot;</span><span class="p">)</span></div>
 
@@ -740,6 +752,12 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_ip_database_path</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Last-resort fallbacks for unusual installs where the bundled database</span>
+    <span class="c1"># is missing. Country-only databases (GeoLite2 / DBIP) lack the ASN</span>
+    <span class="c1"># fields source attribution depends on, so an incidental system GeoIP</span>
+    <span class="c1"># file must never shadow the parsedmarc-managed database</span>
+    <span class="c1"># (https://github.com/domainaware/parsedmarc/issues/810). To use</span>
+    <span class="c1"># MaxMind or DBIP data deliberately, set the ip_db_path option.</span>
     <span class="n">db_paths</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">,</span>
         <span class="s2">&quot;GeoLite2-Country.mmdb&quot;</span><span class="p">,</span>
@@ -763,19 +781,35 @@
         <span class="p">)</span>
         <span class="n">db_path</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">system_path</span><span class="p">):</span>
-                <span class="n">db_path</span> <span class="o">=</span> <span class="n">system_path</span>
-                <span class="k">break</span>
+    <span class="c1"># The database parsedmarc manages takes precedence: the one selected by</span>
+    <span class="c1"># load_ip_db() (downloaded, cached, or bundled), or the bundled copy</span>
+    <span class="c1"># directly for library callers that never call load_ip_db().</span>
+    <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_IP_DB_PATH</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">db_path</span> <span class="o">=</span> <span class="n">_IP_DB_PATH</span>
 
     <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">_IP_DB_PATH</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="n">_IP_DB_PATH</span>
+        <span class="n">bundled_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">ipinfo</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">bundled_path</span><span class="p">):</span>
+            <span class="n">db_path</span> <span class="o">=</span> <span class="n">bundled_path</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">db_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
-                <span class="n">files</span><span class="p">(</span><span class="n">parsedmarc</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">ipinfo</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;ipinfo_lite.mmdb&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">system_path</span> <span class="ow">in</span> <span class="n">db_paths</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">system_path</span><span class="p">):</span>
+                    <span class="n">db_path</span> <span class="o">=</span> <span class="n">system_path</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Nothing found anywhere; use the bundled path so the</span>
+                <span class="c1"># os.stat() below raises a FileNotFoundError naming the</span>
+                <span class="c1"># expected install location.</span>
+                <span class="n">db_path</span> <span class="o">=</span> <span class="n">bundled_path</span>
+
+    <span class="k">global</span> <span class="n">_LAST_LOGGED_IP_DB_PATH</span>
+    <span class="k">if</span> <span class="n">db_path</span> <span class="o">!=</span> <span class="n">_LAST_LOGGED_IP_DB_PATH</span><span class="p">:</span>
+        <span class="c1"># Log per selected path, not per lookup — this function runs on</span>
+        <span class="c1"># every uncached IP lookup and would flood --debug output.</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using IP database at </span><span class="si">{</span><span class="n">db_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">_LAST_LOGGED_IP_DB_PATH</span> <span class="o">=</span> <span class="n">db_path</span>
 
     <span class="n">db_age</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">db_age</span> <span class="o">&gt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
@@ -1278,10 +1312,11 @@
                     <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">received</span><span class="p">[</span><span class="s2">&quot;date_utc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s2">&quot;from&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">&quot;From&quot;</span> <span class="ow">in</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">]:</span>
-            <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;Headers&quot;</span><span class="p">][</span><span class="s2">&quot;From&quot;</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># mailparser omits &quot;from&quot; from mail_json when the From header is</span>
+        <span class="c1"># present but unparseable (e.g. an empty &quot;From:&quot;); headers_json may</span>
+        <span class="c1"># still carry a &quot;From&quot; entry, which can be an empty list — treat</span>
+        <span class="c1"># that the same as a missing header.</span>
+        <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;From&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parse_email_address</span><span class="p">(</span><span class="n">parsed_email</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
