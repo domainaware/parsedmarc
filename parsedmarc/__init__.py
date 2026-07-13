@@ -30,7 +30,6 @@ from typing import (
 )
 
 import lxml.etree as etree
-import mailparser
 import xmltodict
 from expiringdict import ExpiringDict
 from mailsuite.smtp import send_email
@@ -57,6 +56,7 @@ from parsedmarc.types import (
     SMTPTLSReport,
 )
 from parsedmarc.utils import (
+    _mailparser_parse_from_string,
     convert_outlook_msg,
     get_base_domain,
     get_ip_address_info,
@@ -1742,7 +1742,7 @@ def parse_report_email(
         else:
             input_str = input_data
 
-        msg = mailparser.parse_from_string(input_str)
+        msg = _mailparser_parse_from_string(input_str)
         msg_headers = json.loads(msg.headers_json)
         if "Date" in msg_headers:
             msg_date = human_timestamp_to_datetime(msg_headers["Date"])

@@ -6,6 +6,10 @@
 
 - **Migrated the Elasticsearch output to the elasticsearch-py 8.x client** ([#806](https://github.com/domainaware/parsedmarc/issues/806)): the `elasticsearch-dsl` dependency is gone (the DSL is bundled in the client as `elasticsearch.dsl` since 8.18), and the new pin `elasticsearch>=8.18,<9` no longer forces `urllib3<2` — installs can now resolve urllib3 2.x. **Elasticsearch 7.x servers are no longer supported** (the 8.x client supports ES 8.x and 9.x servers). **OpenSearch users who were pointing the `[elasticsearch]` config section at an OpenSearch cluster must switch to the `[opensearch]` section** (the 8.x client's product check rejects OpenSearch). Also removed the dead ES 6-era `published_policy.fo` index migration in `migrate_indexes()` (unreachable via the 8.x client; the function remains as a no-op for API compatibility).
 
+### Bug fixes
+
+- **An outdated Python patch release no longer masquerades as an invalid report** ([#808](https://github.com/domainaware/parsedmarc/issues/808)). The third-party `mail-parser` package unconditionally calls `email.utils.getaddresses([...], strict=True)`, a keyword only supported on Python patch releases `>=3.10.15`, `>=3.11.10`, `>=3.12.6` (the CVE-2023-27043 hardening). On an older patch release within an otherwise-supported minor version, `mailparser.parse_from_string()` raised `TypeError: getaddresses() got an unexpected keyword argument 'strict'`, which parsedmarc's existing broad exception handlers silently turned into a generic "invalid report" error — giving no indication that the report itself was fine and the real cause was an outdated Python patch release. The `TypeError` is now caught right at the `mailparser.parse_from_string()` call sites and re-raised as an `EmailParserError` naming the Python versions required to fix it, guarded on `email.utils.supports_strict_parsing` so unrelated `TypeError`s are untouched and still propagate as before. The real fix belongs upstream in `mail-parser` ([SpamScope/mail-parser#162](https://github.com/SpamScope/mail-parser/pull/162)); this only makes the failure mode legible until that lands.
+
 ## 10.2.2
 
 ### Changes

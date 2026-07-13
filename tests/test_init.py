@@ -19,7 +19,7 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import BinaryIO, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from lxml import etree  # type: ignore[import-untyped]
 
@@ -2208,6 +2208,29 @@ This is not a DMARC report."""
         with self.assertRaises(parsedmarc.ParserError) as ctx:
             parsedmarc.parse_report_email(email_str, offline=True)
         self.assertIn("not-a-real-date", str(ctx.exception))
+
+    def testStrictKwargMessageReachesParserError(self):
+        """mail-parser's getaddresses(strict=True) TypeError on an
+        unpatched Python interpreter surfaces through parse_report_email's
+        own catch-all as a ParserError naming the required Python patch
+        releases, not a confusing generic error.
+
+        See #808.
+        """
+        with (
+            patch("email.utils.supports_strict_parsing", False),
+            patch(
+                "parsedmarc.utils.mailparser.parse_from_string",
+                side_effect=TypeError(
+                    "getaddresses() got an unexpected keyword argument 'strict'"
+                ),
+            ),
+        ):
+            with self.assertRaises(parsedmarc.ParserError) as ctx:
+                parsedmarc.parse_report_email(
+                    "From: a@b.c\nSubject: x\n\nbody", offline=True
+                )
+        self.assertIn("3.12.6", str(ctx.exception))
 
     def testFailureTextReportParses(self):
         """A valid legacy text/plain failure report parses to a failure

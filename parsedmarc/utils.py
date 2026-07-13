@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import base64
 import csv
+import email.utils
 import hashlib
 import io
 import json
 import logging
 import mailbox
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -1123,6 +1125,34 @@ def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     return rfc822
 
 
+def _mailparser_parse_from_string(data: str):
+    """Wraps mailparser.parse_from_string(), turning the TypeError caused
+    by mail-parser unconditionally passing strict=True to
+    email.utils.getaddresses() into an actionable EmailParserError on
+    Python patch releases that don't support it yet (see
+    email.utils.supports_strict_parsing, added for CVE-2023-27043).
+    This is a mail-parser bug, not a parsedmarc one — see #808 and
+    SpamScope/mail-parser#162 — and this helper can be removed once
+    mail-parser guards the call itself."""
+    try:
+        return mailparser.parse_from_string(data)
+    except TypeError as error:
+        if "strict" in str(error) and not getattr(
+            email.utils, "supports_strict_parsing", False
+        ):
+            raise EmailParserError(
+                "Cannot parse this email because the mail-parser package "
+                "requires email.utils.getaddresses(strict=), which Python "
+                f"{platform.python_version()} does not support. Upgrade "
+                "Python to a patch release that includes the CVE-2023-27043 "
+                "email parsing fixes (>=3.10.15, >=3.11.10, or >=3.12.6). "
+                "This is an incompatibility between the mail-parser "
+                "dependency and an outdated Python patch release, not an "
+                f"invalid report or a parsedmarc bug. Original error: {error}"
+            ) from error
+        raise
+
+
 def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -> dict:
     """
     A simplified email parser
@@ -1139,7 +1169,7 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
         if is_outlook_msg(data):
             data = convert_outlook_msg(data)
         data = data.decode("utf-8", errors="replace")
-    parsed_email = mailparser.parse_from_string(data)
+    parsed_email = _mailparser_parse_from_string(data)
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()
     parsed_email["headers"] = headers

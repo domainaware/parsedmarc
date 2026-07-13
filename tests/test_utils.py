@@ -949,6 +949,65 @@ Body"""
         self.assertNotIn("sha256", attachments[0])
         self.assertEqual(attachments[0]["payload"], "!!!notb64!!!")
 
+    def testStrictKwargTypeErrorGetsClearMessage(self):
+        """mail-parser's getaddresses(strict=True) TypeError on an
+        unpatched Python interpreter is re-raised as an actionable
+        EmailParserError naming the required Python patch releases,
+        instead of surfacing as a bare TypeError.
+
+        See #808: mail-parser unconditionally calls
+        email.utils.getaddresses(strict=True), a keyword only supported
+        on Python patch releases >=3.10.15, >=3.11.10, >=3.12.6 (the
+        CVE-2023-27043 hardening). email.utils.supports_strict_parsing
+        is the stdlib's own feature-detection flag for this.
+        """
+        with (
+            patch("email.utils.supports_strict_parsing", False),
+            patch(
+                "parsedmarc.utils.mailparser.parse_from_string",
+                side_effect=TypeError(
+                    "getaddresses() got an unexpected keyword argument 'strict'"
+                ),
+            ),
+        ):
+            with self.assertRaises(parsedmarc.utils.EmailParserError) as ctx:
+                parsedmarc.utils.parse_email("From: a@b.com\r\n\r\nBody\r\n")
+        message = str(ctx.exception)
+        self.assertIn("3.10.15", message)
+        self.assertIn("3.11.10", message)
+        self.assertIn("3.12.6", message)
+        self.assertIn("mail-parser", message)
+        self.assertIsInstance(ctx.exception.__cause__, TypeError)
+
+    def testUnrelatedTypeErrorNotMisclassified(self):
+        """The strict= guard only fires for the specific mail-parser
+        TypeError on an unpatched interpreter - any other TypeError, or
+        the same message on a patched interpreter, propagates unchanged.
+        """
+        with (
+            patch("email.utils.supports_strict_parsing", False),
+            patch(
+                "parsedmarc.utils.mailparser.parse_from_string",
+                side_effect=TypeError("unrelated failure"),
+            ),
+        ):
+            with self.assertRaises(TypeError) as ctx:
+                parsedmarc.utils.parse_email("From: a@b.com\r\n\r\nBody\r\n")
+        self.assertNotIsInstance(ctx.exception, parsedmarc.utils.EmailParserError)
+
+        with (
+            patch("email.utils.supports_strict_parsing", True),
+            patch(
+                "parsedmarc.utils.mailparser.parse_from_string",
+                side_effect=TypeError(
+                    "getaddresses() got an unexpected keyword argument 'strict'"
+                ),
+            ),
+        ):
+            with self.assertRaises(TypeError) as ctx:
+                parsedmarc.utils.parse_email("From: a@b.com\r\n\r\nBody\r\n")
+        self.assertNotIsInstance(ctx.exception, parsedmarc.utils.EmailParserError)
+
 
 class TestUtilsOutlookMsg(unittest.TestCase):
     """Tests for Outlook MSG detection and conversion"""
