@@ -51,7 +51,8 @@ class _PolicyOverride(InnerDoc):
     # declaration restores the real runtime signature for the type checker.
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     type = Text()
     comment = Text()
@@ -61,7 +62,8 @@ class _PublishedPolicy(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     domain = Text()
     adkim = Text()
@@ -79,7 +81,8 @@ class _DKIMResult(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     domain = Text()
     selector = Text()
@@ -91,7 +94,8 @@ class _SPFResult(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     domain = Text()
     scope = Text()
@@ -103,7 +107,8 @@ class _AggregateReportDoc(Document):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     class Index:
         name = "dmarc_aggregate"
@@ -192,7 +197,8 @@ class _EmailAddressDoc(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     display_name = Text()
     address = Text()
@@ -202,7 +208,8 @@ class _EmailAttachmentDoc(Document):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     filename = Text()
     content_type = Text()
@@ -213,7 +220,8 @@ class _FailureSampleDoc(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     raw = Text()
     headers = Object()
@@ -255,7 +263,8 @@ class _FailureReportDoc(Document):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     class Index:
         name = "dmarc_failure"
@@ -286,7 +295,8 @@ class _SMTPTLSFailureDetailsDoc(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     result_type = Text()
     sending_mta_ip = Ip()
@@ -301,7 +311,8 @@ class _SMTPTLSPolicyDoc(InnerDoc):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     policy_domain = Text()
     policy_type = Text()
@@ -341,7 +352,8 @@ class _SMTPTLSReportDoc(Document):
     # TYPE_CHECKING __init__: see _PolicyOverride
     if TYPE_CHECKING:
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     class Index:
         name = "smtp_tls"
