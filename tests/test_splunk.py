@@ -294,6 +294,21 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
             client.save_aggregate_reports_to_splunk(_aggregate_report())
         self.assertIn("network", str(ctx.exception))
 
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX time.tzset()")
+    def test_event_time_treats_interval_begin_as_utc(self):
+        """interval_begin is a UTC wall-clock string; the HEC event
+        `time` must be its true UTC epoch regardless of the host
+        timezone. Regression test for
+        https://github.com/domainaware/parsedmarc/issues/819: the naive
+        parse used to shift the epoch by the host's UTC offset."""
+        force_tz(self)
+        client = _client()
+        client.session = MagicMock()
+        client.session.post.return_value = _ok_response()
+        client.save_aggregate_reports_to_splunk(_aggregate_report())
+        event_wrapper = json.loads(client.session.post.call_args.kwargs["data"].strip())
+        self.assertEqual(event_wrapper["time"], 1704067200)
+
 
 class TestSaveFailureReportsToSplunk(unittest.TestCase):
     def test_sends_one_event_per_report(self):
