@@ -732,7 +732,21 @@ class TestUtilsIpDbPaths(unittest.TestCase):
 
     def testMissingEverythingRaisesFileNotFoundError(self):
         """When neither the bundled database nor any system path exists,
-        the error names the expected bundled install location."""
+        the error names the expected bundled install location.
+
+        The system-path fallback list in ``_get_ip_database_path()``
+        includes real absolute paths like
+        ``/usr/share/GeoIP/GeoLite2-Country.mmdb``. On a host that
+        actually has a GeoIP package installed there (common on
+        malware-analysis / network-tooling workstations, and the same
+        file behind https://github.com/domainaware/parsedmarc/issues/810),
+        that fallback silently succeeds and no FileNotFoundError is
+        raised, regardless of the mocked bundled path or the temp cwd
+        below. ``os.path.exists`` is patched to force every system path
+        to look absent, so this test asserts the "nothing found
+        anywhere" behavior regardless of what's actually installed on
+        the machine running the suite.
+        """
         tmp_dir = tempfile.mkdtemp()
         old_cwd = os.getcwd()
         self.addCleanup(lambda: (os.chdir(old_cwd), shutil.rmtree(tmp_dir)))
@@ -741,8 +755,9 @@ class TestUtilsIpDbPaths(unittest.TestCase):
         missing = os.path.join(tmp_dir, "does-not-exist.mmdb")
         with patch("parsedmarc.utils.files") as mock_files:
             mock_files.return_value.joinpath.return_value = missing
-            with self.assertRaises(FileNotFoundError) as ctx:
-                parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
+            with patch("parsedmarc.utils.os.path.exists", return_value=False):
+                with self.assertRaises(FileNotFoundError) as ctx:
+                    parsedmarc.utils.get_ip_address_db_record("8.8.8.8")
         self.assertIn(missing, str(ctx.exception))
 
     def testOldDatabaseFileWarns(self):
