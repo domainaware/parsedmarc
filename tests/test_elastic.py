@@ -578,6 +578,30 @@ class TestSaveAggregateReport(unittest.TestCase):
         search_index = mock_search_cls.call_args.kwargs["index"]
         self.assertIn("cust_dmarc_aggregate_tenant_a*", search_index)
 
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires POSIX time.tzset()")
+    def test_interval_dates_are_utc_regardless_of_host_timezone(self):
+        """interval_begin/interval_end are UTC wall-clock strings (already
+        converted to UTC at parse time in __init__.py); the index-date
+        bucketing and stored date_begin/date_end must use their true UTC
+        epoch on any host. Regression test for
+        https://github.com/domainaware/parsedmarc/issues/819: the naive
+        parse used to shift the stored epoch (and therefore the index
+        date) by the host's UTC offset."""
+        force_tz(self)
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic._AggregateReportDoc") as mock_doc_cls,
+        ):
+            mock_index_cls.return_value.exists.return_value = True
+            save_aggregate_report_to_elasticsearch(_aggregate_report())
+            index_calls = [c.args[0] for c in mock_index_cls.call_args_list]
+        self.assertIn("dmarc_aggregate-2024-01-15", index_calls)
+        # Fixture begin_date/interval_begin is 2024-01-15 00:00:00 UTC.
+        self.assertEqual(
+            mock_doc_cls.call_args.kwargs["date_begin"].timestamp(), 1705276800
+        )
+
 
 class TestAggregateDocPassedDmarc(unittest.TestCase):
     """The _AggregateReportDoc.save() override derives passed_dmarc — the

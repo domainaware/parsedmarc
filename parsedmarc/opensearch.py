@@ -510,8 +510,12 @@ def save_aggregate_report_to_opensearch(
     )
 
     for record in aggregate_report["records"]:
-        begin_date = human_timestamp_to_datetime(record["interval_begin"], to_utc=True)
-        end_date = human_timestamp_to_datetime(record["interval_end"], to_utc=True)
+        begin_date = human_timestamp_to_datetime(
+            record["interval_begin"], to_utc=True, assume_utc=True
+        )
+        end_date = human_timestamp_to_datetime(
+            record["interval_end"], to_utc=True, assume_utc=True
+        )
         normalized_timespan = record["normalized_timespan"]
 
         if monthly_indexes:

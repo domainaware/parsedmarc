@@ -122,8 +122,10 @@ class HECClient(object):
                     new_report["spf_results"] = record["auth_results"]["spf"]
 
                 data["sourcetype"] = "dmarc:aggregate"
+                # interval_begin is a UTC wall-clock string; assume_utc keeps
+                # it from being re-interpreted as local time on non-UTC hosts.
                 timestamp = human_timestamp_to_unix_timestamp(
-                    new_report["interval_begin"]
+                    new_report["interval_begin"], assume_utc=True
                 )
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
