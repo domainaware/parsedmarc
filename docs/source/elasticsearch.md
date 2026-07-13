@@ -3,7 +3,10 @@
 To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.
 
 :::{note}
-Elasticsearch and Kibana 6 or later are required
+Elasticsearch and Kibana 8 or later are required (parsedmarc's 8.x Python
+client also supports Elasticsearch 9). OpenSearch users must use the
+`[opensearch]` configuration section instead — the Elasticsearch 8.x client
+refuses to connect to non-Elasticsearch clusters.
 :::
 
 ## Installation

@@ -1,6 +1,6 @@
 """Tests for parsedmarc.elastic
 
-Mocks at the elasticsearch-dsl SDK boundary (connections.create_connection,
+Mocks at the elasticsearch.dsl SDK boundary (connections.create_connection,
 Index, Search, Document.save) so the tests verify the parsedmarc-side
 transformation logic — document construction, index naming, deduplication
 queries, error wrapping — without needing a running Elasticsearch cluster.
@@ -16,7 +16,6 @@ from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
     create_indexes,
-    migrate_indexes,
     save_aggregate_report_to_elasticsearch,
     save_failure_report_to_elasticsearch,
     save_smtp_tls_report_to_elasticsearch,
@@ -216,11 +215,17 @@ def _populated_search():
 
 
 class TestSetHosts(unittest.TestCase):
-    """Verify the conn_params dict handed to elasticsearch-dsl
+    """Verify the conn_params dict handed to the elasticsearch-py 8.x client
     matches each documented option. Each branch corresponds to a
-    real-world deployment shape (TLS, basic auth, API key, custom CA)."""
+    real-world deployment shape (TLS, basic auth, API key, custom CA).
 
-    def test_single_host_string_normalized_to_list(self):
+    The 8.x client dropped the ``use_ssl`` / ``http_auth`` / ``timeout``
+    connection kwargs: the scheme now has to be baked into each host URL,
+    ``basic_auth`` replaces ``http_auth``, and ``request_timeout`` replaces
+    ``timeout``.
+    """
+
+    def test_single_host_url_passed_through_unchanged(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
             set_hosts("https://es:9200")
         kwargs = mock_conn.call_args.kwargs
@@ -228,27 +233,45 @@ class TestSetHosts(unittest.TestCase):
 
     def test_host_list_preserved(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
-            set_hosts(["es1:9200", "es2:9200"])
+            set_hosts(["http://es1:9200", "http://es2:9200"])
         kwargs = mock_conn.call_args.kwargs
-        self.assertEqual(kwargs["hosts"], ["es1:9200", "es2:9200"])
+        self.assertEqual(kwargs["hosts"], ["http://es1:9200", "http://es2:9200"])
 
-    def test_timeout_default_60s(self):
+    def test_bare_host_use_ssl_false_gets_http_prefix(self):
+        with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
+            set_hosts("localhost", use_ssl=False)
+        kwargs = mock_conn.call_args.kwargs
+        self.assertEqual(kwargs["hosts"], ["http://localhost"])
+        self.assertNotIn("use_ssl", kwargs)
+
+    def test_bare_host_use_ssl_true_gets_https_prefix(self):
+        with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
+            set_hosts("localhost", use_ssl=True)
+        kwargs = mock_conn.call_args.kwargs
+        self.assertEqual(kwargs["hosts"], ["https://localhost"])
+        self.assertEqual(kwargs["verify_certs"], True)
+        self.assertNotIn("use_ssl", kwargs)
+        self.assertNotIn("ca_certs", kwargs)
+
+    def test_explicit_url_passes_through_even_with_use_ssl_true(self):
+        """A host that already carries a scheme is never re-prefixed,
+        even when it disagrees with use_ssl."""
+        with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
+            set_hosts("http://example.com:9200", use_ssl=True)
+        kwargs = mock_conn.call_args.kwargs
+        self.assertEqual(kwargs["hosts"], ["http://example.com:9200"])
+
+    def test_timeout_default_60s_becomes_request_timeout(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
             set_hosts("es:9200")
-        self.assertEqual(mock_conn.call_args.kwargs["timeout"], 60.0)
+        kwargs = mock_conn.call_args.kwargs
+        self.assertEqual(kwargs["request_timeout"], 60.0)
+        self.assertNotIn("timeout", kwargs)
 
     def test_timeout_custom(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
             set_hosts("es:9200", timeout=30.0)
-        self.assertEqual(mock_conn.call_args.kwargs["timeout"], 30.0)
-
-    def test_use_ssl_enables_verify_by_default(self):
-        with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
-            set_hosts("es:9200", use_ssl=True)
-        kwargs = mock_conn.call_args.kwargs
-        self.assertEqual(kwargs["use_ssl"], True)
-        self.assertEqual(kwargs["verify_certs"], True)
-        self.assertNotIn("ca_certs", kwargs)
+        self.assertEqual(mock_conn.call_args.kwargs["request_timeout"], 30.0)
 
     def test_use_ssl_with_custom_ca(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
@@ -261,16 +284,18 @@ class TestSetHosts(unittest.TestCase):
             set_hosts("es:9200", use_ssl=True, skip_certificate_verification=True)
         self.assertEqual(mock_conn.call_args.kwargs["verify_certs"], False)
 
-    def test_username_password_sets_http_auth(self):
+    def test_username_password_sets_basic_auth(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
             set_hosts("es:9200", username="u", password="p")
-        self.assertEqual(mock_conn.call_args.kwargs["http_auth"], ("u", "p"))
+        kwargs = mock_conn.call_args.kwargs
+        self.assertEqual(kwargs["basic_auth"], ("u", "p"))
+        self.assertNotIn("http_auth", kwargs)
 
     def test_username_without_password_not_set(self):
         """Half-configured auth is suspicious enough not to send."""
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
             set_hosts("es:9200", username="u")
-        self.assertNotIn("http_auth", mock_conn.call_args.kwargs)
+        self.assertNotIn("basic_auth", mock_conn.call_args.kwargs)
 
     def test_api_key_set(self):
         with patch("parsedmarc.elastic.connections.create_connection") as mock_conn:
@@ -368,84 +393,6 @@ class TestCreateIndexesServerless(unittest.TestCase):
             )
         mock_index.settings.assert_not_called()
         mock_index.create.assert_called_once()
-
-
-# ---------------------------------------------------------------------------
-# migrate_indexes
-# ---------------------------------------------------------------------------
-
-
-class TestMigrateIndexes(unittest.TestCase):
-    """The legacy `published_policy.fo` field was mapped as `long` in
-    older indexes. migrate_indexes detects that and rebuilds the index
-    with the text/keyword shape. The branch is gnarly; a regression
-    would silently leave old data un-migrated."""
-
-    def test_no_indexes_is_noop(self):
-        migrate_indexes()  # Should not raise
-
-    def test_skips_non_existent_index(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index_cls.return_value.exists.return_value = False
-            migrate_indexes(aggregate_indexes=["missing"])
-        # exists() returned False — no field_mapping fetch.
-        mock_index_cls.return_value.get_field_mapping.assert_not_called()
-
-    def test_skips_when_doc_mapping_absent(self):
-        """An index that has 'fo' but not under the 'doc' type
-        (e.g., empty index with default mapping) is left alone."""
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            idx = mock_index_cls.return_value
-            idx.exists.return_value = True
-            idx.get_field_mapping.return_value = {"some_key": {"mappings": {}}}
-            with patch("parsedmarc.elastic.reindex") as mock_reindex:
-                migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
-        mock_reindex.assert_not_called()
-
-    def test_migrates_when_fo_is_long(self):
-        """The actual migration path: when fo is mapped as 'long',
-        a v2 index is created with the corrected mapping, data is
-        reindexed, and the old index is deleted."""
-        with (
-            patch("parsedmarc.elastic.Index") as mock_index_cls,
-            patch("parsedmarc.elastic.reindex") as mock_reindex,
-            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
-        ):
-            idx = mock_index_cls.return_value
-            idx.exists.return_value = True
-            idx.get_field_mapping.return_value = {
-                "dmarc_aggregate-2023-01-01": {
-                    "mappings": {
-                        "doc": {
-                            "published_policy.fo": {"mapping": {"fo": {"type": "long"}}}
-                        }
-                    }
-                }
-            }
-            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
-        # reindex called from old → new (v2) index.
-        mock_reindex.assert_called_once()
-        # connections.get_connection consulted to get the ES client.
-        mock_get_conn.assert_called_once()
-
-    def test_skips_when_fo_already_text(self):
-        with (
-            patch("parsedmarc.elastic.Index") as mock_index_cls,
-            patch("parsedmarc.elastic.reindex") as mock_reindex,
-        ):
-            idx = mock_index_cls.return_value
-            idx.exists.return_value = True
-            idx.get_field_mapping.return_value = {
-                "dmarc_aggregate-2024-01-01": {
-                    "mappings": {
-                        "doc": {
-                            "published_policy.fo": {"mapping": {"fo": {"type": "text"}}}
-                        }
-                    }
-                }
-            }
-            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2024-01-01"])
-        mock_reindex.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -606,7 +553,7 @@ class TestSaveAggregateReport(unittest.TestCase):
 class TestAggregateDocPassedDmarc(unittest.TestCase):
     """The _AggregateReportDoc.save() override derives passed_dmarc — the
     field dashboards filter on for DMARC pass/fail — from SPF/DKIM
-    alignment. The SDK parent (elasticsearch_dsl.Document.save) is mocked so
+    alignment. The SDK parent (elasticsearch.dsl.Document.save) is mocked so
     no cluster is needed."""
 
     def test_passed_dmarc_derived_from_alignment(self):

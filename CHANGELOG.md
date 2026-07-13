@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased
+## 10.2.3
 
-### 10.2.2
+### Changes
+
+- **Migrated the Elasticsearch output to the elasticsearch-py 8.x client** ([#806](https://github.com/domainaware/parsedmarc/issues/806)): the `elasticsearch-dsl` dependency is gone (the DSL is bundled in the client as `elasticsearch.dsl` since 8.18), and the new pin `elasticsearch>=8.18,<9` no longer forces `urllib3<2` — installs can now resolve urllib3 2.x. **Elasticsearch 7.x servers are no longer supported** (the 8.x client supports ES 8.x and 9.x servers). **OpenSearch users who were pointing the `[elasticsearch]` config section at an OpenSearch cluster must switch to the `[opensearch]` section** (the 8.x client's product check rejects OpenSearch). Also removed the dead ES 6-era `published_policy.fo` index migration in `migrate_indexes()` (unreachable via the 8.x client; the function remains as a no-op for API compatibility).
+
+## 10.2.2
+
+### Changes
 
 - Removed dead code found while extending test coverage: the unused `_SMTPTLSReportDoc.add_policy()` helpers in the Elasticsearch and OpenSearch outputs (the save paths construct policy documents directly), a no-op `failure_indexes` loop in both `migrate_indexes()` implementations (the parameter is still accepted; no failure-index migrations are currently needed), an unreachable `importlib.resources` ImportError fallback in `parsedmarc.utils` (it re-imported the same module, and `importlib.resources.files` always exists on the supported Python ≥3.10), and an unreachable "Invalid report content" guard in `extract_report()` (every input branch either assigns the file object or raises first, confirmed by pyright narrowing).
 

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from elasticsearch.helpers import reindex
-from elasticsearch_dsl import (
+from elasticsearch.dsl import (
     Boolean,
     Date,
     Document,
@@ -16,11 +15,11 @@ from elasticsearch_dsl import (
     Keyword,
     Nested,
     Object,
+    Q,
     Search,
     Text,
     connections,
 )
-from elasticsearch_dsl.search import Q
 
 from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
@@ -44,11 +43,28 @@ _SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replic
 
 
 class _PolicyOverride(InnerDoc):
+    # The elasticsearch.dsl 8.x type stubs use dataclass_transform and only
+    # surface dataclass-style annotated fields (``name: M[...] =
+    # mapped_field(...)``) as constructor parameters. This module declares
+    # fields the pre-8.x way (``name = Text()``), which the runtime fully
+    # supports via ObjectBase.__init__(**kwargs), so this TYPE_CHECKING-only
+    # declaration restores the real runtime signature for the type checker.
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     type = Text()
     comment = Text()
 
 
 class _PublishedPolicy(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     adkim = Text()
     aspf = Text()
@@ -62,6 +78,12 @@ class _PublishedPolicy(InnerDoc):
 
 
 class _DKIMResult(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     selector = Text()
     result = Text()
@@ -69,6 +91,12 @@ class _DKIMResult(InnerDoc):
 
 
 class _SPFResult(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     scope = Text()
     results = Text()
@@ -76,6 +104,12 @@ class _SPFResult(InnerDoc):
 
 
 class _AggregateReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "dmarc_aggregate"
 
@@ -118,7 +152,7 @@ class _AggregateReportDoc(Document):
     generator = Text()
 
     def add_policy_override(self, type_: str, comment: str):
-        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))  # pyright: ignore[reportCallIssue]
+        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))
 
     def add_dkim_result(
         self,
@@ -134,7 +168,7 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
 
     def add_spf_result(
         self,
@@ -150,7 +184,7 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
@@ -160,17 +194,35 @@ class _AggregateReportDoc(Document):
 
 
 class _EmailAddressDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     display_name = Text()
     address = Text()
 
 
 class _EmailAttachmentDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     filename = Text()
     content_type = Text()
     sha256 = Text()
 
 
 class _FailureSampleDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     raw = Text()
     headers = Object()
     headers_only = Boolean()
@@ -186,28 +238,34 @@ class _FailureSampleDoc(InnerDoc):
     attachments = Nested(_EmailAttachmentDoc)
 
     def add_to(self, display_name: str, address: str):
-        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_reply_to(self, display_name: str, address: str):
         self.reply_to.append(
             _EmailAddressDoc(display_name=display_name, address=address)
-        )  # pyright: ignore[reportCallIssue]
+        )
 
     def add_cc(self, display_name: str, address: str):
-        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_bcc(self, display_name: str, address: str):
-        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_attachment(self, filename: str, content_type: str, sha256: str):
         self.attachments.append(
             _EmailAttachmentDoc(
                 filename=filename, content_type=content_type, sha256=sha256
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
 
 
 class _FailureReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "dmarc_failure"
 
@@ -234,6 +292,12 @@ class _FailureReportDoc(Document):
 
 
 class _SMTPTLSFailureDetailsDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     result_type = Text()
     sending_mta_ip = Ip()
     receiving_mx_helo = Text()
@@ -244,6 +308,12 @@ class _SMTPTLSFailureDetailsDoc(InnerDoc):
 
 
 class _SMTPTLSPolicyDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     policy_domain = Text()
     policy_type = Text()
     policy_strings = Text()
@@ -275,10 +345,16 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             additional_information=additional_information_uri,
             failure_reason_code=failure_reason_code,
         )
-        self.failure_details.append(_details)  # pyright: ignore[reportCallIssue]
+        self.failure_details.append(_details)
 
 
 class _SMTPTLSReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "smtp_tls"
 
@@ -312,7 +388,9 @@ def set_hosts(
 
     Args:
         hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
-        use_ssl (bool): Use an HTTPS connection to the server
+        use_ssl (bool): Controls the scheme prepended to any host that doesn't
+            already include one (``https://`` when True, ``http://`` when
+            False). Hosts that already carry a scheme are left unchanged.
         ssl_cert_path (str): Path to the certificate chain
         skip_certificate_verification (bool): Skip certificate verification
         username (str): The username to use for authentication
@@ -329,9 +407,12 @@ def set_hosts(
     _SERVERLESS = serverless
     if not isinstance(hosts, list):
         hosts = [hosts]
-    conn_params = {"hosts": hosts, "timeout": timeout}
+    scheme = "https://" if use_ssl else "http://"
+    normalized_hosts = [
+        host if "://" in host else "{0}{1}".format(scheme, host) for host in hosts
+    ]
+    conn_params = {"hosts": normalized_hosts, "request_timeout": timeout}
     if use_ssl:
-        conn_params["use_ssl"] = True
         if ssl_cert_path:
             conn_params["ca_certs"] = ssl_cert_path
         if skip_certificate_verification:
@@ -339,7 +420,7 @@ def set_hosts(
         else:
             conn_params["verify_certs"] = True
     if username and password:
-        conn_params["http_auth"] = (username, password)
+        conn_params["basic_auth"] = (username, password)
     if api_key:
         conn_params["api_key"] = api_key
     connections.create_connection(**conn_params)
@@ -385,43 +466,21 @@ def migrate_indexes(
     """
     Updates index mappings
 
+    This is a no-op kept for API compatibility (``cli.py`` calls it on
+    startup). The only migration this function ever performed was
+    re-typing ``published_policy.fo`` from ``long`` to ``text``, which
+    applied exclusively to indices still carrying the legacy
+    Elasticsearch 6-era ``"doc"`` mapping type. The 8.x client can only
+    reach servers (Elasticsearch 8.x/9.x) whose indices were created on
+    Elasticsearch 7.x or later and are therefore typeless, so that
+    migration path is unreachable and has been removed.
+
     Args:
         aggregate_indexes (list): A list of aggregate index names
+            (accepted for API compatibility; unused)
         failure_indexes (list): A list of failure index names
-            (accepted for API compatibility; no migrations are
-            currently needed for failure indexes)
+            (accepted for API compatibility; unused)
     """
-    version = 2
-    if aggregate_indexes is None:
-        aggregate_indexes = []
-    for aggregate_index_name in aggregate_indexes:
-        if not Index(aggregate_index_name).exists():
-            continue
-        aggregate_index = Index(aggregate_index_name)
-        doc = "doc"
-        fo_field = "published_policy.fo"
-        fo = "fo"
-        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
-        fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
-        if doc not in fo_mapping:
-            continue
-
-        fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
-        fo_type = fo_mapping["type"]
-        if fo_type == "long":
-            new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
-            body = {
-                "properties": {
-                    "published_policy.fo": {
-                        "type": "text",
-                        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
-                    }
-                }
-            }
-            Index(new_index_name).create()
-            Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)  # pyright: ignore[reportArgumentType]
-            Index(aggregate_index_name).delete()
 
 
 def save_aggregate_report_to_elasticsearch(
@@ -475,7 +534,10 @@ def save_aggregate_report_to_elasticsearch(
     search = Search(index=search_index)
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
-    search.query = query
+    # elasticsearch.dsl's own docs recommend ``search.query = Q(...)``, but
+    # the ProxyDescriptor.__set__ stub is typed to accept only
+    # Dict[str, Any], not the Query object the docs tell you to assign.
+    search.query = query  # pyright: ignore[reportAttributeAccessIssue]
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -701,7 +763,7 @@ def save_failure_report_to_elasticsearch(
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
         q = q & Q(subject_query)  # pyright: ignore[reportArgumentType]
 
-    search.query = q
+    search.query = q  # pyright: ignore[reportAttributeAccessIssue]
     existing = search.execute()
 
     if len(existing) > 0:
@@ -842,7 +904,7 @@ def save_smtp_tls_report_to_elasticsearch(
     search = Search(index=search_index)
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
-    search.query = query
+    search.query = query  # pyright: ignore[reportAttributeAccessIssue]
 
     try:
         existing = search.execute()
@@ -932,7 +994,7 @@ def save_smtp_tls_report_to_elasticsearch(
                     additional_information_uri=additional_information_uri,
                     failure_reason_code=failure_reason_code,
                 )
-        smtp_tls_doc.policies.append(policy_doc)  # pyright: ignore[reportCallIssue]
+        smtp_tls_doc.policies.append(policy_doc)
 
     create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
