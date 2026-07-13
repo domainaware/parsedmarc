@@ -138,7 +138,7 @@ A test that mocks every dependency and asserts that the mocks were invoked is te
 
 Concrete patterns:
 
-- **Mock at SDK boundaries, not at internal helpers.** Patch `boto3.resource`, `kafka.KafkaProducer`, `requests.Session.post`, `elasticsearch_dsl.Document.save`, `azure.monitor.ingestion.LogsIngestionClient` — the seams where the project's code stops and an external system begins. Don't patch our own functions just to make a test "easier"; that hides bugs in the function instead of testing it.
+- **Mock at SDK boundaries, not at internal helpers.** Patch `boto3.resource`, `kafka.KafkaProducer`, `requests.Session.post`, `elasticsearch.dsl.Document.save`, `azure.monitor.ingestion.LogsIngestionClient` — the seams where the project's code stops and an external system begins. Don't patch our own functions just to make a test "easier"; that hides bugs in the function instead of testing it.
 - **Assert on what gets sent, not that something was sent.** For an output module, parse the body that was passed to the mocked transport (`json.loads(call.kwargs["data"])`, `kafka.send.call_args.args[1]`, `bucket.put_object.call_args.kwargs["Key"]`) and verify the *fields and values a dashboard or downstream consumer would actually filter on*. A test that only checks `mock.assert_called_once()` would pass even if the payload were `{}`.
 - **No trivial passthrough tests.** A test that calls a getter and asserts it returns the value just set isn't testing the code; it's testing Python's attribute machinery.
 - **No `# pragma: no cover`.** If a branch is unreachable, the right fix is to delete the branch, not to hide it.
