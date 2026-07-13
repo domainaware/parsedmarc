@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### Changes
+### 10.2.2
 
 - Removed dead code found while extending test coverage: the unused `_SMTPTLSReportDoc.add_policy()` helpers in the Elasticsearch and OpenSearch outputs (the save paths construct policy documents directly), a no-op `failure_indexes` loop in both `migrate_indexes()` implementations (the parameter is still accepted; no failure-index migrations are currently needed), an unreachable `importlib.resources` ImportError fallback in `parsedmarc.utils` (it re-imported the same module, and `importlib.resources.files` always exists on the supported Python ≥3.10), and an unreachable "Invalid report content" guard in `extract_report()` (every input branch either assigns the file object or raises first, confirmed by pyright narrowing).
 
