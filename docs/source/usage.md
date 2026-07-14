@@ -273,6 +273,11 @@ The full set of configuration options are:
     an Exchange Online-side one), Microsoft Graph SDK requests, and
     `httpx` HTTP request lines. Secret values (passwords, client
     secrets, certificate passwords) are never written to logs.
+    Connection, mailbox fetch, message send, and `--watch` failures
+    each log a single ERROR line naming the mailbox, tenant, auth
+    method, and the Graph `request-id`/`client-request-id` when
+    available — worth quoting verbatim when contacting Microsoft
+    support.
     :::
 
     :::{warning}
@@ -294,6 +299,51 @@ The full set of configuration options are:
     The same application permission and mailbox scoping guidance
     applies to the `Certificate` and `ClientAssertion` auth methods.
 
+    :::
+
+    **Sending the summary email via Microsoft Graph.**
+    When `[msgraph]` is configured and `[smtp]` has a `to` value but no
+    `host`, the periodic summary email is sent through the same
+    already-authenticated Graph mailbox connection used for reading
+    (`/users/{mailbox}/sendMail`), and a copy is saved to Sent Items.
+    When `[smtp] host` is set, SMTP is used regardless of whether
+    `[msgraph]` is also configured — SMTP is always preferred, with no
+    automatic fallback to Graph on SMTP failure.
+
+    Example config combining `[msgraph]` with a `[smtp]` section that
+    only sets `to`/`subject` (no `host`):
+
+    ```ini
+    [msgraph]
+    auth_method = Certificate
+    client_id = ...
+    tenant_id = ...
+    mailbox = dmarc-reports@example.com
+    certificate_path = /path/to/cert.pem
+
+    [smtp]
+    to = admin@example.com
+    subject = DMARC Summary
+    ```
+
+    Required Microsoft Graph permissions, in addition to the
+    reading-related permissions documented above:
+
+    | Auth method | Reading | Sending (own mailbox) | Sending (shared mailbox) |
+    |---|---|---|---|
+    | `UsernamePassword` / `DeviceCode` (delegated) | `Mail.ReadWrite` (+`.Shared` for shared) | `Mail.Send` | `Mail.Send.Shared` |
+    | `ClientSecret` / `Certificate` / `ClientAssertion` (application) | `Mail.ReadWrite` (application) | `Mail.Send` (application) | `Mail.Send` (application), scoped via `New-ApplicationAccessPolicy` |
+
+    :::{warning}
+    Graph-based sending is only confirmed to work with the app-only
+    auth methods (`ClientSecret`, `Certificate`, `ClientAssertion`).
+    The delegated auth methods (`UsernamePassword`, `DeviceCode`)
+    currently request only the `Mail.ReadWrite`(`.Shared`) scope when
+    authenticating, not `Mail.Send` — so a delegated connection's
+    access token will not carry `Mail.Send` even if an administrator
+    has granted it, and `/sendMail` calls are expected to fail with an
+    access-denied error regardless of what's granted in Azure AD. Use
+    an app-only auth method if you need Graph-based sending.
     :::
 - `elasticsearch`
   - `hosts` - str: A comma separated list of hostnames and ports
@@ -371,14 +421,21 @@ The full set of configuration options are:
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
   - `failure_topic` - str: The Kafka topic for failure reports
 - `smtp`
-  - `host` - str: The SMTP hostname
+  - `host` - str: The SMTP hostname. Required unless `[msgraph]` is
+    configured, in which case omitting it sends the summary via
+    Microsoft Graph instead — see "Sending the summary email via
+    Microsoft Graph" above.
   - `port` - int: The SMTP port (Default: `25`)
   - `ssl` - bool: Require SSL/TLS instead of using STARTTLS
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
-  - `user` - str: the SMTP username
-  - `password` - str: the SMTP password
-  - `from` - str: The From header to use in the email
+  - `user` - str: the SMTP username. SMTP-only; not used when sending
+    via Microsoft Graph.
+  - `password` - str: the SMTP password. SMTP-only; not used when
+    sending via Microsoft Graph.
+  - `from` - str: The From header to use in the email. SMTP-only.
+    When sent via Microsoft Graph, the message's `From` is always the
+    `[msgraph]` mailbox — `[smtp] from` has no effect.
   - `to` - list: A list of email addresses to send to
   - `subject` - str: The Subject header to use in the email
     (Default: `parsedmarc report`)

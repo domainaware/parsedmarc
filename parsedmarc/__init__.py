@@ -2807,6 +2807,37 @@ def get_report_zip(results: ParsingResults) -> bytes:
     return storage.getvalue()
 
 
+def _build_report_email_content(
+    results: ParsingResults,
+    *,
+    subject: str | None = None,
+    attachment_filename: str | None = None,
+    message: str | None = None,
+) -> tuple[str, str, list[tuple[str, bytes]]]:
+    """Builds the subject, plain-text body, and zip attachment shared by
+    every report-summary email transport.
+
+    Returns:
+        A ``(subject, plain_message, attachments)`` tuple.
+    """
+    date_string = datetime.now().strftime("%Y-%m-%d")
+    if attachment_filename:
+        if not attachment_filename.lower().endswith(".zip"):
+            attachment_filename += ".zip"
+        filename = attachment_filename
+    else:
+        filename = "DMARC-{0}.zip".format(date_string)
+
+    if subject is None:
+        subject = "DMARC results for {0}".format(date_string)
+    if message is None:
+        message = "DMARC results for {0}".format(date_string)
+    zip_bytes = get_report_zip(results)
+    attachments = [(filename, zip_bytes)]
+
+    return subject, message, attachments
+
+
 def email_results(
     results: ParsingResults,
     host: str,
@@ -2844,22 +2875,14 @@ def email_results(
         message (str): Override the default plain text body
     """
     logger.debug("Emailing report")
-    date_string = datetime.now().strftime("%Y-%m-%d")
-    if attachment_filename:
-        if not attachment_filename.lower().endswith(".zip"):
-            attachment_filename += ".zip"
-        filename = attachment_filename
-    else:
-        filename = "DMARC-{0}.zip".format(date_string)
-
     assert isinstance(mail_to, list)
 
-    if subject is None:
-        subject = "DMARC results for {0}".format(date_string)
-    if message is None:
-        message = "DMARC results for {0}".format(date_string)
-    zip_bytes = get_report_zip(results)
-    attachments = [(filename, zip_bytes)]
+    subject, message, attachments = _build_report_email_content(
+        results,
+        subject=subject,
+        attachment_filename=attachment_filename,
+        message=message,
+    )
 
     send_email(
         host,
@@ -2872,6 +2895,56 @@ def email_results(
         verify=verify,
         username=username,
         password=password,
+        subject=subject,
+        attachments=attachments,
+        plain_message=message,
+    )
+
+
+def email_results_via_msgraph(
+    results: ParsingResults,
+    connection: MSGraphConnection,
+    mail_to: list[str],
+    *,
+    mail_cc: list[str] | None = None,
+    mail_bcc: list[str] | None = None,
+    subject: str | None = None,
+    attachment_filename: str | None = None,
+    message: str | None = None,
+) -> None:
+    """
+    Emails parsing results as a zip file via an already-authenticated
+    Microsoft Graph mailbox connection (``/users/{mailbox}/sendMail``),
+    saving a copy to Sent Items.
+
+    Args:
+        results (dict): Parsing results
+        connection (MSGraphConnection): An already-authenticated Microsoft
+            Graph mailbox connection
+        mail_to (list): A list of addresses to mail to
+        mail_cc (list): A list of addresses to CC
+        mail_bcc (list): A list addresses to BCC
+        subject (str): Overrides the default message subject
+        attachment_filename (str): Override the default attachment filename
+        message (str): Override the default plain text body
+    """
+    logger.debug("Emailing report via Microsoft Graph")
+
+    subject, message, attachments = _build_report_email_content(
+        results,
+        subject=subject,
+        attachment_filename=attachment_filename,
+        message=message,
+    )
+
+    # Graph derives the From header from the authenticated mailbox and
+    # ignores message_from; it's still passed for API parity with
+    # send_message()'s signature.
+    connection.send_message(
+        message_from=connection.mailbox_name or "",
+        message_to=mail_to,
+        message_cc=mail_cc,
+        message_bcc=mail_bcc,
         subject=subject,
         attachments=attachments,
         plain_message=message,

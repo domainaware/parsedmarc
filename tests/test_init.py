@@ -19,13 +19,18 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import BinaryIO, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
-from parsedmarc.mail import MaildirConnection
-from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
+from parsedmarc.mail import MaildirConnection, MSGraphConnection
+from parsedmarc.types import (
+    AggregateReport,
+    FailureReport,
+    ParsingResults,
+    SMTPTLSReport,
+)
 
 # Detect if running in GitHub Actions to skip DNS lookups
 OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
@@ -2823,6 +2828,62 @@ class TestEmailResultsErrorBranches(unittest.TestCase):
                 # str, not list — triggers assert
                 mail_to="admin@example.com",  # pyright: ignore[reportArgumentType]
             )
+
+
+class TestEmailResultsViaMsGraph(unittest.TestCase):
+    """email_results_via_msgraph() shares its
+    subject/message/attachment-building logic with email_results() via the
+    extracted _build_report_email_content() helper, so both transports stay
+    in lockstep instead of drifting into two different sets of defaults."""
+
+    @staticmethod
+    def _results() -> ParsingResults:
+        return {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+    def testEmailResultsViaMsGraphBuildsSameContentAsEmailResults(self):
+        connection = MagicMock(spec=MSGraphConnection, mailbox_name="mb@example.com")
+        results = self._results()
+
+        parsedmarc.email_results_via_msgraph(results, connection, ["admin@example.com"])
+
+        connection.send_message.assert_called_once()
+        graph_kwargs = connection.send_message.call_args.kwargs
+
+        with patch("parsedmarc.send_email") as mock_send_email:
+            parsedmarc.email_results(
+                results,
+                host="smtp.example.com",
+                mail_from="from@example.com",
+                mail_to=["admin@example.com"],
+            )
+        mock_send_email.assert_called_once()
+        smtp_kwargs = mock_send_email.call_args.kwargs
+
+        self.assertEqual(graph_kwargs["subject"], smtp_kwargs["subject"])
+        self.assertEqual(graph_kwargs["plain_message"], smtp_kwargs["plain_message"])
+        self.assertEqual(
+            graph_kwargs["attachments"][0][0],
+            smtp_kwargs["attachments"][0][0],
+        )
+        self.assertEqual(graph_kwargs["message_to"], ["admin@example.com"])
+        self.assertEqual(graph_kwargs["message_from"], "mb@example.com")
+
+    def testEmailResultsViaMsGraphAppendsZipExtension(self):
+        connection = MagicMock(spec=MSGraphConnection, mailbox_name="mb@example.com")
+
+        parsedmarc.email_results_via_msgraph(
+            self._results(),
+            connection,
+            ["admin@example.com"],
+            attachment_filename="report",
+        )
+
+        graph_kwargs = connection.send_message.call_args.kwargs
+        self.assertEqual(graph_kwargs["attachments"][0][0], "report.zip")
 
 
 class TestAppendJson(unittest.TestCase):
