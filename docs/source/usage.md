@@ -546,8 +546,9 @@ The full set of configuration options are:
   - `subject` - str: The Subject header to use in the email
     (Default: `parsedmarc report`)
   - `attachment` - str: The ZIP attachment filenames
+    (Default: `DMARC-<YYYY-MM-DD>.zip`)
   - `message` - str: The email message
-    (Default: `Please see the attached parsedmarc report.`)
+    (Default: `Please see the attached DMARC results.`)
 
     :::{note}
     `%` characters must be escaped with another `%` character,

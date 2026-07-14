@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import requests
+import httpx
 
 from parsedmarc import logger
 from parsedmarc.constants import USER_AGENT
@@ -32,12 +32,12 @@ class WebhookClient(object):
         self.failure_url = failure_url
         self.smtp_tls_url = smtp_tls_url
         self.timeout = timeout
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
+        self.session = httpx.Client(
+            headers={
                 "User-Agent": USER_AGENT,
                 "Content-Type": "application/json",
-            }
+            },
+            follow_redirects=True,
         )
 
     def save_failure_report_to_webhook(self, report: str):
@@ -56,7 +56,12 @@ class WebhookClient(object):
         # redundant try/except — removed because _send_to_webhook
         # already catches every Exception itself.
         try:
-            self.session.post(webhook_url, data=payload, timeout=self.timeout)
+            if isinstance(payload, dict):
+                # requests form-encoded dict payloads via data=; httpx does
+                # the same only via data=
+                self.session.post(webhook_url, data=payload, timeout=self.timeout)
+            else:
+                self.session.post(webhook_url, content=payload, timeout=self.timeout)
         except Exception as error_:
             logger.error("Webhook Error: {0}".format(error_.__str__()))
 

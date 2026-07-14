@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import dns.exception
 import dns.resolver
-import requests
+import httpx
 from expiringdict import ExpiringDict
 
 import parsedmarc
@@ -159,7 +159,7 @@ class Test(unittest.TestCase):
         def _mock_response(status_code, json_body=None):
             resp = MagicMock()
             resp.status_code = status_code
-            resp.ok = 200 <= status_code < 300
+            resp.is_success = 200 <= status_code < 300
             resp.json.return_value = json_body or {}
             return resp
 
@@ -173,7 +173,7 @@ class Test(unittest.TestCase):
                 "country_code": "US",
             }
             with patch(
-                "parsedmarc.utils.requests.get",
+                "parsedmarc.utils.httpx.get",
                 return_value=_mock_response(200, api_json),
             ) as mock_get:
                 configure_ipinfo_api("fake-token", probe=False)
@@ -188,7 +188,7 @@ class Test(unittest.TestCase):
 
             # Invalid key: 401 raises a fatal exception even on a random lookup.
             with patch(
-                "parsedmarc.utils.requests.get",
+                "parsedmarc.utils.httpx.get",
                 return_value=_mock_response(401),
             ):
                 configure_ipinfo_api("bad-token", probe=False)
@@ -198,7 +198,7 @@ class Test(unittest.TestCase):
             # Any other non-2xx (e.g. 500, 503) falls back to the MMDB silently.
             configure_ipinfo_api("fake-token", probe=False)
             with patch(
-                "parsedmarc.utils.requests.get",
+                "parsedmarc.utils.httpx.get",
                 return_value=_mock_response(500),
             ):
                 record = get_ip_address_db_record("8.8.8.8")
@@ -419,7 +419,7 @@ class TestLoadPSLOverrides(unittest.TestCase):
         mock_response.text = fake_body
         mock_response.raise_for_status = MagicMock()
         with patch(
-            "parsedmarc.utils.requests.get", return_value=mock_response
+            "parsedmarc.utils.httpx.get", return_value=mock_response
         ) as mock_get:
             result = parsedmarc.utils.load_psl_overrides(url="https://example.test/ov")
             self.assertEqual(result, ["-fetched-brand.com", ".cdn-fetched.net"])
@@ -427,11 +427,9 @@ class TestLoadPSLOverrides(unittest.TestCase):
 
     def test_url_failure_falls_back_to_local(self):
         """A network error falls back to the bundled copy."""
-        import requests
-
         with patch(
-            "parsedmarc.utils.requests.get",
-            side_effect=requests.exceptions.ConnectionError("nope"),
+            "parsedmarc.utils.httpx.get",
+            side_effect=httpx.ConnectError("nope"),
         ):
             result = parsedmarc.utils.load_psl_overrides(url="https://example.test/ov")
         # Bundled file still loaded.
@@ -439,8 +437,8 @@ class TestLoadPSLOverrides(unittest.TestCase):
         self.assertIn(".linode.com", result)
 
     def test_always_use_local_skips_network(self):
-        """always_use_local_file=True must not call requests.get."""
-        with patch("parsedmarc.utils.requests.get") as mock_get:
+        """always_use_local_file=True must not call httpx.get."""
+        with patch("parsedmarc.utils.httpx.get") as mock_get:
             parsedmarc.utils.load_psl_overrides(always_use_local_file=True)
             mock_get.assert_not_called()
 
@@ -1052,8 +1050,8 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
         """load_reverse_dns_map falls back to bundled on network error"""
         rdns_map = {}
         with patch(
-            "parsedmarc.utils.requests.get",
-            side_effect=requests.exceptions.ConnectionError("no network"),
+            "parsedmarc.utils.httpx.get",
+            side_effect=httpx.ConnectError("no network"),
         ):
             parsedmarc.utils.load_reverse_dns_map(rdns_map)
         self.assertTrue(len(rdns_map) > 0)
@@ -1065,7 +1063,7 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
         response.text = "not,the,map\nfoo,bar,baz\n"
         response.raise_for_status.return_value = None
         rdns_map = {}
-        with patch("parsedmarc.utils.requests.get", return_value=response):
+        with patch("parsedmarc.utils.httpx.get", return_value=response):
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                 parsedmarc.utils.load_reverse_dns_map(rdns_map)
         self.assertTrue(any("Not a valid CSV file" in message for message in cm.output))
@@ -1172,7 +1170,7 @@ class TestQueryDnsRetries(unittest.TestCase):
 
 class TestLoadIpDb(unittest.TestCase):
     """Tests for the load_ip_db() download/cache/bundled fallback chain,
-    mocking at the requests SDK boundary."""
+    mocking at the httpx SDK boundary."""
 
     def setUp(self):
         old_ip_db_path = parsedmarc.utils._IP_DB_PATH
@@ -1198,7 +1196,7 @@ class TestLoadIpDb(unittest.TestCase):
         local_path = os.path.join(self.tmp_dir, "local.mmdb")
         with open(local_path, "wb") as f:
             f.write(b"local db")
-        with patch("parsedmarc.utils.requests.get") as mock_get:
+        with patch("parsedmarc.utils.httpx.get") as mock_get:
             parsedmarc.utils.load_ip_db(local_file_path=local_path)
         mock_get.assert_not_called()
         self.assertEqual(parsedmarc.utils._IP_DB_PATH, local_path)
@@ -1208,7 +1206,7 @@ class TestLoadIpDb(unittest.TestCase):
         response = MagicMock()
         response.content = b"downloaded db bytes"
         response.raise_for_status.return_value = None
-        with patch("parsedmarc.utils.requests.get", return_value=response) as mock_get:
+        with patch("parsedmarc.utils.httpx.get", return_value=response) as mock_get:
             parsedmarc.utils.load_ip_db(url="https://example.com/db.mmdb")
         self.assertEqual(mock_get.call_args.args[0], "https://example.com/db.mmdb")
         cached_path = os.path.join(self.tmp_dir, "parsedmarc", "ipinfo_lite.mmdb")
@@ -1224,8 +1222,8 @@ class TestLoadIpDb(unittest.TestCase):
         with open(cached_path, "wb") as f:
             f.write(b"stale cached db")
         with patch(
-            "parsedmarc.utils.requests.get",
-            side_effect=requests.exceptions.ConnectionError("no network"),
+            "parsedmarc.utils.httpx.get",
+            side_effect=httpx.ConnectError("no network"),
         ):
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                 parsedmarc.utils.load_ip_db()
@@ -1237,8 +1235,8 @@ class TestLoadIpDb(unittest.TestCase):
     def testDownloadFailureFallsBackToBundledCopy(self):
         """On a network error with no cached copy, the bundled db is used"""
         with patch(
-            "parsedmarc.utils.requests.get",
-            side_effect=requests.exceptions.ConnectionError("no network"),
+            "parsedmarc.utils.httpx.get",
+            side_effect=httpx.ConnectError("no network"),
         ):
             parsedmarc.utils.load_ip_db()
         bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
@@ -1255,7 +1253,7 @@ class TestLoadIpDb(unittest.TestCase):
         response.content = b"downloaded db bytes"
         response.raise_for_status.return_value = None
         with patch("parsedmarc.utils.tempfile.gettempdir", return_value=blocker):
-            with patch("parsedmarc.utils.requests.get", return_value=response):
+            with patch("parsedmarc.utils.httpx.get", return_value=response):
                 with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                     parsedmarc.utils.load_ip_db()
         self.assertTrue(
@@ -1275,7 +1273,7 @@ class TestConfigureIpinfoApiProbe(unittest.TestCase):
     def _response(status_code, json_body=None):
         response = MagicMock()
         response.status_code = status_code
-        response.ok = 200 <= status_code < 300
+        response.is_success = 200 <= status_code < 300
         response.json.return_value = json_body if json_body is not None else {}
         return response
 
@@ -1283,7 +1281,7 @@ class TestConfigureIpinfoApiProbe(unittest.TestCase):
         """A successful probe logs that the API is configured"""
         api_json = {"ip": "1.1.1.1", "asn": "AS13335", "country_code": "US"}
         with patch(
-            "parsedmarc.utils.requests.get",
+            "parsedmarc.utils.httpx.get",
             return_value=self._response(200, api_json),
         ):
             with self.assertLogs("parsedmarc.log", level="INFO") as cm:
@@ -1296,8 +1294,8 @@ class TestConfigureIpinfoApiProbe(unittest.TestCase):
         """A probe network error logs a warning but keeps the token so
         per-request fallback can take over later"""
         with patch(
-            "parsedmarc.utils.requests.get",
-            side_effect=requests.exceptions.ConnectionError("no network"),
+            "parsedmarc.utils.httpx.get",
+            side_effect=httpx.ConnectError("no network"),
         ):
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                 parsedmarc.utils.configure_ipinfo_api("fake-token", probe=True)
@@ -1308,7 +1306,7 @@ class TestConfigureIpinfoApiProbe(unittest.TestCase):
 
     def testProbeInvalidKeyRaises(self):
         """A 401 during the probe raises InvalidIPinfoAPIKey"""
-        with patch("parsedmarc.utils.requests.get", return_value=self._response(401)):
+        with patch("parsedmarc.utils.httpx.get", return_value=self._response(401)):
             with self.assertRaises(parsedmarc.utils.InvalidIPinfoAPIKey):
                 parsedmarc.utils.configure_ipinfo_api("bad-token", probe=True)
 
@@ -1323,7 +1321,7 @@ class TestIpinfoApiLookupFallbacks(unittest.TestCase):
 
     def _assert_mmdb_fallback(self, response=None, side_effect=None):
         with patch(
-            "parsedmarc.utils.requests.get",
+            "parsedmarc.utils.httpx.get",
             return_value=response,
             side_effect=side_effect,
         ):
@@ -1334,21 +1332,19 @@ class TestIpinfoApiLookupFallbacks(unittest.TestCase):
         self.assertEqual(record["asn"], 15169)
 
     def testNetworkErrorFallsBackToMmdb(self):
-        self._assert_mmdb_fallback(
-            side_effect=requests.exceptions.ConnectionError("no network")
-        )
+        self._assert_mmdb_fallback(side_effect=httpx.ConnectError("no network"))
 
     def testNonJsonBodyFallsBackToMmdb(self):
         response = MagicMock()
         response.status_code = 200
-        response.ok = True
+        response.is_success = True
         response.json.side_effect = ValueError("not JSON")
         self._assert_mmdb_fallback(response=response)
 
     def testNonDictPayloadFallsBackToMmdb(self):
         response = MagicMock()
         response.status_code = 200
-        response.ok = True
+        response.is_success = True
         response.json.return_value = ["not", "a", "dict"]
         self._assert_mmdb_fallback(response=response)
 

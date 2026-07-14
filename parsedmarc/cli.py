@@ -2119,6 +2119,7 @@ def _main():
         smtp_from=None,
         smtp_to=[],
         smtp_subject="parsedmarc report",
+        smtp_attachment=None,
         smtp_message="Please see the attached DMARC results.",
         s3_bucket=None,
         s3_path=None,
@@ -2648,13 +2649,16 @@ def _main():
             smtp_tls_reports += reports["smtp_tls_reports"]
 
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
-            _log_msgraph_failure(
-                error,
-                stage="mailbox fetch",
-                mailbox=opts.graph_mailbox or opts.graph_user,
-                tenant_id=opts.graph_tenant_id,
-                auth_method=opts.graph_auth_method,
-            )
+            if msgraph_connection is None:
+                logger.exception("Mailbox Error")
+            else:
+                _log_msgraph_failure(
+                    error,
+                    stage="mailbox fetch",
+                    mailbox=opts.graph_mailbox or opts.graph_user,
+                    tenant_id=opts.graph_tenant_id,
+                    auth_method=opts.graph_auth_method,
+                )
             exit(1)
         except Exception:
             logger.exception("Mailbox Error")
@@ -2694,6 +2698,8 @@ def _main():
                 password=opts.smtp_password,
                 subject=opts.smtp_subject,
                 require_encryption=opts.smtp_ssl,
+                attachment_filename=opts.smtp_attachment,
+                message=opts.smtp_message,
             )
         except Exception:
             logger.exception("Failed to email results")
@@ -2705,6 +2711,8 @@ def _main():
                 msgraph_connection,
                 smtp_to_value,
                 subject=opts.smtp_subject,
+                attachment_filename=opts.smtp_attachment,
+                message=opts.smtp_message,
             )
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
             _log_msgraph_failure(
@@ -2763,13 +2771,16 @@ def _main():
                 logger.error(error.__str__())
                 exit(1)
             except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
-                _log_msgraph_failure(
-                    error,
-                    stage="mailbox watch",
-                    mailbox=opts.graph_mailbox or opts.graph_user,
-                    tenant_id=opts.graph_tenant_id,
-                    auth_method=opts.graph_auth_method,
-                )
+                if msgraph_connection is None:
+                    logger.exception("Mailbox Error")
+                else:
+                    _log_msgraph_failure(
+                        error,
+                        stage="mailbox watch",
+                        mailbox=opts.graph_mailbox or opts.graph_user,
+                        tenant_id=opts.graph_tenant_id,
+                        auth_method=opts.graph_auth_method,
+                    )
                 exit(1)
 
             # Prioritize shutdown over reload if both flags are set (e.g.

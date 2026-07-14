@@ -3,7 +3,7 @@
 import json
 import time
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from parsedmarc.splunk import HECClient, SplunkError
 from tests.tzutil import force_tz
@@ -211,7 +211,7 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_aggregate_reports_to_splunk(report)
-        body = client.session.post.call_args.kwargs["data"]
+        body = client.session.post.call_args.kwargs["content"]
         events = [json.loads(line) for line in body.strip().split("\n")]
         self.assertEqual(len(events), 2)
         for event in events:
@@ -225,7 +225,7 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_aggregate_reports_to_splunk(_aggregate_report())
-        body = client.session.post.call_args.kwargs["data"]
+        body = client.session.post.call_args.kwargs["content"]
         event = json.loads(body.strip())["event"]
         self.assertEqual(event["source_ip_address"], "192.0.2.1")
         self.assertEqual(event["header_from"], "example.com")
@@ -238,7 +238,7 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_aggregate_reports_to_splunk(_aggregate_report())
-        event = json.loads(client.session.post.call_args.kwargs["data"].strip())[
+        event = json.loads(client.session.post.call_args.kwargs["content"].strip())[
             "event"
         ]
         self.assertEqual(
@@ -258,7 +258,10 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.save_aggregate_reports_to_splunk([])
         client.session.post.assert_not_called()
 
-    def test_post_uses_session_verify_and_timeout(self):
+    def test_post_uses_session_timeout(self):
+        """httpx has no per-request verify= kwarg — verification is set
+        at client construction (see test_client_constructed_with_verify_
+        false below), so only the per-request timeout is asserted here."""
         client = HECClient(
             url="https://h:8088",
             access_token="t",
@@ -270,8 +273,24 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.session.post.return_value = _ok_response()
         client.save_aggregate_reports_to_splunk(_aggregate_report())
         kwargs = client.session.post.call_args.kwargs
-        self.assertEqual(kwargs["verify"], False)
+        self.assertNotIn("verify", kwargs)
         self.assertEqual(kwargs["timeout"], 15)
+
+    def test_client_constructed_with_verify_false(self):
+        """verify=False must disable TLS verification on the underlying
+        httpx.Client at construction time, since httpx.Client does not
+        accept a per-request verify= kwarg like requests.Session did.
+        Mocked at the httpx SDK boundary (httpx.Client itself)."""
+        with patch("parsedmarc.splunk.httpx.Client") as mock_client_cls:
+            HECClient(
+                url="https://h:8088",
+                access_token="t",
+                index="dmarc",
+                verify=False,
+                timeout=15,
+            )
+        _, kwargs = mock_client_cls.call_args
+        self.assertEqual(kwargs["verify"], False)
 
     def test_non_zero_response_code_raises_splunk_error(self):
         """HEC returns code=0 on success and non-zero codes for
@@ -306,7 +325,9 @@ class TestSaveAggregateReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_aggregate_reports_to_splunk(_aggregate_report())
-        event_wrapper = json.loads(client.session.post.call_args.kwargs["data"].strip())
+        event_wrapper = json.loads(
+            client.session.post.call_args.kwargs["content"].strip()
+        )
         self.assertEqual(event_wrapper["time"], 1704067200)
 
 
@@ -318,7 +339,9 @@ class TestSaveFailureReportsToSplunk(unittest.TestCase):
         client.save_failure_reports_to_splunk([_failure_report(), _failure_report()])
         events = [
             json.loads(line)
-            for line in client.session.post.call_args.kwargs["data"].strip().split("\n")
+            for line in client.session.post.call_args.kwargs["content"]
+            .strip()
+            .split("\n")
         ]
         self.assertEqual(len(events), 2)
         for event in events:
@@ -329,7 +352,7 @@ class TestSaveFailureReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_failure_reports_to_splunk(_failure_report())
-        event = json.loads(client.session.post.call_args.kwargs["data"].strip())[
+        event = json.loads(client.session.post.call_args.kwargs["content"].strip())[
             "event"
         ]
         self.assertEqual(event["reported_domain"], "example.com")
@@ -354,7 +377,7 @@ class TestSaveFailureReportsToSplunk(unittest.TestCase):
         client.session = MagicMock()
         client.session.post.return_value = _ok_response()
         client.save_failure_reports_to_splunk(_failure_report())
-        event = json.loads(client.session.post.call_args.kwargs["data"].strip())
+        event = json.loads(client.session.post.call_args.kwargs["content"].strip())
         # Fixture arrival_date_utc is 2024-01-01 00:00:00 UTC.
         self.assertEqual(event["time"], 1704067200)
 
@@ -397,7 +420,9 @@ class TestSaveSmtpTlsReportsToSplunk(unittest.TestCase):
         client.save_smtp_tls_reports_to_splunk([_smtp_tls_report()])
         events = [
             json.loads(line)
-            for line in client.session.post.call_args.kwargs["data"].strip().split("\n")
+            for line in client.session.post.call_args.kwargs["content"]
+            .strip()
+            .split("\n")
         ]
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]["sourcetype"], "smtp:tls")

@@ -2044,6 +2044,38 @@ subject = DMARC Summary
         self.assertIn("request-id=rid-1", output)
         self.assertIn("client-request-id=crid-1", output)
 
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliPassesSmtpAttachmentAndMessageToMsGraphSend(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """[smtp] attachment/message are parsed but were never wired
+        through to either summary-email transport. On the Microsoft
+        Graph path, the configured attachment filename and message
+        body must reach send_message()."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = (
+            self.CERT_CONFIG
+            + """
+[smtp]
+to = admin@example.com
+attachment = custom-report.zip
+message = Custom body text
+"""
+        )
+        cfg_path = self._write_config(config_text)
+        self._run_main(cfg_path)
+
+        send_message = mock_graph_connection.return_value.send_message
+        send_message.assert_called_once()
+        call_kwargs = send_message.call_args.kwargs
+        self.assertEqual(call_kwargs["attachments"][0][0], "custom-report.zip")
+        self.assertEqual(call_kwargs["plain_message"], "Custom body text")
+
 
 class TestMSGraphFailureLogging(unittest.TestCase):
     """Microsoft Graph connection/fetch/watch failures log a single
@@ -2207,6 +2239,42 @@ certificate_password = s3cret-cert-pass
         output = "\n".join(cm.output)
         self.assertIn("Microsoft Graph mailbox watch failed", output)
         self.assertIn("ConnectError", output)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testNonGraphMailboxErrorIsNotMislabeledAsMsGraph(
+        self, mock_imap_connection, mock_get_mailbox_reports
+    ):
+        """The mailbox-fetch handler catches
+        (ClientAuthenticationError, APIError, httpx.HTTPError) on every
+        mailbox backend, not just Graph, since httpx.HTTPError can in
+        principle surface from any HTTP-backed connection. Before this
+        fix, such an error on a non-Graph connection (e.g. IMAP) still
+        went through _log_msgraph_failure() and logged a misleading
+        "Microsoft Graph ... failed (mailbox=None, tenant_id=None,
+        auth_method=None)" line. It must now log a generic
+        "Mailbox Error" instead."""
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.side_effect = httpx.ConnectError("boom")
+
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+"""
+        cfg_path = self._write_config(config_text)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertIn("Mailbox Error", output)
+        self.assertNotIn("Microsoft Graph", output)
 
 
 class TestSighupReload(unittest.TestCase):
@@ -3635,6 +3703,108 @@ class TestParseConfigSmtp(unittest.TestCase):
         cp = _config_with("smtp", {"host": "smtp.example.com", "user": "u"})
         with self.assertRaises(ConfigurationError):
             _parse_config(cp, _opts())
+
+
+class TestSmtpAttachmentAndMessageWiring(unittest.TestCase):
+    """[smtp] attachment/message are documented and parsed into
+    opts.smtp_attachment/opts.smtp_message, but were never passed to
+    email_results(), so a configured custom attachment filename or
+    message body was silently ignored on the SMTP transport."""
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _run_main(self, cfg_path, *cli_args):
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *cli_args]):
+            parsedmarc.cli._main()
+
+    @patch("parsedmarc.cli.email_results")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSmtpAttachmentAndMessageArePassedToEmailResults(
+        self, mock_imap_connection, mock_get_mailbox_reports, mock_email_results
+    ):
+        """A configured attachment filename and message body reach
+        email_results() rather than being silently dropped."""
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+attachment = custom-report.zip
+message = Custom body text
+"""
+        cfg_path = self._write_config(config_text)
+        self._run_main(cfg_path)
+
+        mock_email_results.assert_called_once()
+        call_kwargs = mock_email_results.call_args.kwargs
+        # The configured value passes through _expand_path(), which is a
+        # no-op here since the filename has no ~ or $VAR references.
+        self.assertTrue(
+            call_kwargs["attachment_filename"].endswith("custom-report.zip")
+        )
+        self.assertEqual(call_kwargs["message"], "Custom body text")
+
+    @patch("parsedmarc.cli.email_results")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSmtpDefaultsFlowThroughWhenNotConfigured(
+        self, mock_imap_connection, mock_get_mailbox_reports, mock_email_results
+    ):
+        """When [smtp] attachment/message are not set, email_results()
+        still gets the documented defaults (None for the attachment
+        filename, and the long-documented default message body) rather
+        than being called with no attachment/message context at all."""
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        cfg_path = self._write_config(config_text)
+        self._run_main(cfg_path)
+
+        mock_email_results.assert_called_once()
+        call_kwargs = mock_email_results.call_args.kwargs
+        self.assertIsNone(call_kwargs["attachment_filename"])
+        self.assertEqual(
+            call_kwargs["message"], "Please see the attached DMARC results."
+        )
 
 
 class TestParseConfigS3(unittest.TestCase):
