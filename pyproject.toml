@@ -44,16 +44,21 @@ dependencies = [
     "dnspython>=2.0.0",
     "elasticsearch>=8.18,<9",
     "expiringdict>=1.1.4",
+    # The runtime HTTP library (utils.py fetches, webhook and Splunk HEC
+    # clients, Graph error handling in cli.py). The floor matches
+    # microsoft-kiota-http's own requirement.
+    "httpx>=0.25",
     "kafka-python>=2.3.2",
     "lxml>=4.4.0",
     "mailsuite[gmail,msgraph]>=2.2.2",
     "maxminddb>=2.0.0",
+    # Imported directly in cli.py for Graph error handling; otherwise
+    # only a transitive dep of mailsuite[msgraph] -> msgraph-sdk.
+    "microsoft-kiota-abstractions>=1.8.0",
     "opensearch-py>=2.4.2,<=4.0.0",
     "publicsuffixlist>=0.10.0",
     "pygelf>=0.4.2",
-    "requests>=2.22.0",
     "tqdm>=4.31.1",
-    "urllib3>=1.25.7",
     "xmltodict>=0.12.0",
     "PyYAML>=6.0.3"
 ]
@@ -81,6 +86,11 @@ build = [
     "pyright==1.1.410",
     "pytest",
     "pytest-cov",
+    # Used only by the out-of-wheel maintainer script
+    # parsedmarc/resources/maps/collect_domain_info.py, which deliberately
+    # stays on requests because its permissive-TLS fallback is built on
+    # urllib3's HTTPAdapter machinery.
+    "requests>=2.22.0",
     "ruff",
     "sphinx",
     "sphinx_rtd_theme",

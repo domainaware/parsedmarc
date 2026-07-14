@@ -28,9 +28,9 @@ from importlib.resources import files
 import dns.exception
 import dns.resolver
 import dns.reversename
+import httpx
 import maxminddb
 import publicsuffixlist
-import requests
 from dateutil.parser import parse as parse_date
 
 import parsedmarc.resources.ipinfo
@@ -103,10 +103,12 @@ def load_psl_overrides(
         try:
             logger.debug(f"Trying to fetch PSL overrides from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             _load_text(response.text)
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch PSL overrides: {e}")
 
     if len(psl_overrides) == 0:
@@ -447,7 +449,9 @@ def load_ip_db(
         try:
             logger.debug(f"Trying to fetch IP database from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers, timeout=60)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             os.makedirs(cache_dir, exist_ok=True)
             tmp_path = cached_path + ".tmp"
@@ -457,7 +461,7 @@ def load_ip_db(
             _IP_DB_PATH = cached_path
             logger.info("IP database updated successfully")
             return
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch IP database: {e}")
         except Exception as e:
             logger.warning(f"Failed to save IP database: {e}")
@@ -546,10 +550,14 @@ def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     params = {"token": _IPINFO_API_TOKEN}
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     try:
-        response = requests.get(
-            url, headers=headers, params=params, timeout=_IPINFO_API_TIMEOUT
+        response = httpx.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=_IPINFO_API_TIMEOUT,
+            follow_redirects=True,
         )
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         logger.debug(f"IPinfo API request for {ip_address} failed: {e}")
         return None
 
@@ -557,7 +565,7 @@ def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
         raise InvalidIPinfoAPIKey(
             f"IPinfo API rejected the configured token (HTTP {response.status_code})"
         )
-    if not response.ok:
+    if not response.is_success:
         logger.debug(
             f"IPinfo API returned HTTP {response.status_code} for {ip_address}"
         )
@@ -800,12 +808,14 @@ def load_reverse_dns_map(
         try:
             logger.debug(f"Trying to fetch reverse DNS map from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             csv_file.write(response.text)
             csv_file.seek(0)
             load_csv(csv_file)
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch reverse DNS map: {e}")
         except Exception:
             logger.warning("Not a valid CSV file")

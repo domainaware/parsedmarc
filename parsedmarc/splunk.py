@@ -7,14 +7,11 @@ import socket
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
-import urllib3
+import httpx
 
 from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class SplunkError(RuntimeError):
@@ -56,18 +53,19 @@ class HECClient(object):
         self.index = index
         self.host = socket.getfqdn()
         self.source = source
-        self.session = requests.Session()
         self.timeout = timeout
         self.verify = verify
         self._common_data: dict[str, str | int | float | dict] = dict(
             host=self.host, source=self.source, index=self.index
         )
 
-        self.session.headers.update(
-            {
+        self.session = httpx.Client(
+            headers={
                 "User-Agent": USER_AGENT,
                 "Authorization": "Splunk {0}".format(self.access_token),
-            }
+            },
+            verify=self.verify,
+            follow_redirects=True,
         )
 
     def save_aggregate_reports_to_splunk(
@@ -135,7 +133,7 @@ class HECClient(object):
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content=json_str, timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -178,7 +176,7 @@ class HECClient(object):
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content=json_str, timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -217,7 +215,7 @@ class HECClient(object):
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content=json_str, timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
