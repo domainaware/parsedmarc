@@ -17,7 +17,10 @@ from glob import glob
 from multiprocessing import Pipe, Process
 from ssl import CERT_NONE, create_default_context
 
+import httpx
 import yaml
+from azure.core.exceptions import ClientAuthenticationError
+from kiota_abstractions.api_error import APIError
 from tqdm import tqdm
 
 from parsedmarc import (
@@ -28,6 +31,7 @@ from parsedmarc import (
     __version__,
     elastic,
     email_results,
+    email_results_via_msgraph,
     gelf,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
@@ -106,6 +110,63 @@ def _str_to_list(s):
     """Converts a comma separated string to a list"""
     _list = s.split(",")
     return list(map(lambda i: i.lstrip(), _list))
+
+
+def _msgraph_request_id_suffix(error: Exception) -> str:
+    """Returns ``" (request-id=..., client-request-id=...)"`` with only
+    the ids that are actually present, or ``""`` if neither is
+    available. Never raises."""
+    try:
+        inner_error = getattr(getattr(error, "error", None), "inner_error", None)
+        request_id = getattr(inner_error, "request_id", None)
+        client_request_id = getattr(inner_error, "client_request_id", None)
+        if not request_id:
+            headers = getattr(error, "response_headers", None) or {}
+            request_id = headers.get("request-id")
+        parts = []
+        if request_id:
+            parts.append("request-id={0}".format(request_id))
+        if client_request_id:
+            parts.append("client-request-id={0}".format(client_request_id))
+        if not parts:
+            return ""
+        return " ({0})".format(", ".join(parts))
+    except Exception:
+        return ""
+
+
+def _log_msgraph_failure(
+    error: Exception,
+    *,
+    stage: str,
+    mailbox: str | None,
+    tenant_id: str | None,
+    auth_method: str | None,
+) -> None:
+    """Logs a single clear ERROR line for a Microsoft Graph connection,
+    fetch, send, or watch failure, identifying the mailbox/tenant/auth
+    method and the Graph request-id/client-request-id when available.
+    The full traceback is preserved at --debug via a follow-up DEBUG
+    record. Never calls exit() - the call site keeps its own exit(1)."""
+    if isinstance(error, APIError):
+        detail = getattr(error, "primary_message", None) or error.message or str(error)
+        detail = " ".join(str(detail).split())
+        summary = "{0} status={1}: {2}".format(
+            type(error).__name__, error.response_status_code, detail
+        )
+    else:
+        summary = "{0}: {1}".format(type(error).__name__, " ".join(str(error).split()))
+
+    logger.error(
+        "Microsoft Graph %s failed (mailbox=%s, tenant_id=%s, auth_method=%s): %s%s",
+        stage,
+        mailbox,
+        tenant_id,
+        auth_method,
+        summary,
+        _msgraph_request_id_suffix(error),
+    )
+    logger.debug("Microsoft Graph %s failure details:", stage, exc_info=True)
 
 
 def _expand_path(p: str) -> str:
@@ -959,6 +1020,27 @@ def _parse_config(config: ConfigParser, opts):
         smtp_config = config["smtp"]
         if "host" in smtp_config:
             opts.smtp_host = smtp_config["host"]
+            if "user" in smtp_config:
+                opts.smtp_user = smtp_config["user"]
+            else:
+                raise ConfigurationError(
+                    "user setting missing from the smtp config section"
+                )
+            if "password" in smtp_config:
+                opts.smtp_password = smtp_config["password"]
+            else:
+                raise ConfigurationError(
+                    "password setting missing from the smtp config section"
+                )
+            if "from" in smtp_config:
+                opts.smtp_from = smtp_config["from"]
+            else:
+                logger.critical("from setting missing from the smtp config section")
+        elif getattr(opts, "graph_client_id", None):
+            # host is SMTP-only; when [msgraph] is configured, the
+            # summary email is sent via the same Graph mailbox connection
+            # instead, so host/user/password/from are not required here.
+            pass
         else:
             raise ConfigurationError(
                 "host setting missing from the smtp config section"
@@ -970,22 +1052,6 @@ def _parse_config(config: ConfigParser, opts):
         if "skip_certificate_verification" in smtp_config:
             smtp_verify = bool(smtp_config.getboolean("skip_certificate_verification"))
             opts.smtp_skip_certificate_verification = smtp_verify
-        if "user" in smtp_config:
-            opts.smtp_user = smtp_config["user"]
-        else:
-            raise ConfigurationError(
-                "user setting missing from the smtp config section"
-            )
-        if "password" in smtp_config:
-            opts.smtp_password = smtp_config["password"]
-        else:
-            raise ConfigurationError(
-                "password setting missing from the smtp config section"
-            )
-        if "from" in smtp_config:
-            opts.smtp_from = smtp_config["from"]
-        else:
-            logger.critical("from setting missing from the smtp config section")
         if "to" in smtp_config:
             opts.smtp_to = _str_to_list(smtp_config["to"])
         else:
@@ -2392,6 +2458,7 @@ def _main():
         smtp_tls_reports += reports["smtp_tls_reports"]
 
     mailbox_connection = None
+    msgraph_connection: MSGraphConnection | None = None
     mailbox_batch_size_value = 10
     mailbox_check_timeout_value = 30
     normalize_timespan_threshold_hours_value = 24.0
@@ -2488,7 +2555,17 @@ def _main():
                 "Microsoft Graph connection initialized in %.2f seconds",
                 time.monotonic() - connect_start,
             )
+            msgraph_connection = mailbox_connection
 
+        except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
+            _log_msgraph_failure(
+                error,
+                stage="connection",
+                mailbox=opts.graph_mailbox or opts.graph_user,
+                tenant_id=opts.graph_tenant_id,
+                auth_method=opts.graph_auth_method,
+            )
+            exit(1)
         except Exception:
             logger.exception("MS Graph Error")
             exit(1)
@@ -2570,6 +2647,15 @@ def _main():
             failure_reports += reports["failure_reports"]
             smtp_tls_reports += reports["smtp_tls_reports"]
 
+        except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
+            _log_msgraph_failure(
+                error,
+                stage="mailbox fetch",
+                mailbox=opts.graph_mailbox or opts.graph_user,
+                tenant_id=opts.graph_tenant_id,
+                auth_method=opts.graph_auth_method,
+            )
+            exit(1)
         except Exception:
             logger.exception("Mailbox Error")
             exit(1)
@@ -2586,17 +2672,17 @@ def _main():
         logger.error(error.__str__())
         exit(1)
 
+    smtp_to_value = (
+        list(opts.smtp_to)
+        if isinstance(opts.smtp_to, list)
+        else _str_to_list(str(opts.smtp_to))
+    )
     if opts.smtp_host:
         try:
             verify = True
             if opts.smtp_skip_certificate_verification:
                 verify = False
             smtp_port_value = int(opts.smtp_port) if opts.smtp_port is not None else 25
-            smtp_to_value = (
-                list(opts.smtp_to)
-                if isinstance(opts.smtp_to, list)
-                else _str_to_list(str(opts.smtp_to))
-            )
             email_results(
                 parsing_results,
                 opts.smtp_host,
@@ -2611,6 +2697,26 @@ def _main():
             )
         except Exception:
             logger.exception("Failed to email results")
+            exit(1)
+    elif msgraph_connection is not None and smtp_to_value:
+        try:
+            email_results_via_msgraph(
+                parsing_results,
+                msgraph_connection,
+                smtp_to_value,
+                subject=opts.smtp_subject,
+            )
+        except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
+            _log_msgraph_failure(
+                error,
+                stage="message send",
+                mailbox=opts.graph_mailbox or opts.graph_user,
+                tenant_id=opts.graph_tenant_id,
+                auth_method=opts.graph_auth_method,
+            )
+            exit(1)
+        except Exception:
+            logger.exception("Failed to email results via Microsoft Graph")
             exit(1)
 
     if mailbox_connection and opts.mailbox_watch:
@@ -2655,6 +2761,15 @@ def _main():
                 exit(1)
             except ParserError as error:
                 logger.error(error.__str__())
+                exit(1)
+            except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
+                _log_msgraph_failure(
+                    error,
+                    stage="mailbox watch",
+                    mailbox=opts.graph_mailbox or opts.graph_user,
+                    tenant_id=opts.graph_tenant_id,
+                    auth_method=opts.graph_auth_method,
+                )
                 exit(1)
 
             # Prioritize shutdown over reload if both flags are set (e.g.

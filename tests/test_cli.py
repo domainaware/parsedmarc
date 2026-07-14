@@ -9,11 +9,18 @@ import signal
 import sys
 import tempfile
 import unittest
+import zipfile
 from configparser import ConfigParser
 from tempfile import NamedTemporaryFile
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
+
+import httpx
+from azure.core.exceptions import ClientAuthenticationError
+from msgraph.generated.models.o_data_errors.inner_error import InnerError
+from msgraph.generated.models.o_data_errors.main_error import MainError
+from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 
 import parsedmarc
 import parsedmarc.cli
@@ -1826,6 +1833,380 @@ client_assertion = s3cret-signed-jwt-assertion
 
         for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
             self.assertEqual(logging.getLogger(name).level, logging.WARNING, name)
+
+
+class TestMSGraphEmailResults(unittest.TestCase):
+    """#472: the periodic summary email is sent via the same
+    already-authenticated Microsoft Graph mailbox connection when
+    [smtp] host is not configured but [msgraph] is, so M365 tenants that
+    block legacy SMTP AUTH can still receive the summary from the
+    mailbox they already read reports from. SMTP is preferred when
+    [smtp] host is set."""
+
+    CERT_CONFIG = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id-1234
+tenant_id = tenant-id-5678
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = s3cret-cert-pass
+"""
+
+    def setUp(self):
+        # _configure_dependency_logging mutates process-global loggers;
+        # snapshot and restore their levels and handlers so these tests
+        # don't leak state into the rest of the suite.
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (dep.level, list(dep.handlers), dep.propagate)
+
+        def restore():
+            for name, (level, handlers, propagate) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+
+        self.addCleanup(restore)
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _run_main(self, cfg_path, *cli_args):
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *cli_args]):
+            parsedmarc.cli._main()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliSendsSummaryEmailViaMsGraphWhenNoSmtpHost(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """[smtp] with only to/subject (no host) plus [msgraph] sends the
+        summary via Microsoft Graph's sendMail."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = (
+            self.CERT_CONFIG
+            + """
+[smtp]
+to = admin@example.com
+subject = DMARC Summary
+"""
+        )
+        cfg_path = self._write_config(config_text)
+        self._run_main(cfg_path)
+
+        send_message = mock_graph_connection.return_value.send_message
+        send_message.assert_called_once()
+        call_kwargs = send_message.call_args.kwargs
+        self.assertEqual(call_kwargs["message_to"], ["admin@example.com"])
+        self.assertEqual(call_kwargs["subject"], "DMARC Summary")
+
+        filename, payload = call_kwargs["attachments"][0]
+        self.assertRegex(filename, r"^DMARC-\d{4}-\d{2}-\d{2}\.zip$")
+        with zipfile.ZipFile(io.BytesIO(payload)) as zf:
+            self.assertIsNone(zf.testzip())
+
+    @patch("parsedmarc.cli.email_results")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliPrefersSmtpWhenBothSmtpAndMsGraphConfigured(
+        self, mock_graph_connection, mock_get_mailbox_reports, mock_email_results
+    ):
+        """SMTP is preferred over Microsoft Graph when [smtp] host is
+        set, even with [msgraph] also configured — no fallback, no
+        dual-send."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = (
+            self.CERT_CONFIG
+            + """
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        )
+        cfg_path = self._write_config(config_text)
+        self._run_main(cfg_path)
+
+        mock_email_results.assert_called_once()
+        call_args = mock_email_results.call_args
+        self.assertEqual(call_args.args[1], "smtp.example.com")
+        self.assertEqual(call_args.args[2], "dmarc@example.com")
+        self.assertEqual(call_args.args[3], ["admin@example.com"])
+        self.assertEqual(call_args.kwargs["username"], "smtp-user")
+        self.assertEqual(call_args.kwargs["password"], "smtp-password")
+        mock_graph_connection.return_value.send_message.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliSkipsGraphSendWithoutSmtpSection(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """A [msgraph]-only, read-only config (no [smtp] section at all)
+        sends nothing — unchanged behavior for existing reading-only
+        users."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config(self.CERT_CONFIG)
+        self._run_main(cfg_path)
+
+        mock_graph_connection.return_value.send_message.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    @patch("parsedmarc.cli.logger")
+    def testCliSmtpWithoutHostRequiresMsGraph(
+        self, mock_logger, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """[smtp] with to but no host, and no [msgraph] configured at
+        all, still fails config parsing exactly as it did before this
+        feature — host is only optional when a Graph connection can
+        send instead."""
+        config_text = """[general]
+silent = true
+
+[smtp]
+to = admin@example.com
+"""
+        cfg_path = self._write_config(config_text)
+
+        with self.assertRaises(SystemExit) as system_exit:
+            self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, -1)
+        mock_logger.critical.assert_called_once_with(
+            "host setting missing from the smtp config section"
+        )
+        mock_graph_connection.assert_not_called()
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliLogsMsGraphSendFailure(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """A Graph sendMail failure gets the same single-ERROR-line
+        treatment as connection/fetch failures."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_graph_connection.return_value.send_message.side_effect = ODataError(
+            response_status_code=403,
+            error=MainError(
+                message="Access is denied",
+                inner_error=InnerError(request_id="rid-1", client_request_id="crid-1"),
+            ),
+        )
+        config_text = (
+            self.CERT_CONFIG
+            + """
+[smtp]
+to = admin@example.com
+subject = DMARC Summary
+"""
+        )
+        cfg_path = self._write_config(config_text)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertIn("Microsoft Graph message send failed", output)
+        self.assertIn("mailbox=", output)
+        self.assertIn("tenant_id=", output)
+        self.assertIn("auth_method=Certificate", output)
+        self.assertIn("status=403", output)
+        self.assertIn("request-id=rid-1", output)
+        self.assertIn("client-request-id=crid-1", output)
+
+
+class TestMSGraphFailureLogging(unittest.TestCase):
+    """Microsoft Graph connection/fetch/watch failures log a single
+    clear ERROR line identifying the mailbox/tenant/auth method and
+    the Graph request-id/client-request-id when available, instead of
+    a bare logger.exception() that hides the actual error."""
+
+    CERT_CONFIG = """[general]
+silent = true
+
+[msgraph]
+auth_method = Certificate
+client_id = client-id-1234
+tenant_id = tenant-id-5678
+mailbox = shared@example.com
+certificate_path = /tmp/msgraph-cert.pem
+certificate_password = s3cret-cert-pass
+"""
+
+    def setUp(self):
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (dep.level, list(dep.handlers), dep.propagate)
+
+        def restore():
+            for name, (level, handlers, propagate) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+
+        self.addCleanup(restore)
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _run_main(self, cfg_path, *cli_args):
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *cli_args]):
+            parsedmarc.cli._main()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliLogsMsGraphConnectionAuthFailureContext(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """An auth failure during connection construction logs the
+        redacted context plus the actionable AADSTS code verbatim."""
+        mock_graph_connection.side_effect = ClientAuthenticationError(
+            "AADSTS7000215: Invalid client secret"
+        )
+        cfg_path = self._write_config(self.CERT_CONFIG)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertIn("Microsoft Graph connection failed", output)
+        self.assertIn("mailbox=shared@example.com", output)
+        self.assertIn("tenant_id=tenant-id-5678", output)
+        self.assertIn("auth_method=Certificate", output)
+        self.assertIn("AADSTS7000215", output)
+        mock_get_mailbox_reports.assert_not_called()
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliLogsMsGraphMailboxFetchFailureWithRequestId(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """A mailbox-fetch failure (the most common real-world auth
+        failure point, since app-only auth defers token acquisition to
+        first use) surfaces both OData inner-error request ids."""
+        mock_get_mailbox_reports.side_effect = ODataError(
+            response_status_code=503,
+            error=MainError(
+                message="Service unavailable",
+                inner_error=InnerError(request_id="rid-2", client_request_id="crid-2"),
+            ),
+        )
+        cfg_path = self._write_config(self.CERT_CONFIG)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertIn("Microsoft Graph mailbox fetch failed", output)
+        self.assertIn("request-id=rid-2", output)
+        self.assertIn("client-request-id=crid-2", output)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliMsGraphErrorFallsBackToResponseHeaderRequestId(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """When the response body didn't deserialize into a proper OData
+        inner error, the request-id still surfaces from the raw
+        response headers."""
+        mock_get_mailbox_reports.side_effect = ODataError(
+            response_status_code=503,
+            response_headers={"request-id": "hdr-rid"},
+            error=None,
+        )
+        cfg_path = self._write_config(self.CERT_CONFIG)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit):
+                self._run_main(cfg_path)
+
+        output = "\n".join(cm.output)
+        self.assertIn("request-id=hdr-rid", output)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliMsGraphErrorOmitsRequestIdWhenAbsent(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """When neither an inner error nor a response header carries a
+        request id, the ERROR line simply omits the suffix rather than
+        printing an empty/misleading id."""
+        mock_get_mailbox_reports.side_effect = ODataError(response_status_code=500)
+        cfg_path = self._write_config(self.CERT_CONFIG)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertNotIn("request-id=", output)
+
+    @patch("parsedmarc.cli.watch_inbox", side_effect=httpx.ConnectError("dns failure"))
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testWatchModeLogsMsGraphErrorAndExits(
+        self, mock_graph_connection, mock_get_mailbox_reports, mock_watch_inbox
+    ):
+        """Before this fix, --watch had no catch-all at all for Graph
+        errors, so a token/cert expiry mid-watch crashed with a raw
+        uncaught traceback. It now gets the same single ERROR line."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = self.CERT_CONFIG + "\n[mailbox]\nwatch = true\n"
+        cfg_path = self._write_config(config_text)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            with self.assertRaises(SystemExit) as system_exit:
+                self._run_main(cfg_path)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(cm.output)
+        self.assertIn("Microsoft Graph mailbox watch failed", output)
+        self.assertIn("ConnectError", output)
 
 
 class TestSighupReload(unittest.TestCase):
