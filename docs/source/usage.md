@@ -249,11 +249,43 @@ The full set of configuration options are:
       could be a shared mailbox if the user has access to the mailbox
   - `graph_url` - str: Microsoft Graph URL.  Allows for use of National Clouds (ex Azure Gov)
       (Default: https://graph.microsoft.com)
+
+    :::{warning}
+    Setting `graph_url` alone is **not** sufficient for a national/sovereign
+    cloud tenant. It only changes the Microsoft Graph API root; the
+    Microsoft Entra ID (Azure AD) token endpoint used for authentication is
+    not currently configurable in parsedmarc or `mailsuite`, and always
+    defaults to the global `https://login.microsoftonline.com`. A true
+    national-cloud deployment also needs its own Entra ID endpoint, so
+    `graph_url` by itself only helps if your tenant is registered in the
+    global cloud but you specifically need to reach one of these Graph API
+    roots (per [Microsoft's national cloud deployment docs][ms-graph-clouds]):
+
+    | National cloud | Microsoft Graph URL | Entra ID endpoint (not configurable here) |
+    |---|---|---|
+    | Global (default) | `https://graph.microsoft.com` | `https://login.microsoftonline.com` |
+    | US Government L4 (GCC High) | `https://graph.microsoft.us` | `https://login.microsoftonline.us` |
+    | US Government L5 (DoD) | `https://dod-graph.microsoft.us` | `https://login.microsoftonline.us` |
+    | China, operated by 21Vianet | `https://microsoftgraph.chinacloudapi.cn` | `https://login.chinacloudapi.cn` |
+
+    [ms-graph-clouds]: https://learn.microsoft.com/en-us/graph/deployments
+    :::
   - `token_file` - str: Path to save the token file
       (Default: `.token`)
   - `allow_unencrypted_storage` - bool: Allows the Azure Identity
       module to fall back to unencrypted token cache (Default: `False`).
       Even if enabled, the cache will always try encrypted storage first.
+
+    :::{note}
+    `token_file` stores the serialized authentication record; the
+    underlying MSAL persistent token cache is separately named
+    `parsedmarc`, not `mailsuite`'s own default cache name. This is
+    deliberate: the Graph mailbox backend used to live directly in
+    parsedmarc, and moved into the `mailsuite` dependency in parsedmarc
+    9.11.0. Explicitly keeping the `parsedmarc` cache name means tokens
+    cached before that move keep working after upgrading — there is
+    nothing to migrate and no action needed on your part.
+    :::
 
     :::{note}
     You must create an app registration in Azure AD and have an
@@ -262,6 +294,11 @@ The full set of configuration options are:
     `UsernamePassword` auth and the mailbox is different from the
     username, you must grant the app `Mail.ReadWrite.Shared`.
     :::
+
+    | Auth method | Reading (own mailbox) | Reading (shared mailbox) |
+    |---|---|---|
+    | `UsernamePassword` / `DeviceCode` (delegated) | `Mail.ReadWrite` | `Mail.ReadWrite.Shared` |
+    | `ClientSecret` / `Certificate` / `ClientAssertion` (application) | `Mail.ReadWrite` (application), scoped via `New-ApplicationAccessPolicy` | same as own mailbox — app-only access is scoped by policy, not by permission name |
 
     :::{tip}
     **Troubleshooting connections.** Run with `--verbose` to log a
@@ -344,6 +381,75 @@ The full set of configuration options are:
     has granted it, and `/sendMail` calls are expected to fail with an
     access-denied error regardless of what's granted in Azure AD. Use
     an app-only auth method if you need Graph-based sending.
+    :::
+
+    **Minimal example configs.** Each auth method needs a different
+    minimum set of keys. These read-only examples omit `[smtp]`; see
+    above for adding Graph-based sending on top of any of them.
+
+    `UsernamePassword` (delegated, own mailbox):
+    ```ini
+    [msgraph]
+    auth_method = UsernamePassword
+    client_id = ...
+    client_secret = ...
+    user = dmarc-reports@example.com
+    password = ...
+    ```
+
+    `DeviceCode` (delegated, interactive sign-in on first run — `user`
+    is the account that signs in; `mailbox` is the shared mailbox it
+    reads, and only needs to differ from `user` to request
+    `Mail.ReadWrite.Shared` instead of plain `Mail.ReadWrite`):
+    ```ini
+    [msgraph]
+    auth_method = DeviceCode
+    client_id = ...
+    tenant_id = ...
+    user = signing-in-user@example.com
+    mailbox = dmarc-reports@example.com
+    ```
+
+    `ClientSecret` (app-only):
+    ```ini
+    [msgraph]
+    auth_method = ClientSecret
+    client_id = ...
+    tenant_id = ...
+    client_secret = ...
+    mailbox = dmarc-reports@example.com
+    ```
+
+    `Certificate` (app-only):
+    ```ini
+    [msgraph]
+    auth_method = Certificate
+    client_id = ...
+    tenant_id = ...
+    certificate_path = /path/to/cert.pem
+    mailbox = dmarc-reports@example.com
+    ```
+
+    `ClientAssertion` (app-only, short-lived JWT — see the note above
+    about its unsuitability for `watch` mode):
+    ```ini
+    [msgraph]
+    auth_method = ClientAssertion
+    client_id = ...
+    tenant_id = ...
+    client_assertion = ...
+    mailbox = dmarc-reports@example.com
+    ```
+
+    :::{tip}
+    **Troubleshooting.**
+
+    | Error | Cause | Fix |
+    |---|---|---|
+    | *"...needs permission to access resources in your organization that only an admin can grant"* / "Admin consent required" | A delegated auth method (`UsernamePassword`, `DeviceCode`) is authenticating with a scope (`Mail.ReadWrite` or `Mail.ReadWrite.Shared`) the tenant admin hasn't consented to yet. | Have an Entra ID admin grant consent: Azure Portal → **Enterprise Applications** → *your app* → **Permissions** → **Grant admin consent**, or `az ad app permission admin-consent --id <CLIENT_ID>`. This is separate from the `New-ApplicationAccessPolicy` step above, which only applies to app-only auth. |
+    | `ErrorItemNotFound: ... Default folder Root not found` | `mailsuite` can resolve the well-known folders (`Inbox`, `Archive`, `Drafts`, `Sent Items`, `Deleted Items`, `Junk Email`) even when a mailbox's folder hierarchy hasn't fully provisioned, but a **custom, non-well-known** `reports_folder` name still fails to resolve on such a mailbox. | Point `reports_folder` at (or under) one of the six well-known folder names above, or sign into the (shared) mailbox once via Outlook/OWA to force Exchange to provision it, then retry. |
+    | `RuntimeError: Event loop is closed` | Historical bug, fixed in `mailsuite` 2.0.2. Not reachable with the `mailsuite>=2.2.2` this project requires. | Confirm your installed `mailsuite` version is current (`pip show mailsuite`); upgrade if it's somehow pinned below 2.0.2. |
+    | Invalid/rejected timestamp in the `since`/`receivedDateTime` filter | Historical bug (parsedmarc [#706](https://github.com/domainaware/parsedmarc/pull/706)/[#708](https://github.com/domainaware/parsedmarc/pull/708)): older versions appended a spurious `Z` to an already-UTC-offset ISO timestamp. Fixed since parsedmarc 9.5.1/9.5.5. | Upgrade parsedmarc if you're on a version older than 9.5.5. |
     :::
 - `elasticsearch`
   - `hosts` - str: A comma separated list of hostnames and ports
