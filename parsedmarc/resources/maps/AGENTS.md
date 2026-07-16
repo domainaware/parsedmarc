@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to AI agents when working on the reverse DNS maps and related tooling in this directory (``). It supplements the repository-wide rules in the root `AGENTS.md`, which still apply.
+This file provides guidance to AI agents when working on the reverse DNS maps and related tooling in this directory. It supplements the repository-wide rules in the root `AGENTS.md`, which still apply.
 
 ## Maintaining the reverse DNS maps
 
