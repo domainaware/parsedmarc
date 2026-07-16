@@ -81,8 +81,9 @@ The file currently contains over 5,000 mappings from a wide variety of email sen
 
 `base_reverse_dns_map.csv` is a curated derivative work. Many entries
 are derived from the bundled IPinfo Lite MMDB (`as_domain` and
-`as_name` fields) by walking the database for unmapped operators and
-classifying them via the workflow described in [AGENTS.md](../../../AGENTS.md).
+`as_name` fields) by walking the database with `find_unmapped_as_domains.py`
+for unmapped operators and classifying them via the workflow described in
+[AGENTS.md](AGENTS.md).
 Because IPinfo Lite is licensed under
 [Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/),
 this CSV is also distributed under **CC BY-SA 4.0** with attribution to
@@ -127,6 +128,16 @@ When a `source_name` is not domain-shaped (e.g. `Vodafone Group PLC`), parsedmar
 
 Scans `unknown_base_reverse_dns.csv` for full-IP-containing entries that share a common brand suffix. Any suffix repeated by N+ distinct domains (default 3, configurable via `--threshold`) is appended to `psl_overrides.txt`, and every affected entry across the unknown / known-unknown / map files is folded to that suffix's base. Any remaining full-IP entries — whether they clustered or not — are then removed for privacy. After running, the newly exposed base domains still need to be researched and classified via `collect_domain_info.py` and a classifier pass. Supports `--dry-run` to preview without writing.
 
+## find_unmapped_as_domains.py
+
+Walks every IPv4 record in the bundled `ipinfo_lite.mmdb`, aggregates the routed IPv4 footprint per `as_domain`, and subtracts domains already covered by `base_reverse_dns_map.csv` or `known_unknown_base_reverse_dns.txt`, applying `psl_overrides.txt` folding and the same full-IP privacy filter as `find_unknown_base_reverse_dns.py`. Writes `unmapped_as_domains.csv` (`domain,ipv4_count,as_name`, sorted by descending footprint), which `collect_domain_info.py -i` reads directly.
+
+Candidates below `--min-ips` (default `4096`, a /20) are dropped as an anti-poisoning guard — ASN registration data is self-declared to the RIRs and `as_domain` comes from registrant-controlled WHOIS, so a tiny ASN is cheap to register under a brand-impersonating domain name. The dropped count is always printed, never silently discarded.
+
+## unmapped_as_domains.csv
+
+A CSV file with the fields `domain`, `ipv4_count`, and `as_name`, produced by `find_unmapped_as_domains.py`. This file is not tracked by Git.
+
 ## collect_domain_info.py
 
 Bulk enrichment collector. For every domain in `unknown_base_reverse_dns.csv` that is not already in `base_reverse_dns_map.csv`, runs `whois` on the domain, fetches a size-capped `https://` GET, resolves A/AAAA records, and runs `whois` on the first resolved IP. Writes a TSV (`domain_info.tsv` by default) with the registrant org/country/registrar, page `<title>`/`<meta description>`, resolved IPs, and IP-WHOIS org/netname/country — the compact metadata a classifier needs to decide each domain in one pass. Respects `psl_overrides.txt`, skips full-IP entries, and is resume-safe (re-running only fetches domains missing from the output file).
@@ -162,7 +173,9 @@ Detectors cover all 44 industry types listed in [base_reverse_dns_map.csv](#base
 
 Brand-name selection prefers (in order): the MMDB `as_name` for the domain; the page title's first segment; non-redacted WHOIS registrant org; domain-derived fallback. A `clean_brand` step strips common legal-form suffixes (LLC / GmbH / Ltda / EIRELI / sp. z o.o. / etc.) and prefixes (PT, OOO). When the title has multiple segments separated by `|` / `-` / `—` etc., the segment whose simplified form contains the domain root is preferred — so e.g. accessmontana.com whose `as_name` is "MONTANA WEST, L.L.C." but whose title is "Internet, Phone & TV Bundles | Access Montana" maps to "Access Montana", not "Montana West".
 
-The classifier is the regex baseline of step 4 of the [Workflow for classifying unknown domains](../../../AGENTS.md#workflow-for-classifying-unknown-domains) — it catches obvious cases at scale and leaves only the genuinely ambiguous to manual / LLM review. The empty `HAND` dict at the top of the script is an extension point for batch-specific overrides (e.g. acquisition aliases, brand-name corrections that don't fit any detector); each `domain → ("Brand", "Type")` entry wins over the auto-classifier.
+The classifier is the regex baseline of step 4 of the [Workflow for classifying unknown domains](AGENTS.md#workflow-for-classifying-unknown-domains) — it catches obvious cases at scale and leaves only the genuinely ambiguous to manual / LLM review. The empty `HAND` dict at the top of the script is an extension point for batch-specific overrides (e.g. acquisition aliases, brand-name corrections that don't fit any detector); each `domain → ("Brand", "Type")` entry wins over the auto-classifier and bypasses the guard below.
+
+A brand-collision guard also loads `base_reverse_dns_map.csv` (`--map`, defaulting to the bundled map) so that a candidate whose proposed name matches an *existing* map display name, but whose domain has no lexical relationship to any existing key filed under that name, is demoted from `--map-out` to `--ambiguous-out` (marked `name-collision-with-existing-map-entry`) instead of being auto-promoted. This defends against a low-footprint or brand-impersonating candidate being silently attributed to an established operator, and applies to both the PTR-side and MMDB-coverage flows.
 
 ## detect_rebrands.py
 
@@ -175,7 +188,7 @@ Drift sweep that re-fetches every key in `base_reverse_dns_map.csv` with the sam
 
 `external_links` is captured into the output for context but is not a default trigger — most outbound links are to partners / customers / vendors and would generate noise. Pass `--flag-external-links` to also flag on this column during a thorough sweep where missing an image-only banner that lacks a rebrand-themed slug or alt text is worse than the noise.
 
-The output is for periodic review, not automated map mutation. Each hit is one corroborating source; promoting a flagged row into the map still requires a second source per the two-corroborating-sources rule in [AGENTS.md](../../../AGENTS.md). Resume-safe: re-running only re-fetches keys not already in the output file. Use `--limit N` to spot-check a slice and `--include-clean` to also write non-flagged rows for inspection of the no-signal majority.
+The output is for periodic review, not automated map mutation. Each hit is one corroborating source; promoting a flagged row into the map still requires a second source per the two-corroborating-sources rule in [AGENTS.md](AGENTS.md). Resume-safe: re-running only re-fetches keys not already in the output file. Use `--limit N` to spot-check a slice and `--include-clean` to also write non-flagged rows for inspection of the no-signal majority.
 
 ## rebrand_drift.tsv
 

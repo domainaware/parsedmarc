@@ -245,28 +245,24 @@ When someone points at a specific domain — from a DMARC report they inspected,
 
 ### Checking ASN-domain coverage of the MMDB
 
-Separately from `base_reverse_dns.csv`, the MMDB itself is a source of keys worth mapping. To find ASN domains with high IP weight that don't yet have a map entry, walk every record in `ipinfo_lite.mmdb`, aggregate IPv4 count per `as_domain`, and subtract what's already a map key:
+Separately from `base_reverse_dns.csv`, the MMDB itself is a source of keys worth mapping. `find_unmapped_as_domains.py` walks every IPv4 record in `ipinfo_lite.mmdb`, aggregates the routed IPv4 footprint per `as_domain`, and subtracts domains already covered by `base_reverse_dns_map.csv` or `known_unknown_base_reverse_dns.txt`:
 
-```python
-import csv, maxminddb
-from collections import defaultdict
-keys = set()
-with open("base_reverse_dns_map.csv", newline="", encoding="utf-8") as f:
-    for row in csv.DictReader(f):
-        keys.add(row["base_reverse_dns"].strip().lower())
-v4 = defaultdict(int); names = {}
-for net, rec in maxminddb.open_database("parsedmarc/resources/ipinfo/ipinfo_lite.mmdb"):
-    if net.version != 4 or not isinstance(rec, dict): continue
-    d = rec.get("as_domain")
-    if not d: continue
-    v4[d.lower()] += net.num_addresses
-    names[d.lower()] = rec.get("as_name", "")
-miss = sorted(((d, v4[d], names[d]) for d in v4 if d not in keys), key=lambda x: -x[1])
-for d, c, n in miss[:50]:
-    print(f"{c:>12,}  {d:<30}  {n}")
+```bash
+python find_unmapped_as_domains.py
 ```
 
-Apply the same classification rules above (precedence, naming consistency, skip-if-ambiguous, privacy). Many top misses will be brands already in the map under a different rDNS-base key — the goal there is to alias the ASN domain to the same `(name, type)` so both lookup paths hit. For ASN domains with no obvious brand identity (small resellers, parked ASNs), don't map them — the attribution code falls back to the raw `as_name` from the MMDB, which is better than a guess.
+This writes `unmapped_as_domains.csv` (`domain,ipv4_count,as_name`, sorted by descending footprint) — an untracked scratch file, not committed. Feed it straight into the existing collector → classifier pipeline:
+
+```bash
+python collect_domain_info.py -i unmapped_as_domains.csv -o /tmp/domain_info.tsv
+python classify_unknown_domains.py -i /tmp/domain_info.tsv --map-out /tmp/additions.csv --ku-out /tmp/ku_additions.txt --ambiguous-out /tmp/ambiguous_additions.tsv
+```
+
+**The `--min-ips` floor (default 4,096, a /20) is an anti-poisoning guard, not a tuning knob to casually override.** ASN registration data is self-declared to the RIRs, and `as_domain` is derived from registrant-controlled WHOIS — anyone can stand up a tiny ASN and self-declare an `as_domain` that impersonates an established brand. A large routed footprint is at least some evidence of a real, long-lived operator; a handful of IPs is cheap for an adversary to acquire. Candidates dropped by the floor are counted and printed, never silently discarded. Raise `--min-ips` for a stricter pass; lowering it below the default should be a deliberate, justified choice, not a default habit.
+
+**The classifier's brand-collision guard is the second anti-poisoning layer**, and it benefits the PTR-side flow too, not just the MMDB-coverage flow. `classify_unknown_domains.py` loads `base_reverse_dns_map.csv` (via `--map`, defaulting to the bundled map) into a normalized-name index. When a single-category classification proposes a display name that already exists in the map, but the candidate domain has no lexical relationship to any existing key filed under that name (see `_lexically_related`), the row is demoted from the auto-promote (`--map-out`) bucket into `--ambiguous-out` with an `alternatives` marker of `name-collision-with-existing-map-entry`, instead of being silently auto-promoted as if it were the real operator. A human reviewer then decides whether it's a legitimate additional domain for that operator (promote) or an unrelated/impersonating domain (reject to KU or a different category). HAND-dict overrides bypass the guard, since those are already human-forced.
+
+Apply the same classification rules as the rest of this file (precedence, naming consistency, skip-if-ambiguous, privacy) when reviewing `--map-out` and `--ambiguous-out`. Many top misses will be brands already in the map under a different rDNS-base key — the goal there is to alias the ASN domain to the same `(name, type)` so both lookup paths hit. For ASN domains with no obvious brand identity (small resellers, parked ASNs), don't map them — the attribution code falls back to the raw `as_name` from the MMDB, which is better than a guess. The two-corroborating-sources rule (see the "Workflow for classifying unknown domains" section above) still binds every promotion out of this flow — a high IPv4 footprint and a matching `as_name` alone are not two independent sources.
 
 ### Discovering overrides from the live PSL private-domains section
 
