@@ -17,7 +17,7 @@ Because both lookup paths read the same CSV, map keys are a mixed namespace — 
 
 ### Privacy rule — no full IP addresses in any list
 
-A reverse-DNS base domain that contains a full IPv4 address (four dotted or dashed octets, e.g. `170-254-144-204-nobreinternet.com.br` or `74-208-244-234.cprapid.com`) reveals a specific customer's IP and must never appear in `base_reverse_dns_map.csv`, `known_unknown_base_reverse_dns.txt`, or `unknown_base_reverse_dns.csv`. The filter is enforced in three places:
+A reverse-DNS base domain that contains a full IPv4 address (four dotted or dashed octets) reveals a specific customer's IP and must never appear in `base_reverse_dns_map.csv`, `known_unknown_base_reverse_dns.txt`, or `unknown_base_reverse_dns.csv`. The filter is enforced in three places:
 
 - `find_unknown_base_reverse_dns.py` drops full-IP entries at the point where raw `base_reverse_dns.csv` data enters the pipeline.
 - `collect_domain_info.py` refuses to research full-IP entries from any input.
