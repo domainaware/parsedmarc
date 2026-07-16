@@ -74,12 +74,14 @@ import csv
 import os
 import re
 import sys
+from collections import defaultdict
 
 import maxminddb
 
 # Repo-relative default for the MMDB.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_MMDB = os.path.normpath(os.path.join(_HERE, "..", "ipinfo", "ipinfo_lite.mmdb"))
+DEFAULT_MAP = os.path.normpath(os.path.join(_HERE, "base_reverse_dns_map.csv"))
 
 # Per-batch HAND overrides go here. Each entry is:
 #   "domain.example": ("Brand Name", "Type")
@@ -9183,6 +9185,58 @@ def _domain_root(domain: str) -> str:
     return domain.split(".")[0].lower()
 
 
+def _norm_name(name: str) -> str:
+    """Collapse a display name to lowercase alphanumerics for comparison."""
+    return re.sub(r"[^a-z0-9]", "", name.lower().strip())
+
+
+def _load_map_names(map_path: str) -> dict[str, set[str]]:
+    """Return {normalized display name: {existing base_reverse_dns keys}}.
+
+    Used by the brand-collision guard: a candidate whose proposed name
+    matches an existing map display name, but whose domain isn't lexically
+    related to any existing key under that name, is a possible brand
+    impersonation and gets demoted to the ambiguous bucket instead of
+    auto-promoted. Returns an empty dict (guard silently disabled) if the
+    map file is missing.
+    """
+    out: dict[str, set[str]] = defaultdict(set)
+    if not os.path.exists(map_path):
+        print(f"Warning: {map_path} not found; brand-collision guard disabled")
+        return {}
+    with open(map_path, encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            name = (row.get("name") or "").strip()
+            domain = (row.get("base_reverse_dns") or "").strip().lower()
+            if not name or not domain:
+                continue
+            out[_norm_name(name)].add(domain)
+    return dict(out)
+
+
+def _lexically_related(domain: str, name: str, existing_keys: set[str]) -> bool:
+    """True if `domain` plausibly belongs to the same operator as `name`.
+
+    Checks whether the candidate domain's root appears in the proposed
+    display name (or vice versa), or whether the candidate shares its
+    domain root with any existing map key already filed under that name.
+    """
+    root = _domain_root(domain)
+    root_simple = re.sub(r"[^a-z0-9]", "", root)
+    name_simple = _norm_name(name)
+    if root_simple and name_simple:
+        if root_simple in name_simple:
+            return True
+        # Only check the reverse direction (name substring of domain root)
+        # when the name is long enough to avoid trivial matches like "AT".
+        if len(name_simple) >= 4 and name_simple in root_simple:
+            return True
+    for key in existing_keys:
+        if _domain_root(key) == root:
+            return True
+    return False
+
+
 def pick_brand(row: dict, domain: str, as_name: str) -> str:
     title = fix_text(row.get("title", "").strip())
     domain_root = _domain_root(domain)
@@ -9735,30 +9789,44 @@ def _load_mmdb_as_names(mmdb_path: str) -> dict:
     return out
 
 
-def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
+def classify_tsv(
+    input_path: str,
+    mmdb_path: str,
+    map_names: dict[str, set[str]] | None = None,
+) -> tuple:
     """Classify every row of a collect_domain_info.py TSV.
 
-    Returns ``(adds, ambiguous, ku, stats)``:
+    Returns ``(adds, ambiguous, ku, dropped, stats)``:
 
     - ``adds`` — ``(domain, name, type)`` tuples where the classifier matched
       exactly one category and the row can be promoted into the map without
       review.
     - ``ambiguous`` — ``(domain, name, primary_type, alternatives, title)``
-      rows where two or more distinct detector categories fired. The
-      classifier won't auto-promote these — the operator-typology question
-      is "does this domain belong to category A or category B?", and that's
-      a judgement call the classifier shouldn't make on its own (per
-      AGENTS.md). The output file is a worklist: a human picks one of the
-      candidates (or a different category, or rejects the row to KU).
+      rows where two or more distinct detector categories fired, or where a
+      single-category match collided with an existing map display name
+      under an unrelated domain (see the brand-collision guard below). The
+      classifier won't auto-promote these — a human must pick one of the
+      candidates (or a different category, or reject the row to KU).
     - ``ku`` — domains where no detector fired.
     - ``stats`` — counters.
+
+    ``map_names`` is ``{normalized display name: {existing map keys}}`` as
+    returned by ``_load_map_names``. When a single-category classification
+    proposes a name that already exists in the map, but the candidate
+    domain has no lexical relationship to any existing key filed under that
+    name (see ``_lexically_related``), the row is demoted from ``adds`` to
+    ``ambiguous`` instead of being auto-promoted — this guards against a
+    candidate impersonating an established brand. Rows resolved via the
+    HAND dict bypass this guard (they're human-forced overrides).
     """
+    if map_names is None:
+        map_names = {}
     asn = _load_mmdb_as_names(mmdb_path)
     adds: list = []
     ambiguous: list = []
     ku: list = []
     dropped: list = []
-    auto = hand = ambig = 0
+    auto = hand = ambig = name_collision = 0
     with open(input_path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
@@ -9793,11 +9861,33 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
                 # to remove the domain from KU if it's currently there.
                 dropped.append(domain)
             elif len(r) == 2:
-                adds.append((domain, r[0], r[1]))
-                auto += 1
-                if link_target and link_target != domain:
-                    adds.append((link_target, r[0], r[1]))
+                name, category = r
+                existing_keys = map_names.get(_norm_name(name))
+                if existing_keys and not _lexically_related(
+                    domain, name, existing_keys
+                ):
+                    # Proposed name collides with an established map brand
+                    # but the domain isn't lexically related to it — treat
+                    # as a possible impersonation and route to human review
+                    # instead of auto-promoting.
+                    title = (row.get("title") or "").strip()
+                    ambiguous.append(
+                        (
+                            domain,
+                            name,
+                            category,
+                            ["name-collision-with-existing-map-entry"],
+                            title,
+                        )
+                    )
+                    ambig += 1
+                    name_collision += 1
+                else:
+                    adds.append((domain, name, category))
                     auto += 1
+                    if link_target and link_target != domain:
+                        adds.append((link_target, name, category))
+                        auto += 1
             else:
                 # (brand, primary, alternatives) — multi-category match.
                 title = (row.get("title") or "").strip()
@@ -9819,6 +9909,7 @@ def classify_tsv(input_path: str, mmdb_path: str) -> tuple:
             "ambig": ambig,
             "ku": len(ku),
             "dropped": len(dropped),
+            "name_collision": name_collision,
         },
     )
 
@@ -9868,9 +9959,20 @@ def main():
         default=DEFAULT_MMDB,
         help="Path to ipinfo_lite.mmdb. Default: bundled MMDB",
     )
+    p.add_argument(
+        "--map",
+        default=DEFAULT_MAP,
+        help=(
+            "Path to base_reverse_dns_map.csv, used for the brand-collision "
+            "guard (a proposed name matching an existing map entry under an "
+            "unrelated domain is routed to ambiguous instead of "
+            "auto-promoted). Default: bundled map"
+        ),
+    )
     args = p.parse_args()
 
-    adds, ambiguous, ku, dropped, stats = classify_tsv(args.input, args.mmdb)
+    map_names = _load_map_names(args.map)
+    adds, ambiguous, ku, dropped, stats = classify_tsv(args.input, args.mmdb, map_names)
 
     with open(args.map_out, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f, lineterminator="\r\n")
@@ -9891,7 +9993,7 @@ def main():
 
     print(
         f"auto: {stats['auto']}, hand: {stats['hand']}, "
-        f"ambig: {stats['ambig']}, "
+        f"ambig: {stats['ambig']} (name_collision: {stats['name_collision']}), "
         f"ku: {stats['ku']} (unique: {len(set(ku))}), "
         f"dropped: {stats['dropped']}",
         file=sys.stderr,
