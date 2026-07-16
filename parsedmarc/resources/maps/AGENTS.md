@@ -4,7 +4,7 @@ This file provides guidance to AI agents when working on the reverse DNS maps an
 
 ## Maintaining the reverse DNS maps
 
-`base_reverse_dns_map.csv` maps a base domain to a display name and service type. The same map is consulted at two points: first with a PTR-derived base domain, and — if the IP has no PTR — with the ASN domain from the bundled IPinfo Lite MMDB (`parsedmarc/resources/ipinfo/ipinfo_lite.mmdb`). See `README.md` for the field format and the service_type precedence rules.
+`base_reverse_dns_map.csv` maps a base domain to a display name and service type. The same map is consulted at two points: first with a PTR-derived base domain, and — if the IP has no PTR — with the ASN domain from the bundled IPinfo Lite MMDB (`ipinfo_lite.mmdb`). See `README.md` for the field format and the service_type precedence rules.
 
 Because both lookup paths read the same CSV, map keys are a mixed namespace — rDNS-base domains (e.g. `comcast.net`, discovered via `base_reverse_dns.csv`) coexist with ASN domains (e.g. `comcast.com`, discovered via coverage-gap analysis against the MMDB). Entries of both kinds should point to the same `(name, type)` when they describe the same operator — grep before inventing a new display name.
 
