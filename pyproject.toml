@@ -115,6 +115,8 @@ exclude = [
     "base_reverse_dns.csv",
     "unknown_base_reverse_dns.csv",
     "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
     "*.bak",
     # Maintenance tooling: any Python file under parsedmarc/resources/maps/
     # whose name doesn't start with `_` (i.e. everything except __init__.py,
