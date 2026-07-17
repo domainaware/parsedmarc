@@ -238,7 +238,7 @@
       <title>DMARC passage over time</title>
       <chart>
         <search base="base_search">
-          <query>| timechart sum(message_count) as message_count by passed_dmarc</query>
+          <query>| timechart span=1d sum(message_count) as message_count by passed_dmarc</query>
         </search>
         <option name="charting.axisTitleX.text">Time</option>
         <option name="charting.axisTitleX.visibility">visible</option>
@@ -259,7 +259,7 @@
       <title>Message disposition over time</title>
       <chart>
         <search base="base_search">
-          <query>| timechart sum(message_count) as message_count by disposition</query>
+          <query>| timechart span=1d sum(message_count) as message_count by disposition</query>
         </search>
         <option name="charting.axisTitleX.text">Time</option>
         <option name="charting.axisTitleY.text">Messages</option>
