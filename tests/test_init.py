@@ -191,6 +191,18 @@ class Test(unittest.TestCase):
                 )
             print("Passed!")
 
+    def testFailureSampleWithoutFeedbackReportPart(self):
+        """A plain-text-only failure report (no message/feedback-report part)
+        must still contain every field the Elasticsearch/OpenSearch outputs
+        access with hard key lookups (issue #332)"""
+        sample_path = "samples/failure/exim_plain_text_only_no_arf_part.eml"
+        result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
+        assert result["report_type"] == "failure"
+        report = cast(FailureReport, result["report"])
+        assert report["feedback_type"] == "auth-failure"
+        assert "authentication_results" in report
+        assert report["source"]["ip_address"] == "203.0.113.68"
+
     def testFailureReportBackwardCompat(self):
         """Test that old forensic function aliases still work"""
         self.assertIs(

@@ -1543,6 +1543,27 @@ def parse_failure_report(
             f.strip() for f in parsed_report["auth_failure"].split(",") if f.strip()
         ]
 
+        # Feedback-Type is REQUIRED per RFC 5965 §3.1, but some gateways
+        # (e.g. Exim/cPanel-based ones that send a plain-text summary without
+        # a machine-readable message/feedback-report part) omit it. The
+        # Elasticsearch/OpenSearch outputs require the key, so default it
+        # instead of dropping the report there (see issue #332).
+        if "feedback_type" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Feedback-Type' field "
+                "(RFC 5965 §3.1); defaulting to 'auth-failure'"
+            )
+            parsed_report["feedback_type"] = "auth-failure"
+
+        # Authentication-Results is likewise REQUIRED per RFC 6591 §3.1 and
+        # required by the Elasticsearch/OpenSearch outputs.
+        if "authentication_results" not in parsed_report:
+            logger.warning(
+                "Failure report missing required 'Authentication-Results' "
+                "field (RFC 6591 §3.1); defaulting to None"
+            )
+            parsed_report["authentication_results"] = None
+
         optional_fields = [
             "original_envelope_id",
             "dkim_domain",
