@@ -1,0 +1,65 @@
+Return-Path: <no-reply@node01.mailgate.example.net>
+X-Original-To: dmarc@example.com
+Delivered-To: dmarc@example.com
+Received: from node04.mailgate.example.net (node04.mailgate.example.net [198.51.100.176])
+	by web01.hosting.example.net (Postfix) with ESMTPS id 9AD6912398C
+	for <dmarc@example.com>; Mon,  7 Apr 2025 23:16:09 +0200 (CEST)
+Received: from root by node04.mailgate.example.net with local-generated (Exim 4.92)
+	(envelope-from <no-reply@node01.mailgate.example.net>)
+	id 1u1tpB-00AA5u-ED
+	for dmarc@example.com; Mon, 07 Apr 2025 23:16:09 +0200
+Content-Type: multipart/report;
+ boundary="===============2510560795302005415=="
+MIME-Version: 1.0
+Subject: DMARC Forensic Report for example.com from IP 203.0.113.68
+From: no-reply@node01.mailgate.example.net
+To: dmarc@example.com
+Date: Mon, 07 Apr 2025 23:16:09 +0200
+Auto-Submitted: auto-replied
+Message-Id: <E1u1tpB-00AA5u-ED@node04.mailgate.example.net>
+
+--===============2510560795302005415==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+
+A message claiming to be from you has failed the published DMARC policy for your domain.
+
+  Sender Domain: example.com
+  Sender IP Address: 203.0.113.68
+  Received date: Mon, 07 Apr 2025 23:16:09 +0200
+  SPF Alignment: no
+  DKIM Alignment: no
+  DMARC Results: None, Accept
+
+------ This is a copy of the headers that were received before the error was detected.
+
+Received: from [203.0.113.68] (helo=smtpclient.apple)
+	by node04.mailgate.example.net with esmtp (Exim 4.92)
+	(envelope-from <user@example.com>)
+	id 1u1tpA-00AAwZ-CR
+	for user@example.com; Mon, 07 Apr 2025 23:16:08 +0200
+Received: from [IPv6:::ffff:203.0.113.68] (unknown [203.0.113.68])
+	by example.com (Postfix) with ESMTP id 9CCA25FC9873
+	for <user@example.com>; Mon, 7 Apr 2025 10:10:06 -0600 (UTC)
+Content-Type: text/plain;
+	charset=windows-1250
+Content-Transfer-Encoding: 8bit
+From: <user@example.com>
+MIME-Version: 1.0 (1.0)
+Date: Mon, 7 Apr 2025 10:10:06 -0600
+Subject: Payment from your account.
+Message-Id: <134117F8-2145-AECE-9CCA-25FC98731341@example.com>
+To: <user@example.com>
+X-Mailer: iPhone Mail (22A3351)
+Received-SPF: softfail (node04.mailgate.example.net: transitioning domain of example.com does not designate 203.0.113.68 as permitted sender) client-ip=203.0.113.68; envelope-from=user@example.com; helo=smtpclient.apple;
+X-SPF-Result: node04.mailgate.example.net: transitioning domain of example.com does not designate 203.0.113.68 as permitted sender
+X-Sender-Warning: Reverse DNS lookup failed for 203.0.113.68 (failed)
+X-DKIM-Status: none /  / example.com /  /  /
+Authentication-Results: node04.mailgate.example.net;
+	iprev=fail smtp.remote-ip=203.0.113.68;
+	spf=softfail smtp.mailfrom=example.com;
+	dmarc=none header.from=example.com
+Authentication-Results:  mailgate.example.net; spf=softfail smtp.mailfrom=user@example.com
+
+--===============2510560795302005415==--
