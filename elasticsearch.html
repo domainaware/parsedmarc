@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Elasticsearch and Kibana &mdash; parsedmarc 10.2.2 documentation</title>
+  <title>Elasticsearch and Kibana &mdash; parsedmarc 10.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=43731225"></script>
+      <script src="_static/documentation_options.js?v=2c8206f1"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -91,7 +91,10 @@
 <p>To set up visual dashboards of DMARC data, install Elasticsearch and Kibana.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Elasticsearch and Kibana 6 or later are required</p>
+<p>Elasticsearch and Kibana 8 or later are required (parsedmarc’s 8.x Python
+client also supports Elasticsearch 9). OpenSearch users must use the
+<code class="docutils literal notranslate"><span class="pre">[opensearch]</span></code> configuration section instead — the Elasticsearch 8.x client
+refuses to connect to non-Elasticsearch clusters.</p>
 </div>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>

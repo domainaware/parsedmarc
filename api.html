@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 10.2.2 documentation</title>
+  <title>API reference &mdash; parsedmarc 10.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=43731225"></script>
+      <script src="_static/documentation_options.js?v=2c8206f1"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -63,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.ParserError"><code class="docutils literal notranslate"><span class="pre">ParserError</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.append_json"><code class="docutils literal notranslate"><span class="pre">append_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.email_results"><code class="docutils literal notranslate"><span class="pre">email_results()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsedmarc.email_results_via_msgraph"><code class="docutils literal notranslate"><span class="pre">email_results_via_msgraph()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_report"><code class="docutils literal notranslate"><span class="pre">extract_report()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.extract_report_from_file_path"><code class="docutils literal notranslate"><span class="pre">extract_report_from_file_path()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsedmarc.get_dmarc_reports_from_mailbox"><code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mailbox()</span></code></a></li>
@@ -286,6 +287,29 @@ JSON array out of repeated appends.</p>
 <li><p><strong>verify</strong> (<em>bool</em>) – verify the SSL/TLS certificate</p></li>
 <li><p><strong>username</strong> (<em>str</em>) – An optional username</p></li>
 <li><p><strong>password</strong> (<em>str</em>) – An optional password</p></li>
+<li><p><strong>subject</strong> (<em>str</em>) – Overrides the default message subject</p></li>
+<li><p><strong>attachment_filename</strong> (<em>str</em>) – Override the default attachment filename</p></li>
+<li><p><strong>message</strong> (<em>str</em>) – Override the default plain text body</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="parsedmarc.email_results_via_msgraph">
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.</span></span><span class="sig-name descname"><span class="pre">email_results_via_msgraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#parsedmarc.types.ParsingResults" title="parsedmarc.types.ParsingResults"><span class="pre">ParsingResults</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MSGraphConnection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_cc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mail_bcc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attachment_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/parsedmarc.html#email_results_via_msgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.email_results_via_msgraph" title="Link to this definition"></a></dt>
+<dd><p>Emails parsing results as a zip file via an already-authenticated
+Microsoft Graph mailbox connection (<code class="docutils literal notranslate"><span class="pre">/users/{mailbox}/sendMail</span></code>),
+saving a copy to Sent Items.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> (<em>dict</em>) – Parsing results</p></li>
+<li><p><strong>connection</strong> (<em>MSGraphConnection</em>) – An already-authenticated Microsoft
+Graph mailbox connection</p></li>
+<li><p><strong>mail_to</strong> (<em>list</em>) – A list of addresses to mail to</p></li>
+<li><p><strong>mail_cc</strong> (<em>list</em>) – A list of addresses to CC</p></li>
+<li><p><strong>mail_bcc</strong> (<em>list</em>) – A list addresses to BCC</p></li>
 <li><p><strong>subject</strong> (<em>str</em>) – Overrides the default message subject</p></li>
 <li><p><strong>attachment_filename</strong> (<em>str</em>) – Override the default attachment filename</p></li>
 <li><p><strong>message</strong> (<em>str</em>) – Override the default plain text body</p></li>
@@ -850,13 +874,21 @@ remaining keys are passed through; defaults are skipped entirely.</p></li>
 <dt class="sig sig-object py" id="parsedmarc.elastic.migrate_indexes">
 <span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Link to this definition"></a></dt>
 <dd><p>Updates index mappings</p>
+<p>This is a no-op kept for API compatibility (<code class="docutils literal notranslate"><span class="pre">cli.py</span></code> calls it on
+startup). The only migration this function ever performed was
+re-typing <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> from <code class="docutils literal notranslate"><span class="pre">long</span></code> to <code class="docutils literal notranslate"><span class="pre">text</span></code>, which
+applied exclusively to indices still carrying the legacy
+Elasticsearch 6-era <code class="docutils literal notranslate"><span class="pre">&quot;doc&quot;</span></code> mapping type. The 8.x client can only
+reach servers (Elasticsearch 8.x/9.x) whose indices were created on
+Elasticsearch 7.x or later and are therefore typeless, so that
+migration path is unreachable and has been removed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names</p></li>
+<li><p><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names
+(accepted for API compatibility; unused)</p></li>
 <li><p><strong>failure_indexes</strong> (<em>list</em>) – A list of failure index names
-(accepted for API compatibility; no migrations are
-currently needed for failure indexes)</p></li>
+(accepted for API compatibility; unused)</p></li>
 </ul>
 </dd>
 </dl>
@@ -958,7 +990,9 @@ index</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hosts</strong> (<em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>]</em>) – A single hostname or URL, or list of hostnames or URLs</p></li>
-<li><p><strong>use_ssl</strong> (<em>bool</em>) – Use an HTTPS connection to the server</p></li>
+<li><p><strong>use_ssl</strong> (<em>bool</em>) – Controls the scheme prepended to any host that doesn’t
+already include one (<code class="docutils literal notranslate"><span class="pre">https://</span></code> when True, <code class="docutils literal notranslate"><span class="pre">http://</span></code> when
+False). Hosts that already carry a scheme are left unchanged.</p></li>
 <li><p><strong>ssl_cert_path</strong> (<em>str</em>) – Path to the certificate chain</p></li>
 <li><p><strong>skip_certificate_verification</strong> (<em>bool</em>) – Skip certificate verification</p></li>
 <li><p><strong>username</strong> (<em>str</em>) – The username to use for authentication</p></li>

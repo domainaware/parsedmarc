@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 10.2.2 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 10.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=43731225"></script>
+      <script src="../../_static/documentation_options.js?v=2c8206f1"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -84,10 +84,9 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch_dsl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.dsl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Boolean</span><span class="p">,</span>
     <span class="n">Date</span><span class="p">,</span>
     <span class="n">Document</span><span class="p">,</span>
@@ -98,11 +97,11 @@
     <span class="n">Keyword</span><span class="p">,</span>
     <span class="n">Nested</span><span class="p">,</span>
     <span class="n">Object</span><span class="p">,</span>
+    <span class="n">Q</span><span class="p">,</span>
     <span class="n">Search</span><span class="p">,</span>
     <span class="n">Text</span><span class="p">,</span>
     <span class="n">connections</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch_dsl.search</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidFailureReport</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
@@ -129,11 +128,28 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># The elasticsearch.dsl 8.x type stubs use dataclass_transform and only</span>
+    <span class="c1"># surface dataclass-style annotated fields (``name: M[...] =</span>
+    <span class="c1"># mapped_field(...)``) as constructor parameters. This module declares</span>
+    <span class="c1"># fields the pre-8.x way (``name = Text()``), which the runtime fully</span>
+    <span class="c1"># supports via ObjectBase.__init__(**kwargs), so this TYPE_CHECKING-only</span>
+    <span class="c1"># declaration restores the real runtime signature for the type checker.</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="nb">type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">comment</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_PublishedPolicy</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">adkim</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">aspf</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -147,6 +163,12 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_DKIMResult</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">selector</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -154,6 +176,12 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_SPFResult</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">scope</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -161,6 +189,12 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_AggregateReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="k">class</span><span class="w"> </span><span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
 
@@ -203,7 +237,7 @@
     <span class="n">generator</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_policy_override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">comment</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">policy_overrides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_PolicyOverride</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">type_</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">policy_overrides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_PolicyOverride</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">type_</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="n">comment</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_dkim_result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -219,7 +253,7 @@
                 <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_spf_result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -235,7 +269,7 @@
                 <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportIncompatibleMethodOverride]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">passed_dmarc</span> <span class="o">=</span> <span class="kc">False</span>
@@ -245,17 +279,35 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_EmailAddressDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">display_name</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">address</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_EmailAttachmentDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">filename</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">content_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">sha256</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_FailureSampleDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">raw</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">headers</span> <span class="o">=</span> <span class="n">Object</span><span class="p">()</span>
     <span class="n">headers_only</span> <span class="o">=</span> <span class="n">Boolean</span><span class="p">()</span>
@@ -271,28 +323,34 @@
     <span class="n">attachments</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_EmailAttachmentDoc</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_reply_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reply_to</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_cc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_bcc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bcc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bcc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_EmailAddressDoc</span><span class="p">(</span><span class="n">display_name</span><span class="o">=</span><span class="n">display_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_attachment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sha256</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_EmailAttachmentDoc</span><span class="p">(</span>
                 <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="n">content_type</span><span class="p">,</span> <span class="n">sha256</span><span class="o">=</span><span class="n">sha256</span>
             <span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_FailureReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="k">class</span><span class="w"> </span><span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;dmarc_failure&quot;</span>
 
@@ -319,6 +377,12 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_SMTPTLSFailureDetailsDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">result_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
     <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -329,6 +393,12 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_SMTPTLSPolicyDoc</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="n">policy_domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">policy_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">policy_strings</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -360,10 +430,16 @@
             <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
             <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_SMTPTLSReportDoc</span><span class="p">(</span><span class="n">Document</span><span class="p">):</span>
+    <span class="c1"># TYPE_CHECKING __init__: see _PolicyOverride</span>
+    <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
     <span class="k">class</span><span class="w"> </span><span class="nc">Index</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
 
@@ -402,7 +478,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs</span>
-<span class="sd">        use_ssl (bool): Use an HTTPS connection to the server</span>
+<span class="sd">        use_ssl (bool): Controls the scheme prepended to any host that doesn&#39;t</span>
+<span class="sd">            already include one (``https://`` when True, ``http://`` when</span>
+<span class="sd">            False). Hosts that already carry a scheme are left unchanged.</span>
 <span class="sd">        ssl_cert_path (str): Path to the certificate chain</span>
 <span class="sd">        skip_certificate_verification (bool): Skip certificate verification</span>
 <span class="sd">        username (str): The username to use for authentication</span>
@@ -419,9 +497,12 @@
     <span class="n">_SERVERLESS</span> <span class="o">=</span> <span class="n">serverless</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">hosts</span> <span class="o">=</span> <span class="p">[</span><span class="n">hosts</span><span class="p">]</span>
-    <span class="n">conn_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="n">hosts</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">timeout</span><span class="p">}</span>
+    <span class="n">scheme</span> <span class="o">=</span> <span class="s2">&quot;https://&quot;</span> <span class="k">if</span> <span class="n">use_ssl</span> <span class="k">else</span> <span class="s2">&quot;http://&quot;</span>
+    <span class="n">normalized_hosts</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">host</span> <span class="k">if</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">host</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span> <span class="n">host</span><span class="p">)</span> <span class="k">for</span> <span class="n">host</span> <span class="ow">in</span> <span class="n">hosts</span>
+    <span class="p">]</span>
+    <span class="n">conn_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="n">normalized_hosts</span><span class="p">,</span> <span class="s2">&quot;request_timeout&quot;</span><span class="p">:</span> <span class="n">timeout</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
-        <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;use_ssl&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">ssl_cert_path</span><span class="p">:</span>
             <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;ca_certs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssl_cert_path</span>
         <span class="k">if</span> <span class="n">skip_certificate_verification</span><span class="p">:</span>
@@ -429,7 +510,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;verify_certs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">username</span> <span class="ow">and</span> <span class="n">password</span><span class="p">:</span>
-        <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;http_auth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+        <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;basic_auth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">api_key</span><span class="p">:</span>
         <span class="n">conn_params</span><span class="p">[</span><span class="s2">&quot;api_key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">api_key</span>
     <span class="n">connections</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="o">**</span><span class="n">conn_params</span><span class="p">)</span></div>
@@ -481,43 +562,21 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Updates index mappings</span>
 
+<span class="sd">    This is a no-op kept for API compatibility (``cli.py`` calls it on</span>
+<span class="sd">    startup). The only migration this function ever performed was</span>
+<span class="sd">    re-typing ``published_policy.fo`` from ``long`` to ``text``, which</span>
+<span class="sd">    applied exclusively to indices still carrying the legacy</span>
+<span class="sd">    Elasticsearch 6-era ``&quot;doc&quot;`` mapping type. The 8.x client can only</span>
+<span class="sd">    reach servers (Elasticsearch 8.x/9.x) whose indices were created on</span>
+<span class="sd">    Elasticsearch 7.x or later and are therefore typeless, so that</span>
+<span class="sd">    migration path is unreachable and has been removed.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_indexes (list): A list of aggregate index names</span>
+<span class="sd">            (accepted for API compatibility; unused)</span>
 <span class="sd">        failure_indexes (list): A list of failure index names</span>
-<span class="sd">            (accepted for API compatibility; no migrations are</span>
-<span class="sd">            currently needed for failure indexes)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">version</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="k">if</span> <span class="n">aggregate_indexes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">aggregate_indexes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">aggregate_index_name</span> <span class="ow">in</span> <span class="n">aggregate_indexes</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="k">continue</span>
-        <span class="n">aggregate_index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span>
-        <span class="n">doc</span> <span class="o">=</span> <span class="s2">&quot;doc&quot;</span>
-        <span class="n">fo_field</span> <span class="o">=</span> <span class="s2">&quot;published_policy.fo&quot;</span>
-        <span class="n">fo</span> <span class="o">=</span> <span class="s2">&quot;fo&quot;</span>
-        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">aggregate_index</span><span class="o">.</span><span class="n">get_field_mapping</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="n">fo_field</span><span class="p">])</span>
-        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">fo_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;mappings&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">doc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fo_mapping</span><span class="p">:</span>
-            <span class="k">continue</span>
-
-        <span class="n">fo_mapping</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="n">doc</span><span class="p">][</span><span class="n">fo_field</span><span class="p">][</span><span class="s2">&quot;mapping&quot;</span><span class="p">][</span><span class="n">fo</span><span class="p">]</span>
-        <span class="n">fo_type</span> <span class="o">=</span> <span class="n">fo_mapping</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">fo_type</span> <span class="o">==</span> <span class="s2">&quot;long&quot;</span><span class="p">:</span>
-            <span class="n">new_index_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-v</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
-            <span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
-                    <span class="s2">&quot;published_policy.fo&quot;</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyword&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore_above&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">}},</span>
-                    <span class="p">}</span>
-                <span class="p">}</span>
-            <span class="p">}</span>
-            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
-            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">put_mapping</span><span class="p">(</span><span class="n">doc_type</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
-            <span class="n">reindex</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(),</span> <span class="n">aggregate_index_name</span><span class="p">,</span> <span class="n">new_index_name</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
-            <span class="n">Index</span><span class="p">(</span><span class="n">aggregate_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+<span class="sd">            (accepted for API compatibility; unused)</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
 
 
 
@@ -574,7 +633,10 @@
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
-    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
+    <span class="c1"># elasticsearch.dsl&#39;s own docs recommend ``search.query = Q(...)``, but</span>
+    <span class="c1"># the ProxyDescriptor.__set__ stub is typed to accept only</span>
+    <span class="c1"># Dict[str, Any], not the Query object the docs tell you to assign.</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>  <span class="c1"># pyright: ignore[reportAttributeAccessIssue]</span>
     <span class="n">begin_date_human</span> <span class="o">=</span> <span class="n">begin_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
     <span class="n">end_date_human</span> <span class="o">=</span> <span class="n">end_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%SZ&quot;</span><span class="p">)</span>
 
@@ -803,7 +865,7 @@
         <span class="n">subject_query</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;match_phrase&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;sample.headers.subject&quot;</span><span class="p">:</span> <span class="n">subject</span><span class="p">}}</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">&amp;</span> <span class="n">Q</span><span class="p">(</span><span class="n">subject_query</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
-    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">q</span>  <span class="c1"># pyright: ignore[reportAttributeAccessIssue]</span>
     <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -947,7 +1009,7 @@
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
-    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>  <span class="c1"># pyright: ignore[reportAttributeAccessIssue]</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
@@ -1037,7 +1099,7 @@
                     <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
                     <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
                 <span class="p">)</span>
-        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
+        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
 
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
     <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>  <span class="c1"># pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]</span>

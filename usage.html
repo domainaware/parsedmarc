@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 10.2.2 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 10.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=43731225"></script>
+      <script src="_static/documentation_options.js?v=2c8206f1"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -357,12 +357,62 @@ for all auth methods except UsernamePassword.</p></li>
 current user if using the UsernamePassword auth method, but
 could be a shared mailbox if the user has access to the mailbox</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">graph_url</span></code> - str: Microsoft Graph URL.  Allows for use of National Clouds (ex Azure Gov)
-(Default: <a class="reference external" href="https://graph.microsoft.com">https://graph.microsoft.com</a>)</p></li>
+(Default: <a class="reference external" href="https://graph.microsoft.com">https://graph.microsoft.com</a>)</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting <code class="docutils literal notranslate"><span class="pre">graph_url</span></code> alone is <strong>not</strong> sufficient for a national/sovereign
+cloud tenant. It only changes the Microsoft Graph API root; the
+Microsoft Entra ID (Azure AD) token endpoint used for authentication is
+not currently configurable in parsedmarc or <code class="docutils literal notranslate"><span class="pre">mailsuite</span></code>, and always
+defaults to the global <code class="docutils literal notranslate"><span class="pre">https://login.microsoftonline.com</span></code>. A true
+national-cloud deployment also needs its own Entra ID endpoint, so
+<code class="docutils literal notranslate"><span class="pre">graph_url</span></code> by itself only helps if your tenant is registered in the
+global cloud but you specifically need to reach one of these Graph API
+roots (per <a class="reference external" href="https://learn.microsoft.com/en-us/graph/deployments">Microsoft’s national cloud deployment docs</a>):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>National cloud</p></th>
+<th class="head"><p>Microsoft Graph URL</p></th>
+<th class="head"><p>Entra ID endpoint (not configurable here)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Global (default)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://graph.microsoft.com</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://login.microsoftonline.com</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>US Government L4 (GCC High)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://graph.microsoft.us</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://login.microsoftonline.us</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>US Government L5 (DoD)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://dod-graph.microsoft.us</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://login.microsoftonline.us</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>China, operated by 21Vianet</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://microsoftgraph.chinacloudapi.cn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://login.chinacloudapi.cn</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> - str: Path to save the token file
 (Default: <code class="docutils literal notranslate"><span class="pre">.token</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">allow_unencrypted_storage</span></code> - bool: Allows the Azure Identity
 module to fall back to unencrypted token cache (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>).
 Even if enabled, the cache will always try encrypted storage first.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">token_file</span></code> stores the serialized authentication record; the
+underlying MSAL persistent token cache is separately named
+<code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code>, not <code class="docutils literal notranslate"><span class="pre">mailsuite</span></code>’s own default cache name. This is
+deliberate: the Graph mailbox backend used to live directly in
+parsedmarc, and moved into the <code class="docutils literal notranslate"><span class="pre">mailsuite</span></code> dependency in parsedmarc
+9.11.0. Explicitly keeping the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> cache name means tokens
+cached before that move keep working after upgrading — there is
+nothing to migrate and no action needed on your part.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You must create an app registration in Azure AD and have an
@@ -371,6 +421,24 @@ admin grant the Microsoft Graph <code class="docutils literal notranslate"><span
 <code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> auth and the mailbox is different from the
 username, you must grant the app <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>.</p>
 </div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Auth method</p></th>
+<th class="head"><p>Reading (own mailbox)</p></th>
+<th class="head"><p>Reading (shared mailbox)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> / <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code> (delegated)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code> / <code class="docutils literal notranslate"><span class="pre">Certificate</span></code> / <code class="docutils literal notranslate"><span class="pre">ClientAssertion</span></code> (application)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application), scoped via <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code></p></td>
+<td><p>same as own mailbox — app-only access is scoped by policy, not by permission name</p></td>
+</tr>
+</tbody>
+</table>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p><strong>Troubleshooting connections.</strong> Run with <code class="docutils literal notranslate"><span class="pre">--verbose</span></code> to log a
@@ -381,7 +449,12 @@ mailbox, Graph URL) before the connection attempt, and with
 from Entra ID, which distinguish a local configuration problem from
 an Exchange Online-side one), Microsoft Graph SDK requests, and
 <code class="docutils literal notranslate"><span class="pre">httpx</span></code> HTTP request lines. Secret values (passwords, client
-secrets, certificate passwords) are never written to logs.</p>
+secrets, certificate passwords) are never written to logs.
+Connection, mailbox fetch, message send, and <code class="docutils literal notranslate"><span class="pre">--watch</span></code> failures
+each log a single ERROR line naming the mailbox, tenant, auth
+method, and the Graph <code class="docutils literal notranslate"><span class="pre">request-id</span></code>/<code class="docutils literal notranslate"><span class="pre">client-request-id</span></code> when
+available — worth quoting verbatim when contacting Microsoft
+support.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -400,6 +473,145 @@ group and use that as the group id.</p>
 </div>
 <p>The same application permission and mailbox scoping guidance
 applies to the <code class="docutils literal notranslate"><span class="pre">Certificate</span></code> and <code class="docutils literal notranslate"><span class="pre">ClientAssertion</span></code> auth methods.</p>
+</div>
+<p><strong>Sending the summary email via Microsoft Graph.</strong>
+When <code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> is configured and <code class="docutils literal notranslate"><span class="pre">[smtp]</span></code> has a <code class="docutils literal notranslate"><span class="pre">to</span></code> value but no
+<code class="docutils literal notranslate"><span class="pre">host</span></code>, the periodic summary email is sent through the same
+already-authenticated Graph mailbox connection used for reading
+(<code class="docutils literal notranslate"><span class="pre">/users/{mailbox}/sendMail</span></code>), and a copy is saved to Sent Items.
+When <code class="docutils literal notranslate"><span class="pre">[smtp]</span> <span class="pre">host</span></code> is set, SMTP is used regardless of whether
+<code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> is also configured — SMTP is always preferred, with no
+automatic fallback to Graph on SMTP failure.</p>
+<p>Example config combining <code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> with a <code class="docutils literal notranslate"><span class="pre">[smtp]</span></code> section that
+only sets <code class="docutils literal notranslate"><span class="pre">to</span></code>/<code class="docutils literal notranslate"><span class="pre">subject</span></code> (no <code class="docutils literal notranslate"><span class="pre">host</span></code>):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">Certificate</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+<span class="na">certificate_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/cert.pem</span>
+
+<span class="k">[smtp]</span>
+<span class="na">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">admin@example.com</span>
+<span class="na">subject</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">DMARC Summary</span>
+</pre></div>
+</div>
+<p>Required Microsoft Graph permissions, in addition to the
+reading-related permissions documented above:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Auth method</p></th>
+<th class="head"><p>Reading</p></th>
+<th class="head"><p>Sending (own mailbox)</p></th>
+<th class="head"><p>Sending (shared mailbox)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> / <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code> (delegated)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (+<code class="docutils literal notranslate"><span class="pre">.Shared</span></code> for shared)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.Send</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.Send.Shared</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code> / <code class="docutils literal notranslate"><span class="pre">Certificate</span></code> / <code class="docutils literal notranslate"><span class="pre">ClientAssertion</span></code> (application)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> (application)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.Send</span></code> (application)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mail.Send</span></code> (application), scoped via <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Graph-based sending is only confirmed to work with the app-only
+auth methods (<code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code>, <code class="docutils literal notranslate"><span class="pre">Certificate</span></code>, <code class="docutils literal notranslate"><span class="pre">ClientAssertion</span></code>).
+The delegated auth methods (<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>)
+currently request only the <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code>(<code class="docutils literal notranslate"><span class="pre">.Shared</span></code>) scope when
+authenticating, not <code class="docutils literal notranslate"><span class="pre">Mail.Send</span></code> — so a delegated connection’s
+access token will not carry <code class="docutils literal notranslate"><span class="pre">Mail.Send</span></code> even if an administrator
+has granted it, and <code class="docutils literal notranslate"><span class="pre">/sendMail</span></code> calls are expected to fail with an
+access-denied error regardless of what’s granted in Azure AD. Use
+an app-only auth method if you need Graph-based sending.</p>
+</div>
+<p><strong>Minimal example configs.</strong> Each auth method needs a different
+minimum set of keys. These read-only examples omit <code class="docutils literal notranslate"><span class="pre">[smtp]</span></code>; see
+above for adding Graph-based sending on top of any of them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code> (delegated, own mailbox):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">UsernamePassword</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">client_secret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+<span class="na">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code> (delegated, interactive sign-in on first run — <code class="docutils literal notranslate"><span class="pre">user</span></code>
+is the account that signs in; <code class="docutils literal notranslate"><span class="pre">mailbox</span></code> is the shared mailbox it
+reads, and only needs to differ from <code class="docutils literal notranslate"><span class="pre">user</span></code> to request
+<code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code> instead of plain <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code>):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">DeviceCode</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">signing-in-user@example.com</span>
+<span class="na">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ClientSecret</span></code> (app-only):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">ClientSecret</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">client_secret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Certificate</span></code> (app-only):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">Certificate</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">certificate_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/path/to/cert.pem</span>
+<span class="na">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ClientAssertion</span></code> (app-only, short-lived JWT — see the note above
+about its unsuitability for <code class="docutils literal notranslate"><span class="pre">watch</span></code> mode):</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[msgraph]</span>
+<span class="na">auth_method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">ClientAssertion</span>
+<span class="na">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">client_assertion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">mailbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">dmarc-reports@example.com</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><strong>Troubleshooting.</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Error</p></th>
+<th class="head"><p>Cause</p></th>
+<th class="head"><p>Fix</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><em>“…needs permission to access resources in your organization that only an admin can grant”</em> / “Admin consent required”</p></td>
+<td><p>A delegated auth method (<code class="docutils literal notranslate"><span class="pre">UsernamePassword</span></code>, <code class="docutils literal notranslate"><span class="pre">DeviceCode</span></code>) is authenticating with a scope (<code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite</span></code> or <code class="docutils literal notranslate"><span class="pre">Mail.ReadWrite.Shared</span></code>) the tenant admin hasn’t consented to yet.</p></td>
+<td><p>Have an Entra ID admin grant consent: Azure Portal → <strong>Enterprise Applications</strong> → <em>your app</em> → <strong>Permissions</strong> → <strong>Grant admin consent</strong>, or <code class="docutils literal notranslate"><span class="pre">az</span> <span class="pre">ad</span> <span class="pre">app</span> <span class="pre">permission</span> <span class="pre">admin-consent</span> <span class="pre">--id</span> <span class="pre">&lt;CLIENT_ID&gt;</span></code>. This is separate from the <code class="docutils literal notranslate"><span class="pre">New-ApplicationAccessPolicy</span></code> step above, which only applies to app-only auth.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ErrorItemNotFound:</span> <span class="pre">...</span> <span class="pre">Default</span> <span class="pre">folder</span> <span class="pre">Root</span> <span class="pre">not</span> <span class="pre">found</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mailsuite</span></code> can resolve the well-known folders (<code class="docutils literal notranslate"><span class="pre">Inbox</span></code>, <code class="docutils literal notranslate"><span class="pre">Archive</span></code>, <code class="docutils literal notranslate"><span class="pre">Drafts</span></code>, <code class="docutils literal notranslate"><span class="pre">Sent</span> <span class="pre">Items</span></code>, <code class="docutils literal notranslate"><span class="pre">Deleted</span> <span class="pre">Items</span></code>, <code class="docutils literal notranslate"><span class="pre">Junk</span> <span class="pre">Email</span></code>) even when a mailbox’s folder hierarchy hasn’t fully provisioned, but a <strong>custom, non-well-known</strong> <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> name still fails to resolve on such a mailbox.</p></td>
+<td><p>Point <code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> at (or under) one of the six well-known folder names above, or sign into the (shared) mailbox once via Outlook/OWA to force Exchange to provision it, then retry.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RuntimeError:</span> <span class="pre">Event</span> <span class="pre">loop</span> <span class="pre">is</span> <span class="pre">closed</span></code></p></td>
+<td><p>Historical bug, fixed in <code class="docutils literal notranslate"><span class="pre">mailsuite</span></code> 2.0.2. Not reachable with the <code class="docutils literal notranslate"><span class="pre">mailsuite&gt;=2.2.2</span></code> this project requires.</p></td>
+<td><p>Confirm your installed <code class="docutils literal notranslate"><span class="pre">mailsuite</span></code> version is current (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">show</span> <span class="pre">mailsuite</span></code>); upgrade if it’s somehow pinned below 2.0.2.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Invalid/rejected timestamp in the <code class="docutils literal notranslate"><span class="pre">since</span></code>/<code class="docutils literal notranslate"><span class="pre">receivedDateTime</span></code> filter</p></td>
+<td><p>Historical bug (parsedmarc <a class="reference external" href="https://github.com/domainaware/parsedmarc/pull/706">#706</a>/<a class="reference external" href="https://github.com/domainaware/parsedmarc/pull/708">#708</a>): older versions appended a spurious <code class="docutils literal notranslate"><span class="pre">Z</span></code> to an already-UTC-offset ISO timestamp. Fixed since parsedmarc 9.5.1/9.5.5.</p></td>
+<td><p>Upgrade parsedmarc if you’re on a version older than 9.5.5.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 </li>
 </ul>
@@ -495,20 +707,28 @@ verification (not recommended)</p></li>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname. Required unless <code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> is
+configured, in which case omitting it sends the summary via
+Microsoft Graph instead — see “Sending the summary email via
+Microsoft Graph” above.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">port</span></code> - int: The SMTP port (Default: <code class="docutils literal notranslate"><span class="pre">25</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ssl</span></code> - bool: Require SSL/TLS instead of using STARTTLS</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">skip_certificate_verification</span></code> - bool: Skip certificate
 verification (not recommended)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: the SMTP username</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: the SMTP password</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">from</span></code> - str: The From header to use in the email</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user</span></code> - str: the SMTP username. SMTP-only; not used when sending
+via Microsoft Graph.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> - str: the SMTP password. SMTP-only; not used when
+sending via Microsoft Graph.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">from</span></code> - str: The From header to use in the email. SMTP-only.
+When sent via Microsoft Graph, the message’s <code class="docutils literal notranslate"><span class="pre">From</span></code> is always the
+<code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> mailbox — <code class="docutils literal notranslate"><span class="pre">[smtp]</span> <span class="pre">from</span></code> has no effect.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">to</span></code> - list: A list of email addresses to send to</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subject</span></code> - str: The Subject header to use in the email
 (Default: <code class="docutils literal notranslate"><span class="pre">parsedmarc</span> <span class="pre">report</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attachment</span></code> - str: The ZIP attachment filenames
+(Default: <code class="docutils literal notranslate"><span class="pre">DMARC-&lt;YYYY-MM-DD&gt;.zip</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">message</span></code> - str: The email message
-(Default: <code class="docutils literal notranslate"><span class="pre">Please</span> <span class="pre">see</span> <span class="pre">the</span> <span class="pre">attached</span> <span class="pre">parsedmarc</span> <span class="pre">report.</span></code>)</p>
+(Default: <code class="docutils literal notranslate"><span class="pre">Please</span> <span class="pre">see</span> <span class="pre">the</span> <span class="pre">attached</span> <span class="pre">DMARC</span> <span class="pre">results.</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">%</span></code> characters must be escaped with another <code class="docutils literal notranslate"><span class="pre">%</span></code> character,
