@@ -340,6 +340,33 @@ curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true
     --form file=@dashboards/opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
 echo "  (imported into OSD tenant: ${OSD_TENANT})"
 
+log "Ensuring Grafana Elasticsearch datasource plugin is installed"
+# Grafana >= 13 no longer bundles the Elasticsearch datasource plugin, and
+# GF_INSTALL_PLUGINS cannot install it (the image ships a root-owned
+# plugins-bundled/elasticsearch remnant its background installer fails to
+# replace). `grafana cli` installs into /var/lib/grafana/plugins, which works;
+# a restart is needed for Grafana to load it.
+code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -o /dev/null -w "%{http_code}" \
+    "http://localhost:3000/api/plugins/elasticsearch/settings")
+if [ "$code" != "200" ]; then
+    "${COMPOSE[@]}" exec -T grafana grafana cli plugins install elasticsearch \
+        | sed 's/^/  /'
+    "${COMPOSE[@]}" restart grafana >/dev/null
+    wait_for "Grafana (after plugin install)" \
+        curl -sf http://localhost:3000/api/health
+    code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -o /dev/null -w "%{http_code}" \
+        "http://localhost:3000/api/plugins/elasticsearch/settings")
+    if [ "$code" != "200" ]; then
+        echo "ERROR: elasticsearch datasource plugin failed to install" >&2
+        exit 1
+    fi
+    echo "  installed elasticsearch datasource plugin"
+else
+    echo "  elasticsearch datasource plugin already installed"
+fi
+
 log "Configuring Grafana datasources"
 # Two Elasticsearch datasources, one per index family, matching the dashboard's
 # template variables (dmarc-ag and dmarc-fo). Skipped when already present.
@@ -347,7 +374,7 @@ declare -a GF_DS_NAMES=("dmarc-ag" "dmarc-fo")
 # dmarc_f* matches both pre-rename dmarc_forensic* and post-rename
 # dmarc_failure* indices, mirroring the OpenSearch/Kibana dashboards.
 declare -a GF_DS_INDEX=("dmarc_aggregate*" "dmarc_f*")
-declare -a GF_DS_TIME=("date_range" "arrival_date")
+declare -a GF_DS_TIME=("date_begin" "arrival_date")
 for i in 0 1; do
     name="${GF_DS_NAMES[$i]}"
     code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \

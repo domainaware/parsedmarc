@@ -44,18 +44,29 @@ disposition over time.
 Under the graphs you will find the most useful data tables on the dashboard. On
 the left, there is a list of organizations that are sending you DMARC reports.
 In the center, there is a list of sending servers grouped by the base domain
-in their reverse DNS. On the right, there is a list of email from domains,
-sorted by message volume.
+in their reverse DNS. On the right, there is the "Message volume and DMARC
+compliance by from domain" table, which lists email from domains with their
+message volume and a percentage of those messages that passed DMARC.
 
 By hovering your mouse over a data table value and using the magnifying glass
-icons, you can filter on our filter out different values. Start by looking at
+icons, you can filter on or filter out different values. Start by looking at
 the Message Sources by Reverse DNS table. Find a sender that you recognize,
 such as an email marketing service, hover over it, and click on the plus (+)
 magnifying glass icon, to add a filter that only shows results for that sender.
-Now, look at the Message From Header table to the right. That shows you the
-domains that a sender is sending as, which might tell you which brand/business
-is using a particular service. With that information, you can contact them and
-have them set up DKIM.
+Now, look at the Message volume and DMARC compliance by from domain table to
+the right. That shows you the domains that a sender is sending as, and what
+share of that traffic is passing DMARC, which might tell you which
+brand/business is using a particular service. With that information, you can
+contact them and have them set up DKIM.
+
+:::{note}
+The "Message volume and DMARC compliance by from domain" table is a TSVB
+visualization, used because per-domain compliance percentages require a
+Filter Ratio metric that agg-based data tables can't compute. It renders
+correctly on Kibana 8.x as imported, but *editing* it requires first enabling
+the `metrics:allowStringIndices` advanced setting, since it references the
+`dmarc_aggregate*` index as a string pattern, which Elastic has deprecated.
+:::
 
 :::{note}
 If you have a lot of B2C customers, you may see a high volume of emails as
