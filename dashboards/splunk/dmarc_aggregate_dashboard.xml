@@ -191,7 +191,7 @@
       <title>Message volume and DMARC compliance by from domain</title>
       <table>
         <search base="base_search">
-          <query>| stats sum(message_count) as Messages, sum(eval(if(passed_dmarc="true", message_count, 0))) as passed by header_from | eval "% DMARC Compliant"=round(passed/Messages*100, 1) | fields - passed | rename header_from as "From Domain" | sort -Messages</query>
+          <query>| stats sum(message_count) as Messages, sum(eval(if(passed_dmarc="true", message_count, 0))) as passed by header_from | eval "% DMARC Compliant"=if(Messages>0, round(passed/Messages*100, 1), null()) | fields - passed | rename header_from as "From Domain" | sort -Messages</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
