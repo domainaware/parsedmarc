@@ -13,7 +13,8 @@ services:
       - xpack.license.self_generated.type=basic
       # Without an explicit heap, ES sizes it to 50% of host RAM and mlocks it
       # (bootstrap.memory_lock), which OOM-kills the container on large hosts.
-      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      # Override via ES_JAVA_OPTS in .env for smaller machines.
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms2g -Xmx2g}
     ports:
       - "127.0.0.1:9200:9200"
     ulimits:
