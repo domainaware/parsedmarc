@@ -181,6 +181,15 @@ def _text(value: Any) -> str | None:
     return value
 
 
+def _normalize_result_word(value: Any) -> Any:
+    """Lowercase a reporter-supplied enum word; RFC 7489 Appendix C and
+    RFC 9990 define result/disposition types as lowercase tokens. Non-string
+    values (e.g. xmltodict dicts from attribute-bearing elements) pass
+    through unchanged.
+    """
+    return value.lower() if isinstance(value, str) else value
+
+
 def _bucket_interval_by_day(
     begin: datetime,
     end: datetime,
@@ -422,13 +431,12 @@ def _parse_report_record(
         "policy_override_reasons": [],
     }
     if "disposition" in policy_evaluated:
-        new_policy_evaluated["disposition"] = policy_evaluated["disposition"]
+        new_policy_evaluated["disposition"] = _normalize_result_word(
+            policy_evaluated["disposition"]
+        )
     for key in ("dkim", "spf"):
         if key in policy_evaluated:
-            value = policy_evaluated[key]
-            new_policy_evaluated[key] = (
-                value.lower() if isinstance(value, str) else value
-            )
+            new_policy_evaluated[key] = _normalize_result_word(policy_evaluated[key])
     reasons = []
     spf_aligned = (
         policy_evaluated["spf"] is not None
@@ -507,7 +515,7 @@ def _parse_report_record(
                     )
                 new_result["selector"] = "none"
             if "result" in result and result["result"] is not None:
-                new_result["result"] = result["result"].lower()
+                new_result["result"] = _normalize_result_word(result["result"])
             else:
                 new_result["result"] = "none"
             new_result["human_result"] = _text(result.get("human_result"))
@@ -523,7 +531,7 @@ def _parse_report_record(
             else:
                 new_result["scope"] = "mfrom"
             if "result" in result and result["result"] is not None:
-                new_result["result"] = result["result"].lower()
+                new_result["result"] = _normalize_result_word(result["result"])
             else:
                 new_result["result"] = "none"
             new_result["human_result"] = _text(result.get("human_result"))
