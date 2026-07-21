@@ -166,6 +166,20 @@ class Test(unittest.TestCase):
                 )
             print("Passed!")
 
+    def testAggregateResultWordsAreLowercase(self):
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate_invalid/report_with_upper_cased_pass.xml",
+            offline=True,
+        )
+        assert result["report_type"] == "aggregate"
+        report = cast(AggregateReport, result["report"])
+        record = report["records"][0]
+
+        self.assertEqual(record["policy_evaluated"]["dkim"], "pass")
+        self.assertEqual(record["policy_evaluated"]["spf"], "pass")
+        self.assertEqual(record["auth_results"]["dkim"][0]["result"], "pass")
+        self.assertEqual(record["auth_results"]["spf"][0]["result"], "pass")
+
     def testEmptySample(self):
         """Test empty/unparasable report"""
         with self.assertRaises(parsedmarc.ParserError):

@@ -423,10 +423,12 @@ def _parse_report_record(
     }
     if "disposition" in policy_evaluated:
         new_policy_evaluated["disposition"] = policy_evaluated["disposition"]
-    if "dkim" in policy_evaluated:
-        new_policy_evaluated["dkim"] = policy_evaluated["dkim"]
-    if "spf" in policy_evaluated:
-        new_policy_evaluated["spf"] = policy_evaluated["spf"]
+    for key in ("dkim", "spf"):
+        if key in policy_evaluated:
+            value = policy_evaluated[key]
+            new_policy_evaluated[key] = (
+                value.lower() if isinstance(value, str) else value
+            )
     reasons = []
     spf_aligned = (
         policy_evaluated["spf"] is not None
@@ -505,7 +507,7 @@ def _parse_report_record(
                     )
                 new_result["selector"] = "none"
             if "result" in result and result["result"] is not None:
-                new_result["result"] = result["result"]
+                new_result["result"] = result["result"].lower()
             else:
                 new_result["result"] = "none"
             new_result["human_result"] = _text(result.get("human_result"))
@@ -521,7 +523,7 @@ def _parse_report_record(
             else:
                 new_result["scope"] = "mfrom"
             if "result" in result and result["result"] is not None:
-                new_result["result"] = result["result"]
+                new_result["result"] = result["result"].lower()
             else:
                 new_result["result"] = "none"
             new_result["human_result"] = _text(result.get("human_result"))
