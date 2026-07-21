@@ -174,6 +174,14 @@ If a config file is listed in `.gitignore`, treat its contents as secret. Do not
 
 Before rewriting a tracked list/data file from freshly-generated content (anything under `parsedmarc/resources/maps/`, CSVs, `.txt` lists), check the existing file first — `git show HEAD:<path> | wc -l`, `git log -1 -- <path>`, `git diff --stat`. Files like `known_unknown_base_reverse_dns.txt` and `base_reverse_dns_map.csv` accumulate manually-curated entries across many sessions, and a "fresh" regeneration that drops the row count is almost certainly destroying prior work. If the new content is meant to *add* rather than *replace*, use a merge/append pattern. Treat any unexpected row-count drop in the pending diff as a red flag.
 
+## Review passes cover prose, not just function
+
+A review that only verifies functional/numeric correctness (queries return the right values, files import cleanly, types check) will sail past exactly the defects a text-first reviewer catches. On PR #834, four such misses survived a thorough functional review: two long-standing typos inside the OSD ndjson ("SMPT TLS", "filed  DMARC"), a typo on an *unchanged* line adjacent to a docs edit, and hand-written bootstrap glue that duplicated the script's existing `wait_for()` helper. Rules drawn from that:
+
+- **Whole-file canonical exports put every line in the diff — review them as text, too.** Re-exporting `dashboards/opensearch/opensearch_dashboards.ndjson` or a Grafana JSON from a running instance rewrites the entire file, so pre-existing user-facing strings (saved-object titles, markdown panels, column labels) are formally part of the change. A semantic before/after comparison ("attributes identical") proves no unintended changes but deliberately looks through pre-existing content problems; add one text-level pass over titles and markdown before committing.
+- **Proofread the whole hunk around prose edits, not just the `+`/`-` lines.** Typos one line away from an edit are in the reviewer's context window and fair game; they should be in yours.
+- **Code written mid-incident gets the same review bar as planned code.** Before writing new shell/infra glue while firefighting, check the file for an existing helper that already does it (e.g. `wait_for()` in `dashboard-dev-bootstrap.sh`), and give your own inline code the same scrutiny you'd give a subagent's.
+
 ## Releases
 
 A release isn't done until built artifacts are attached to the GitHub release page. Full sequence:

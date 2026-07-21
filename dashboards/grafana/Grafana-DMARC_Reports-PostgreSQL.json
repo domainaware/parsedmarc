@@ -840,6 +840,13 @@
                 "value": { "mode": "gradient", "type": "color-background" }
               }
             ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "% DMARC Compliant" },
+            "properties": [
+              { "id": "custom.width", "value": 160 },
+              { "id": "unit", "value": "percent" }
+            ]
           }
         ]
       },
@@ -851,7 +858,7 @@
         "cellHeight": "sm",
         "footer": { "show": false }
       },
-      "title": "Reports by From Domain",
+      "title": "Message volume and DMARC compliance by from domain",
       "type": "table",
       "targets": [
         {
@@ -861,7 +868,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\",\n  ROUND(100.0 * COALESCE(SUM(r.message_count) FILTER (WHERE r.dmarc_passed), 0) / NULLIF(SUM(r.message_count), 0), 1) AS \"% DMARC Compliant\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
