@@ -7,6 +7,10 @@
 - **Added a per-domain DMARC compliance percentage to the aggregate dashboards of every provider** ([#112](https://github.com/domainaware/parsedmarc/issues/112)): OpenSearch Dashboards/Kibana, Grafana Elasticsearch, Grafana PostgreSQL, and Splunk. The from-domain volume table on each dashboard is now "Message volume and DMARC compliance by from domain", with columns for From Domain, Messages, and % DMARC Compliant.
   - On OpenSearch Dashboards/Kibana, the table is now a TSVB visualization using a Filter Ratio metric (passed messages over total messages per `header_from`), since the previous agg-based data table can't compute a per-domain ratio. Editing the imported visualization on Kibana 8.x requires first enabling the `metrics:allowStringIndices` advanced setting.
 
+### Bug fixes
+
+- **The Elasticsearch/OpenSearch aggregate dashboards' over-time charts (and the Grafana ES dashboard's summary pies and time series) bucketed on the multi-valued `date_range` field**; a date histogram counts a report once per value, double-counting any report whose begin and end dates fall in different buckets. All date histograms and time-range filters now use the single-valued `date_begin`, matching the report-begin semantics of the PostgreSQL (`begin_date`) and Splunk (`_time` = interval begin) dashboards.
+
 ## 10.2.4
 
 ### Bug fixes

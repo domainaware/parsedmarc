@@ -188,7 +188,7 @@
             },
             {
               "$$hashKey": "object:244",
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "auto",
@@ -211,7 +211,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -277,7 +277,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "auto",
@@ -299,7 +299,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -369,7 +369,7 @@
             },
             {
               "$$hashKey": "object:386",
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "auto",
@@ -392,7 +392,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -622,7 +622,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -644,7 +644,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -852,7 +852,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -874,7 +874,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -977,7 +977,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -1001,7 +1001,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1104,7 +1104,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -1128,7 +1128,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1231,7 +1231,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -1255,7 +1255,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1373,7 +1373,7 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
                 "fixed_interval": "1d",
@@ -1395,7 +1395,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1463,7 +1463,7 @@
             {
               "$$hashKey": "object:430",
               "fake": true,
-              "field": "date_range",
+              "field": "date_begin",
               "id": "6",
               "settings": {
                 "fixed_interval": "auto",
@@ -1486,7 +1486,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1606,7 +1606,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1756,7 +1756,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         },
         {
           "bucketAggs": [
@@ -1788,7 +1788,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "B",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1951,7 +1951,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         },
         {
           "bucketAggs": [
@@ -1983,7 +1983,7 @@
           ],
           "query": "header_from.keyword:$fromdomain AND passed_dmarc:true",
           "refId": "B",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2104,7 +2104,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2282,7 +2282,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2651,7 +2651,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3004,7 +3004,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3257,7 +3257,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3484,7 +3484,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3729,7 +3729,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -4642,7 +4642,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -4826,7 +4826,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,

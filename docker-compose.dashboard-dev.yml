@@ -31,9 +31,11 @@ services:
       # to "admin" so the login matches the bootstrap script's GRAFANA_PASSWORD
       # default; set GRAFANA_PASSWORD in .env to change both in lockstep.
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      # "elasticsearch" is required on Grafana >= 13, which no longer bundles
-      # the Elasticsearch datasource as a core plugin.
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,elasticsearch
+      # Grafana >= 13 no longer bundles the Elasticsearch datasource, but
+      # installing it via GF_INSTALL_PLUGINS crash-loops: the image ships a
+      # root-owned plugins-bundled/elasticsearch remnant the installer cannot
+      # replace. The bootstrap script installs it via `grafana cli` instead.
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
