@@ -353,10 +353,8 @@ if [ "$code" != "200" ]; then
     "${COMPOSE[@]}" exec -T grafana grafana cli plugins install elasticsearch \
         | sed 's/^/  /'
     "${COMPOSE[@]}" restart grafana >/dev/null
-    for _ in $(seq 1 36); do
-        curl -sf -o /dev/null "http://localhost:3000/api/health" && break
-        sleep 5
-    done
+    wait_for "Grafana (after plugin install)" \
+        curl -sf http://localhost:3000/api/health
     code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
         -o /dev/null -w "%{http_code}" \
         "http://localhost:3000/api/plugins/elasticsearch/settings")

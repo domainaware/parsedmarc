@@ -49,7 +49,7 @@ compliance by from domain" table, which lists email from domains with their
 message volume and a percentage of those messages that passed DMARC.
 
 By hovering your mouse over a data table value and using the magnifying glass
-icons, you can filter on our filter out different values. Start by looking at
+icons, you can filter on or filter out different values. Start by looking at
 the Message Sources by Reverse DNS table. Find a sender that you recognize,
 such as an email marketing service, hover over it, and click on the plus (+)
 magnifying glass icon, to add a filter that only shows results for that sender.
