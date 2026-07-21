@@ -1837,7 +1837,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Header From"
+              "options": "From Domain"
             },
             "properties": [
               {
@@ -1845,8 +1845,8 @@
                 "value": [
                   {
                     "targetBlank": true,
-                    "title": "Open ${__data.fields[\"header_from.keyword\"]} in new window",
-                    "url": "https://${__data.fields[\"header_from.keyword\"]}"
+                    "title": "Open ${__data.fields[\"From Domain\"]} in new window",
+                    "url": "https://${__data.fields[\"From Domain\"]}"
                   }
                 ]
               }
@@ -1877,6 +1877,26 @@
                     }
                   ]
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% DMARC Compliant"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "noValue",
+                "value": "0"
               }
             ]
           }
@@ -1932,20 +1952,84 @@
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
           "timeField": "date_range"
+        },
+        {
+          "bucketAggs": [
+            {
+              "$$hashKey": "object:389",
+              "fake": true,
+              "field": "header_from.keyword",
+              "id": "6",
+              "settings": {
+                "min_doc_count": 1,
+                "missing": "none",
+                "order": "desc",
+                "orderBy": "4",
+                "size": "0"
+              },
+              "type": "terms"
+            }
+          ],
+          "hide": false,
+          "metrics": [
+            {
+              "$$hashKey": "object:387",
+              "field": "message_count",
+              "id": "4",
+              "meta": {},
+              "settings": {},
+              "type": "sum"
+            }
+          ],
+          "query": "header_from.keyword:$fromdomain AND passed_dmarc:true",
+          "refId": "B",
+          "timeField": "date_range"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Message Volume by Header From",
+      "title": "Message volume and DMARC compliance by from domain",
       "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "header_from.keyword",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "% DMARC Compliant",
+            "mode": "binary",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Sum 2"
+                }
+              },
+              "operator": "/",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Sum 1"
+                }
+              }
+            },
+            "replaceFields": false
+          }
+        },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "Sum 2": true
+            },
             "indexByName": {},
             "renameByName": {
-              "Sum": "Messages",
-              "header_from.keyword": "Header From"
+              "Sum 1": "Messages",
+              "header_from.keyword": "From Domain"
             }
           }
         }
