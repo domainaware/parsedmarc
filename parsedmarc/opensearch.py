@@ -34,6 +34,65 @@ class OpenSearchError(Exception):
     """Raised when an OpenSearch error occurs"""
 
 
+# Guard query for the dkim_results_combined/spf_results_combined backfill
+# (see ``migrate_indexes``). Matches only documents that have at least one
+# DKIM or SPF auth result and are missing the corresponding combined field.
+# Empty arrays are invisible to ``exists``, so documents with zero DKIM/SPF
+# results are correctly skipped, making this idempotent: once a document is
+# backfilled it no longer matches, and re-running against an already
+# up-to-date index counts 0.
+_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [{"exists": {"field": "dkim_results.domain"}}],
+                    "must_not": [{"exists": {"field": "dkim_results_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [{"exists": {"field": "spf_results.domain"}}],
+                    "must_not": [{"exists": {"field": "spf_results_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives dkim_results_combined/spf_results_combined
+# from dkim_results/spf_results, matching the format written by
+# save_aggregate_report_to_opensearch(): "{selector} / {domain} / {result}"
+# per DKIM result and "{scope} / {domain} / {result}" per SPF result.
+_COMBINED_BACKFILL_SCRIPT = (
+    "List dk = new ArrayList(); "
+    "def dr = ctx._source.dkim_results; "
+    "if (dr != null) { "
+    "if (!(dr instanceof List)) { dr = [dr]; } "
+    "for (e in dr) { "
+    "if (e == null) { continue; } "
+    'def sel = e.selector != null ? e.selector : "none"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : "none"; '
+    'dk.add(sel + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.dkim_results_combined = dk; "
+    "List sp = new ArrayList(); "
+    "def sr = ctx._source.spf_results; "
+    "if (sr != null) { "
+    "if (!(sr instanceof List)) { sr = [sr]; } "
+    "for (e in sr) { "
+    "if (e == null) { continue; } "
+    'def sc = e.scope != null ? e.scope : "mfrom"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : (e.results != null ? e.results : "none"); '
+    'sp.add(sc + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.spf_results_combined = sp;"
+)
+
+
 class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
@@ -406,7 +465,27 @@ def migrate_indexes(
     failure_indexes: list[str] | None = None,
 ):
     """
-    Updates index mappings
+    Runs index migrations and backfills.
+
+    First, the legacy ``published_policy.fo`` migration: indexes where that
+    field was mapped as ``long`` (data indexed by very old parsedmarc
+    releases under the Elasticsearch 6-era ``doc`` mapping type) are rebuilt
+    as a ``-v2`` index with the text/keyword shape.
+
+    Second, the ``dkim_results_combined``/``spf_results_combined`` backfill
+    (added for issue #169) for aggregate report documents that were saved
+    before those fields existed. For each name in ``aggregate_indexes``,
+    this submits an ``update_by_query`` against the ``f"{name}*"`` index
+    pattern (the real indexes are date-suffixed) as a non-blocking
+    background task (``wait_for_completion=False``), so it never delays
+    parsedmarc startup. Submission is guarded by a cheap ``count`` query
+    that only matches documents with DKIM/SPF results but no combined
+    field, so once an index is fully backfilled, later calls are a fast
+    no-op. Any error talking to the cluster (e.g. no indexes yet on a
+    fresh install, or a transient connection issue) is caught and logged
+    as a warning rather than raised; the backfill is simply retried on the
+    next startup, and the manual ``_update_by_query`` command documented
+    in ``docs/source/elasticsearch.md`` remains available in the meantime.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
@@ -414,9 +493,10 @@ def migrate_indexes(
             (accepted for API compatibility; no migrations are
             currently needed for failure indexes)
     """
+    if not aggregate_indexes:
+        return
+
     version = 2
-    if aggregate_indexes is None:
-        aggregate_indexes = []
     for aggregate_index_name in aggregate_indexes:
         if not Index(aggregate_index_name).exists():
             continue
@@ -445,6 +525,47 @@ def migrate_indexes(
             Index(new_index_name).put_mapping(doc_type=doc, body=body)
             reindex(connections.get_connection(), aggregate_index_name, new_index_name)
             Index(aggregate_index_name).delete()
+
+    client = connections.get_connection()
+    for name in aggregate_indexes:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                body={"query": _COMBINED_BACKFILL_QUERY},
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                body={
+                    "query": _COMBINED_BACKFILL_QUERY,
+                    "script": {
+                        "source": _COMBINED_BACKFILL_SCRIPT,
+                        "lang": "painless",
+                    },
+                },
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling dkim_results_combined/spf_results_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the dkim_results_combined/"
+                f"spf_results_combined backfill for {pattern}: {e}. This "
+                "will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
 
 
 def save_aggregate_report_to_opensearch(

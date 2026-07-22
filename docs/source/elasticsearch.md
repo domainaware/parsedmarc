@@ -235,14 +235,28 @@ result paired, which the dashboards' alignment-detail tables aggregate on.
 Reports saved by older versions lack these fields and will not appear in
 those tables.
 
-Running the following once per cluster backfills the fields on existing
-documents. It is idempotent (documents that already have the fields are
-skipped), so it is safe to re-run. It works identically on OpenSearch;
-just adjust the URL and credentials. The query matches only documents
-that have at least one DKIM or SPF auth result and lack the corresponding
-combined field; documents with no auth results are skipped, because an
-`exists` query cannot see an empty array, and for search purposes an
-empty `dkim_results_combined` is identical to an absent one.
+parsedmarc now backfills this automatically. On startup, it runs a cheap
+count query against each configured aggregate index pattern to check for
+documents that have DKIM or SPF results but are missing the corresponding
+combined field. If any are found, it submits the backfill as a background
+`_update_by_query` task (`wait_for_completion=false`), so startup is never
+blocked on it; progress is logged, including the task ID. The check itself
+is idempotent — once an index is fully backfilled, later startups see a
+count of 0 and log nothing further — and it works the same way on
+OpenSearch. Any error talking to the cluster (for example, no indexes yet
+on a fresh install) is logged as a warning and retried on the next startup,
+rather than aborting parsedmarc.
+
+If you upgrade the dashboards without pointing the new parsedmarc version
+at the cluster, or you'd rather control when the write load happens, you
+can still run the backfill manually. It is idempotent (documents that
+already have the fields are skipped), so it is safe to re-run. It works
+identically on OpenSearch; just adjust the URL and credentials. The query
+matches only documents that have at least one DKIM or SPF auth result and
+lack the corresponding combined field; documents with no auth results are
+skipped, because an `exists` query cannot see an empty array, and for
+search purposes an empty `dkim_results_combined` is identical to an
+absent one.
 
 ```bash
 curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=proceed&wait_for_completion=false" \

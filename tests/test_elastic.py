@@ -16,6 +16,7 @@ from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
     create_indexes,
+    migrate_indexes,
     save_aggregate_report_to_elasticsearch,
     save_failure_report_to_elasticsearch,
     save_smtp_tls_report_to_elasticsearch,
@@ -393,6 +394,69 @@ class TestCreateIndexesServerless(unittest.TestCase):
             )
         mock_index.settings.assert_not_called()
         mock_index.create.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# migrate_indexes
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateIndexes(unittest.TestCase):
+    """migrate_indexes backfills dkim_results_combined/spf_results_combined
+    (issue #169) on pre-existing aggregate documents as a non-blocking
+    background task. It is guarded by a cheap count() query so repeated
+    startups against an already-backfilled index are a no-op, and any SDK
+    error is caught and logged rather than raised, so it never blocks
+    parsedmarc startup."""
+
+    def test_backfill_submitted_when_old_docs_exist(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 42}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(kwargs["query"], elastic_module._COMBINED_BACKFILL_QUERY)
+        script_source = kwargs["script"]["source"]
+        self.assertIn("ctx._source.dkim_results_combined", script_source)
+        self.assertIn("ctx._source.spf_results_combined", script_source)
+
+        # The count() guard query also targets the date-suffixed pattern.
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(count_kwargs["query"], elastic_module._COMBINED_BACKFILL_QUERY)
+
+    def test_backfill_skipped_when_no_old_docs(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_backfill_skipped_when_no_aggregate_indexes(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(aggregate_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_backfill_failure_does_not_raise(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

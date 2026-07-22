@@ -41,6 +41,64 @@ _SERVERLESS = False
 # settings (e.g. ``refresh_interval``) are accepted and pass through.
 _SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replicas"})
 
+# Guard query for the dkim_results_combined/spf_results_combined backfill
+# (see ``migrate_indexes``). Matches only documents that have at least one
+# DKIM or SPF auth result and are missing the corresponding combined field.
+# Empty arrays are invisible to ``exists``, so documents with zero DKIM/SPF
+# results are correctly skipped, making this idempotent: once a document is
+# backfilled it no longer matches, and re-running against an already
+# up-to-date index counts 0.
+_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [{"exists": {"field": "dkim_results.domain"}}],
+                    "must_not": [{"exists": {"field": "dkim_results_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [{"exists": {"field": "spf_results.domain"}}],
+                    "must_not": [{"exists": {"field": "spf_results_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives dkim_results_combined/spf_results_combined
+# from dkim_results/spf_results, matching the format written by
+# save_aggregate_report_to_elasticsearch(): "{selector} / {domain} / {result}"
+# per DKIM result and "{scope} / {domain} / {result}" per SPF result.
+_COMBINED_BACKFILL_SCRIPT = (
+    "List dk = new ArrayList(); "
+    "def dr = ctx._source.dkim_results; "
+    "if (dr != null) { "
+    "if (!(dr instanceof List)) { dr = [dr]; } "
+    "for (e in dr) { "
+    "if (e == null) { continue; } "
+    'def sel = e.selector != null ? e.selector : "none"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : "none"; '
+    'dk.add(sel + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.dkim_results_combined = dk; "
+    "List sp = new ArrayList(); "
+    "def sr = ctx._source.spf_results; "
+    "if (sr != null) { "
+    "if (!(sr instanceof List)) { sr = [sr]; } "
+    "for (e in sr) { "
+    "if (e == null) { continue; } "
+    'def sc = e.scope != null ? e.scope : "mfrom"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : (e.results != null ? e.results : "none"); '
+    'sp.add(sc + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.spf_results_combined = sp;"
+)
+
 
 class _PolicyOverride(InnerDoc):
     # The elasticsearch.dsl 8.x type stubs use dataclass_transform and only
@@ -487,23 +545,66 @@ def migrate_indexes(
     failure_indexes: list[str] | None = None,
 ):
     """
-    Updates index mappings
+    Backfills the ``dkim_results_combined``/``spf_results_combined`` fields
+    (added for issue #169) on aggregate report documents that were saved
+    before those fields existed.
 
-    This is a no-op kept for API compatibility (``cli.py`` calls it on
-    startup). The only migration this function ever performed was
-    re-typing ``published_policy.fo`` from ``long`` to ``text``, which
-    applied exclusively to indices still carrying the legacy
-    Elasticsearch 6-era ``"doc"`` mapping type. The 8.x client can only
-    reach servers (Elasticsearch 8.x/9.x) whose indices were created on
-    Elasticsearch 7.x or later and are therefore typeless, so that
-    migration path is unreachable and has been removed.
+    For each name in ``aggregate_indexes``, this submits an
+    ``update_by_query`` against the ``f"{name}*"`` index pattern (the real
+    indexes are date-suffixed) as a non-blocking background task
+    (``wait_for_completion=False``), so it never delays parsedmarc startup.
+    Submission is guarded by a cheap ``count`` query that only matches
+    documents with DKIM/SPF results but no combined field, so once an index
+    is fully backfilled, later calls are a fast no-op. Any error talking to
+    the cluster (e.g. no indexes yet on a fresh install, or a transient
+    connection issue) is caught and logged as a warning rather than raised;
+    the backfill is simply retried on the next startup, and the manual
+    ``_update_by_query`` command documented in
+    ``docs/source/elasticsearch.md`` remains available in the meantime.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
-            (accepted for API compatibility; unused)
         failure_indexes (list): A list of failure index names
             (accepted for API compatibility; unused)
     """
+    if not aggregate_indexes:
+        return
+
+    client = connections.get_connection()
+    for name in aggregate_indexes:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                query=_COMBINED_BACKFILL_QUERY,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                query=_COMBINED_BACKFILL_QUERY,
+                script={"source": _COMBINED_BACKFILL_SCRIPT, "lang": "painless"},
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling dkim_results_combined/spf_results_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the dkim_results_combined/"
+                f"spf_results_combined backfill for {pattern}: {e}. This "
+                "will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
 
 
 def save_aggregate_report_to_elasticsearch(

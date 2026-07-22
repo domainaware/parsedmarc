@@ -376,16 +376,100 @@ class TestCreateIndexes(unittest.TestCase):
 
 
 class TestMigrateIndexes(unittest.TestCase):
+    """migrate_indexes backfills dkim_results_combined/spf_results_combined
+    (issue #169) on pre-existing aggregate documents as a non-blocking
+    background task. It is guarded by a cheap count() query so repeated
+    startups against an already-backfilled index are a no-op, and any SDK
+    error is caught and logged rather than raised, so it never blocks
+    parsedmarc startup."""
+
+    def test_backfill_submitted_when_old_docs_exist(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            # The legacy fo migration that runs first sees no base index.
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 42}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(
+            kwargs["body"]["query"], opensearch_module._COMBINED_BACKFILL_QUERY
+        )
+        script_source = kwargs["body"]["script"]["source"]
+        self.assertIn("ctx._source.dkim_results_combined", script_source)
+        self.assertIn("ctx._source.spf_results_combined", script_source)
+
+        # The count() guard query also targets the date-suffixed pattern.
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(
+            count_kwargs["body"]["query"], opensearch_module._COMBINED_BACKFILL_QUERY
+        )
+
+    def test_backfill_skipped_when_no_old_docs(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_backfill_skipped_when_no_aggregate_indexes(self):
+        with patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(aggregate_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_backfill_failure_does_not_raise(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
+
+
+class TestMigrateIndexesFoMigration(unittest.TestCase):
     """The legacy `published_policy.fo` field was mapped as `long` in
     older indexes. migrate_indexes detects that and rebuilds the index
     with the text/keyword shape. The branch is gnarly; a regression
-    would silently leave old data un-migrated."""
+    would silently leave old data un-migrated. Each test stubs the
+    combined-field backfill that now runs afterwards in the same call
+    (count 0 → no-op)."""
 
-    def test_no_indexes_is_noop(self):
-        migrate_indexes()  # Should not raise
+    @staticmethod
+    def _noop_backfill_client():
+        client = MagicMock()
+        client.count.return_value = {"count": 0}
+        return client
 
     def test_skips_non_existent_index(self):
-        with patch("parsedmarc.opensearch.Index") as mock_index_cls:
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             mock_index_cls.return_value.exists.return_value = False
             migrate_indexes(aggregate_indexes=["missing"])
         # exists() returned False — no field_mapping fetch.
@@ -394,12 +478,16 @@ class TestMigrateIndexes(unittest.TestCase):
     def test_skips_when_doc_mapping_absent(self):
         """An index that has 'fo' but not under the 'doc' type
         (e.g., empty index with default mapping) is left alone."""
-        with patch("parsedmarc.opensearch.Index") as mock_index_cls:
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+            patch("parsedmarc.opensearch.reindex") as mock_reindex,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {"some_key": {"mappings": {}}}
-            with patch("parsedmarc.opensearch.reindex") as mock_reindex:
-                migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
         mock_reindex.assert_not_called()
 
     def test_migrates_when_fo_is_long(self):
@@ -411,6 +499,8 @@ class TestMigrateIndexes(unittest.TestCase):
             patch("parsedmarc.opensearch.reindex") as mock_reindex,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
+            mock_client = self._noop_backfill_client()
+            mock_get_conn.return_value = mock_client
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {
@@ -423,16 +513,18 @@ class TestMigrateIndexes(unittest.TestCase):
                 }
             }
             migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
-        # reindex called from old → new (v2) index.
+        # reindex called from old → new (v2) index, with the client from
+        # connections.get_connection().
         mock_reindex.assert_called_once()
-        # connections.get_connection consulted to get the ES client.
-        mock_get_conn.assert_called_once()
+        self.assertIs(mock_reindex.call_args.args[0], mock_client)
 
     def test_skips_when_fo_already_text(self):
         with (
             patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
             patch("parsedmarc.opensearch.reindex") as mock_reindex,
         ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {
