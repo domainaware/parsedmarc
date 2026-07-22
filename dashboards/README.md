@@ -82,6 +82,27 @@ The bootstrap script provisions two `elasticsearch` datasources (`dmarc-ag` for 
 2. Open the dashboard's **Source** view, copy the XML, and paste it over the matching file in [splunk/](splunk/) (`dmarc_aggregate_dashboard.xml`, `dmarc_failure_dashboard.xml`, or `smtp_tls_dashboard.xml`).
 3. Re-run the bootstrap script. It re-imports each view via `DELETE` + `POST` to the splunkd management API.
 
+## Screenshotting the dashboards
+
+[dashboard-dev-screenshots.py](../dashboard-dev-screenshots.py) captures how
+each UI actually renders the current sample data — useful for verifying a
+dashboard change end-to-end and for PR evidence. One-time setup, then run
+against the live stack:
+
+```bash
+pip install playwright && playwright install chromium
+set -a; . ./.env; set +a
+./dashboard-dev-screenshots.py            # all four UIs
+./dashboard-dev-screenshots.py grafana    # or a subset
+```
+
+Output lands in `dashboard-screenshots/` (gitignored). The script encodes
+the platform quirks that otherwise cost time to rediscover: Kibana/OSD
+dashboards never reach Playwright's "networkidle" (fixed render waits are
+used instead), OSD must be pinned to `?security_tenant=global` or a stale
+private-tenant copy may be captured, and Grafana/Splunk need their login
+forms driven rather than HTTP basic auth.
+
 ## Reseeding sample data
 
 ```bash

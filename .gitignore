@@ -151,3 +151,4 @@ parsedmarc/resources/maps/unknown_domains.txt
 parsedmarc/resources/maps/domain_info.tsv
 coverage.json
 junit.xml
+dashboard-screenshots/
