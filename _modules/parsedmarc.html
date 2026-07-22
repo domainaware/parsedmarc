@@ -277,6 +277,15 @@
     <span class="k">return</span> <span class="n">value</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_result_word</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lowercase a reporter-supplied enum word; RFC 7489 Appendix C and</span>
+<span class="sd">    RFC 9990 define result/disposition types as lowercase tokens. Non-string</span>
+<span class="sd">    values (e.g. xmltodict dicts from attribute-bearing elements) pass</span>
+<span class="sd">    through unchanged.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_bucket_interval_by_day</span><span class="p">(</span>
     <span class="n">begin</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span>
@@ -518,11 +527,12 @@
         <span class="s2">&quot;policy_override_reasons&quot;</span><span class="p">:</span> <span class="p">[],</span>
     <span class="p">}</span>
     <span class="k">if</span> <span class="s2">&quot;disposition&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
-        <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="s2">&quot;dkim&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
-        <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;dkim&quot;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="s2">&quot;spf&quot;</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
-        <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span>
+        <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_result_word</span><span class="p">(</span>
+            <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;disposition&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;dkim&quot;</span><span class="p">,</span> <span class="s2">&quot;spf&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">policy_evaluated</span><span class="p">:</span>
+            <span class="n">new_policy_evaluated</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_result_word</span><span class="p">(</span><span class="n">policy_evaluated</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
     <span class="n">reasons</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">spf_aligned</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">policy_evaluated</span><span class="p">[</span><span class="s2">&quot;spf&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -601,7 +611,7 @@
                     <span class="p">)</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
             <span class="k">if</span> <span class="s2">&quot;result&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_result_word</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
             <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;human_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;human_result&quot;</span><span class="p">))</span>
@@ -617,7 +627,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;scope&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mfrom&quot;</span>
             <span class="k">if</span> <span class="s2">&quot;result&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span>
+                <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_result_word</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
             <span class="n">new_result</span><span class="p">[</span><span class="s2">&quot;human_result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;human_result&quot;</span><span class="p">))</span>

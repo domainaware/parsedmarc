@@ -184,7 +184,7 @@
 
     <span class="n">domain</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">scope</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">human_result</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
 
 
@@ -231,6 +231,18 @@
     <span class="n">envelope_to</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">dkim_results</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_DKIMResult</span><span class="p">)</span>
     <span class="n">spf_results</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SPFResult</span><span class="p">)</span>
+    <span class="c1"># One &quot;{selector} / {domain} / {result}&quot; (DKIM) or &quot;{scope} / {domain} /</span>
+    <span class="c1"># {result}&quot; (SPF) string per auth result. Kibana/Grafana tables cannot</span>
+    <span class="c1"># terms-aggregate the subfields of an object array without producing a</span>
+    <span class="c1"># cross-product of values (issue #169), so dashboards aggregate these</span>
+    <span class="c1"># composed keywords instead. Declared to match what dynamic mapping</span>
+    <span class="c1"># produces for a string array (text + .keyword).</span>
+    <span class="n">dkim_results_combined</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span>
+        <span class="n">multi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="n">Keyword</span><span class="p">(</span><span class="n">ignore_above</span><span class="o">=</span><span class="mi">256</span><span class="p">)}</span>
+    <span class="p">)</span>
+    <span class="n">spf_results_combined</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span>
+        <span class="n">multi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="n">Keyword</span><span class="p">(</span><span class="n">ignore_above</span><span class="o">=</span><span class="mi">256</span><span class="p">)}</span>
+    <span class="p">)</span>
     <span class="n">np</span> <span class="o">=</span> <span class="n">Keyword</span><span class="p">()</span>
     <span class="n">testing</span> <span class="o">=</span> <span class="n">Keyword</span><span class="p">()</span>
     <span class="n">discovery_method</span> <span class="o">=</span> <span class="n">Keyword</span><span class="p">()</span>
@@ -243,7 +255,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">result</span><span class="p">:</span> <span class="n">_DKIMResult</span><span class="p">,</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">human_result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -254,12 +266,15 @@
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="s2"> / </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_spf_result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">result</span><span class="p">:</span> <span class="n">_SPFResult</span><span class="p">,</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">human_result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spf_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -269,6 +284,9 @@
                 <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spf_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="s2"> / </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportIncompatibleMethodOverride]</span>
@@ -543,6 +561,11 @@
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Deliberately no Index.document() registration: Kibana/OpenSearch</span>
+            <span class="c1"># Dashboards/Grafana cannot terms-aggregate fields inside a</span>
+            <span class="c1"># `nested` mapping, so the dynamic `object` mapping produced by a</span>
+            <span class="c1"># bare create is load-bearing for the shipped dashboards (issue</span>
+            <span class="c1"># #169; see the *_combined fields on _AggregateReportDoc).</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">effective_settings</span><span class="p">:</span>

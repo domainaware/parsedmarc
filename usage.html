@@ -706,6 +706,9 @@ verification (not recommended)</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">smtp</span></code></p>
+<p>The results email is only sent when at least one aggregate, failure,
+or SMTP TLS report was parsed during the run; an empty run (e.g. an
+empty inbox) skips the email instead of sending headers-only CSVs.</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">host</span></code> - str: The SMTP hostname. Required unless <code class="docutils literal notranslate"><span class="pre">[msgraph]</span></code> is
 configured, in which case omitting it sends the summary via

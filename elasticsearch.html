@@ -50,6 +50,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Elasticsearch and Kibana</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#upgrading-kibana-index-patterns">Upgrading Kibana index patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#backfilling-the-combined-dkim-spf-result-fields">Backfilling the combined DKIM/SPF result fields</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#records-retention">Records retention</a></li>
 </ul>
 </li>
@@ -263,6 +264,57 @@ the latest version of <a class="reference external" href="https://raw.githubuser
 <li><p>Import <code class="docutils literal notranslate"><span class="pre">export.ndjson</span></code> by clicking Import from the Kibana
 Saved Objects page</p></li>
 </ol>
+</section>
+<section id="backfilling-the-combined-dkim-spf-result-fields">
+<h2>Backfilling the combined DKIM/SPF result fields<a class="headerlink" href="#backfilling-the-combined-dkim-spf-result-fields" title="Link to this heading"></a></h2>
+<p>As of the version fixing <a class="reference external" href="https://github.com/domainaware/parsedmarc/issues/169">#169</a>,
+aggregate documents include <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code> and <code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> —
+scalar string arrays that keep each auth result’s selector/scope, domain, and
+result paired, which the dashboards’ alignment-detail tables aggregate on.
+Reports saved by older versions lack these fields and will not appear in
+those tables.</p>
+<p>Running the following once per cluster backfills the fields on existing
+documents. It is idempotent (documents that already have the fields are
+skipped), so it is safe to re-run. It works identically on OpenSearch;
+just adjust the URL and credentials. The query matches only documents
+that have at least one DKIM or SPF auth result and lack the corresponding
+combined field; documents with no auth results are skipped, because an
+<code class="docutils literal notranslate"><span class="pre">exists</span></code> query cannot see an empty array, and for search purposes an
+empty <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code> is identical to an absent one.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=proceed&amp;wait_for_completion=false&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">{</span>
+<span class="s1">  &quot;query&quot;: {</span>
+<span class="s1">    &quot;bool&quot;: {</span>
+<span class="s1">      &quot;minimum_should_match&quot;: 1,</span>
+<span class="s1">      &quot;should&quot;: [</span>
+<span class="s1">        {</span>
+<span class="s1">          &quot;bool&quot;: {</span>
+<span class="s1">            &quot;must&quot;: [{&quot;exists&quot;: {&quot;field&quot;: &quot;dkim_results.domain&quot;}}],</span>
+<span class="s1">            &quot;must_not&quot;: [{&quot;exists&quot;: {&quot;field&quot;: &quot;dkim_results_combined&quot;}}]</span>
+<span class="s1">          }</span>
+<span class="s1">        },</span>
+<span class="s1">        {</span>
+<span class="s1">          &quot;bool&quot;: {</span>
+<span class="s1">            &quot;must&quot;: [{&quot;exists&quot;: {&quot;field&quot;: &quot;spf_results.domain&quot;}}],</span>
+<span class="s1">            &quot;must_not&quot;: [{&quot;exists&quot;: {&quot;field&quot;: &quot;spf_results_combined&quot;}}]</span>
+<span class="s1">          }</span>
+<span class="s1">        }</span>
+<span class="s1">      ]</span>
+<span class="s1">    }</span>
+<span class="s1">  },</span>
+<span class="s1">  &quot;script&quot;: {</span>
+<span class="s1">    &quot;lang&quot;: &quot;painless&quot;,</span>
+<span class="s1">    &quot;source&quot;: &quot;List dk = new ArrayList(); def dr = ctx._source.dkim_results; if (dr != null) { if (!(dr instanceof List)) { dr = [dr]; } for (e in dr) { if (e == null) { continue; } def sel = e.selector != null ? e.selector : \&quot;none\&quot;; def dom = e.domain != null ? e.domain : \&quot;none\&quot;; def res = e.result != null ? e.result : \&quot;none\&quot;; dk.add(sel + \&quot; / \&quot; + dom + \&quot; / \&quot; + res); } } ctx._source.dkim_results_combined = dk; List sp = new ArrayList(); def sr = ctx._source.spf_results; if (sr != null) { if (!(sr instanceof List)) { sr = [sr]; } for (e in sr) { if (e == null) { continue; } def sc = e.scope != null ? e.scope : \&quot;mfrom\&quot;; def dom = e.domain != null ? e.domain : \&quot;none\&quot;; def res = e.result != null ? e.result : (e.results != null ? e.results : \&quot;none\&quot;); sp.add(sc + \&quot; / \&quot; + dom + \&quot; / \&quot; + res); } } ctx._source.spf_results_combined = sp;&quot;</span>
+<span class="s1">  }</span>
+<span class="s1">}&#39;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">wait_for_completion=false</span></code> returns a task ID — check progress with
+<code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">_tasks/&lt;task</span> <span class="pre">id&gt;</span></code>. Adjust the index pattern if you use a custom
+<code class="docutils literal notranslate"><span class="pre">index_prefix</span></code>/<code class="docutils literal notranslate"><span class="pre">index_suffix</span></code>. After backfilling, re-import the updated
+dashboards ndjson (the index pattern saved object changed too) per the
+import instructions above.</p>
 </section>
 <section id="records-retention">
 <h2>Records retention<a class="headerlink" href="#records-retention" title="Link to this heading"></a></h2>
