@@ -2426,24 +2426,24 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "SPF Auth Result"
+              "options": "SPF Scope / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 115
+                "value": 200
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "DKIM Auth Result"
+              "options": "DKIM Selector / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 123
+                "value": 260
               }
             ]
           },
@@ -2681,7 +2681,7 @@
               "date_range": "Date",
               "disposition.keyword": "Disposition",
               "dkim_aligned": "DKIM",
-              "dkim_results_combined.keyword": "DKIM Auth Result",
+              "dkim_results_combined.keyword": "DKIM Selector / Domain / Result",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Email Domain",
               "org_name.keyword": "Reporter",
@@ -2690,7 +2690,7 @@
               "source_ip_address.keyword": "Source IP",
               "source_reverse_dns.keyword": "PTR",
               "spf_aligned": "SPF",
-              "spf_results_combined.keyword": "SPF Auth Result"
+              "spf_results_combined.keyword": "SPF Scope / Domain / Result"
             }
           }
         }
