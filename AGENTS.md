@@ -182,6 +182,11 @@ A review that only verifies functional/numeric correctness (queries return the r
 - **Proofread the whole hunk around prose edits, not just the `+`/`-` lines.** Typos one line away from an edit are in the reviewer's context window and fair game; they should be in yours.
 - **Code written mid-incident gets the same review bar as planned code.** Before writing new shell/infra glue while firefighting, check the file for an existing helper that already does it (e.g. `wait_for()` in `dashboard-dev-bootstrap.sh`), and give your own inline code the same scrutiny you'd give a subagent's.
 
+Two more rules, drawn from the PR #839 review (Copilot caught both after a thorough Fable pass missed them):
+
+- **Docstrings and comments are prose surface too — and beware dual-use terms.** A regression-test docstring described DKIM/SPF results as "stored as nested object arrays"; in Elasticsearch/OpenSearch "nested" is a specific mapping type, and the fix under review hinged on the fields being dynamic-mapped as plain `object`, *not* `nested`. The reviewer had held both facts all session, so the blended sentence pattern-matched as true — author's-context blindness that a fresh reader doesn't share. Give docstrings/comments the same text-level pass as docs and dashboard labels, with extra suspicion for words that are both colloquial English and load-bearing technical terms near the code in question ("nested", "index", "keyword" in anything Elasticsearch-adjacent).
+- **Clean inert config inside hunks the diff already rewrites.** Stale entries (e.g. orphaned `renameByName` keys in a Grafana panel) sitting inside a block the PR is editing anyway cost nothing to remove and confuse every later reader if kept; "minimize the diff" is the wrong tiebreaker there. It remains the right tiebreaker for untouched panels/files — don't expand a PR's blast radius to chase pre-existing cruft elsewhere.
+
 ## Releases
 
 A release isn't done until built artifacts are attached to the GitHub release page. Full sequence:
