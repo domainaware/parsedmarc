@@ -388,8 +388,8 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             # Deliberately no Index.document() registration: Kibana/OpenSearch
             # Dashboards/Grafana cannot terms-aggregate fields inside a
             # `nested` mapping, so the dynamic `object` mapping produced by a
-            # bare create is load-bearing for the shipped dashboards (issue
-            # #169; see the *_combined fields on _AggregateReportDoc).
+            # bare create is load-bearing for the shipped dashboards. See
+            # issue #169 and the *_combined fields on _AggregateReportDoc.
             if not index.exists():
                 logger.debug("Creating OpenSearch index: {0}".format(name))
                 if settings is None:
