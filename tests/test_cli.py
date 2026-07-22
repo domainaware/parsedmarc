@@ -26,6 +26,21 @@ import parsedmarc
 import parsedmarc.cli
 import parsedmarc.elastic
 import parsedmarc.opensearch as opensearch_module
+from parsedmarc.types import AggregateReport
+
+SAMPLE_AGGREGATE_REPORT_PATH = (
+    "samples/aggregate/!example.com!1538204542!1538463818.xml"
+)
+
+
+def _sample_aggregate_reports() -> list[AggregateReport]:
+    """Parses a real sample aggregate report so tests that exercise the
+    real zip/CSV-building code path (email_results / email_results_via_msgraph)
+    have a fully valid AggregateReport rather than a hand-built partial
+    dict that would fail in parsed_aggregate_reports_to_csv_rows()."""
+    result = parsedmarc.parse_report_file(SAMPLE_AGGREGATE_REPORT_PATH, offline=True)
+    assert result["report_type"] == "aggregate"
+    return [cast(AggregateReport, result["report"])]
 
 
 class _BreakLoop(BaseException):
@@ -1892,7 +1907,7 @@ certificate_password = s3cret-cert-pass
         """[smtp] with only to/subject (no host) plus [msgraph] sends the
         summary via Microsoft Graph's sendMail."""
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -1928,7 +1943,7 @@ subject = DMARC Summary
         set, even with [msgraph] also configured — no fallback, no
         dual-send."""
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -2009,7 +2024,7 @@ to = admin@example.com
         """A Graph sendMail failure gets the same single-ERROR-line
         treatment as connection/fetch failures."""
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -2054,7 +2069,7 @@ subject = DMARC Summary
         Graph path, the configured attachment filename and message
         body must reach send_message()."""
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -3732,7 +3747,7 @@ class TestSmtpAttachmentAndMessageWiring(unittest.TestCase):
         email_results() rather than being silently dropped."""
         mock_imap_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -3777,7 +3792,7 @@ message = Custom body text
         than being called with no attachment/message context at all."""
         mock_imap_connection.return_value = object()
         mock_get_mailbox_reports.return_value = {
-            "aggregate_reports": [],
+            "aggregate_reports": _sample_aggregate_reports(),
             "failure_reports": [],
             "smtp_tls_reports": [],
         }
@@ -3805,6 +3820,101 @@ to = admin@example.com
         self.assertEqual(
             call_kwargs["message"], "Please see the attached DMARC results."
         )
+
+
+class TestSkipsResultsEmailWhenNoReportsParsed(unittest.TestCase):
+    """#200: a run that parses no reports at all (e.g. an empty inbox,
+    or a mailbox where every message failed to parse) must not send a
+    results email with headers-only, data-free CSVs. The email step is
+    now skipped, with an INFO log line, whenever aggregate_reports,
+    failure_reports, and smtp_tls_reports are all empty."""
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _run_main(self, cfg_path, *cli_args):
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *cli_args]):
+            parsedmarc.cli._main()
+
+    @patch("parsedmarc.send_email")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSkipsResultsEmailWhenNothingWasParsed(
+        self, mock_imap_connection, mock_get_mailbox_reports, mock_send_email
+    ):
+        """Regression test for #200: with an empty inbox (no aggregate,
+        failure, or SMTP TLS reports), the SMTP results email must not
+        be sent, and an INFO log line should explain why it was
+        skipped."""
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_text = """[general]
+silent = true
+verbose = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        cfg_path = self._write_config(config_text)
+
+        with self.assertLogs("parsedmarc.log", level="INFO") as logs:
+            self._run_main(cfg_path)
+
+        mock_send_email.assert_not_called()
+        self.assertTrue(
+            any("skipping the results email" in line for line in logs.output)
+        )
+
+    @patch("parsedmarc.send_email")
+    def testSendsResultsEmailWithRealPayloadWhenReportsExist(self, mock_send_email):
+        """When at least one report is parsed, the results email is
+        still sent, and the attached zip's aggregate.csv contains actual
+        data rows (not just a header row)."""
+        config_text = """[general]
+silent = true
+offline = true
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        cfg_path = self._write_config(config_text)
+
+        with patch.object(
+            sys,
+            "argv",
+            ["parsedmarc", "-c", cfg_path, SAMPLE_AGGREGATE_REPORT_PATH],
+        ):
+            parsedmarc.cli._main()
+
+        mock_send_email.assert_called_once()
+        call_kwargs = mock_send_email.call_args.kwargs
+        attachments = call_kwargs["attachments"]
+        filename, zip_bytes = attachments[0]
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            csv_text = zf.read("aggregate.csv").decode("utf-8")
+
+        self.assertGreater(len(csv_text.strip().splitlines()), 1)
 
 
 class TestParseConfigS3(unittest.TestCase):

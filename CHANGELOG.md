@@ -11,6 +11,7 @@
 
 - **The Elasticsearch/OpenSearch aggregate dashboards' over-time charts (and the Grafana ES dashboard's summary pies and time series) bucketed on the multi-valued `date_range` field**; a date histogram counts a report once per value, double-counting any report whose begin and end dates fall in different buckets. All date histograms and time-range filters now use the single-valued `date_begin`, matching the report-begin semantics of the PostgreSQL (`begin_date`) and Splunk (`_time` = interval begin) dashboards.
 - **Aggregate-report policy and authentication result words are now normalized to lowercase** ([#288](https://github.com/domainaware/parsedmarc/issues/288)): reporters that emit mixed-case values such as `Pass` no longer create duplicate result categories in outputs and dashboards.
+- **The results email (SMTP and Microsoft Graph) is no longer sent when no reports were parsed** ([#200](https://github.com/domainaware/parsedmarc/issues/200)): previously an empty run — an empty inbox, or one where every message was invalid — still emailed a zip of headers-only CSVs. The email step is now skipped with an INFO log when the run produced no aggregate, failure, or SMTP TLS reports.
 
 ## 10.2.4
 

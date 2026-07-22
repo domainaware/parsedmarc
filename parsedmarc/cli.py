@@ -2681,7 +2681,16 @@ def _main():
         if isinstance(opts.smtp_to, list)
         else _str_to_list(str(opts.smtp_to))
     )
-    if opts.smtp_host:
+    has_reports = bool(
+        parsing_results["aggregate_reports"]
+        or parsing_results["failure_reports"]
+        or parsing_results["smtp_tls_reports"]
+    )
+    if not has_reports and (
+        opts.smtp_host or (msgraph_connection is not None and smtp_to_value)
+    ):
+        logger.info("No reports were parsed; skipping the results email")
+    elif opts.smtp_host:
         try:
             verify = True
             if opts.smtp_skip_certificate_verification:
