@@ -16,6 +16,7 @@ from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
     create_indexes,
+    migrate_indexes,
     save_aggregate_report_to_elasticsearch,
     save_failure_report_to_elasticsearch,
     save_smtp_tls_report_to_elasticsearch,
@@ -396,6 +397,69 @@ class TestCreateIndexesServerless(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# migrate_indexes
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateIndexes(unittest.TestCase):
+    """migrate_indexes backfills dkim_results_combined/spf_results_combined
+    (issue #169) on pre-existing aggregate documents as a non-blocking
+    background task. It is guarded by a cheap count() query so repeated
+    startups against an already-backfilled index are a no-op, and any SDK
+    error is caught and logged rather than raised, so it never blocks
+    parsedmarc startup."""
+
+    def test_backfill_submitted_when_old_docs_exist(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 42}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(kwargs["query"], elastic_module._COMBINED_BACKFILL_QUERY)
+        script_source = kwargs["script"]["source"]
+        self.assertIn("ctx._source.dkim_results_combined", script_source)
+        self.assertIn("ctx._source.spf_results_combined", script_source)
+
+        # The count() guard query also targets the date-suffixed pattern.
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(count_kwargs["query"], elastic_module._COMBINED_BACKFILL_QUERY)
+
+    def test_backfill_skipped_when_no_old_docs(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_backfill_skipped_when_no_aggregate_indexes(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(aggregate_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_backfill_failure_does_not_raise(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
 # save_aggregate_report_to_elasticsearch
 # ---------------------------------------------------------------------------
 
@@ -549,6 +613,54 @@ class TestSaveAggregateReport(unittest.TestCase):
             mock_doc_cls.call_args.kwargs["date_begin"].timestamp(), 1705276800
         )
 
+    def test_save_populates_combined_dkim_and_spf_fields(self):
+        """Regression guard for issue #169: two DKIM signatures on one
+        record must yield exactly two combined entries, not a 4-way
+        cross-product. autospec=True is required on the save patch so
+        mock_save.call_args captures the doc instance as ``self``."""
+        report = _aggregate_report()
+        report["records"][0]["auth_results"] = {
+            "dkim": [
+                {
+                    "domain": "example.net",
+                    "selector": "net1",
+                    "result": "fail",
+                    "human_result": None,
+                },
+                {
+                    "domain": "example.org",
+                    "selector": "org1",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+            "spf": [
+                {
+                    "domain": "example.org",
+                    "scope": "mfrom",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+        }
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch(
+                "parsedmarc.elastic.Index",
+                return_value=MagicMock(exists=MagicMock(return_value=True)),
+            ),
+            patch.object(
+                elastic_module._AggregateReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_aggregate_report_to_elasticsearch(report)
+        doc = mock_save.call_args[0][0]
+        self.assertEqual(
+            list(doc.dkim_results_combined),
+            ["net1 / example.net / fail", "org1 / example.org / pass"],
+        )
+        self.assertEqual(list(doc.spf_results_combined), ["mfrom / example.org / pass"])
+
 
 class TestAggregateDocPassedDmarc(unittest.TestCase):
     """The _AggregateReportDoc.save() override derives passed_dmarc — the
@@ -574,6 +686,57 @@ class TestAggregateDocPassedDmarc(unittest.TestCase):
                     doc.save()
                 mock_super_save.assert_called_once()
                 self.assertEqual(bool(doc.passed_dmarc), expected)
+
+
+class TestAggregateDocCombinedResults(unittest.TestCase):
+    """add_dkim_result/add_spf_result never touch the network, so these
+    construct _AggregateReportDoc directly rather than going through the
+    save_* entry point."""
+
+    def test_add_dkim_result_appends_combined_string(self):
+        """Regression guard for issue #169: dkim_results/spf_results are
+        arrays of objects that the engine dynamic-maps as plain ``object``
+        (not ``nested``) and flattens, so Kibana/Grafana tables cannot
+        terms-aggregate their subfields without producing a cross-product
+        of selector/domain/result values. The composed
+        "selector / domain / result" string preserves the per-signature
+        pairing that the flattened array loses."""
+        doc = elastic_module._AggregateReportDoc()
+        doc.add_dkim_result(
+            domain="example.net", selector="net1", result="fail", human_result=None
+        )
+        doc.add_dkim_result(
+            domain="example.org", selector="org1", result="pass", human_result=None
+        )
+        expected = ["net1 / example.net / fail", "org1 / example.org / pass"]
+        # dkim_results_combined is declared as Text(multi=True, ...); the SDK
+        # stub types the class attribute as Text (no Iterable protocol),
+        # even though the runtime value is an AttrList once multi=True is
+        # set. Same category of stub gap as the Q()/meta.index ignores in
+        # elastic.py.
+        self.assertEqual(list(doc.dkim_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["dkim_results_combined"], expected)
+
+    def test_add_spf_result_appends_combined_string(self):
+        doc = elastic_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        expected = ["mfrom / example.org / pass"]
+        self.assertEqual(list(doc.spf_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["spf_results_combined"], expected)
+
+    def test_spf_result_serializes_under_singular_result_key(self):
+        """The _SPFResult class previously declared a dead ``results``
+        (plural) field while the save path wrote ``result``; verify the
+        serialized nested doc actually uses the singular key."""
+        doc = elastic_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        d = doc.to_dict()["spf_results"][0]
+        self.assertEqual(d["result"], "pass")
+        self.assertNotIn("results", d)
 
 
 # ---------------------------------------------------------------------------

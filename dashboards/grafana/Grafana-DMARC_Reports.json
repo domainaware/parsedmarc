@@ -2426,24 +2426,24 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "SPF Auth Result"
+              "options": "SPF Scope / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 115
+                "value": 200
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "DKIM Auth Result"
+              "options": "DKIM Selector / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 123
+                "value": 260
               }
             ]
           },
@@ -2598,7 +2598,7 @@
             {
               "$$hashKey": "object:412",
               "fake": true,
-              "field": "spf_results.result.keyword",
+              "field": "spf_results_combined.keyword",
               "id": "16",
               "settings": {
                 "min_doc_count": "1",
@@ -2626,7 +2626,7 @@
             {
               "$$hashKey": "object:461",
               "fake": true,
-              "field": "dkim_results.result.keyword",
+              "field": "dkim_results_combined.keyword",
               "id": "10",
               "settings": {
                 "min_doc_count": "1",
@@ -2666,7 +2666,7 @@
               "Sum": 11,
               "disposition.keyword": 4,
               "dkim_aligned": 6,
-              "dkim_results.result.keyword": 9,
+              "dkim_results_combined.keyword": 9,
               "header_from.keyword": 10,
               "org_name.keyword": 7,
               "source_base_domain.keyword": 0,
@@ -2674,16 +2674,14 @@
               "source_ip_address.keyword": 2,
               "source_reverse_dns.keyword": 1,
               "spf_aligned": 5,
-              "spf_results.result.keyword": 8
+              "spf_results_combined.keyword": 8
             },
             "renameByName": {
               "Sum": "Messages",
               "date_range": "Date",
               "disposition.keyword": "Disposition",
               "dkim_aligned": "DKIM",
-              "dkim_results.domain.keyword": "DKIM Domain",
-              "dkim_results.result.keyword": "DKIM Auth Result",
-              "dkim_results.selector.keyword": "DKIM Selector",
+              "dkim_results_combined.keyword": "DKIM Selector / Domain / Result",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Email Domain",
               "org_name.keyword": "Reporter",
@@ -2692,7 +2690,7 @@
               "source_ip_address.keyword": "Source IP",
               "source_reverse_dns.keyword": "PTR",
               "spf_aligned": "SPF",
-              "spf_results.result.keyword": "SPF Auth Result"
+              "spf_results_combined.keyword": "SPF Scope / Domain / Result"
             }
           }
         }
@@ -3431,7 +3429,7 @@
             {
               "$$hashKey": "object:459",
               "fake": true,
-              "field": "spf_results.result.keyword",
+              "field": "spf_results_combined.keyword",
               "id": "8",
               "settings": {
                 "min_doc_count": 1,
@@ -3502,7 +3500,7 @@
               "header_from.keyword": "Header From",
               "source_base_domain.keyword": "Reverse DNS Base",
               "spf_aligned": "SPF Aligned",
-              "spf_results.result.keyword": "SPF Result"
+              "spf_results_combined.keyword": "SPF Scope / Domain / Result"
             }
           }
         }
@@ -3590,22 +3588,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "DKIM Selector"
+              "options": "DKIM Selector / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 320
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": true,
-                    "title": "Open dmarcian.com DKIM Record Checker",
-                    "url": "https://dmarcian.com/dkim-inspector/?domain=${__data.fields[\"dkim_results.domain.keyword\"]}&selector=${__data.fields[\"dkim_results.selector.keyword\"]}"
-                  }
-                ]
+                "value": 400
               }
             ]
           }
@@ -3649,39 +3637,11 @@
             {
               "$$hashKey": "object:458",
               "fake": true,
-              "field": "dkim_results.selector.keyword",
+              "field": "dkim_results_combined.keyword",
               "id": "7",
               "settings": {
                 "min_doc_count": "1",
                 "missing": "-",
-                "order": "desc",
-                "orderBy": "4",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "$$hashKey": "object:459",
-              "fake": true,
-              "field": "dkim_results.domain.keyword",
-              "id": "8",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "4",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "$$hashKey": "object:460",
-              "fake": true,
-              "field": "dkim_results.result.keyword",
-              "id": "9",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": null,
                 "order": "desc",
                 "orderBy": "4",
                 "size": "0"
@@ -3744,14 +3704,11 @@
             "renameByName": {
               "Sum": "Messages",
               "dkim_aligned": "DKIM Aligned",
-              "dkim_results.domain.keyword": "DKIM Domain",
-              "dkim_results.result.keyword": "DKIM Result",
-              "dkim_results.selector.keyword": "DKIM Selector",
+              "dkim_results_combined.keyword": "DKIM Selector / Domain / Result",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Header From",
               "source_base_domain.keyword": "Reverse DNS Base",
-              "spf_aligned": "SPF Aligned",
-              "spf_results.result.keyword": "SPF Result"
+              "spf_aligned": "SPF Aligned"
             }
           }
         }
