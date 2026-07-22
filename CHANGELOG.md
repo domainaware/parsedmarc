@@ -10,6 +10,7 @@
 ### Bug fixes
 
 - **The Elasticsearch/OpenSearch aggregate dashboards' over-time charts (and the Grafana ES dashboard's summary pies and time series) bucketed on the multi-valued `date_range` field**; a date histogram counts a report once per value, double-counting any report whose begin and end dates fall in different buckets. All date histograms and time-range filters now use the single-valued `date_begin`, matching the report-begin semantics of the PostgreSQL (`begin_date`) and Splunk (`_time` = interval begin) dashboards.
+- **Aggregate-report policy and authentication result words are now normalized to lowercase** ([#288](https://github.com/domainaware/parsedmarc/issues/288)): reporters that emit mixed-case values such as `Pass` no longer create duplicate result categories in outputs and dashboards.
 
 ## 10.2.4
 

@@ -166,6 +166,25 @@ class Test(unittest.TestCase):
                 )
             print("Passed!")
 
+    def testAggregateResultWordsAreLowercase(self):
+        """Reporter-supplied result words are lowercased at ingest; RFC 7489
+        Appendix C and RFC 9990 define the result and disposition types as
+        lowercase enum tokens (issue #288).
+        """
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate_invalid/report_with_upper_cased_pass.xml",
+            offline=True,
+        )
+        assert result["report_type"] == "aggregate"
+        report = cast(AggregateReport, result["report"])
+        record = report["records"][0]
+
+        self.assertEqual(record["policy_evaluated"]["dkim"], "pass")
+        self.assertEqual(record["policy_evaluated"]["spf"], "pass")
+        self.assertEqual(record["auth_results"]["dkim"][0]["result"], "pass")
+        self.assertEqual(record["auth_results"]["spf"][0]["result"], "pass")
+        self.assertEqual(record["policy_evaluated"]["disposition"], "none")
+
     def testEmptySample(self):
         """Test empty/unparasable report"""
         with self.assertRaises(parsedmarc.ParserError):
