@@ -1933,6 +1933,44 @@ subject = DMARC Summary
         with zipfile.ZipFile(io.BytesIO(payload)) as zf:
             self.assertIsNone(zf.testzip())
 
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.MSGraphConnection")
+    def testCliSkipsMsGraphSummaryEmailWhenNothingWasParsed(
+        self, mock_graph_connection, mock_get_mailbox_reports
+    ):
+        """Regression test for the Microsoft Graph half of the #200
+        empty-run guard: with an empty mailbox (no aggregate, failure,
+        or SMTP TLS reports), the Graph-sent summary email must not be
+        sent, and an INFO log line should explain why it was skipped.
+        A refactor that narrows the skip guard's condition to only the
+        SMTP branch (dropping the msgraph_connection/smtp_to_value
+        check) must fail this test."""
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        # verbose=true is added (CERT_CONFIG only sets silent=true) so the
+        # logger's effective level is INFO and the skip message is
+        # actually emitted for assertLogs to capture.
+        config_text = (
+            self.CERT_CONFIG.replace("silent = true", "silent = true\nverbose = true")
+            + """
+[smtp]
+to = admin@example.com
+subject = DMARC Summary
+"""
+        )
+        cfg_path = self._write_config(config_text)
+
+        with self.assertLogs("parsedmarc.log", level="INFO") as logs:
+            self._run_main(cfg_path)
+
+        mock_graph_connection.return_value.send_message.assert_not_called()
+        self.assertTrue(
+            any("skipping the results email" in line for line in logs.output)
+        )
+
     @patch("parsedmarc.cli.email_results")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.MSGraphConnection")
