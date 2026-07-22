@@ -58,89 +58,100 @@ def shot(page, name, full=True):
 
 def kibana(pw):
     b = pw.chromium.launch(headless=True)
-    page = b.new_page(viewport=VIEWPORT)
-    page.goto(
-        f"http://localhost:5601/app/dashboards#/view/{AGG_DASH_ID}?{KB_TIME}",
-        wait_until="domcontentloaded",
-        timeout=120000,
-    )
-    page.wait_for_timeout(20000)
-    shot(page, "kibana_aggregate.png")
-    b.close()
+    try:
+        page = b.new_page(viewport=VIEWPORT)
+        page.goto(
+            f"http://localhost:5601/app/dashboards#/view/{AGG_DASH_ID}?{KB_TIME}",
+            wait_until="domcontentloaded",
+            timeout=120000,
+        )
+        page.wait_for_timeout(20000)
+        shot(page, "kibana_aggregate.png")
+    finally:
+        b.close()
 
 
 def osd(pw):
     os_pass = os.environ["OPENSEARCH_INITIAL_ADMIN_PASSWORD"]
     b = pw.chromium.launch(headless=True)
-    ctx = b.new_context(
-        viewport=VIEWPORT,
-        http_credentials={"username": "admin", "password": os_pass},
-        ignore_https_errors=True,
-    )
-    page = ctx.new_page()
-    page.goto("http://localhost:5602/app/login", timeout=120000)
-    page.wait_for_timeout(3000)
-    if page.locator('input[data-test-subj="user-name"]').count():
-        page.fill('input[data-test-subj="user-name"]', "admin")
-        page.fill('input[data-test-subj="password"]', os_pass)
-        page.click('button[data-test-subj="submit"]')
-        page.wait_for_timeout(6000)
-    page.goto(
-        "http://localhost:5602/app/dashboards?security_tenant=global"
-        f"#/view/{AGG_DASH_ID}?{KB_TIME}",
-        wait_until="domcontentloaded",
-        timeout=120000,
-    )
-    page.wait_for_timeout(20000)
-    shot(page, "osd_aggregate.png")
-    b.close()
+    try:
+        ctx = b.new_context(
+            viewport=VIEWPORT,
+            http_credentials={"username": "admin", "password": os_pass},
+            ignore_https_errors=True,
+        )
+        page = ctx.new_page()
+        page.goto("http://localhost:5602/app/login", timeout=120000)
+        page.wait_for_timeout(3000)
+        if page.locator('input[data-test-subj="user-name"]').count():
+            page.fill('input[data-test-subj="user-name"]', "admin")
+            page.fill('input[data-test-subj="password"]', os_pass)
+            page.click('button[data-test-subj="submit"]')
+            page.wait_for_timeout(6000)
+        page.goto(
+            "http://localhost:5602/app/dashboards?security_tenant=global"
+            f"#/view/{AGG_DASH_ID}?{KB_TIME}",
+            wait_until="domcontentloaded",
+            timeout=120000,
+        )
+        page.wait_for_timeout(20000)
+        shot(page, "osd_aggregate.png")
+    finally:
+        # Closing the browser also closes the context and its pages.
+        b.close()
 
 
 def grafana(pw):
     b = pw.chromium.launch(headless=True)
-    page = b.new_page(viewport=VIEWPORT)
-    page.goto("http://localhost:3000/login", timeout=120000)
-    page.wait_for_timeout(2000)
-    page.fill('input[name="user"]', GRAFANA_USER)
-    page.fill('input[name="password"]', GRAFANA_PASS)
-    page.click('button[type="submit"]')
-    page.wait_for_timeout(5000)
-    base = "http://localhost:3000/d/SDksirRWz/dmarc-reports"
-    page.goto(
-        f"{base}?{GRAFANA_RANGE}&kiosk", wait_until="domcontentloaded", timeout=120000
-    )
-    page.wait_for_timeout(10000)
-    shot(page, "grafana_dashboard.png")
-    # Zoomed views of the alignment-detail panels.
-    for pid, name in ((40, "dkim_details"), (16, "spf_details"), (41, "overview")):
+    try:
+        page = b.new_page(viewport=VIEWPORT)
+        page.goto("http://localhost:3000/login", timeout=120000)
+        page.wait_for_timeout(2000)
+        page.fill('input[name="user"]', GRAFANA_USER)
+        page.fill('input[name="password"]', GRAFANA_PASS)
+        page.click('button[type="submit"]')
+        page.wait_for_timeout(5000)
+        base = "http://localhost:3000/d/SDksirRWz/dmarc-reports"
         page.goto(
-            f"{base}?{GRAFANA_RANGE}&kiosk&viewPanel={pid}",
+            f"{base}?{GRAFANA_RANGE}&kiosk",
             wait_until="domcontentloaded",
             timeout=120000,
         )
-        page.wait_for_timeout(8000)
-        shot(page, f"grafana_panel_{name}.png", full=False)
-    b.close()
+        page.wait_for_timeout(10000)
+        shot(page, "grafana_dashboard.png")
+        # Zoomed views of the alignment-detail panels.
+        for pid, name in ((40, "dkim_details"), (16, "spf_details"), (41, "overview")):
+            page.goto(
+                f"{base}?{GRAFANA_RANGE}&kiosk&viewPanel={pid}",
+                wait_until="domcontentloaded",
+                timeout=120000,
+            )
+            page.wait_for_timeout(8000)
+            shot(page, f"grafana_panel_{name}.png", full=False)
+    finally:
+        b.close()
 
 
 def splunk(pw):
     b = pw.chromium.launch(headless=True)
-    page = b.new_page(viewport=VIEWPORT)
-    page.goto("http://localhost:8000/en-US/account/login", timeout=120000)
-    page.wait_for_timeout(3000)
-    page.fill("input#username", "admin")
-    page.fill("input#password", os.environ["SPLUNK_PASSWORD"])
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(8000)
-    page.goto(
-        "http://localhost:8000/en-US/app/DMARC/dmarc_aggregate"
-        "?form.time_range.earliest=0&form.time_range.latest=now",
-        wait_until="domcontentloaded",
-        timeout=180000,
-    )
-    page.wait_for_timeout(25000)
-    shot(page, "splunk_aggregate.png")
-    b.close()
+    try:
+        page = b.new_page(viewport=VIEWPORT)
+        page.goto("http://localhost:8000/en-US/account/login", timeout=120000)
+        page.wait_for_timeout(3000)
+        page.fill("input#username", "admin")
+        page.fill("input#password", os.environ["SPLUNK_PASSWORD"])
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(8000)
+        page.goto(
+            "http://localhost:8000/en-US/app/DMARC/dmarc_aggregate"
+            "?form.time_range.earliest=0&form.time_range.latest=now",
+            wait_until="domcontentloaded",
+            timeout=180000,
+        )
+        page.wait_for_timeout(25000)
+        shot(page, "splunk_aggregate.png")
+    finally:
+        b.close()
 
 
 TARGETS = {"kibana": kibana, "osd": osd, "grafana": grafana, "splunk": splunk}
