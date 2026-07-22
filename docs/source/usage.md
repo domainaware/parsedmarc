@@ -527,6 +527,11 @@ The full set of configuration options are:
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
   - `failure_topic` - str: The Kafka topic for failure reports
 - `smtp`
+
+  The results email is only sent when at least one aggregate, failure,
+  or SMTP TLS report was parsed during the run; an empty run (e.g. an
+  empty inbox) skips the email instead of sending headers-only CSVs.
+
   - `host` - str: The SMTP hostname. Required unless `[msgraph]` is
     configured, in which case omitting it sends the summary via
     Microsoft Graph instead — see "Sending the summary email via
