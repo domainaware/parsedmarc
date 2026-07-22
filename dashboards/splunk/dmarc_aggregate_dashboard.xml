@@ -349,6 +349,7 @@
 | mvexpand dkim_signature
 | stats sum(message_count) as message_count by header_from, dkim_signature, dkim_aligned, source_base_domain
 | eval parts=split(dkim_signature, " / "), dkim_selector=mvindex(parts, 0), dkim_domain=mvindex(parts, 1), dkim_result=mvindex(parts, 2)
+| eval dkim_selector=if(dkim_selector=="null", "none", dkim_selector), dkim_domain=if(dkim_domain=="null", "none", dkim_domain), dkim_result=if(dkim_result=="null", "none", dkim_result)
 | table header_from, dkim_selector, dkim_domain, dkim_result, dkim_aligned, source_base_domain, message_count
 | sort -message_count</query>
         </search>
