@@ -37,23 +37,48 @@ class OpenSearchError(Exception):
 # Guard query for the dkim_results_combined/spf_results_combined backfill
 # (see ``migrate_indexes``). Matches only documents that have at least one
 # DKIM or SPF auth result and are missing the corresponding combined field.
-# Empty arrays are invisible to ``exists``, so documents with zero DKIM/SPF
-# results are correctly skipped, making this idempotent: once a document is
-# backfilled it no longer matches, and re-running against an already
-# up-to-date index counts 0.
+# Empty arrays are invisible to ``exists``, so documents with zero
+# DKIM/SPF results are correctly skipped (verified against real data;
+# this also makes the query idempotent — a backfilled document no longer
+# matches). Each result is matched on an OR of its ``domain``/``result``
+# subfields as defense in depth: the parsers we audited never store a
+# result without both, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
 _COMBINED_BACKFILL_QUERY: dict[str, Any] = {
     "bool": {
         "minimum_should_match": 1,
         "should": [
             {
                 "bool": {
-                    "must": [{"exists": {"field": "dkim_results.domain"}}],
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "dkim_results.domain"}},
+                                    {"exists": {"field": "dkim_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
                     "must_not": [{"exists": {"field": "dkim_results_combined"}}],
                 }
             },
             {
                 "bool": {
-                    "must": [{"exists": {"field": "spf_results.domain"}}],
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "spf_results.domain"}},
+                                    {"exists": {"field": "spf_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
                     "must_not": [{"exists": {"field": "spf_results_combined"}}],
                 }
             },

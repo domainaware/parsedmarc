@@ -256,7 +256,11 @@ matches only documents that have at least one DKIM or SPF auth result and
 lack the corresponding combined field; documents with no auth results are
 skipped, because an `exists` query cannot see an empty array, and for
 search purposes an empty `dkim_results_combined` is identical to an
-absent one.
+absent one. Each result is matched on either its `domain` or its `result`
+subfield as defense in depth: an empty string indexes no text tokens and
+is invisible to `exists`, and the storage shape of every historical
+parsedmarc version can't be audited, so matching either subfield ensures
+no backfillable document is skipped.
 
 ```bash
 curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=proceed&wait_for_completion=false" \
@@ -268,13 +272,33 @@ curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=
       "should": [
         {
           "bool": {
-            "must": [{"exists": {"field": "dkim_results.domain"}}],
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {"exists": {"field": "dkim_results.domain"}},
+                    {"exists": {"field": "dkim_results.result"}}
+                  ]
+                }
+              }
+            ],
             "must_not": [{"exists": {"field": "dkim_results_combined"}}]
           }
         },
         {
           "bool": {
-            "must": [{"exists": {"field": "spf_results.domain"}}],
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {"exists": {"field": "spf_results.domain"}},
+                    {"exists": {"field": "spf_results.result"}}
+                  ]
+                }
+              }
+            ],
             "must_not": [{"exists": {"field": "spf_results_combined"}}]
           }
         }
