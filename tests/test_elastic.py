@@ -631,11 +631,12 @@ class TestAggregateDocCombinedResults(unittest.TestCase):
 
     def test_add_dkim_result_appends_combined_string(self):
         """Regression guard for issue #169: dkim_results/spf_results are
-        stored as nested object arrays, which Kibana/Grafana tables cannot
-        terms-aggregate without producing a cross-product of selector/
-        domain/result values. The composed "selector / domain / result"
-        string preserves per-signature pairing that the object-mapped
-        array loses."""
+        arrays of objects that the engine dynamic-maps as plain ``object``
+        (not ``nested``) and flattens, so Kibana/Grafana tables cannot
+        terms-aggregate their subfields without producing a cross-product
+        of selector/domain/result values. The composed
+        "selector / domain / result" string preserves the per-signature
+        pairing that the flattened array loses."""
         doc = elastic_module._AggregateReportDoc()
         doc.add_dkim_result(
             domain="example.net", selector="net1", result="fail", human_result=None

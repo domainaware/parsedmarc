@@ -2681,9 +2681,7 @@
               "date_range": "Date",
               "disposition.keyword": "Disposition",
               "dkim_aligned": "DKIM",
-              "dkim_results.domain.keyword": "DKIM Domain",
               "dkim_results_combined.keyword": "DKIM Auth Result",
-              "dkim_results.selector.keyword": "DKIM Selector",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Email Domain",
               "org_name.keyword": "Reporter",
@@ -3710,8 +3708,7 @@
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Header From",
               "source_base_domain.keyword": "Reverse DNS Base",
-              "spf_aligned": "SPF Aligned",
-              "spf_results.result.keyword": "SPF Result"
+              "spf_aligned": "SPF Aligned"
             }
           }
         }
