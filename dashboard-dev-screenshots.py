@@ -27,7 +27,13 @@ import os
 import sys
 import traceback
 
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sys.exit(
+        "playwright is not installed (it is dev-stack tooling, not a project "
+        "dependency); run: pip install playwright && playwright install chromium"
+    )
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard-screenshots")
 os.makedirs(OUT, exist_ok=True)
