@@ -226,6 +226,60 @@ Kibana index patterns with versions that match the upgraded indexes:
 7. Import `export.ndjson` by clicking Import from the Kibana
    Saved Objects page
 
+## Backfilling the combined DKIM/SPF result fields
+
+As of the version fixing [#169](https://github.com/domainaware/parsedmarc/issues/169),
+aggregate documents include `dkim_results_combined` and `spf_results_combined` —
+scalar string arrays that keep each auth result's selector/scope, domain, and
+result paired, which the dashboards' alignment-detail tables aggregate on.
+Reports saved by older versions lack these fields and will not appear in
+those tables.
+
+Running the following once per cluster backfills the fields on existing
+documents. It is idempotent (documents that already have the fields are
+skipped), so it is safe to re-run. It works identically on OpenSearch;
+just adjust the URL and credentials. The query matches only documents
+that have at least one DKIM or SPF auth result and lack the corresponding
+combined field; documents with no auth results are skipped, because an
+`exists` query cannot see an empty array, and for search purposes an
+empty `dkim_results_combined` is identical to an absent one.
+
+```bash
+curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=proceed&wait_for_completion=false" \
+  -H "Content-Type: application/json" -d '
+{
+  "query": {
+    "bool": {
+      "minimum_should_match": 1,
+      "should": [
+        {
+          "bool": {
+            "must": [{"exists": {"field": "dkim_results.domain"}}],
+            "must_not": [{"exists": {"field": "dkim_results_combined"}}]
+          }
+        },
+        {
+          "bool": {
+            "must": [{"exists": {"field": "spf_results.domain"}}],
+            "must_not": [{"exists": {"field": "spf_results_combined"}}]
+          }
+        }
+      ]
+    }
+  },
+  "script": {
+    "lang": "painless",
+    "source": "List dk = new ArrayList(); def dr = ctx._source.dkim_results; if (dr != null) { if (!(dr instanceof List)) { dr = [dr]; } for (e in dr) { if (e == null) { continue; } def sel = e.selector != null ? e.selector : \"none\"; def dom = e.domain != null ? e.domain : \"none\"; def res = e.result != null ? e.result : \"none\"; dk.add(sel + \" / \" + dom + \" / \" + res); } } ctx._source.dkim_results_combined = dk; List sp = new ArrayList(); def sr = ctx._source.spf_results; if (sr != null) { if (!(sr instanceof List)) { sr = [sr]; } for (e in sr) { if (e == null) { continue; } def sc = e.scope != null ? e.scope : \"mfrom\"; def dom = e.domain != null ? e.domain : \"none\"; def res = e.result != null ? e.result : (e.results != null ? e.results : \"none\"); sp.add(sc + \" / \" + dom + \" / \" + res); } } ctx._source.spf_results_combined = sp;"
+  }
+}'
+```
+
+`wait_for_completion=false` returns a task ID — check progress with
+`GET _tasks/<task id>`. Adjust the index pattern if you use a custom
+`index_prefix`/`index_suffix`. After backfilling, re-import the updated
+dashboards ndjson (the index pattern saved object changed too) per the
+import instructions above.
+
 ## Records retention
 
 Starting in version 5.0.0, `parsedmarc` stores data in a separate

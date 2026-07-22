@@ -602,6 +602,54 @@ class TestSaveAggregateReport(unittest.TestCase):
             mock_doc_cls.call_args.kwargs["date_begin"].timestamp(), 1705276800
         )
 
+    def test_save_populates_combined_dkim_and_spf_fields(self):
+        """Regression guard for issue #169: two DKIM signatures on one
+        record must yield exactly two combined entries, not a 4-way
+        cross-product. autospec=True is required on the save patch so
+        mock_save.call_args captures the doc instance as ``self``."""
+        report = _aggregate_report()
+        report["records"][0]["auth_results"] = {
+            "dkim": [
+                {
+                    "domain": "example.net",
+                    "selector": "net1",
+                    "result": "fail",
+                    "human_result": None,
+                },
+                {
+                    "domain": "example.org",
+                    "selector": "org1",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+            "spf": [
+                {
+                    "domain": "example.org",
+                    "scope": "mfrom",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+        }
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch(
+                "parsedmarc.opensearch.Index",
+                return_value=MagicMock(exists=MagicMock(return_value=True)),
+            ),
+            patch.object(
+                opensearch_module._AggregateReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_aggregate_report_to_opensearch(report)
+        doc = mock_save.call_args[0][0]
+        self.assertEqual(
+            list(doc.dkim_results_combined),
+            ["net1 / example.net / fail", "org1 / example.org / pass"],
+        )
+        self.assertEqual(list(doc.spf_results_combined), ["mfrom / example.org / pass"])
+
 
 class TestAggregateDocPassedDmarc(unittest.TestCase):
     """The _AggregateReportDoc.save() override derives passed_dmarc — the
@@ -627,6 +675,55 @@ class TestAggregateDocPassedDmarc(unittest.TestCase):
                     doc.save()
                 mock_super_save.assert_called_once()
                 self.assertEqual(bool(doc.passed_dmarc), expected)
+
+
+class TestAggregateDocCombinedResults(unittest.TestCase):
+    """add_dkim_result/add_spf_result never touch the network, so these
+    construct _AggregateReportDoc directly rather than going through the
+    save_* entry point."""
+
+    def test_add_dkim_result_appends_combined_string(self):
+        """Regression guard for issue #169: dkim_results/spf_results are
+        stored as nested object arrays, which Kibana/Grafana tables cannot
+        terms-aggregate without producing a cross-product of selector/
+        domain/result values. The composed "selector / domain / result"
+        string preserves per-signature pairing that the object-mapped
+        array loses."""
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_dkim_result(
+            domain="example.net", selector="net1", result="fail", human_result=None
+        )
+        doc.add_dkim_result(
+            domain="example.org", selector="org1", result="pass", human_result=None
+        )
+        expected = ["net1 / example.net / fail", "org1 / example.org / pass"]
+        # dkim_results_combined is declared as Text(multi=True, ...); the SDK
+        # stub types the class attribute as Text (no Iterable protocol),
+        # even though the runtime value is an AttrList once multi=True is
+        # set.
+        self.assertEqual(list(doc.dkim_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["dkim_results_combined"], expected)
+
+    def test_add_spf_result_appends_combined_string(self):
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        expected = ["mfrom / example.org / pass"]
+        self.assertEqual(list(doc.spf_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["spf_results_combined"], expected)
+
+    def test_spf_result_serializes_under_singular_result_key(self):
+        """The _SPFResult class previously declared a dead ``results``
+        (plural) field while the save path wrote ``result``; verify the
+        serialized nested doc actually uses the singular key."""
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        d = doc.to_dict()["spf_results"][0]
+        self.assertEqual(d["result"], "pass")
+        self.assertNotIn("results", d)
 
 
 # ---------------------------------------------------------------------------

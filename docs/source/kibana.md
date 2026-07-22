@@ -82,7 +82,11 @@ Further down the dashboard, you can filter by source country or source IP
 address.
 
 Tables showing SPF and DKIM alignment details are located under the IP address
-table.
+table. Each row of the DKIM details table is one real DKIM signature, shown
+as a combined `selector / domain / result` value; the SPF details table
+shows `scope / domain / result` the same way. Combining the values into one
+column keeps each signature's selector, domain, and result paired together,
+rather than aggregating them as separate columns.
 
 :::{note}
 The alignment tables (SPF details, DKIM details) and the per-IP source

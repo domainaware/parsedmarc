@@ -99,7 +99,7 @@ class _SPFResult(InnerDoc):
 
     domain = Text()
     scope = Text()
-    results = Text()
+    result = Text()
     human_result = Text()
 
 
@@ -146,6 +146,18 @@ class _AggregateReportDoc(Document):
     envelope_to = Text()
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
+    # One "{selector} / {domain} / {result}" (DKIM) or "{scope} / {domain} /
+    # {result}" (SPF) string per auth result. Kibana/Grafana tables cannot
+    # terms-aggregate the subfields of an object array without producing a
+    # cross-product of values (issue #169), so dashboards aggregate these
+    # composed keywords instead. Declared to match what dynamic mapping
+    # produces for a string array (text + .keyword).
+    dkim_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
+    spf_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
     np = Keyword()
     testing = Keyword()
     discovery_method = Keyword()
@@ -158,7 +170,7 @@ class _AggregateReportDoc(Document):
         self,
         domain: str,
         selector: str,
-        result: _DKIMResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.dkim_results.append(
@@ -169,12 +181,15 @@ class _AggregateReportDoc(Document):
                 human_result=human_result,
             )
         )
+        self.dkim_results_combined.append(
+            "{0} / {1} / {2}".format(selector, domain, result)
+        )
 
     def add_spf_result(
         self,
         domain: str,
         scope: str,
-        result: _SPFResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.spf_results.append(
@@ -184,6 +199,9 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
+        )
+        self.spf_results_combined.append(
+            "{0} / {1} / {2}".format(scope, domain, result)
         )
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
@@ -450,6 +468,11 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
     for name in names:
         index = Index(name)
         try:
+            # Deliberately no Index.document() registration: Kibana/OpenSearch
+            # Dashboards/Grafana cannot terms-aggregate fields inside a
+            # `nested` mapping, so the dynamic `object` mapping produced by a
+            # bare create is load-bearing for the shipped dashboards (issue
+            # #169; see the *_combined fields on _AggregateReportDoc).
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
                 if effective_settings:
