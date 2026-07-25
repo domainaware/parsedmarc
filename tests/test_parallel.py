@@ -149,6 +149,19 @@ class TestParallelMapShouldStop(unittest.TestCase):
         self.assertEqual(results, list(range(len(results))))
 
 
+class TestParallelMapValidation(unittest.TestCase):
+    """parallel_map is a reusable helper, so it validates n_procs itself
+    with a clear message instead of surfacing ProcessPoolExecutor's
+    max_workers error later - and it must do so eagerly at the call, not
+    on first iteration of the returned iterator (callers that pass the
+    iterator elsewhere before consuming it would otherwise see the error
+    far from the bad argument)."""
+
+    def test_n_procs_below_one_raises_value_error_eagerly(self):
+        with self.assertRaises(ValueError):
+            parallel_map(_echo_job, [1, 2], n_procs=0)
+
+
 class TestParallelMapEmptyJobs(unittest.TestCase):
     """An empty jobs iterable must return immediately without spawning a
     process pool."""

@@ -2659,7 +2659,8 @@ class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
         try:
             # AGGREGATE appears twice: dedup must collapse it to one report.
             for source in (self.AGGREGATE, self.FAILURE, self.SMTP_TLS, self.AGGREGATE):
-                box.add(mailbox.mboxMessage(open(source, "rb").read()))
+                with open(source, "rb") as source_file:
+                    box.add(mailbox.mboxMessage(source_file.read()))
             box.add(mailbox.mboxMessage(self.JUNK))
             box.flush()
         finally:
@@ -3016,7 +3017,8 @@ class _MidRunArrivalMaildirConnection(MaildirConnection):
         result = super().fetch_messages(reports_folder, **kwargs)
         if not self._delivered_extra:
             self._delivered_extra = True
-            raw = open(self._extra_source, "rb").read()
+            with open(self._extra_source, "rb") as extra_file:
+                raw = extra_file.read()
             box = mailbox.Maildir(self._maildir_path, create=False)
             box.add(mailbox.MaildirMessage(raw))
             box.flush()
@@ -3040,7 +3042,8 @@ class TestGetDmarcReportsFromMailboxMaildirBatchSizeZeroRecursion(unittest.TestC
         self._maildir = os.path.join(self._tmp, "Maildir")
         inbox = mailbox.Maildir(self._maildir, create=True)
         for source in (self.AGGREGATE, self.FAILURE):
-            inbox.add(mailbox.MaildirMessage(open(source, "rb").read()))
+            with open(source, "rb") as source_file:
+                inbox.add(mailbox.MaildirMessage(source_file.read()))
         inbox.flush()
 
     def test_batch_size_zero_recursion_threads_n_procs(self):

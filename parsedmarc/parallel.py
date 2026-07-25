@@ -115,64 +115,78 @@ def parallel_map(
 
     If ``should_stop`` is given, it is checked after each yielded result;
     if it returns ``True``, the pool is shut down with
-    ``cancel_futures=True`` and any already-completed results still in
-    the submission window are yielded before returning, preserving work
-    already done while stopping promptly.
+    ``cancel_futures=True``: jobs still queued in the submission window
+    that have not started are cancelled and their results dropped, while
+    jobs already running (or finished) are waited on and their results
+    yielded before returning - no completed work is discarded, but the
+    stop may block briefly until in-flight jobs finish.
+
+    Raises:
+        ValueError: If ``n_procs`` is less than 1. Raised eagerly at the
+            call itself (not on first iteration of the returned iterator).
     """
-    jobs_iter = iter(jobs)
-    try:
-        first_job = next(jobs_iter)
-    except StopIteration:
-        return
+    if n_procs < 1:
+        raise ValueError(f"n_procs must be at least 1, got {n_procs}")
 
-    from parsedmarc.log import logger
+    def _generate() -> Iterator[_R]:
+        jobs_iter = iter(jobs)
+        try:
+            first_job = next(jobs_iter)
+        except StopIteration:
+            return
 
-    log_level = logger.getEffectiveLevel()
-    log_files = [
-        h.baseFilename for h in logger.handlers if isinstance(h, logging.FileHandler)
-    ]
+        from parsedmarc.log import logger
 
-    window_size = max(window_factor * n_procs, 1)
+        log_level = logger.getEffectiveLevel()
+        log_files = [
+            h.baseFilename
+            for h in logger.handlers
+            if isinstance(h, logging.FileHandler)
+        ]
 
-    with ProcessPoolExecutor(
-        max_workers=n_procs,
-        initializer=_init_worker_logging,
-        initargs=(log_level, log_files),
-    ) as executor:
-        window: deque[Future[_R]] = deque()
-        window.append(executor.submit(func, first_job))
+        window_size = max(window_factor * n_procs, 1)
 
-        # Prime the submission window up to its bound before harvesting.
-        while len(window) < window_size:
-            try:
-                job = next(jobs_iter)
-            except StopIteration:
-                break
-            window.append(executor.submit(func, job))
+        with ProcessPoolExecutor(
+            max_workers=n_procs,
+            initializer=_init_worker_logging,
+            initargs=(log_level, log_files),
+        ) as executor:
+            window: deque[Future[_R]] = deque()
+            window.append(executor.submit(func, first_job))
 
-        while window:
-            oldest = window.popleft()
-            if heartbeat is None:
-                result = oldest.result()
-            else:
-                while True:
-                    done, _ = wait([oldest], timeout=heartbeat_interval)
-                    if done:
-                        result = oldest.result()
-                        break
-                    heartbeat()
+            # Prime the submission window up to its bound before harvesting.
+            while len(window) < window_size:
+                try:
+                    job = next(jobs_iter)
+                except StopIteration:
+                    break
+                window.append(executor.submit(func, job))
 
-            yield result
+            while window:
+                oldest = window.popleft()
+                if heartbeat is None:
+                    result = oldest.result()
+                else:
+                    while True:
+                        done, _ = wait([oldest], timeout=heartbeat_interval)
+                        if done:
+                            result = oldest.result()
+                            break
+                        heartbeat()
 
-            if should_stop is not None and should_stop():
-                executor.shutdown(cancel_futures=True)
-                for remaining in window:
-                    if not remaining.cancelled():
-                        yield remaining.result()
-                return
+                yield result
 
-            try:
-                job = next(jobs_iter)
-            except StopIteration:
-                continue
-            window.append(executor.submit(func, job))
+                if should_stop is not None and should_stop():
+                    executor.shutdown(cancel_futures=True)
+                    for remaining in window:
+                        if not remaining.cancelled():
+                            yield remaining.result()
+                    return
+
+                try:
+                    job = next(jobs_iter)
+                except StopIteration:
+                    continue
+                window.append(executor.submit(func, job))
+
+    return _generate()

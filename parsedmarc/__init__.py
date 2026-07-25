@@ -23,6 +23,7 @@ from base64 import b64decode
 from csv import DictWriter
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
+from collections import deque
 from collections.abc import Callable, Sequence
 from typing import (
     Any,
@@ -2496,7 +2497,11 @@ def get_dmarc_reports_from_mailbox(
         }
         func = functools.partial(_parse_report_email_job, kwargs=parse_kwargs)
 
-        fetched_ids: list[int | str] = []
+        # parallel_map yields results in submission order, so the oldest
+        # queued id always belongs to the next yielded result; popping as
+        # results arrive keeps this queue no larger than the in-flight
+        # submission window.
+        fetched_ids: deque[int | str] = deque()
         invalid_msg_ids: list[int | str] = []
 
         def _jobs():
@@ -2511,10 +2516,10 @@ def get_dmarc_reports_from_mailbox(
                 fetched_ids.append(message_id)
                 yield msg_content
 
-        for idx, result in enumerate(
-            parallel_map(func, _jobs(), n_procs, heartbeat=connection.keepalive)
+        for result in parallel_map(
+            func, _jobs(), n_procs, heartbeat=connection.keepalive
         ):
-            message_id = fetched_ids[idx]
+            message_id = fetched_ids.popleft()
             if isinstance(result, ParserError):
                 logger.warning(str(result))
                 invalid_msg_ids.append(message_id)
