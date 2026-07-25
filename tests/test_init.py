@@ -73,7 +73,7 @@ class Test(unittest.TestCase):
         file = "samples/extract_report/nice-input.xml"
         with open(file, "rb") as f:
             data = f.read()
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report(data)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -84,7 +84,7 @@ class Test(unittest.TestCase):
         """Test extract report function for XML input"""
         print()
         file = "samples/extract_report/nice-input.xml"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -103,7 +103,7 @@ class Test(unittest.TestCase):
         """Test extract report function for gzip input"""
         print()
         file = "samples/extract_report/nice-input.xml.gz"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -114,7 +114,7 @@ class Test(unittest.TestCase):
         """Test extract report function for zip input"""
         print()
         file = "samples/extract_report/nice-input.xml.zip"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = minify_xml(f.read())
@@ -155,7 +155,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 result = parsedmarc.parse_report_file(
                     sample_path, always_use_local_files=True, offline=OFFLINE_MODE
@@ -195,7 +195,7 @@ class Test(unittest.TestCase):
         print()
         sample_paths = glob("samples/failure/*.eml")
         for sample_path in sample_paths:
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 with open(sample_path) as sample_file:
                     sample_content = sample_file.read()
@@ -245,7 +245,7 @@ class Test(unittest.TestCase):
         """Test parsing the sample report from RFC 9990 Appendix B"""
         print()
         sample_path = "samples/aggregate/rfc9990-sample.xml"
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -323,7 +323,7 @@ class Test(unittest.TestCase):
         sample_path = (
             "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
         )
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -350,7 +350,7 @@ class Test(unittest.TestCase):
             "samples/aggregate/"
             "rfc9990-example.net!example.com!1700000000!1700086399.xml"
         )
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -590,7 +590,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
                 assert result["report_type"] == "smtp_tls"
@@ -1658,7 +1658,7 @@ class Test(unittest.TestCase):
         """parse_aggregate_report_file parses bytes input directly"""
         print()
         sample_path = "samples/aggregate/rfc9990-sample.xml"
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         with open(sample_path, "rb") as f:
             data = f.read()
         report = parsedmarc.parse_aggregate_report_file(
@@ -1677,7 +1677,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 parsed_report = cast(
                     AggregateReport,
@@ -1702,7 +1702,7 @@ class Test(unittest.TestCase):
         print()
         sample_paths = glob("samples/failure/*.eml")
         for sample_path in sample_paths:
-            print("Testing CSV for {0}: ".format(sample_path), end="")
+            print(f"Testing CSV for {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 parsed_report = cast(
                     FailureReport,

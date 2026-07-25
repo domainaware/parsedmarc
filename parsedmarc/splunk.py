@@ -46,8 +46,8 @@ class HECClient(object):
                 data before giving up
         """
         parsed_url = urlparse(url)
-        self.url = "{0}://{1}/services/collector/event/1.0".format(
-            parsed_url.scheme, parsed_url.netloc
+        self.url = (
+            f"{parsed_url.scheme}://{parsed_url.netloc}/services/collector/event/1.0"
         )
         self.access_token = access_token.lstrip("Splunk ")
         self.index = index
@@ -62,7 +62,7 @@ class HECClient(object):
         self.session = httpx.Client(
             headers={
                 "User-Agent": USER_AGENT,
-                "Authorization": "Splunk {0}".format(self.access_token),
+                "Authorization": f"Splunk {self.access_token}",
             },
             verify=self.verify,
             follow_redirects=True,
@@ -127,7 +127,7 @@ class HECClient(object):
                 )
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
-                json_str += "{0}\n".format(json.dumps(data))
+                json_str += f"{json.dumps(data)}\n"
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
@@ -170,7 +170,7 @@ class HECClient(object):
             )
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+            json_str += f"{json.dumps(data)}\n"
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
@@ -209,7 +209,7 @@ class HECClient(object):
             timestamp = human_timestamp_to_unix_timestamp(report["begin_date"])
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+            json_str += f"{json.dumps(data)}\n"
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")

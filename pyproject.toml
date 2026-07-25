@@ -83,7 +83,7 @@ build = [
     # Pinned exactly: pyright's checks evolve between releases, so an
     # unpinned version could break CI without any code change. Bump
     # deliberately (and fix any new findings) rather than implicitly.
-    "pyright==1.1.410",
+    "pyright==1.1.411",
     "pytest",
     "pytest-cov",
     # Used only by the out-of-wheel maintainer script
@@ -92,11 +92,11 @@ build = [
     # urllib3's HTTPAdapter machinery.
     "requests>=2.22.0",
     # Pinned exactly for the same reason as pyright: ruff's default rule
-    # set evolves between releases (0.16.0 began flagging this codebase's
-    # str.format() style), so an unpinned version breaks CI without any
-    # code change. Bump deliberately and fix any new findings in the same
-    # PR as the bump.
-    "ruff==0.15.21",
+    # set evolves between releases (e.g. 0.16.0 began flagging the
+    # str.format() style this codebase used until then), so an unpinned
+    # version breaks CI without any code change. Bump deliberately and fix
+    # any new findings in the same PR as the bump.
+    "ruff==0.16.0",
     "sphinx",
     "sphinx_rtd_theme",
 ]
@@ -130,13 +130,29 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Enforce modern type-hint syntax on top of ruff's default rules. With
+# The rule set is selected explicitly rather than floating on ruff's
+# defaults: ruff 0.16.0 expanded the default selection from the
+# long-standing E4/E7/E9/F to many more rule families (BLE, SIM, C4, DTZ,
+# I, PL, S, ...), some of which conflict with deliberate house style —
+# e.g. BLE001 flags the parser's intentional broad catches that keep one
+# malformed report from crashing a batch. E4/E7/E9/F is the pre-0.16
+# default set; adopting any of the new families is a deliberate
+# per-family decision, made here with a comment, not an upgrade side
+# effect.
+#
+# UP006/UP007/UP035/UP045 enforce modern type-hint syntax: with
 # requires-python >=3.10, PEP 585 builtins (list[int]) and PEP 604 unions
 # (X | Y, X | None) are available, so keep the deprecated typing.List /
 # Union / Optional spellings out of the codebase.
-extend-select = [
+select = [
+    "E4",    # import rules from pycodestyle
+    "E7",    # statement rules from pycodestyle
+    "E9",    # runtime/syntax error rules from pycodestyle
+    "F",     # pyflakes
     "UP006", # non-pep585-annotation: List -> list, Dict -> dict
     "UP007", # non-pep604-annotation-union: Union[X, Y] -> X | Y
+    "UP030", # format-literals: "{0}".format(x) -> "{}".format(x)
+    "UP032", # f-string: "{}".format(x) -> f"{x}"
     "UP035", # deprecated-import: typing.List etc. / typing -> collections.abc
     "UP045", # non-pep604-annotation-optional: Optional[X] -> X | None
 ]

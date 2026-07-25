@@ -361,9 +361,7 @@ class _AggregateReportDoc(Document):
                 human_result=human_result,
             )
         )
-        self.dkim_results_combined.append(
-            "{0} / {1} / {2}".format(selector, domain, result)
-        )
+        self.dkim_results_combined.append(f"{selector} / {domain} / {result}")
 
     def add_spf_result(
         self,
@@ -380,9 +378,7 @@ class _AggregateReportDoc(Document):
                 human_result=human_result,
             )
         )
-        self.spf_results_combined.append(
-            "{0} / {1} / {2}".format(scope, domain, result)
-        )
+        self.spf_results_combined.append(f"{scope} / {domain} / {result}")
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
@@ -620,9 +616,7 @@ def set_hosts(
     if not isinstance(hosts, list):
         hosts = [hosts]
     scheme = "https://" if use_ssl else "http://"
-    normalized_hosts = [
-        host if "://" in host else "{0}{1}".format(scheme, host) for host in hosts
-    ]
+    normalized_hosts = [host if "://" in host else f"{scheme}{host}" for host in hosts]
     conn_params = {"hosts": normalized_hosts, "request_timeout": timeout}
     if use_ssl:
         if ssl_cert_path:
@@ -675,12 +669,12 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             # — it is never installed as a mapping. See issue #169 and the
             # *_combined fields on _AggregateReportDoc.
             if not index.exists():
-                logger.debug("Creating Elasticsearch index: {0}".format(name))
+                logger.debug(f"Creating Elasticsearch index: {name}")
                 if effective_settings:
                     index.settings(**effective_settings)
                 index.create()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
 def migrate_indexes(
@@ -843,11 +837,11 @@ def save_aggregate_report_to_elasticsearch(
     end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
-        search_index = "dmarc_aggregate_{0}*".format(index_suffix)
+        search_index = f"dmarc_aggregate_{index_suffix}*"
     else:
         search_index = "dmarc_aggregate*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = f"{index_prefix}{search_index}"
     search = Search(index=search_index)
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
@@ -862,18 +856,16 @@ def save_aggregate_report_to_elasticsearch(
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            "Elasticsearch's search for existing report \
-            error: {}".format(error_.__str__())
+            f"Elasticsearch's search for existing report \
+            error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "An aggregate report ID {0} from {1} about {2} "
-            "with a date range of {3} UTC to {4} UTC already "
+            f"An aggregate report ID {report_id} from {org_name} about {domain} "
+            f"with a date range of {begin_date_human} UTC to {end_date_human} UTC already "
             "exists in "
-            "Elasticsearch".format(
-                report_id, org_name, domain, begin_date_human, end_date_human
-            )
+            "Elasticsearch"
         )
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
@@ -966,11 +958,11 @@ def save_aggregate_report_to_elasticsearch(
 
         index = "dmarc_aggregate"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
+            index = f"{index}_{index_suffix}"
         if index_prefix:
-            index = "{0}{1}".format(index_prefix, index)
+            index = f"{index_prefix}{index}"
 
-        index = "{0}-{1}".format(index, index_date)
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -980,7 +972,7 @@ def save_aggregate_report_to_elasticsearch(
         try:
             agg_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
 def save_failure_report_to_elasticsearch(
@@ -1028,12 +1020,12 @@ def save_failure_report_to_elasticsearch(
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(index_suffix)
+        search_index = f"dmarc_failure_{index_suffix}*,dmarc_forensic_{index_suffix}*"
     else:
         search_index = "dmarc_failure*,dmarc_forensic*"
     if index_prefix is not None:
         search_index = ",".join(
-            "{0}{1}".format(index_prefix, part) for part in search_index.split(",")
+            f"{index_prefix}{part}" for part in search_index.split(",")
         )
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))  # pyright: ignore[reportArgumentType]
@@ -1085,8 +1077,8 @@ def save_failure_report_to_elasticsearch(
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "A failure sample to {0} from {1} "
-            "with a subject of {2} and arrival date of {3} "
+            "A failure sample to {} from {} "
+            "with a subject of {} and arrival date of {} "
             "already exists in "
             "Elasticsearch".format(
                 to_, from_, subject, failure_report["arrival_date_utc"]
@@ -1147,14 +1139,14 @@ def save_failure_report_to_elasticsearch(
 
         index = "dmarc_failure"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
+            index = f"{index}_{index_suffix}"
         if index_prefix:
-            index = "{0}{1}".format(index_prefix, index)
+            index = f"{index_prefix}{index}"
         if monthly_indexes:
             index_date = arrival_date.strftime("%Y-%m")
         else:
             index_date = arrival_date.strftime("%Y-%m-%d")
-        index = "{0}-{1}".format(index, index_date)
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -1163,10 +1155,10 @@ def save_failure_report_to_elasticsearch(
         try:
             failure_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
     except KeyError as e:
         raise InvalidFailureReport(
-            "Failure report missing required field: {0}".format(e.__str__())
+            f"Failure report missing required field: {e.__str__()}"
         )
 
 
@@ -1213,11 +1205,11 @@ def save_smtp_tls_report_to_elasticsearch(
     end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
-        search_index = "smtp_tls_{0}*".format(index_suffix)
+        search_index = f"smtp_tls_{index_suffix}*"
     else:
         search_index = "smtp_tls*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = f"{index_prefix}{search_index}"
     search = Search(index=search_index)
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
@@ -1227,8 +1219,8 @@ def save_smtp_tls_report_to_elasticsearch(
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            "Elasticsearch's search for existing report \
-            error: {}".format(error_.__str__())
+            f"Elasticsearch's search for existing report \
+            error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
@@ -1242,10 +1234,10 @@ def save_smtp_tls_report_to_elasticsearch(
 
     index = "smtp_tls"
     if index_suffix:
-        index = "{0}_{1}".format(index, index_suffix)
+        index = f"{index}_{index_suffix}"
     if index_prefix:
-        index = "{0}{1}".format(index_prefix, index)
-    index = "{0}-{1}".format(index, index_date)
+        index = f"{index_prefix}{index}"
+    index = f"{index}-{index_date}"
     index_settings = dict(
         number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
     )
@@ -1274,7 +1266,7 @@ def save_smtp_tls_report_to_elasticsearch(
         policy_domain_combined = policy.get("policy_domain") or "none"
         policy_type_combined = policy.get("policy_type") or "none"
         smtp_tls_doc.policies_combined.append(
-            "{0} / {1}".format(policy_domain_combined, policy_type_combined)
+            f"{policy_domain_combined} / {policy_type_combined}"
         )
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
@@ -1327,7 +1319,7 @@ def save_smtp_tls_report_to_elasticsearch(
                     failure_reason_code=failure_reason_code,
                 )
                 smtp_tls_doc.failure_details_combined.append(
-                    "{0} / {1} / {2} / {3} / {4} / {5}".format(
+                    "{} / {} / {} / {} / {} / {}".format(
                         policy_domain_combined,
                         policy_type_combined,
                         failure_detail.get("result_type") or "none",
@@ -1344,7 +1336,7 @@ def save_smtp_tls_report_to_elasticsearch(
     try:
         smtp_tls_doc.save()
     except Exception as e:
-        raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+        raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
 # Backward-compatible aliases

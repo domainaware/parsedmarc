@@ -235,7 +235,7 @@ def query_dns(
     """
     domain = str(domain).lower()
     record_type = record_type.upper()
-    cache_key = "{0}_{1}".format(domain, record_type)
+    cache_key = f"{domain}_{record_type}"
     if cache:
         cached_records = cache.get(cache_key, None)
         if isinstance(cached_records, list):
@@ -1077,7 +1077,7 @@ def is_mbox(path: str) -> bool:
         if len(mbox.keys()) > 0:
             _is_mbox = True
     except Exception as e:
-        logger.debug("Error checking for MBOX file: {0}".format(e.__str__()))
+        logger.debug(f"Error checking for MBOX file: {e.__str__()}")
 
     return _is_mbox
 
@@ -1229,7 +1229,7 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
                             payload = str.encode(payload)
                     attachment["sha256"] = hashlib.sha256(payload).hexdigest()
                 except Exception as e:
-                    logger.debug("Unable to decode attachment: {0}".format(e.__str__()))
+                    logger.debug(f"Unable to decode attachment: {e.__str__()}")
         if strip_attachment_payloads:
             for attachment in parsed_email["attachments"]:
                 if "payload" in attachment:

@@ -60,7 +60,7 @@ class KafkaClient(object):
         config: dict[str, Any] = dict(
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             bootstrap_servers=kafka_hosts,
-            client_id="parsedmarc-{0}".format(__version__),
+            client_id=f"parsedmarc-{__version__}",
         )
         if ssl or username or password:
             config["security_protocol"] = "SSL"
@@ -106,7 +106,7 @@ class KafkaClient(object):
         begin_date_human = begin_date.strftime("%Y-%m-%dT%H:%M:%S")
         end_date_human = end_date.strftime("%Y-%m-%dT%H:%M:%S")
         date_range = [begin_date_human, end_date_human]
-        logger.debug("date_range is {}".format(date_range))
+        logger.debug(f"date_range is {date_range}")
         return date_range
 
     def save_aggregate_reports_to_kafka(
@@ -148,11 +148,11 @@ class KafkaClient(object):
                         "Kafka error: Unknown topic or partition on broker"
                     )
                 except Exception as e:
-                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError(f"Kafka error: {e.__str__()}")
                 try:
                     self.producer.flush()
                 except Exception as e:
-                    raise KafkaError("Kafka error: {0}".format(e.__str__()))
+                    raise KafkaError(f"Kafka error: {e.__str__()}")
 
     def save_failure_reports_to_kafka(
         self,
@@ -182,11 +182,11 @@ class KafkaClient(object):
         except UnknownTopicOrPartitionError:
             raise KafkaError("Kafka error: Unknown topic or partition on broker")
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(f"Kafka error: {e.__str__()}")
         try:
             self.producer.flush()
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(f"Kafka error: {e.__str__()}")
 
     # Backward-compatible alias
     save_forensic_reports_to_kafka = save_failure_reports_to_kafka
@@ -219,8 +219,8 @@ class KafkaClient(object):
         except UnknownTopicOrPartitionError:
             raise KafkaError("Kafka error: Unknown topic or partition on broker")
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(f"Kafka error: {e.__str__()}")
         try:
             self.producer.flush()
         except Exception as e:
-            raise KafkaError("Kafka error: {0}".format(e.__str__()))
+            raise KafkaError(f"Kafka error: {e.__str__()}")

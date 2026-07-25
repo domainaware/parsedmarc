@@ -92,9 +92,7 @@ class S3Client(object):
             report_id,
         )
         logger.debug(
-            "Saving {0} report to s3://{1}/{2}".format(
-                report_type, self.bucket_name, object_path
-            )
+            f"Saving {report_type} report to s3://{self.bucket_name}/{object_path}"
         )
         object_metadata = {
             k: v
