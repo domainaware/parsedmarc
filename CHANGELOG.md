@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### New features
+
+- **`n_procs` parallel parsing now covers messages from mbox files and mailbox connections** ([#147](https://github.com/domainaware/parsedmarc/issues/147)), not just report files passed directly as CLI arguments: IMAP, Microsoft Graph, Gmail API, and Maildir connections, including watch mode. `get_dmarc_reports_from_mbox()`, `get_dmarc_reports_from_mailbox()`, and `watch_inbox()` all gained an `n_procs` keyword argument. Parallel workers are now a reused process pool for the whole run, with a bounded submission window that keeps at most roughly `2 * n_procs` messages in flight at a time so memory stays bounded even for huge mboxes; the main process sends periodic IMAP keepalives while workers parse.
+
+### Bug fixes
+
+- **A report file whose parsing raised an unexpected non-parser exception no longer hangs the CLI forever.** The old direct-file parallel implementation spawned a fresh child process per file and blocked the parent on a pipe read; a child that crashed with anything other than a `ParserError` never wrote to that pipe, so the parent waited indefinitely. The new implementation returns the error as a value and logs `Failed to parse <path>` instead.
+- **Direct-file parallel parsing no longer stalls a whole batch on one slow file, and no longer spawns a fresh interpreter per file.** The old implementation processed files in hard batches of `n_procs`, so a single slow file delayed every other file in its batch; the new pooled-worker implementation streams files through a reused pool instead.
+
 ## 10.3.0
 
 ### New features

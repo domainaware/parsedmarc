@@ -992,13 +992,16 @@ class TestDirectoryFilePaths(unittest.TestCase):
             dst.write(src.read())
         return reports_dir
 
-    def _write_config(self, tmp_dir, output_dirname):
+    def _write_config(self, tmp_dir, output_dirname, n_procs=None):
         cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
         output_dir = os.path.join(tmp_dir, output_dirname)
+        config_text = (
+            f"[general]\noffline = True\nsilent = True\noutput = {output_dir}\n"
+        )
+        if n_procs is not None:
+            config_text += f"n_procs = {n_procs}\n"
         with open(cfg_path, "w") as f:
-            f.write(
-                f"[general]\noffline = True\nsilent = True\noutput = {output_dir}\n"
-            )
+            f.write(config_text)
         return cfg_path, output_dir
 
     def _report_ids(self, output_dir):
@@ -1052,6 +1055,35 @@ class TestDirectoryFilePaths(unittest.TestCase):
 
         self.assertIn(top_level_id, report_ids)
         self.assertIn(nested_id, report_ids)
+
+    def test_directory_file_path_recursive_includes_nested_n_procs_2(self):
+        """The same recursive-directory scenario as
+        ``test_directory_file_path_recursive_includes_nested``, but with
+        ``n_procs = 2`` in the config file so the direct-file parsing path
+        runs through ``parallel_map``'s process pool with more than one
+        worker. The report-id sets in the output JSON must match the
+        ``n_procs = 1`` (default) run exactly — parallelism must not change
+        which reports get parsed or deduplicated.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = self._build_reports_dir(tmp_dir)
+            cfg_path, output_dir = self._write_config(
+                tmp_dir, "output_recursive_n_procs_2", n_procs=2
+            )
+
+            with patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, "-r", reports_dir]
+            ):
+                parsedmarc.cli._main()
+
+            report_ids = self._report_ids(output_dir)
+
+        top_level_id = self._sample_report_id(self.TOP_LEVEL_SAMPLE)
+        nested_id = self._sample_report_id(self.NESTED_SAMPLE)
+
+        self.assertIn(top_level_id, report_ids)
+        self.assertIn(nested_id, report_ids)
+        self.assertEqual(report_ids, {top_level_id, nested_id})
 
 
 class TestGmailAuthModes(unittest.TestCase):
@@ -3164,68 +3196,100 @@ watch = true
     @patch("parsedmarc.cli.get_dmarc_reports_from_mbox")
     @patch("parsedmarc.cli.is_mbox", side_effect=lambda p: p.endswith(".mbox"))
     @patch("parsedmarc.cli._init_output_clients")
-    @patch("parsedmarc.cli.Process")
+    @patch("parsedmarc.parallel.ProcessPoolExecutor")
     @patch("parsedmarc.cli.glob")
-    def testSigtermDuringOneShotStopsBetweenBatchesAndMbox(
+    def testSigtermDuringOneShotStopsEarlyAndSkipsMbox(
         self,
         mock_glob,
-        mock_process_cls,
+        mock_pool_cls,
         mock_init_clients,
         mock_is_mbox,
         mock_get_mbox,
     ):
-        """SIGTERM during one-shot processing: the in-flight child is
-        joined normally (no work lost), the file-batch loop stops before
-        spawning the next batch, and the subsequent mbox loop breaks on
-        its first iteration (the flag is already set). Output clients are
-        still closed.
+        """SIGTERM during one-shot processing: ``parallel_map``'s
+        ``should_stop`` check (polled after each yielded result, see
+        ``parsedmarc/parallel.py``) stops submitting new jobs once the flag
+        is set, and the subsequent mbox loop breaks on its first iteration
+        (the flag is already set). Output clients are still closed.
 
-        Two ``.xml`` files give the batch loop a second iteration to hit
-        its break; one ``.mbox`` file routes into ``mbox_paths`` so the
-        mbox break is exercised too. ``is_mbox`` is keyed by suffix so the
-        fake filenames don't trigger ``mailbox.mbox(path, create=True)``."""
-        mock_glob.return_value = ["a.xml", "b.xml", "c.mbox"]
+        ``ProcessPoolExecutor`` is patched at the stdlib boundary (mirrors
+        the old ``cli.Process`` patch) with a fake whose ``submit(fn, arg)``
+        runs ``fn(arg)`` inline and returns an already-completed
+        ``Future``-like object, so no real subprocess is spawned and no
+        pickling occurs. SIGTERM is raised on the very first ``submit``
+        call, mirroring the old test's trigger on the first child's
+        ``start()``.
+
+        ``parallel_map`` primes its submission window up to
+        ``2 * n_procs`` jobs *before* the first result is harvested and
+        ``should_stop`` is ever checked (see ``parallel_map``'s docstring),
+        so with the default ``n_procs = 1`` the first two files are
+        submitted and run before the stop takes effect — the ``should_stop``
+        check only prevents a third submission. Four ``.xml`` files (more
+        than the window size) are supplied so that the stop is still
+        observable: exactly 2 of the 4 are submitted, not all of them. One
+        ``.mbox`` file routes into ``mbox_paths`` so the mbox break is
+        exercised too. ``is_mbox`` is keyed by suffix so the fake filenames
+        don't trigger ``mailbox.mbox(path, create=True)``."""
+        mock_glob.return_value = ["a.xml", "b.xml", "c.xml", "d.xml", "e.mbox"]
 
         kafka_client = MagicMock(spec=["close"])
         mock_init_clients.return_value = {"kafka": kafka_client}
 
-        starts = []
+        submitted = []
 
-        class FakeProc:
-            """Stand-in child that finishes its file and sends a result
-            even though SIGTERM arrived mid-batch."""
+        class FakeFuture:
+            def __init__(self, value):
+                self._value = value
 
-            def __init__(self, target=None, args=()):
-                self._args = args
+            def result(self, timeout=None):
+                return self._value
 
-            def start(self):
-                starts.append(self._args[0])
-                if len(starts) == 1:
+            def cancelled(self):
+                return False
+
+        class FakeExecutor:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc_info):
+                return False
+
+            def submit(self, fn, arg):
+                if not submitted:
+                    # Mirrors the old test's trigger on the first child's
+                    # start(): SIGTERM arrives after the first job is
+                    # dispatched but while the submission window is still
+                    # being primed.
                     os.kill(os.getpid(), signal.SIGTERM)
-                # Child still completes and reports back over the pipe.
-                self._args[-3].send([None, self._args[0]])
+                submitted.append(arg)
+                return FakeFuture(fn(arg))
 
-            def join(self, timeout=None):
+            def shutdown(self, cancel_futures=True):
                 return None
 
-        mock_process_cls.side_effect = FakeProc
+        mock_pool_cls.side_effect = FakeExecutor
 
-        with patch.object(sys, "argv", ["parsedmarc", "a.xml", "b.xml", "c.mbox"]):
+        with patch.object(
+            sys, "argv", ["parsedmarc", "a.xml", "b.xml", "c.xml", "d.xml", "e.mbox"]
+        ):
             parsedmarc.cli._main()
 
-        # Only the first xml batch ran before the batch loop broke, and the
-        # mbox loop broke before processing its file.
-        self.assertEqual(len(starts), 1)
+        # The submission window (2 * n_procs, n_procs=1) primes 2 jobs
+        # before should_stop is first checked; the stop takes effect before
+        # a 3rd or 4th file is ever submitted.
+        self.assertEqual(len(submitted), 2)
         mock_get_mbox.assert_not_called()
         kafka_client.close.assert_called()
 
     @patch("parsedmarc.cli._init_output_clients")
-    @patch("parsedmarc.cli.cli_parse")
     @patch("parsedmarc.cli.glob")
     def testNormalOneShotExitClosesOutputClients(
         self,
         mock_glob,
-        mock_cli_parse,
         mock_init_clients,
     ):
         """A successful one-shot run with no signal still closes its
@@ -4687,9 +4751,11 @@ class TestParseConfigWebhook(unittest.TestCase):
 
 
 class TestConfigureLogging(unittest.TestCase):
-    """_configure_logging is called in every child process for parallel
-    parsing — if it stops attaching a handler, log output goes dark in
-    multiprocessing mode."""
+    """cli._configure_logging is a thin wrapper around
+    parsedmarc.log.configure_logging (the parallel-parsing worker
+    initializer in parsedmarc/parallel.py calls configure_logging
+    directly) — if this wrapper stops attaching a handler, any remaining
+    caller's log output goes dark."""
 
     def setUp(self):
         from parsedmarc.log import logger as plog
@@ -4764,67 +4830,6 @@ class TestConfigureLogging(unittest.TestCase):
         with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
             _configure_logging(_logging.INFO, log_file="/proc/nonexistent/x.log")
         self.assertTrue(any("Unable to write to log file" in m for m in cm.output))
-
-
-class TestCliParse(unittest.TestCase):
-    """cli_parse is the multiprocessing worker — it shells out to
-    parse_report_file, then sends the result (or error) back over a
-    pipe. Both branches matter: a regression would silently drop
-    results in parallel mode."""
-
-    def test_cli_parse_sends_results_on_success(self):
-        from multiprocessing import Pipe
-        from unittest.mock import patch
-        from parsedmarc.cli import cli_parse
-
-        parent_conn, child_conn = Pipe()
-        with patch("parsedmarc.cli.parse_report_file") as mock_parse:
-            mock_parse.return_value = {"report_type": "aggregate", "report": {}}
-            cli_parse(
-                "/path/to/report.xml",
-                False,
-                None,
-                2.0,
-                0,
-                None,
-                True,
-                True,
-                None,
-                None,
-                24.0,
-                child_conn,
-            )
-        sent = parent_conn.recv()
-        self.assertEqual(sent[0], {"report_type": "aggregate", "report": {}})
-        self.assertEqual(sent[1], "/path/to/report.xml")
-
-    def test_cli_parse_sends_error_on_parser_error(self):
-        from multiprocessing import Pipe
-        from unittest.mock import patch
-        from parsedmarc.cli import cli_parse
-        from parsedmarc import ParserError
-
-        parent_conn, child_conn = Pipe()
-        with patch("parsedmarc.cli.parse_report_file") as mock_parse:
-            err = ParserError("bad report")
-            mock_parse.side_effect = err
-            cli_parse(
-                "/bad.xml",
-                False,
-                None,
-                2.0,
-                0,
-                None,
-                True,
-                True,
-                None,
-                None,
-                24.0,
-                child_conn,
-            )
-        sent = parent_conn.recv()
-        self.assertIsInstance(sent[0], ParserError)
-        self.assertEqual(sent[1], "/bad.xml")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from __future__ import annotations
 import binascii
 import email
 import email.utils
+import functools
 import json
 import logging
 import mailbox
@@ -22,6 +23,7 @@ from base64 import b64decode
 from csv import DictWriter
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
+from collections import deque
 from collections.abc import Callable, Sequence
 from typing import (
     Any,
@@ -55,6 +57,7 @@ from parsedmarc.types import (
     ForensicReport as ForensicReport,
     ParsedReport,
     ParsingResults,
+    ReportType,
     SMTPTLSReport,
 )
 from parsedmarc.utils import (
@@ -2068,6 +2071,100 @@ def parse_report_file(
     return results
 
 
+def _classify_parsed_email(
+    parsed_email: ParsedReport,
+    aggregate_reports: list[AggregateReport],
+    failure_reports: list[FailureReport],
+    smtp_tls_reports: list[SMTPTLSReport],
+) -> ReportType:
+    """Classify a parsed report email, appending it to the matching list.
+
+    Owns the ``SEEN_AGGREGATE_REPORT_IDS`` dedup check: an aggregate report
+    already seen (keyed on ``{org_name}_{report_id}``) is logged and
+    dropped instead of appended. Shared, unmodified, by the sequential and
+    parallel branches of ``get_dmarc_reports_from_mbox`` and
+    ``get_dmarc_reports_from_mailbox`` so both dedup identically.
+
+    Returns the report type so mailbox callers know which UID list to
+    append the source message's UID to.
+    """
+    report_type = parsed_email["report_type"]
+    # Compare against parsed_email["report_type"] directly (not the
+    # report_type local above) in each branch so pyright's TypedDict
+    # discriminated-union narrowing applies to parsed_email["report"].
+    if parsed_email["report_type"] == "aggregate":
+        report_org = parsed_email["report"]["report_metadata"]["org_name"]
+        report_id = parsed_email["report"]["report_metadata"]["report_id"]
+        report_key = f"{report_org}_{report_id}"
+        if report_key not in SEEN_AGGREGATE_REPORT_IDS:
+            SEEN_AGGREGATE_REPORT_IDS[report_key] = True
+            aggregate_reports.append(parsed_email["report"])
+        else:
+            logger.debug(
+                f"Skipping duplicate aggregate report from {report_org} "
+                f"with ID: {report_id}"
+            )
+    elif parsed_email["report_type"] == "failure":
+        failure_reports.append(parsed_email["report"])
+    elif parsed_email["report_type"] == "smtp_tls":
+        smtp_tls_reports.append(parsed_email["report"])
+    return report_type
+
+
+def _fetch_mailbox_message(
+    connection: MailboxConnection, msg_uid: Any, test: bool
+) -> tuple[int | str, str]:
+    """Fetch one message from ``connection`` by UID, casting the UID to the
+    type each backend's ``fetch_message`` expects.
+
+    Shared, unmodified, by the sequential and parallel branches of
+    ``get_dmarc_reports_from_mailbox`` so both fetch identically.
+
+    Returns ``(message_id, msg_content)``; ``message_id`` is the
+    backend-appropriate id to use for later move/delete calls.
+    """
+    message_id: int | str
+    if isinstance(connection, IMAPConnection):
+        message_id = int(msg_uid)
+        msg_content = connection.fetch_message(message_id)
+    elif isinstance(connection, MSGraphConnection):
+        message_id = str(msg_uid)
+        msg_content = connection.fetch_message(message_id, mark_read=not test)
+    elif isinstance(connection, MaildirConnection):
+        message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
+        msg_content = connection.fetch_message(message_id, mark_read=not test)
+    else:
+        message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
+        msg_content = connection.fetch_message(message_id)
+    return message_id, msg_content
+
+
+def _dispose_invalid_message(
+    connection: MailboxConnection,
+    message_id: int | str,
+    delete: bool,
+    invalid_reports_folder: str,
+) -> None:
+    """Delete or move an unparseable message, per ``delete``.
+
+    Shared, unmodified, by the sequential and parallel branches of
+    ``get_dmarc_reports_from_mailbox`` so both dispose of invalid messages
+    identically.
+    """
+    if delete:
+        logger.debug(f"Deleting message UID {message_id}")
+        if isinstance(connection, IMAPConnection):
+            connection.delete_message(int(message_id))
+        else:
+            connection.delete_message(str(message_id))
+    else:
+        logger.debug(f"Moving message UID {message_id} to {invalid_reports_folder}")
+        if isinstance(connection, IMAPConnection):
+            connection.move_message(int(message_id), invalid_reports_folder)
+        else:
+            connection.move_message(str(message_id), invalid_reports_folder)
+
+
 def get_dmarc_reports_from_mbox(
     input_: str,
     *,
@@ -2081,6 +2178,7 @@ def get_dmarc_reports_from_mbox(
     reverse_dns_map_url: str | None = None,
     offline: bool = False,
     normalize_timespan_threshold_hours: float = 24.0,
+    n_procs: int = 1,
 ) -> ParsingResults:
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
@@ -2100,6 +2198,9 @@ def get_dmarc_reports_from_mbox(
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         offline (bool): Do not make online queries for geolocation or DNS
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        n_procs (int): Number of processes to use for parsing messages in
+            parallel. Message reading, deduplication, and result assembly
+            stay in the calling process; only parsing is parallelized.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2113,43 +2214,73 @@ def get_dmarc_reports_from_mbox(
         message_keys = mbox.keys()
         total_messages = len(message_keys)
         logger.debug(f"Found {total_messages} messages in {input_}")
-        for i in tqdm(range(total_messages), disable=None):
-            message_key = message_keys[i]
-            logger.info(f"Processing message {i + 1} of {total_messages}")
-            msg_content = mbox.get_string(message_key)
-            try:
-                sa = strip_attachment_payloads
-                parsed_email = parse_report_email(
-                    msg_content,
-                    ip_db_path=ip_db_path,
-                    always_use_local_files=always_use_local_files,
-                    reverse_dns_map_path=reverse_dns_map_path,
-                    reverse_dns_map_url=reverse_dns_map_url,
-                    offline=offline,
-                    nameservers=nameservers,
-                    dns_timeout=dns_timeout,
-                    dns_retries=dns_retries,
-                    strip_attachment_payloads=sa,
-                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
-                )
-                if parsed_email["report_type"] == "aggregate":
-                    report_org = parsed_email["report"]["report_metadata"]["org_name"]
-                    report_id = parsed_email["report"]["report_metadata"]["report_id"]
-                    report_key = f"{report_org}_{report_id}"
-                    if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                        SEEN_AGGREGATE_REPORT_IDS[report_key] = True
-                        aggregate_reports.append(parsed_email["report"])
-                    else:
-                        logger.debug(
-                            "Skipping duplicate aggregate report "
-                            f"from {report_org} with ID: {report_id}"
-                        )
-                elif parsed_email["report_type"] == "failure":
-                    failure_reports.append(parsed_email["report"])
-                elif parsed_email["report_type"] == "smtp_tls":
-                    smtp_tls_reports.append(parsed_email["report"])
-            except InvalidDMARCReport as error:
-                logger.warning(error.__str__())
+
+        if n_procs > 1 and total_messages > 1:
+            from parsedmarc.parallel import _parse_report_email_job, parallel_map
+
+            parse_kwargs = {
+                "ip_db_path": ip_db_path,
+                "always_use_local_files": always_use_local_files,
+                "reverse_dns_map_path": reverse_dns_map_path,
+                "reverse_dns_map_url": reverse_dns_map_url,
+                "offline": offline,
+                "nameservers": nameservers,
+                "dns_timeout": dns_timeout,
+                "dns_retries": dns_retries,
+                "strip_attachment_payloads": strip_attachment_payloads,
+                "normalize_timespan_threshold_hours": (
+                    normalize_timespan_threshold_hours
+                ),
+            }
+            func = functools.partial(_parse_report_email_job, kwargs=parse_kwargs)
+
+            def _jobs():
+                for i in range(total_messages):
+                    message_key = message_keys[i]
+                    logger.info(f"Processing message {i + 1} of {total_messages}")
+                    yield mbox.get_string(message_key)
+
+            for result in tqdm(
+                parallel_map(func, _jobs(), n_procs),
+                total=total_messages,
+                disable=None,
+            ):
+                if isinstance(result, InvalidDMARCReport):
+                    logger.warning(str(result))
+                elif isinstance(result, ParserError):
+                    raise result
+                else:
+                    _classify_parsed_email(
+                        result, aggregate_reports, failure_reports, smtp_tls_reports
+                    )
+        else:
+            for i in tqdm(range(total_messages), disable=None):
+                message_key = message_keys[i]
+                logger.info(f"Processing message {i + 1} of {total_messages}")
+                msg_content = mbox.get_string(message_key)
+                try:
+                    sa = strip_attachment_payloads
+                    parsed_email = parse_report_email(
+                        msg_content,
+                        ip_db_path=ip_db_path,
+                        always_use_local_files=always_use_local_files,
+                        reverse_dns_map_path=reverse_dns_map_path,
+                        reverse_dns_map_url=reverse_dns_map_url,
+                        offline=offline,
+                        nameservers=nameservers,
+                        dns_timeout=dns_timeout,
+                        dns_retries=dns_retries,
+                        strip_attachment_payloads=sa,
+                        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+                    )
+                    _classify_parsed_email(
+                        parsed_email,
+                        aggregate_reports,
+                        failure_reports,
+                        smtp_tls_reports,
+                    )
+                except InvalidDMARCReport as error:
+                    logger.warning(error.__str__())
     except mailbox.NoSuchMailboxError:
         raise InvalidDMARCReport(f"Mailbox {input_} does not exist")
     return {
@@ -2218,6 +2349,7 @@ def get_dmarc_reports_from_mailbox(
     since: datetime | date | str | None = None,
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24,
+    n_procs: int = 1,
 ) -> ParsingResults:
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2247,6 +2379,12 @@ def get_dmarc_reports_from_mailbox(
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        n_procs (int): Number of processes to use for parsing messages in
+            parallel. Fetching, archiving, and deduplication remain
+            sequential in the calling process; only parsing is
+            parallelized. With ``n_procs > 1``, invalid-message disposition
+            happens after the parsing phase completes, rather than
+            interleaved message-by-message as it is when ``n_procs`` is 1.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2338,73 +2476,107 @@ def get_dmarc_reports_from_mailbox(
 
     logger.debug(f"Processing {message_limit} messages")
 
-    for i in range(message_limit):
-        msg_uid = messages[i]
-        logger.debug(f"Processing message {i + 1} of {message_limit}: UID {msg_uid}")
-        message_id: int | str
-        if isinstance(connection, IMAPConnection):
-            message_id = int(msg_uid)
-            msg_content = connection.fetch_message(message_id)
-        elif isinstance(connection, MSGraphConnection):
-            message_id = str(msg_uid)
-            msg_content = connection.fetch_message(message_id, mark_read=not test)
-        elif isinstance(connection, MaildirConnection):
-            message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
-            msg_content = connection.fetch_message(message_id, mark_read=not test)
-        else:
-            message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
-            msg_content = connection.fetch_message(message_id)
-        try:
-            sa = strip_attachment_payloads
-            parsed_email = parse_report_email(
-                msg_content,
-                nameservers=nameservers,
-                dns_timeout=dns_timeout,
-                dns_retries=dns_retries,
-                ip_db_path=ip_db_path,
-                always_use_local_files=always_use_local_files,
-                reverse_dns_map_path=reverse_dns_map_path,
-                reverse_dns_map_url=reverse_dns_map_url,
-                offline=offline,
-                strip_attachment_payloads=sa,
-                keep_alive=connection.keepalive,
-                normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    if n_procs > 1 and message_limit > 1:
+        from parsedmarc.parallel import _parse_report_email_job, parallel_map
+
+        # keep_alive is a bound method of the live connection object and is
+        # not picklable, so it must never cross the process boundary; the
+        # heartbeat passed to parallel_map below keeps the connection alive
+        # instead.
+        parse_kwargs = {
+            "nameservers": nameservers,
+            "dns_timeout": dns_timeout,
+            "dns_retries": dns_retries,
+            "ip_db_path": ip_db_path,
+            "always_use_local_files": always_use_local_files,
+            "reverse_dns_map_path": reverse_dns_map_path,
+            "reverse_dns_map_url": reverse_dns_map_url,
+            "offline": offline,
+            "strip_attachment_payloads": strip_attachment_payloads,
+            "normalize_timespan_threshold_hours": (normalize_timespan_threshold_hours),
+        }
+        func = functools.partial(_parse_report_email_job, kwargs=parse_kwargs)
+
+        # parallel_map yields results in submission order, so the oldest
+        # queued id always belongs to the next yielded result; popping as
+        # results arrive keeps this queue no larger than the in-flight
+        # submission window.
+        fetched_ids: deque[int | str] = deque()
+        invalid_msg_ids: list[int | str] = []
+
+        def _jobs():
+            for i in range(message_limit):
+                msg_uid = messages[i]
+                logger.debug(
+                    f"Processing message {i + 1} of {message_limit}: UID {msg_uid}"
+                )
+                message_id, msg_content = _fetch_mailbox_message(
+                    connection, msg_uid, test
+                )
+                fetched_ids.append(message_id)
+                yield msg_content
+
+        for result in parallel_map(
+            func, _jobs(), n_procs, heartbeat=connection.keepalive
+        ):
+            message_id = fetched_ids.popleft()
+            if isinstance(result, ParserError):
+                logger.warning(str(result))
+                invalid_msg_ids.append(message_id)
+            else:
+                report_type = _classify_parsed_email(
+                    result, aggregate_reports, failure_reports, smtp_tls_reports
+                )
+                if report_type == "aggregate":
+                    aggregate_report_msg_uids.append(message_id)
+                elif report_type == "failure":
+                    failure_report_msg_uids.append(message_id)
+                elif report_type == "smtp_tls":
+                    smtp_tls_msg_uids.append(message_id)
+
+        if not test:
+            for invalid_message_id in invalid_msg_ids:
+                _dispose_invalid_message(
+                    connection, invalid_message_id, delete, invalid_reports_folder
+                )
+    else:
+        for i in range(message_limit):
+            msg_uid = messages[i]
+            logger.debug(
+                f"Processing message {i + 1} of {message_limit}: UID {msg_uid}"
             )
-            if parsed_email["report_type"] == "aggregate":
-                report_org = parsed_email["report"]["report_metadata"]["org_name"]
-                report_id = parsed_email["report"]["report_metadata"]["report_id"]
-                report_key = f"{report_org}_{report_id}"
-                if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                    SEEN_AGGREGATE_REPORT_IDS[report_key] = True
-                    aggregate_reports.append(parsed_email["report"])
-                else:
-                    logger.debug(
-                        f"Skipping duplicate aggregate report with ID: {report_id}"
+            message_id, msg_content = _fetch_mailbox_message(connection, msg_uid, test)
+            try:
+                sa = strip_attachment_payloads
+                parsed_email = parse_report_email(
+                    msg_content,
+                    nameservers=nameservers,
+                    dns_timeout=dns_timeout,
+                    dns_retries=dns_retries,
+                    ip_db_path=ip_db_path,
+                    always_use_local_files=always_use_local_files,
+                    reverse_dns_map_path=reverse_dns_map_path,
+                    reverse_dns_map_url=reverse_dns_map_url,
+                    offline=offline,
+                    strip_attachment_payloads=sa,
+                    keep_alive=connection.keepalive,
+                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+                )
+                report_type = _classify_parsed_email(
+                    parsed_email, aggregate_reports, failure_reports, smtp_tls_reports
+                )
+                if report_type == "aggregate":
+                    aggregate_report_msg_uids.append(message_id)
+                elif report_type == "failure":
+                    failure_report_msg_uids.append(message_id)
+                elif report_type == "smtp_tls":
+                    smtp_tls_msg_uids.append(message_id)
+            except ParserError as error:
+                logger.warning(error.__str__())
+                if not test:
+                    _dispose_invalid_message(
+                        connection, message_id, delete, invalid_reports_folder
                     )
-                aggregate_report_msg_uids.append(message_id)
-            elif parsed_email["report_type"] == "failure":
-                failure_reports.append(parsed_email["report"])
-                failure_report_msg_uids.append(message_id)
-            elif parsed_email["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(parsed_email["report"])
-                smtp_tls_msg_uids.append(message_id)
-        except ParserError as error:
-            logger.warning(error.__str__())
-            if not test:
-                if delete:
-                    logger.debug(f"Deleting message UID {msg_uid}")
-                    if isinstance(connection, IMAPConnection):
-                        connection.delete_message(int(message_id))
-                    else:
-                        connection.delete_message(str(message_id))
-                else:
-                    logger.debug(
-                        f"Moving message UID {msg_uid} to {invalid_reports_folder}"
-                    )
-                    if isinstance(connection, IMAPConnection):
-                        connection.move_message(int(message_id), invalid_reports_folder)
-                    else:
-                        connection.move_message(str(message_id), invalid_reports_folder)
 
     if not test:
         if delete:
@@ -2509,6 +2681,7 @@ def get_dmarc_reports_from_mailbox(
             offline=offline,
             since=current_time,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+            n_procs=n_procs,
         )
 
     return results
@@ -2536,6 +2709,7 @@ def watch_inbox(
     since: datetime | date | str | None = None,
     normalize_timespan_threshold_hours: float = 24,
     config_reloading: Callable | None = None,
+    n_procs: int = 1,
 ):
     """
     Watches the mailbox for new messages and
@@ -2569,6 +2743,9 @@ def watch_inbox(
             reload (or shutdown) has been requested (e.g. via SIGHUP/SIGTERM).
             Polled by the mailbox backend between checks, including the IMAP
             IDLE loop, so the watcher exits cleanly at a safe boundary.
+        n_procs (int): Number of processes to use for parsing messages in
+            parallel. Passed through to ``get_dmarc_reports_from_mailbox``
+            on each check.
     """
 
     def check_callback(connection):
@@ -2585,6 +2762,7 @@ def watch_inbox(
             offline=offline,
             nameservers=nameservers,
             dns_timeout=dns_timeout,
+            n_procs=n_procs,
             dns_retries=dns_retries,
             strip_attachment_payloads=strip_attachment_payloads,
             batch_size=batch_size,

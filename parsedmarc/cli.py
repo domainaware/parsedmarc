@@ -4,6 +4,7 @@
 """A CLI for parsing DMARC reports"""
 
 import atexit
+import functools
 import http.client
 import json
 import logging
@@ -14,7 +15,6 @@ import time
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 from glob import escape as glob_escape, glob
-from multiprocessing import Pipe, Process
 from ssl import CERT_NONE, create_default_context
 
 import httpx
@@ -38,7 +38,6 @@ from parsedmarc import (
     kafkaclient,
     loganalytics,
     opensearch,
-    parse_report_file,
     postgres,
     s3,
     save_output,
@@ -55,6 +54,7 @@ from parsedmarc.mail import (
     MaildirConnection,
     MSGraphConnection,
 )
+from parsedmarc.parallel import _parse_report_file_job, parallel_map
 from parsedmarc.types import ParsingResults
 from parsedmarc.utils import (
     InvalidIPinfoAPIKey,
@@ -369,37 +369,9 @@ def _configure_logging(log_level, log_file=None):
         log_level: The logging level (e.g., logging.DEBUG, logging.WARNING)
         log_file: Optional path to log file
     """
-    # Get the logger
-    from parsedmarc.log import logger
+    from parsedmarc.log import configure_logging
 
-    # Set the log level
-    logger.setLevel(log_level)
-
-    # Add StreamHandler with formatter if not already present
-    # Check if we already have a StreamHandler to avoid duplicates
-    # Use exact type check to distinguish from FileHandler subclass
-    has_stream_handler = any(type(h) is logging.StreamHandler for h in logger.handlers)
-
-    if not has_stream_handler:
-        formatter = logging.Formatter(
-            fmt="%(levelname)8s:%(filename)s:%(lineno)d:%(message)s",
-            datefmt="%Y-%m-%d:%H:%M:%S",
-        )
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
-    # Add FileHandler if log_file is specified
-    if log_file:
-        try:
-            fh = logging.FileHandler(log_file, "a")
-            formatter = logging.Formatter(
-                "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
-            )
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
-        except (IOError, OSError, PermissionError) as error:
-            logger.warning(f"Unable to write to log file: {error}")
+    configure_logging(log_level, log_file)
 
 
 # Loggers of the libraries that implement the mailbox and Microsoft Graph
@@ -445,64 +417,6 @@ def _configure_dependency_logging(level: int) -> None:
         for wanted in logger.handlers:
             if wanted not in dep_logger.handlers:
                 dep_logger.addHandler(wanted)
-
-
-def cli_parse(
-    file_path,
-    sa,
-    nameservers,
-    dns_timeout,
-    dns_retries,
-    ip_db_path,
-    offline,
-    always_use_local_files,
-    reverse_dns_map_path,
-    reverse_dns_map_url,
-    normalize_timespan_threshold_hours,
-    conn,
-    log_level=logging.ERROR,
-    log_file=None,
-):
-    """Separated this function for multiprocessing
-
-    Args:
-        file_path: Path to the report file
-        sa: Strip attachment payloads flag
-        nameservers: List of nameservers
-        dns_timeout: DNS timeout
-        dns_retries: Number of DNS retries on transient errors
-        ip_db_path: Path to IP database
-        offline: Offline mode flag
-        always_use_local_files: Always use local files flag
-        reverse_dns_map_path: Path to reverse DNS map
-        reverse_dns_map_url: URL to reverse DNS map
-        normalize_timespan_threshold_hours: Timespan threshold
-        conn: Pipe connection for IPC
-        log_level: Logging level for this process
-        log_file: Optional path to log file
-    """
-    # Configure logging in this child process
-    _configure_logging(log_level, log_file)
-
-    try:
-        file_results = parse_report_file(
-            file_path,
-            ip_db_path=ip_db_path,
-            offline=offline,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            nameservers=nameservers,
-            dns_timeout=dns_timeout,
-            dns_retries=dns_retries,
-            strip_attachment_payloads=sa,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
-        )
-        conn.send([file_results, file_path])
-    except ParserError as error:
-        conn.send([error, file_path])
-    finally:
-        conn.close()
 
 
 def _load_config(config_file: str | None = None) -> ConfigParser:
@@ -2367,10 +2281,6 @@ def _main():
     for mbox_path in mbox_paths:
         file_paths.remove(mbox_path)
 
-    counter = 0
-
-    results = []
-
     pbar = None
     if sys.stderr.isatty() and len(file_paths) > 0:
         pbar = tqdm(total=len(file_paths))
@@ -2379,88 +2289,53 @@ def _main():
     if n_procs < 1:
         n_procs = 1
 
-    # Capture the current log level to pass to child processes
-    current_log_level = logger.level
-    current_log_file = opts.log_file
-
-    for batch_index in range((len(file_paths) + n_procs - 1) // n_procs):
-        # Honor a shutdown request between batches before spawning the
-        # next pool. Anything already parsed is still in `results` and
-        # will go through process_reports() in the cleanup path so we
-        # don't lose work the operator already paid for.
-        if _shutdown_requested:
-            logger.info(
-                "Shutdown requested, stopping file processing after %d batch(es)",
-                batch_index,
-            )
-            break
-
-        processes = []
-        connections = []
-
-        for proc_index in range(n_procs * batch_index, n_procs * (batch_index + 1)):
-            if proc_index >= len(file_paths):
-                break
-
-            parent_conn, child_conn = Pipe()
-            connections.append(parent_conn)
-
-            process = Process(
-                target=cli_parse,
-                args=(
-                    file_paths[proc_index],
-                    opts.strip_attachment_payloads,
-                    opts.nameservers,
-                    opts.dns_timeout,
-                    opts.dns_retries,
-                    opts.ip_db_path,
-                    opts.offline,
-                    opts.always_use_local_files,
-                    opts.reverse_dns_map_path,
-                    opts.reverse_dns_map_url,
-                    opts.normalize_timespan_threshold_hours,
-                    child_conn,
-                    current_log_level,
-                    current_log_file,
-                ),
-            )
-            processes.append(process)
-
-        for proc in processes:
-            proc.start()
-
-        for conn in connections:
-            results.append(conn.recv())
-
-        for proc in processes:
-            proc.join()
-            if pbar is not None:
-                counter += 1
-                pbar.update(1)
-
-    if pbar is not None:
-        pbar.close()
-
-    for result in results:
-        if isinstance(result[0], ParserError) or result[0] is None:
-            logger.error(f"Failed to parse {result[1]} - {result[0]}")
+    parse_kwargs = dict(
+        offline=opts.offline,
+        ip_db_path=opts.ip_db_path,
+        always_use_local_files=opts.always_use_local_files,
+        reverse_dns_map_path=opts.reverse_dns_map_path,
+        reverse_dns_map_url=opts.reverse_dns_map_url,
+        nameservers=opts.nameservers,
+        dns_timeout=opts.dns_timeout,
+        dns_retries=opts.dns_retries,
+        strip_attachment_payloads=opts.strip_attachment_payloads,
+        normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
+    )
+    func = functools.partial(_parse_report_file_job, kwargs=parse_kwargs)
+    for file_path, result in parallel_map(
+        func, file_paths, n_procs, should_stop=lambda: _shutdown_requested
+    ):
+        if pbar is not None:
+            pbar.update(1)
+        if isinstance(result, Exception):
+            logger.error(f"Failed to parse {file_path} - {result}")
         else:
-            if result[0]["report_type"] == "aggregate":
-                report_org = result[0]["report"]["report_metadata"]["org_name"]
-                report_id = result[0]["report"]["report_metadata"]["report_id"]
+            if result["report_type"] == "aggregate":
+                report_org = result["report"]["report_metadata"]["org_name"]
+                report_id = result["report"]["report_metadata"]["report_id"]
                 report_key = f"{report_org}_{report_id}"
                 if report_key not in SEEN_AGGREGATE_REPORT_IDS:
                     SEEN_AGGREGATE_REPORT_IDS[report_key] = True
-                    aggregate_reports.append(result[0]["report"])
+                    aggregate_reports.append(result["report"])
                 else:
                     logger.debug(
                         "Skipping duplicate aggregate report "
                         f"from {report_org} with ID: {report_id}"
                     )
-            elif result[0]["report_type"] == "failure":
-                failure_reports.append(result[0]["report"])
-            elif result[0]["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(result[0]["report"])
+            elif result["report_type"] == "failure":
+                failure_reports.append(result["report"])
+            elif result["report_type"] == "smtp_tls":
+                smtp_tls_reports.append(result["report"])
+
+    if pbar is not None:
+        pbar.close()
+
+    if _shutdown_requested:
+        # Anything already parsed is still in aggregate_reports /
+        # failure_reports / smtp_tls_reports and will go through
+        # process_reports() in the cleanup path so we don't lose work
+        # the operator already paid for.
+        logger.info("Shutdown requested, stopping file processing early")
 
     for mbox_path in mbox_paths:
         if _shutdown_requested:
@@ -2484,6 +2359,7 @@ def _main():
             reverse_dns_map_url=opts.reverse_dns_map_url,
             offline=opts.offline,
             normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
+            n_procs=n_procs,
         )
         aggregate_reports += reports["aggregate_reports"]
         failure_reports += reports["failure_reports"]
@@ -2673,6 +2549,7 @@ def _main():
                 since=opts.mailbox_since,
                 dns_retries=opts.dns_retries,
                 normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
+                n_procs=n_procs,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -2803,6 +2680,7 @@ def _main():
                     offline=opts.offline,
                     normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
+                    n_procs=n_procs,
                 )
             except FileExistsError as error:
                 logger.error(f"{error.__str__()}")

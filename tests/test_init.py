@@ -2628,6 +2628,87 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
             os.remove(path)
 
 
+class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
+    """n_procs=1 vs n_procs=2 parity for get_dmarc_reports_from_mbox, driven
+    against a real mbox file built from real sample emails (offline parsing,
+    no mocks of parsedmarc internals): one aggregate, one failure, one
+    SMTP TLS report, a duplicate copy of the aggregate, and a junk message
+    that isn't a report at all.
+
+    Confirms the parallel branch classifies and dedups identically to the
+    sequential branch, and that the junk message produces a warning log
+    instead of raising -- both branches must only catch InvalidDMARCReport
+    (a ParserError subclass) around a single message and continue, since a
+    bare ParserError is deliberately re-raised (see the n_procs > 1 branch
+    of get_dmarc_reports_from_mbox, which mirrors the sequential branch's
+    `except InvalidDMARCReport` scope).
+    """
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._path = os.path.join(self._tmp, "reports.mbox")
+        box = mailbox.mbox(self._path)
+        box.lock()
+        try:
+            # AGGREGATE appears twice: dedup must collapse it to one report.
+            for source in (self.AGGREGATE, self.FAILURE, self.SMTP_TLS, self.AGGREGATE):
+                with open(source, "rb") as source_file:
+                    box.add(mailbox.mboxMessage(source_file.read()))
+            box.add(mailbox.mboxMessage(self.JUNK))
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+
+    @staticmethod
+    def _aggregate_report_ids(results):
+        return {r["report_metadata"]["report_id"] for r in results["aggregate_reports"]}
+
+    def test_parallel_matches_sequential(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as sequential_logs:
+            sequential = parsedmarc.get_dmarc_reports_from_mbox(
+                self._path, offline=True, n_procs=1
+            )
+
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as parallel_logs:
+            parallel = parsedmarc.get_dmarc_reports_from_mbox(
+                self._path, offline=True, n_procs=2
+            )
+
+        # Dedup collapsed the duplicate aggregate to a single report, and
+        # both branches picked the same report.
+        self.assertEqual(len(sequential["aggregate_reports"]), 1)
+        self.assertEqual(len(parallel["aggregate_reports"]), 1)
+        self.assertEqual(
+            self._aggregate_report_ids(sequential), self._aggregate_report_ids(parallel)
+        )
+
+        # Same failure/smtp_tls counts in both branches.
+        self.assertEqual(len(sequential["failure_reports"]), 1)
+        self.assertEqual(len(parallel["failure_reports"]), 1)
+        self.assertEqual(len(sequential["smtp_tls_reports"]), 1)
+        self.assertEqual(len(parallel["smtp_tls_reports"]), 1)
+
+        # The junk message warned in both branches without raising.
+        self.assertTrue(
+            any("not a valid report" in line for line in sequential_logs.output),
+            sequential_logs.output,
+        )
+        self.assertTrue(
+            any("not a valid report" in line for line in parallel_logs.output),
+            parallel_logs.output,
+        )
+
+
 class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
     """Input validation on get_dmarc_reports_from_mailbox.
 
@@ -2795,6 +2876,23 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         )
         return conn, result
 
+    def _assert_each_report_type_routed(self, conn, result):
+        """Shared assertions for one report of each type plus an
+        unparseable message: each is filed under the correct subfolder
+        (Aggregate / Failure / SMTP-TLS / Invalid) and the INBOX is
+        drained. Used by both the sequential and n_procs=2 variants below
+        so the two tests share their assertions instead of duplicating
+        them."""
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
     def test_each_report_type_routed_to_its_archive_subfolder(self):
         """One report of each type plus an unparseable message: each is filed
         under the correct subfolder (Aggregate / Failure / SMTP-TLS / Invalid)
@@ -2806,15 +2904,20 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
 
         conn, result = self._run()
 
-        self.assertEqual(len(result["aggregate_reports"]), 1)
-        self.assertEqual(len(result["failure_reports"]), 1)
-        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self._assert_each_report_type_routed(conn, result)
 
-        self.assertEqual(conn.fetch_messages("INBOX"), [])
-        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+    def test_each_report_type_routed_to_its_archive_subfolder_parallel(self):
+        """Same scenario as above, with n_procs=2: fetching and archiving
+        stay sequential in the parent, but parsing runs in worker
+        processes. The routing outcome must be identical."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(n_procs=2)
+
+        self._assert_each_report_type_routed(conn, result)
 
     def test_delete_mode_removes_processed_messages(self):
         """delete=True: a parsed message is removed from the INBOX rather than
@@ -2828,6 +2931,23 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         # The Failure folder is created but nothing is filed there — deleted.
         self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
 
+    def test_delete_mode_removes_processed_messages_parallel(self):
+        """Same as above, with n_procs=2 and enough messages (>1) to take
+        the parallel branch: invalid-message disposition happens after the
+        parse phase for n_procs > 1 (see get_dmarc_reports_from_mailbox's
+        docstring), but the end result -- both messages gone from the
+        INBOX and nothing archived -- must match delete mode exactly."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(delete=True, n_procs=2)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+
     def test_test_mode_parses_without_moving_or_creating_folders(self):
         """test=True: the report is parsed and returned, but the message stays
         in the INBOX and no archive folders are created/touched."""
@@ -2838,6 +2958,112 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(result["failure_reports"]), 1)
         self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
         self.assertFalse(conn.folder_exists("Archive/Failure"))
+
+    def test_test_mode_parses_without_moving_or_creating_folders_parallel(self):
+        """Same as above, with n_procs=2 and enough messages (>1) to take
+        the parallel branch: test mode disposes of nothing regardless of
+        n_procs, so both messages stay put and no archive folders appear."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(test=True, n_procs=2)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+        self.assertFalse(conn.folder_exists("Archive/Failure"))
+        self.assertFalse(conn.folder_exists("Archive/Aggregate"))
+
+    def test_duplicate_aggregate_parallel_archives_both_messages(self):
+        """Delivering the same aggregate sample twice: dedup means the
+        parsed *results* contain only one aggregate report, but the
+        sequential caller appends a message's UID to the aggregate archive
+        list unconditionally -- including for the duplicate -- so BOTH
+        source messages still get archived to Aggregate. The n_procs=2
+        branch must match: the helper (_classify_parsed_email) owns the
+        dedup, but the caller appends the UID regardless of report_type
+        matching "aggregate", exactly as the sequential branch does."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(n_procs=2)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 2)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+
+class _MidRunArrivalMaildirConnection(MaildirConnection):
+    """A MaildirConnection that delivers one extra message into the INBOX
+    right after its first fetch_messages() call returns, simulating mail
+    arriving while the first batch is being processed.
+
+    Used only to make get_dmarc_reports_from_mailbox's batch_size=0
+    tail-recursion branch (`if not test and not batch_size:`) actually
+    recurse once for real -- no parsedmarc internals are mocked, only this
+    real mailsuite MaildirConnection subclass's timing -- so the n_procs
+    pass-through in that recursive call is genuinely exercised rather than
+    merely inspected. The recursive call's own re-check then finds nothing
+    further (the extra message has already been archived), so recursion
+    terminates after one extra level -- cheap and deterministic.
+    """
+
+    def __init__(self, *args, extra_source, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._extra_source = extra_source
+        self._delivered_extra = False
+
+    def fetch_messages(self, reports_folder, **kwargs):
+        result = super().fetch_messages(reports_folder, **kwargs)
+        if not self._delivered_extra:
+            self._delivered_extra = True
+            with open(self._extra_source, "rb") as extra_file:
+                raw = extra_file.read()
+            box = mailbox.Maildir(self._maildir_path, create=False)
+            box.add(mailbox.MaildirMessage(raw))
+            box.flush()
+        return result
+
+
+class TestGetDmarcReportsFromMailboxMaildirBatchSizeZeroRecursion(unittest.TestCase):
+    """batch_size=0 makes get_dmarc_reports_from_mailbox re-check the
+    mailbox after its main pass and recurse if new messages showed up
+    (__init__.py's `if not test and not batch_size:` block). This exercises
+    that recursive call with n_procs=2 threaded through it for real."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        inbox = mailbox.Maildir(self._maildir, create=True)
+        for source in (self.AGGREGATE, self.FAILURE):
+            with open(source, "rb") as source_file:
+                inbox.add(mailbox.MaildirMessage(source_file.read()))
+        inbox.flush()
+
+    def test_batch_size_zero_recursion_threads_n_procs(self):
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, n_procs=2, batch_size=0
+        )
+
+        # The main pass parses AGGREGATE + FAILURE; the message that "arrives"
+        # after the main pass's fetch is only found and parsed via the
+        # recursive re-check call, which would be missing from the results
+        # entirely if the n_procs kwarg (or anything else) were dropped from
+        # that recursive call.
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
 
 
 class TestEmailResultsErrorBranches(unittest.TestCase):
