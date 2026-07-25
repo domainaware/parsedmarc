@@ -852,7 +852,7 @@ def get_service_from_reverse_dns_base_domain(
         base_domain (str): The base domain of the reverse DNS lookup
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
-        url (str): URL ro a reverse DNS map
+        url (str): URL to a reverse DNS map
         offline (bool): Use the built-in copy of the reverse DNS map
         reverse_dns_map (dict): A reverse DNS map
         psl_overrides_path (str): Path to a local PSL overrides file

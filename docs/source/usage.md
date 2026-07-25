@@ -969,7 +969,9 @@ config = ParserConfig(
 
 report = parse_report_file("aggregate_report.xml.gz", config=config)
 
-connection = IMAPConnection(host="imap.example.com", user="dmarc@example.com", password="...")
+connection = IMAPConnection(
+    host="imap.example.com", user="dmarc@example.com", password="..."
+)
 results = get_dmarc_reports_from_mailbox(connection, config=config)
 ```
 
