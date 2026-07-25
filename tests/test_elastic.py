@@ -803,7 +803,7 @@ class TestAggregateDocCombinedResults(unittest.TestCase):
     def test_spf_result_serializes_under_singular_result_key(self):
         """The _SPFResult class previously declared a dead ``results``
         (plural) field while the save path wrote ``result``; verify the
-        serialized nested doc actually uses the singular key."""
+        serialized inner doc actually uses the singular key."""
         doc = elastic_module._AggregateReportDoc()
         doc.add_spf_result(
             domain="example.org", scope="mfrom", result="pass", human_result=None
