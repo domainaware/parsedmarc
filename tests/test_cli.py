@@ -407,6 +407,131 @@ hosts = localhost
                 sorted([bracket, plain]),
             )
 
+    def test_expand_file_path_args_directory(self):
+        """A directory argument expands to the files directly inside it,
+        matching shell ``<dir>/*`` glob semantics: dotfile entries are
+        excluded and subdirectories are skipped (not descended into).
+        See https://docs.python.org/3/library/glob.html.
+        """
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "sub"))
+            a_xml = os.path.join(d, "a.xml")
+            b_eml = os.path.join(d, "b.eml")
+            c_xml = os.path.join(d, "sub", "c.xml")
+            hidden = os.path.join(d, ".hidden")
+            for p in (a_xml, b_eml, c_xml, hidden):
+                with open(p, "w") as f:
+                    f.write("x")
+
+            result = _expand_file_path_args([d])
+
+            self.assertEqual(sorted(result), sorted([a_xml, b_eml]))
+            self.assertNotIn(os.path.join(d, "sub"), result)
+            self.assertNotIn(c_xml, result)
+            self.assertNotIn(hidden, result)
+
+            # A trailing separator on the directory argument behaves the same.
+            result_trailing = _expand_file_path_args([d + os.sep])
+            self.assertEqual(
+                sorted(os.path.basename(p) for p in result_trailing),
+                sorted(os.path.basename(p) for p in result),
+            )
+
+    def test_expand_file_path_args_directory_recursive(self):
+        """With recursive=True, a directory expands via ``<dir>/**``,
+        descending into subdirectories but still excluding dotfiles and
+        dot-directories (glob's ``**`` does not descend into hidden
+        directories unless explicitly matched).
+        See https://docs.python.org/3/library/glob.html.
+        """
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "sub"))
+            os.makedirs(os.path.join(d, ".hiddendir"))
+            a_xml = os.path.join(d, "a.xml")
+            b_eml = os.path.join(d, "b.eml")
+            c_xml = os.path.join(d, "sub", "c.xml")
+            hidden = os.path.join(d, ".hidden")
+            hidden_dir_file = os.path.join(d, ".hiddendir", "d.xml")
+            for p in (a_xml, b_eml, c_xml, hidden, hidden_dir_file):
+                with open(p, "w") as f:
+                    f.write("x")
+
+            result = _expand_file_path_args([d], recursive=True)
+
+            self.assertEqual(sorted(result), sorted([a_xml, b_eml, c_xml]))
+            self.assertNotIn(d, result)
+            self.assertNotIn(os.path.join(d, "sub"), result)
+            self.assertNotIn(hidden, result)
+            self.assertNotIn(hidden_dir_file, result)
+
+    def test_expand_file_path_args_directory_with_glob_metacharacters(self):
+        """A directory name containing glob metacharacters must still be
+        expanded correctly, not treated as a character class.
+
+        Without escaping the directory component with ``glob.escape``,
+        a directory named ``reports [2024]`` would have ``[2024]``
+        interpreted as a character class matching a single '2', '0', or
+        '4' character, matching nothing and silently dropping every file
+        inside it. See https://docs.python.org/3/library/glob.html.
+        """
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            bracket_dir = os.path.join(d, "reports [2024]")
+            os.makedirs(bracket_dir)
+            report = os.path.join(bracket_dir, "report.xml")
+            with open(report, "w") as f:
+                f.write("x")
+
+            self.assertEqual(_expand_file_path_args([bracket_dir]), [report])
+            self.assertEqual(
+                _expand_file_path_args([bracket_dir], recursive=True), [report]
+            )
+
+    def test_expand_file_path_args_recursive_glob_pattern(self):
+        """``recursive`` also governs whether ``**`` in an explicit glob
+        pattern recurses into subdirectories, matching stdlib ``glob()``
+        semantics exactly.
+
+        Per https://docs.python.org/3/library/glob.html: "If recursive is
+        true, the pattern '**' will match any files and zero or more
+        directories... If recursive is false (the default), the pattern
+        '**' will match the same files and directories described for the
+        pattern '*'" (i.e. exactly one path segment). For a pattern like
+        ``d/**/*.xml`` that means the non-recursive default only matches
+        files exactly one directory level below ``d`` (here, only the
+        nested file); this is unchanged from today's behavior since
+        ``_expand_file_path_args`` previously always called ``glob()``
+        without ``recursive=True``.
+        """
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "sub"))
+            top_xml = os.path.join(d, "x.xml")
+            nested_xml = os.path.join(d, "sub", "y.xml")
+            for p in (top_xml, nested_xml):
+                with open(p, "w") as f:
+                    f.write("x")
+
+            pattern = os.path.join(d, "**", "*.xml")
+
+            self.assertEqual(
+                sorted(_expand_file_path_args([pattern], recursive=True)),
+                sorted([top_xml, nested_xml]),
+            )
+            # Default (no recursive kwarg): '**' degrades to matching a
+            # single path component, so only the one-level-nested file
+            # is found; the top-level file is not matched by this pattern.
+            self.assertEqual(
+                _expand_file_path_args([pattern]),
+                [nested_xml],
+            )
+
     def test_apply_env_overrides_injects_values(self):
         """Env vars are injected into an existing ConfigParser."""
         from configparser import ConfigParser
@@ -817,6 +942,116 @@ hosts = localhost
             set(cli_module._DIRECT_FILE_KEYS),
             "_DIRECT_FILE_KEYS is out of sync with *_file keys in _parse_config",
         )
+
+
+class TestDirectoryFilePaths(unittest.TestCase):
+    """End-to-end coverage of issue #397: a directory passed as a
+    ``file_path`` CLI argument expands to the report files inside it, and
+    ``-r``/``--recursive`` opts into descending into subdirectories. Runs
+    the real ``_main()`` entry point (real multiprocessing worker, real
+    parsing, real JSON output) against on-disk sample reports with no
+    mocking of parsedmarc's own code, per AGENTS.md's mock-at-SDK-boundary
+    rule (there is no external SDK boundary in this code path to mock)."""
+
+    TOP_LEVEL_SAMPLE = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+    NESTED_SAMPLE = "samples/aggregate/!large-example.com!1711897200!1711983600.xml"
+
+    def setUp(self):
+        # SEEN_AGGREGATE_REPORT_IDS is a module-level ExpiringDict that
+        # dedupes report IDs across parses within one process; clear it so
+        # a report "seen" by an earlier test isn't silently dropped here.
+        # Precedent: tests/test_init.py TestGetDmarcReportsFromMailboxMaildir.setUp.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        # Also clear on the way out: these tests reuse
+        # SAMPLE_AGGREGATE_REPORT_PATH's report ID, and other test classes
+        # later in this file (e.g. TestSkipsResultsEmailWhenNoReportsParsed)
+        # parse that same sample through the real _main() dedup path, so a
+        # left-over "seen" entry here would make their report look like a
+        # duplicate and silently vanish.
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        self._env_patcher = patch.dict(
+            os.environ, {"GITHUB_ACTIONS": "true"}, clear=False
+        )
+        self._env_patcher.start()
+        self.addCleanup(self._env_patcher.stop)
+
+    def _build_reports_dir(self, tmp_dir):
+        reports_dir = os.path.join(tmp_dir, "reports")
+        nested_dir = os.path.join(reports_dir, "nested")
+        os.makedirs(nested_dir)
+        top_level_path = os.path.join(
+            reports_dir, os.path.basename(self.TOP_LEVEL_SAMPLE)
+        )
+        nested_path = os.path.join(nested_dir, os.path.basename(self.NESTED_SAMPLE))
+        with (
+            open(self.TOP_LEVEL_SAMPLE, "rb") as src,
+            open(top_level_path, "wb") as dst,
+        ):
+            dst.write(src.read())
+        with open(self.NESTED_SAMPLE, "rb") as src, open(nested_path, "wb") as dst:
+            dst.write(src.read())
+        return reports_dir
+
+    def _write_config(self, tmp_dir, output_dirname):
+        cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        output_dir = os.path.join(tmp_dir, output_dirname)
+        with open(cfg_path, "w") as f:
+            f.write(
+                f"[general]\noffline = True\nsilent = True\noutput = {output_dir}\n"
+            )
+        return cfg_path, output_dir
+
+    def _report_ids(self, output_dir):
+        with open(os.path.join(output_dir, "aggregate.json")) as f:
+            reports = json.load(f)
+        return {report["report_metadata"]["report_id"] for report in reports}
+
+    def _sample_report_id(self, path):
+        result = parsedmarc.parse_report_file(path, offline=True)
+        assert result["report_type"] == "aggregate"
+        report = cast(AggregateReport, result["report"])
+        return report["report_metadata"]["report_id"]
+
+    def test_directory_file_path_non_recursive_skips_nested(self):
+        """A bare directory ``file_path`` argument behaves like shell
+        ``reports/*``: the top-level sample is parsed, and the nested
+        subdirectory is skipped (not descended into) without ``-r``.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = self._build_reports_dir(tmp_dir)
+            cfg_path, output_dir = self._write_config(tmp_dir, "output_non_recursive")
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, reports_dir]):
+                parsedmarc.cli._main()
+
+            report_ids = self._report_ids(output_dir)
+
+        top_level_id = self._sample_report_id(self.TOP_LEVEL_SAMPLE)
+        nested_id = self._sample_report_id(self.NESTED_SAMPLE)
+
+        self.assertIn(top_level_id, report_ids)
+        self.assertNotIn(nested_id, report_ids)
+
+    def test_directory_file_path_recursive_includes_nested(self):
+        """With ``-r``/``--recursive``, the directory expands via ``**``
+        and both the top-level and nested sample reports are parsed.
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reports_dir = self._build_reports_dir(tmp_dir)
+            cfg_path, output_dir = self._write_config(tmp_dir, "output_recursive")
+
+            with patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, "-r", reports_dir]
+            ):
+                parsedmarc.cli._main()
+
+            report_ids = self._report_ids(output_dir)
+
+        top_level_id = self._sample_report_id(self.TOP_LEVEL_SAMPLE)
+        nested_id = self._sample_report_id(self.NESTED_SAMPLE)
+
+        self.assertIn(top_level_id, report_ids)
+        self.assertIn(nested_id, report_ids)
 
 
 class TestGmailAuthModes(unittest.TestCase):

@@ -13,7 +13,7 @@ import sys
 import time
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
-from glob import glob
+from glob import escape as glob_escape, glob
 from multiprocessing import Pipe, Process
 from ssl import CERT_NONE, create_default_context
 
@@ -174,10 +174,11 @@ def _expand_path(p: str) -> str:
     return os.path.expanduser(os.path.expandvars(p))
 
 
-def _expand_file_path_args(paths: list[str]) -> list[str]:
+def _expand_file_path_args(paths: list[str], recursive: bool = False) -> list[str]:
     """Expand CLI file-path arguments into a flat list of file paths.
 
-    A path that already exists on disk is taken literally; only a
+    A path to an existing file is taken literally, a path to an existing
+    directory is expanded to the files inside it (see below), and only a
     non-existent path is treated as a glob pattern. This preserves
     shell-style wildcard expansion (e.g. a quoted ``samples/*.xml``) while
     ensuring that literal filenames containing glob metacharacters
@@ -186,13 +187,38 @@ def _expand_file_path_args(paths: list[str]) -> list[str]:
     ``[Provider DMARC Failure Report] Subject.eml``; ``glob()`` treats the
     brackets as a character class, matches nothing, and drops the file
     (see <https://docs.python.org/3/library/glob.html>).
+
+    A directory is expanded to the files directly inside it, using the
+    same shell-glob semantics as ``<dir>/*`` (or ``<dir>/**`` when
+    ``recursive`` is ``True``): dotfile entries are excluded, and
+    non-file entries (subdirectories) are filtered out. With
+    ``recursive=False`` a subdirectory found this way is skipped with a
+    debug log rather than descended into. The directory component is
+    passed through ``glob.escape`` before being combined with the
+    wildcard so that directory names containing glob metacharacters
+    (``[``, ``]``, ``*``, ``?``) still expand correctly instead of being
+    treated as a character class or wildcard themselves.
+
+    ``recursive`` also enables ``**`` to match any number of directories
+    (including none) in glob patterns supplied directly as arguments, per
+    the same stdlib glob semantics.
     """
     expanded: list[str] = []
     for path in paths:
-        if os.path.exists(path):
+        if os.path.isdir(path):
+            pattern = os.path.join(glob_escape(path), "**" if recursive else "*")
+            for match in sorted(glob(pattern, recursive=recursive)):
+                if os.path.isfile(match):
+                    expanded.append(match)
+                elif not recursive and os.path.isdir(match):
+                    logger.debug(
+                        "Skipping subdirectory %s (pass --recursive to descend)",
+                        match,
+                    )
+        elif os.path.exists(path):
             expanded.append(path)
         else:
-            expanded += glob(path)
+            expanded += glob(path, recursive=recursive)
     return expanded
 
 
@@ -1923,8 +1949,15 @@ def _main():
     arg_parser.add_argument(
         "file_path",
         nargs="*",
-        help="one or more paths to aggregate or failure "
-        "report files, emails, or mbox files'",
+        help="one or more paths to aggregate or failure report files, "
+        "emails, mbox files, or directories containing them",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="search directories given as file_path recursively, and "
+        "enable '**' recursion in glob patterns",
     )
     strip_attachment_help = "remove attachment payloads from failure report output"
     arg_parser.add_argument(
@@ -2323,7 +2356,7 @@ def _main():
     signal.signal(signal.SIGTERM, _handle_sigterm)
     signal.signal(signal.SIGINT, _handle_sigint)
 
-    file_paths = _expand_file_path_args(args.file_path)
+    file_paths = _expand_file_path_args(args.file_path, recursive=args.recursive)
     mbox_paths = []
 
     for file_path in file_paths:
