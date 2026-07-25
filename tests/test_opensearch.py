@@ -449,6 +449,27 @@ class TestMigrateIndexes(unittest.TestCase):
         self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
         mock_client.update_by_query.assert_not_called()
 
+    def test_get_connection_failure_does_not_raise(self):
+        """connections.get_connection() itself sits outside the per-index
+        try/except for the combined-field backfill; if it raises (e.g. no
+        OpenSearch connection has been configured yet), migrate_indexes must
+        still not propagate the exception, per its docstring's promise that
+        any cluster error is caught and logged."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            # The legacy fo migration that runs first sees no base index.
+            mock_index_cls.return_value.exists.return_value = False
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
+
 
 class TestMigrateIndexesFoMigration(unittest.TestCase):
     """The legacy `published_policy.fo` field was mapped as `long` in
@@ -538,6 +559,35 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             }
             migrate_indexes(aggregate_indexes=["dmarc_aggregate-2024-01-01"])
         mock_reindex.assert_not_called()
+
+    def test_index_exists_failure_does_not_raise(self):
+        """A cluster error inside the per-index fo-migration loop (e.g.
+        Index(...).exists() raising because the cluster is unreachable)
+        must not abort startup: it is caught, logged, and the loop moves
+        on to the combined-field backfill, which is exercised here with
+        its own connection failure so both warnings are asserted."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.side_effect = ConnectionError(
+                "cluster unreachable"
+            )
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any(
+                "legacy published_policy.fo migration" in msg
+                and "cluster unreachable" in msg
+                for msg in cm.output
+            )
+        )
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
 
 
 # ---------------------------------------------------------------------------

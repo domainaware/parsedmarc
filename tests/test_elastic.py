@@ -458,6 +458,22 @@ class TestMigrateIndexes(unittest.TestCase):
         self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
         mock_client.update_by_query.assert_not_called()
 
+    def test_get_connection_failure_does_not_raise(self):
+        """connections.get_connection() itself sits outside the per-index
+        try/except; if it raises (e.g. no Elasticsearch connection has been
+        configured yet), migrate_indexes must still not propagate the
+        exception, per its docstring's promise that any cluster error is
+        caught and logged."""
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
+
 
 # ---------------------------------------------------------------------------
 # save_aggregate_report_to_elasticsearch

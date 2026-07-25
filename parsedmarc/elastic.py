@@ -599,7 +599,15 @@ def migrate_indexes(
     if not aggregate_indexes:
         return
 
-    client = connections.get_connection()
+    try:
+        client = connections.get_connection()
+    except Exception as e:
+        logger.warning(
+            "Skipping the dkim_results_combined/spf_results_combined "
+            f"backfill: could not get an Elasticsearch connection: {e}. "
+            "This will be retried at the next startup."
+        )
+        return
     for name in aggregate_indexes:
         pattern = f"{name}*"
         try:

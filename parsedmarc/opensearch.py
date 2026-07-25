@@ -527,35 +527,54 @@ def migrate_indexes(
 
     version = 2
     for aggregate_index_name in aggregate_indexes:
-        if not Index(aggregate_index_name).exists():
-            continue
-        aggregate_index = Index(aggregate_index_name)
-        doc = "doc"
-        fo_field = "published_policy.fo"
-        fo = "fo"
-        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
-        fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
-        if doc not in fo_mapping:
-            continue
+        try:
+            if not Index(aggregate_index_name).exists():
+                continue
+            aggregate_index = Index(aggregate_index_name)
+            doc = "doc"
+            fo_field = "published_policy.fo"
+            fo = "fo"
+            fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
+            fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
+            if doc not in fo_mapping:
+                continue
 
-        fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
-        fo_type = fo_mapping["type"]
-        if fo_type == "long":
-            new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
-            body = {
-                "properties": {
-                    "published_policy.fo": {
-                        "type": "text",
-                        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+            fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
+            fo_type = fo_mapping["type"]
+            if fo_type == "long":
+                new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
+                body = {
+                    "properties": {
+                        "published_policy.fo": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {"type": "keyword", "ignore_above": 256}
+                            },
+                        }
                     }
                 }
-            }
-            Index(new_index_name).create()
-            Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)
-            Index(aggregate_index_name).delete()
+                Index(new_index_name).create()
+                Index(new_index_name).put_mapping(doc_type=doc, body=body)
+                reindex(
+                    connections.get_connection(), aggregate_index_name, new_index_name
+                )
+                Index(aggregate_index_name).delete()
+        except Exception as e:
+            logger.warning(
+                "Failed the legacy published_policy.fo migration for "
+                f"{aggregate_index_name}: {e}. This will be retried at the "
+                "next startup."
+            )
 
-    client = connections.get_connection()
+    try:
+        client = connections.get_connection()
+    except Exception as e:
+        logger.warning(
+            "Skipping the dkim_results_combined/spf_results_combined "
+            f"backfill: could not get an OpenSearch connection: {e}. "
+            "This will be retried at the next startup."
+        )
+        return
     for name in aggregate_indexes:
         pattern = f"{name}*"
         try:
