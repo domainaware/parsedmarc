@@ -118,6 +118,32 @@ class TestParserConfigPickling(unittest.TestCase):
         )
         self.assertNotIn("sentinel.example", parsedmarc_config.REVERSE_DNS_MAP)
 
+    def test_setstate_defaults_fields_missing_from_older_pickles(self):
+        """__setstate__ must initialize every non-cache field to its class
+        default before applying the pickled state, so a ParserConfig
+        serialized by an older parsedmarc version (whose state lacks fields
+        added since) unpickles with the newer fields at their defaults
+        instead of unset — __init__ never runs during unpickling, so an
+        absent field would otherwise raise AttributeError on first access.
+        Simulated by calling __setstate__ directly with a partial state
+        dict, exactly what pickle.loads does with an old payload."""
+        restored = object.__new__(parsedmarc_config.ParserConfig)
+        restored.__setstate__({"offline": True, "dns_timeout": 7.5})
+
+        self.assertTrue(restored.offline)
+        self.assertEqual(restored.dns_timeout, 7.5)
+        # Fields absent from the old state get their class defaults.
+        self.assertIsNone(restored.ip_db_path)
+        self.assertIsNone(restored.nameservers)
+        self.assertEqual(restored.normalize_timespan_threshold_hours, 24.0)
+        # Caches still rebind to the module defaults.
+        self.assertIs(restored.ip_address_cache, parsedmarc_config.IP_ADDRESS_CACHE)
+        self.assertIs(
+            restored.seen_aggregate_report_ids,
+            parsedmarc_config.SEEN_AGGREGATE_REPORT_IDS,
+        )
+        self.assertIs(restored.reverse_dns_map, parsedmarc_config.REVERSE_DNS_MAP)
+
 
 class TestParserConfigFrozenAndReplace(unittest.TestCase):
     """Covers frozen-dataclass immutability and the `dataclasses.replace`

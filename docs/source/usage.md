@@ -948,8 +948,9 @@ For sections with underscores in the name, the full section name is used:
 
 `parsedmarc` is also importable as a regular Python package, not just a CLI
 tool. The main entry points — `parse_report_file()`, `parse_aggregate_report_xml()`,
-`parse_failure_report()`, `parse_report_email()`, `get_dmarc_reports_from_mbox()`,
-`get_dmarc_reports_from_mailbox()`, and `watch_inbox()` — are all importable
+`parse_aggregate_report_file()`, `parse_failure_report()`, `parse_report_email()`,
+`get_dmarc_reports_from_mbox()`, `get_dmarc_reports_from_mailbox()`, and
+`watch_inbox()` — are all importable
 directly from the `parsedmarc` package. See the [API reference](api.md) for
 the full set of modules and members.
 

@@ -165,7 +165,17 @@ class ParserConfig:
         """Restore option fields, then rebind caches to this module's
         process-wide defaults (never fresh empty caches — see the class
         docstring for why that would silently break per-worker caching).
+
+        Non-cache fields are first initialized to their class defaults, so
+        unpickling a ``ParserConfig`` serialized by an older parsedmarc
+        version (whose state predates fields added since) leaves the newer
+        fields at their defaults instead of unset entirely — ``__init__``
+        never runs during unpickling, so without this an absent field would
+        raise ``AttributeError`` on first access.
         """
+        for f in fields(self):
+            if f.name not in _CACHE_FIELD_NAMES:
+                object.__setattr__(self, f.name, f.default)
         for key, value in state.items():
             object.__setattr__(self, key, value)
         object.__setattr__(self, "ip_address_cache", IP_ADDRESS_CACHE)
