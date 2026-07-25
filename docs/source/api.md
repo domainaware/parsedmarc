@@ -7,6 +7,13 @@
    :members:
 ```
 
+## parsedmarc.config
+
+```{eval-rst}
+.. automodule:: parsedmarc.config
+   :members:
+```
+
 ## parsedmarc.elastic
 
 ```{eval-rst}

@@ -24,9 +24,11 @@ from kiota_abstractions.api_error import APIError
 from tqdm import tqdm
 
 from parsedmarc import (
+    IP_ADDRESS_CACHE,
     REVERSE_DNS_MAP,
     SEEN_AGGREGATE_REPORT_IDS,
     InvalidDMARCReport,
+    ParserConfig,
     ParserError,
     __version__,
     elastic,
@@ -46,6 +48,7 @@ from parsedmarc import (
     watch_inbox,
     webhook,
 )
+from parsedmarc.constants import DEFAULT_DNS_MAX_RETRIES, DEFAULT_DNS_TIMEOUT
 from parsedmarc.log import logger
 from parsedmarc.mail import (
     AuthMethod,
@@ -1458,6 +1461,41 @@ def _close_output_clients(clients):
                 logger.warning("Error closing %s", name, exc_info=True)
 
 
+def _build_parser_config(opts: Namespace) -> ParserConfig:
+    """Builds the single ParserConfig for this run from parsed opts, bound to
+    the process-wide default caches (the parsedmarc module globals).
+    """
+    return ParserConfig(
+        offline=opts.offline,
+        ip_db_path=opts.ip_db_path,
+        always_use_local_files=opts.always_use_local_files,
+        reverse_dns_map_path=opts.reverse_dns_map_path,
+        reverse_dns_map_url=opts.reverse_dns_map_url,
+        psl_overrides_path=opts.psl_overrides_path,
+        psl_overrides_url=opts.psl_overrides_url,
+        nameservers=opts.nameservers,
+        dns_timeout=(
+            float(opts.dns_timeout)
+            if opts.dns_timeout is not None
+            else DEFAULT_DNS_TIMEOUT
+        ),
+        dns_retries=(
+            int(opts.dns_retries)
+            if opts.dns_retries is not None
+            else DEFAULT_DNS_MAX_RETRIES
+        ),
+        strip_attachment_payloads=opts.strip_attachment_payloads,
+        normalize_timespan_threshold_hours=(
+            float(opts.normalize_timespan_threshold_hours)
+            if opts.normalize_timespan_threshold_hours is not None
+            else 24.0
+        ),
+        ip_address_cache=IP_ADDRESS_CACHE,
+        seen_aggregate_report_ids=SEEN_AGGREGATE_REPORT_IDS,
+        reverse_dns_map=REVERSE_DNS_MAP,
+    )
+
+
 def _main():
     """Called when the module is executed"""
 
@@ -2289,19 +2327,9 @@ def _main():
     if n_procs < 1:
         n_procs = 1
 
-    parse_kwargs = dict(
-        offline=opts.offline,
-        ip_db_path=opts.ip_db_path,
-        always_use_local_files=opts.always_use_local_files,
-        reverse_dns_map_path=opts.reverse_dns_map_path,
-        reverse_dns_map_url=opts.reverse_dns_map_url,
-        nameservers=opts.nameservers,
-        dns_timeout=opts.dns_timeout,
-        dns_retries=opts.dns_retries,
-        strip_attachment_payloads=opts.strip_attachment_payloads,
-        normalize_timespan_threshold_hours=opts.normalize_timespan_threshold_hours,
-    )
-    func = functools.partial(_parse_report_file_job, kwargs=parse_kwargs)
+    parser_config = _build_parser_config(opts)
+
+    func = functools.partial(_parse_report_file_job, config=parser_config)
     for file_path, result in parallel_map(
         func, file_paths, n_procs, should_stop=lambda: _shutdown_requested
     ):
@@ -2341,24 +2369,9 @@ def _main():
         if _shutdown_requested:
             logger.info("Shutdown requested, skipping remaining mbox files")
             break
-        normalize_timespan_threshold_hours_value = (
-            float(opts.normalize_timespan_threshold_hours)
-            if opts.normalize_timespan_threshold_hours is not None
-            else 24.0
-        )
-        strip = opts.strip_attachment_payloads
         reports = get_dmarc_reports_from_mbox(
             mbox_path,
-            nameservers=opts.nameservers,
-            dns_timeout=opts.dns_timeout,
-            dns_retries=opts.dns_retries,
-            strip_attachment_payloads=strip,
-            ip_db_path=opts.ip_db_path,
-            always_use_local_files=opts.always_use_local_files,
-            reverse_dns_map_path=opts.reverse_dns_map_path,
-            reverse_dns_map_url=opts.reverse_dns_map_url,
-            offline=opts.offline,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
+            config=parser_config,
             n_procs=n_procs,
         )
         aggregate_reports += reports["aggregate_reports"]
@@ -2369,7 +2382,6 @@ def _main():
     msgraph_connection: MSGraphConnection | None = None
     mailbox_batch_size_value = 10
     mailbox_check_timeout_value = 30
-    normalize_timespan_threshold_hours_value = 24.0
 
     if opts.imap_host:
         try:
@@ -2525,11 +2537,6 @@ def _main():
             if opts.mailbox_check_timeout is not None
             else 30
         )
-        normalize_timespan_threshold_hours_value = (
-            float(opts.normalize_timespan_threshold_hours)
-            if opts.normalize_timespan_threshold_hours is not None
-            else 24.0
-        )
     if mailbox_connection and not _shutdown_requested:
         try:
             reports = get_dmarc_reports_from_mailbox(
@@ -2538,17 +2545,9 @@ def _main():
                 batch_size=mailbox_batch_size_value,
                 reports_folder=opts.mailbox_reports_folder,
                 archive_folder=opts.mailbox_archive_folder,
-                ip_db_path=opts.ip_db_path,
-                always_use_local_files=opts.always_use_local_files,
-                reverse_dns_map_path=opts.reverse_dns_map_path,
-                reverse_dns_map_url=opts.reverse_dns_map_url,
-                offline=opts.offline,
-                nameservers=opts.nameservers,
                 test=opts.mailbox_test,
-                strip_attachment_payloads=opts.strip_attachment_payloads,
                 since=opts.mailbox_since,
-                dns_retries=opts.dns_retries,
-                normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
+                config=parser_config,
                 n_procs=n_procs,
             )
 
@@ -2667,18 +2666,9 @@ def _main():
                     delete=opts.mailbox_delete,
                     test=opts.mailbox_test,
                     check_timeout=mailbox_check_timeout_value,
-                    nameservers=opts.nameservers,
-                    dns_timeout=opts.dns_timeout,
-                    dns_retries=opts.dns_retries,
-                    strip_attachment_payloads=opts.strip_attachment_payloads,
                     batch_size=mailbox_batch_size_value,
                     since=opts.mailbox_since,
-                    ip_db_path=opts.ip_db_path,
-                    always_use_local_files=opts.always_use_local_files,
-                    reverse_dns_map_path=opts.reverse_dns_map_path,
-                    reverse_dns_map_url=opts.reverse_dns_map_url,
-                    offline=opts.offline,
-                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours_value,
+                    config=parser_config,
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
                     n_procs=n_procs,
                 )
@@ -2767,6 +2757,8 @@ def _main():
                 for k, v in vars(new_opts).items():
                     setattr(opts, k, v)
 
+                parser_config = _build_parser_config(opts)
+
                 # Update watch parameters from reloaded config
                 mailbox_batch_size_value = (
                     int(opts.mailbox_batch_size)
@@ -2777,11 +2769,6 @@ def _main():
                     int(opts.mailbox_check_timeout)
                     if opts.mailbox_check_timeout is not None
                     else 30
-                )
-                normalize_timespan_threshold_hours_value = (
-                    float(opts.normalize_timespan_threshold_hours)
-                    if opts.normalize_timespan_threshold_hours is not None
-                    else 24.0
                 )
 
                 # Update log level

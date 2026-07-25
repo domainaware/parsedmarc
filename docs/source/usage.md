@@ -944,6 +944,47 @@ For sections with underscores in the name, the full section name is used:
 | `gelf` | `PARSEDMARC_GELF_` |
 | `webhook` | `PARSEDMARC_WEBHOOK_` |
 
+## Using parsedmarc as a library
+
+`parsedmarc` is also importable as a regular Python package, not just a CLI
+tool. The main entry points — `parse_report_file()`, `parse_aggregate_report_xml()`,
+`parse_failure_report()`, `parse_report_email()`, `get_dmarc_reports_from_mbox()`,
+`get_dmarc_reports_from_mailbox()`, and `watch_inbox()` — are all importable
+directly from the `parsedmarc` package. See the [API reference](api.md) for
+the full set of modules and members.
+
+Each of these functions accepts either individual option keyword arguments
+(`offline`, `nameservers`, `dns_timeout`, etc.) or a single `config=` keyword
+argument carrying a `ParserConfig` instance:
+
+```python
+from parsedmarc import ParserConfig, parse_report_file, get_dmarc_reports_from_mailbox
+from parsedmarc.mail import IMAPConnection
+
+config = ParserConfig(
+    offline=False,
+    nameservers=["1.1.1.1", "1.0.0.1"],
+    dns_timeout=5.0,
+)
+
+report = parse_report_file("aggregate_report.xml.gz", config=config)
+
+connection = IMAPConnection(host="imap.example.com", user="dmarc@example.com", password="...")
+results = get_dmarc_reports_from_mailbox(connection, config=config)
+```
+
+A few things to keep in mind:
+
+- When `config=` is passed, the individual option keyword arguments are
+  ignored in favor of the values carried on the `ParserConfig` instance.
+- Each explicitly constructed `ParserConfig` owns its own isolated caches
+  (IP address info, seen aggregate report IDs, and the reverse DNS map).
+  Omitting `config=` falls back to the process-wide caches shared by every
+  call that doesn't pass one.
+- `keep_alive` and `n_procs` are not part of `ParserConfig` — they control
+  process/worker orchestration rather than parsing or enrichment behavior,
+  so they are always passed as separate keyword arguments.
+
 ## Performance tuning
 
 For large mailbox imports or backfills, parsedmarc can consume a noticeable amount

@@ -6,10 +6,11 @@ import logging
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, ProcessPoolExecutor, wait
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from parsedmarc import ParserError
+    from parsedmarc.config import ParserConfig
     from parsedmarc.types import ParsedReport
 
 _J = TypeVar("_J")
@@ -35,14 +36,20 @@ def _init_worker_logging(log_level: int, log_files: list[str]) -> None:
 
 
 def _parse_report_email_job(
-    msg_content: bytes | str, *, kwargs: dict[str, Any]
+    msg_content: bytes | str, *, config: ParserConfig
 ) -> ParsedReport | ParserError:
     """Worker job that parses a single report email.
 
     Module-level and picklable so it can run in a ``ProcessPoolExecutor``
-    worker. ``kwargs`` is forwarded to ``parse_report_email`` and must
-    never contain ``keep_alive`` - it is a bound method of the live
-    mailbox connection in the parent process and is not picklable.
+    worker. ``config`` is forwarded to ``parse_report_email``. The config's
+    caches (``ip_address_cache``, ``seen_aggregate_report_ids``,
+    ``reverse_dns_map``) never cross the process boundary -
+    ``ParserConfig.__getstate__`` drops them, and each worker accumulates
+    its own via the module defaults it rebinds to on unpickling (see
+    ``ParserConfig.__setstate__``). ``keep_alive`` is not a ``ParserConfig``
+    field - it is a bound method of the live mailbox connection in the
+    parent process and is not picklable - so nothing unpicklable is ever
+    submitted to the pool.
 
     Returns the parsed report on success. A ``ParserError`` raised by
     ``parse_report_email`` is caught and returned as a value (never
@@ -53,18 +60,18 @@ def _parse_report_email_job(
     from parsedmarc import ParserError, parse_report_email
 
     try:
-        return parse_report_email(msg_content, **kwargs)
+        return parse_report_email(msg_content, config=config)
     except ParserError as e:
         return e
 
 
 def _parse_report_file_job(
-    file_path: str, *, kwargs: dict[str, Any]
+    file_path: str, *, config: ParserConfig
 ) -> tuple[str, ParsedReport | Exception]:
     """Worker job that parses a single report file.
 
     Module-level and picklable so it can run in a ``ProcessPoolExecutor``
-    worker. ``kwargs`` is forwarded to ``parse_report_file``.
+    worker. ``config`` is forwarded to ``parse_report_file``.
 
     Catches any ``Exception`` (not just ``ParserError``) and returns it
     paired with ``file_path`` rather than letting it propagate. This is a
@@ -77,7 +84,7 @@ def _parse_report_file_job(
     from parsedmarc import parse_report_file
 
     try:
-        return file_path, parse_report_file(file_path, **kwargs)
+        return file_path, parse_report_file(file_path, config=config)
     except Exception as e:
         return file_path, e
 

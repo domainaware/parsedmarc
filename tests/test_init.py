@@ -7,6 +7,7 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 
 import base64
 import gzip
+import inspect
 import json
 import logging
 import mailbox
@@ -24,6 +25,7 @@ from unittest.mock import MagicMock, patch
 from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
+import parsedmarc.constants as constants
 from parsedmarc.mail import MaildirConnection, MSGraphConnection
 from parsedmarc.types import (
     AggregateReport,
@@ -749,7 +751,9 @@ class Test(unittest.TestCase):
             "auth_results": {"dkim": [], "spf": []},
         }
         with self.assertRaises(ValueError):
-            parsedmarc._parse_report_record(record, offline=True)
+            parsedmarc._parse_report_record(
+                record, config=parsedmarc.ParserConfig(offline=True)
+            )
 
     def testParseReportRecordMissingDkimSpf(self):
         """Record with missing dkim/spf auth results defaults correctly"""
@@ -766,7 +770,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["auth_results"]["dkim"], [])
         self.assertEqual(result["auth_results"]["spf"], [])
 
@@ -786,7 +792,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         reasons = result["policy_evaluated"]["policy_override_reasons"]
         self.assertEqual(len(reasons), 1)
         self.assertEqual(reasons[0]["type"], "forwarded")
@@ -811,7 +819,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         reasons = result["policy_evaluated"]["policy_override_reasons"]
         self.assertEqual(len(reasons), 2)
         self.assertEqual(reasons[0]["comment"], "relay")
@@ -835,7 +845,9 @@ class Test(unittest.TestCase):
             },
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertIn("identifiers", result)
         self.assertEqual(result["identifiers"]["header_from"], "example.com")
 
@@ -857,7 +869,9 @@ class Test(unittest.TestCase):
                 "spf": [],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         dkim = result["auth_results"]["dkim"][0]
         self.assertEqual(dkim["selector"], "none")
         self.assertEqual(dkim["result"], "none")
@@ -881,7 +895,9 @@ class Test(unittest.TestCase):
                 "spf": {"domain": "example.com"},
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         spf = result["auth_results"]["spf"][0]
         self.assertEqual(spf["scope"], "mfrom")
         self.assertEqual(spf["result"], "none")
@@ -919,7 +935,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["auth_results"]["dkim"][0]["human_result"], "good key")
         self.assertEqual(
             result["auth_results"]["spf"][0]["human_result"], "sender valid"
@@ -945,7 +963,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_from"], "bounce.example.com")
 
     def testParseReportRecordEnvelopeFromNullFallback(self):
@@ -971,7 +991,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_from"], "spf.example.com")
 
     def testParseReportRecordEnvelopeFromNullNoSpfDomain(self):
@@ -998,7 +1020,9 @@ class Test(unittest.TestCase):
                 "spf": [{"scope": "mfrom", "result": "pass"}],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertIsNone(result["identifiers"]["envelope_from"])
 
     def testParseReportRecordEnvelopeTo(self):
@@ -1020,7 +1044,9 @@ class Test(unittest.TestCase):
             },
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_to"], "recipient@example.com")
 
     def testParseReportRecordAlignment(self):
@@ -1038,7 +1064,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertTrue(result["alignment"]["dkim"])
         self.assertFalse(result["alignment"]["spf"])
         self.assertTrue(result["alignment"]["dmarc"])
@@ -2707,6 +2735,214 @@ class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
             any("not a valid report" in line for line in parallel_logs.output),
             parallel_logs.output,
         )
+
+
+class TestCentralizedConfig(unittest.TestCase):
+    """Regression coverage for the centralize-config-503 refactor
+    (parsedmarc/config.py's ``ParserConfig``): the kwargs-style public API
+    must keep observing/mutating the same module-default caches it always
+    has (via ``_resolve_config`` injecting ``IP_ADDRESS_CACHE`` /
+    ``SEEN_AGGREGATE_REPORT_IDS`` / ``REVERSE_DNS_MAP`` rather than letting
+    a fresh ``ParserConfig()`` default-factory hand back empty ones), an
+    explicit ``config=`` must win over individual option keyword arguments
+    when both are given, and the DNS-timeout/retry/normalize-threshold
+    defaults must stay consistent between each public function's own
+    signature and ``ParserConfig``'s field defaults.
+    """
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+
+    def _build_single_aggregate_mbox(self) -> str:
+        """Builds a temporary mbox containing one copy of AGGREGATE."""
+        tmp = mkdtemp()
+        self.addCleanup(rmtree, tmp, ignore_errors=True)
+        path = os.path.join(tmp, "reports.mbox")
+        box = mailbox.mbox(path)
+        box.lock()
+        try:
+            with open(self.AGGREGATE, "rb") as source_file:
+                box.add(mailbox.mboxMessage(source_file.read()))
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+        return path
+
+    def test_kwargs_path_uses_module_default_caches_not_fresh_ones(self):
+        """Regression guard for _resolve_config: calling
+        get_dmarc_reports_from_mbox with plain kwargs (no config=) twice in
+        a row over the same mbox must dedup the second run's aggregate
+        report against the first run's, because both calls must resolve to
+        the SAME module-default parsedmarc.SEEN_AGGREGATE_REPORT_IDS cache.
+        If _resolve_config ever let the kwargs path fall through to
+        ParserConfig's default_factory instead of explicitly injecting the
+        module-default caches, each call would get a fresh, empty cache and
+        this dedup would silently stop working.
+        """
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        path = self._build_single_aggregate_mbox()
+
+        first = parsedmarc.get_dmarc_reports_from_mbox(path, offline=True)
+        second = parsedmarc.get_dmarc_reports_from_mbox(path, offline=True)
+
+        self.assertEqual(len(first["aggregate_reports"]), 1)
+        self.assertEqual(len(second["aggregate_reports"]), 0)
+
+        report_metadata = first["aggregate_reports"][0]["report_metadata"]
+        report_key = f"{report_metadata['org_name']}_{report_metadata['report_id']}"
+        self.assertIn(report_key, parsedmarc.SEEN_AGGREGATE_REPORT_IDS)
+
+    def test_kwargs_and_config_equivalence(self):
+        """parse_report_file must produce identical results whether called
+        with individual option keyword arguments or an equivalent explicit
+        ParserConfig, for one sample of each report type. None of these
+        paths touch dedup (that's only in _classify_parsed_email /
+        get_dmarc_reports_from_mbox / get_dmarc_reports_from_mailbox), so
+        no cache clearing is needed between calls.
+        """
+        sample_paths = [
+            "samples/aggregate/rfc9990-sample.xml",
+            "samples/failure/dmarc_ruf_report_linkedin.eml",
+            "samples/smtp_tls/google.com_smtp_tls_report.eml",
+        ]
+        for sample_path in sample_paths:
+            with self.subTest(sample=sample_path):
+                kwargs_result = parsedmarc.parse_report_file(
+                    sample_path, offline=True, always_use_local_files=True
+                )
+                config_result = parsedmarc.parse_report_file(
+                    sample_path,
+                    config=parsedmarc.ParserConfig(
+                        offline=True, always_use_local_files=True
+                    ),
+                )
+                self.assertEqual(kwargs_result, config_result)
+
+    def test_config_wins_over_kwargs_normalize_threshold(self):
+        """When both config= and normalize_timespan_threshold_hours= are
+        given, the config's value must win -- per the documented contract,
+        an explicit config makes the individual option kwargs inert.
+
+        samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml
+        spans exactly 86400 seconds (24h), so a 1.0-hour threshold
+        normalizes it and a 1000-hour threshold does not; this makes the
+        config-vs-kwarg outcome observable in normalized_timespan.
+        """
+        sample_path = "samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml"
+        with open(sample_path, "rb") as f:
+            data = f.read()
+
+        # Config's high threshold must win over the kwarg's low threshold:
+        # the report must NOT be normalized.
+        report = parsedmarc.parse_aggregate_report_file(
+            data,
+            offline=True,
+            config=parsedmarc.ParserConfig(
+                offline=True, normalize_timespan_threshold_hours=1000.0
+            ),
+            normalize_timespan_threshold_hours=1.0,
+        )
+        for record in report["records"]:
+            self.assertFalse(record["normalized_timespan"])  # type: ignore[typeddict-item]
+
+        # Converse: config's low threshold must win over the kwarg's high
+        # threshold: the report MUST be normalized.
+        report = parsedmarc.parse_aggregate_report_file(
+            data,
+            offline=True,
+            config=parsedmarc.ParserConfig(
+                offline=True, normalize_timespan_threshold_hours=1.0
+            ),
+            normalize_timespan_threshold_hours=1000.0,
+        )
+        for record in report["records"]:
+            self.assertTrue(record["normalized_timespan"])  # type: ignore[typeddict-item]
+
+    def test_separate_configs_isolate_dedup_state(self):
+        """Two independently constructed ParserConfig(offline=True)
+        instances must NOT share dedup state (each has its own
+        seen_aggregate_report_ids cache), but reusing the SAME instance
+        across two calls must dedup, exactly like the module-default-cache
+        kwargs path does.
+        """
+        path = self._build_single_aggregate_mbox()
+
+        cfg_a = parsedmarc.ParserConfig(offline=True)
+        cfg_b = parsedmarc.ParserConfig(offline=True)
+        result_a = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_a)
+        result_b = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_b)
+        self.assertEqual(len(result_a["aggregate_reports"]), 1)
+        self.assertEqual(len(result_b["aggregate_reports"]), 1)
+
+        cfg_c = parsedmarc.ParserConfig(offline=True)
+        first = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_c)
+        second = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_c)
+        self.assertEqual(len(first["aggregate_reports"]), 1)
+        self.assertEqual(len(second["aggregate_reports"]), 0)
+
+    def test_dns_and_normalize_defaults_match_constants_and_parser_config(self):
+        """DNS timeout/retries and normalize-timespan-threshold defaults
+        must match parsedmarc.constants (the authoritative source --
+        DEFAULT_DNS_TIMEOUT, DEFAULT_DNS_MAX_RETRIES) and
+        parsedmarc.config.ParserConfig's own field defaults, across every
+        public function that accepts them.
+
+        Regression guard: before this refactor, get_dmarc_reports_from_mailbox
+        and watch_inbox each had a stray literal ``dns_timeout=6.0`` (instead
+        of ``DEFAULT_DNS_TIMEOUT == 2.0``) and
+        ``normalize_timespan_threshold_hours=24`` (an int, instead of the
+        float ``24.0`` used everywhere else) -- exactly the kind of drift
+        _resolve_config's shared construction path is meant to prevent from
+        silently reappearing.
+        """
+        functions_and_dns_params = [
+            (parsedmarc.parse_aggregate_report_xml, "timeout", "retries"),
+            (parsedmarc.parse_aggregate_report_file, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_failure_report, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_report_email, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_report_file, "dns_timeout", "dns_retries"),
+            (parsedmarc.get_dmarc_reports_from_mbox, "dns_timeout", "dns_retries"),
+            (
+                parsedmarc.get_dmarc_reports_from_mailbox,
+                "dns_timeout",
+                "dns_retries",
+            ),
+            (parsedmarc.watch_inbox, "dns_timeout", "dns_retries"),
+        ]
+
+        default_config = parsedmarc.ParserConfig()
+
+        for func, timeout_param, retries_param in functions_and_dns_params:
+            with self.subTest(func=func.__name__, param="dns"):
+                sig = inspect.signature(func)
+                timeout_default = sig.parameters[timeout_param].default
+                retries_default = sig.parameters[retries_param].default
+                self.assertEqual(timeout_default, constants.DEFAULT_DNS_TIMEOUT)
+                self.assertEqual(retries_default, constants.DEFAULT_DNS_MAX_RETRIES)
+                self.assertEqual(timeout_default, default_config.dns_timeout)
+                self.assertEqual(retries_default, default_config.dns_retries)
+
+        # parse_failure_report has no normalize_timespan_threshold_hours
+        # parameter -- normalization is an aggregate-report-only concept.
+        normalize_funcs = [
+            parsedmarc.parse_aggregate_report_xml,
+            parsedmarc.parse_aggregate_report_file,
+            parsedmarc.parse_report_email,
+            parsedmarc.parse_report_file,
+            parsedmarc.get_dmarc_reports_from_mbox,
+            parsedmarc.get_dmarc_reports_from_mailbox,
+            parsedmarc.watch_inbox,
+        ]
+        for func in normalize_funcs:
+            with self.subTest(func=func.__name__, param="normalize"):
+                sig = inspect.signature(func)
+                default = sig.parameters["normalize_timespan_threshold_hours"].default
+                self.assertEqual(default, 24.0)
+                self.assertIsInstance(default, float)
+                self.assertEqual(
+                    default, default_config.normalize_timespan_threshold_hours
+                )
 
 
 class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):

@@ -1236,6 +1236,108 @@ since = 2d
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 
 
+class TestCliParserConfigWiring(unittest.TestCase):
+    """Tests that _main() builds a single ParserConfig (via
+    _build_parser_config) from parsed opts and passes it as ``config=`` to
+    the library's mailbox-fetching functions, rather than forwarding
+    individual option kwargs (offline, dns_timeout, ip_db_path, etc.) by
+    hand at each call site."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+        # SEEN_AGGREGATE_REPORT_IDS is a module-level ExpiringDict shared
+        # across tests in this process; clear it both ways so state from an
+        # earlier test class doesn't leak in, and so this class doesn't leak
+        # into a later one. Precedent: TestDirectoryFilePaths.setUp above.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
+
+    def _run_one_shot_mailbox(
+        self, dns_timeout: float | None = None, dns_retries: int | None = None
+    ) -> parsedmarc.ParserConfig:
+        """Runs a real one-shot _main() against a mocked IMAP connection and
+        mocked get_dmarc_reports_from_mailbox, and returns the ParserConfig
+        the CLI passed as ``config=``."""
+        config_lines = ["[general]", "silent = true"]
+        if dns_timeout is not None:
+            config_lines.append(f"dns_timeout = {dns_timeout}")
+        if dns_retries is not None:
+            config_lines.append(f"dns_retries = {dns_retries}")
+        config_lines += [
+            "",
+            "[imap]",
+            "host = imap.example.com",
+            "user = user",
+            "password = pass",
+        ]
+        config_text = "\n".join(config_lines) + "\n"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with (
+            patch("parsedmarc.cli.get_dmarc_reports_from_mailbox") as mock_get_reports,
+            patch("parsedmarc.cli.IMAPConnection") as mock_imap,
+        ):
+            mock_imap.return_value = object()
+            mock_get_reports.return_value = {
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+                parsedmarc.cli._main()
+            return mock_get_reports.call_args.kwargs["config"]
+
+    def test_one_shot_mailbox_run_honors_general_dns_timeout(self):
+        """Regression test for the one-shot mailbox call site in _main():
+        before this fix, that call to get_dmarc_reports_from_mailbox
+        omitted the dns_timeout/dns_retries kwargs entirely (and, before
+        config= existed, had no way to pass them at all), so a one-shot run
+        silently used the library's own hardcoded default
+        (``dns_timeout: float = 6.0`` on master's
+        get_dmarc_reports_from_mailbox signature) instead of the operator's
+        ``[general] dns_timeout`` / ``dns_retries`` config values. Watch-mode
+        runs were unaffected because the watch_inbox call site did pass
+        dns_timeout/dns_retries directly.
+        """
+        cfg = self._run_one_shot_mailbox(dns_timeout=11.5, dns_retries=3)
+        self.assertEqual(cfg.dns_timeout, 11.5)
+        self.assertEqual(cfg.dns_retries, 3)
+
+    def test_cli_config_binds_module_default_caches(self):
+        """The ParserConfig built by the CLI must bind the process-wide
+        default caches (parsedmarc.IP_ADDRESS_CACHE,
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS, parsedmarc.REVERSE_DNS_MAP) by
+        identity, not fresh/isolated caches — otherwise every CLI run would
+        get its own empty caches (defeating the point of the 4-hour IP
+        cache and the 1-hour dedup cache) even though ParserConfig's default
+        factories exist specifically to give library callers isolated
+        caches when they don't pass config=.
+        """
+        cfg = self._run_one_shot_mailbox()
+        self.assertIs(cfg.ip_address_cache, parsedmarc.IP_ADDRESS_CACHE)
+        self.assertIs(
+            cfg.seen_aggregate_report_ids, parsedmarc.SEEN_AGGREGATE_REPORT_IDS
+        )
+        self.assertIs(cfg.reverse_dns_map, parsedmarc.REVERSE_DNS_MAP)
+
+
 class TestMailboxPerformance(unittest.TestCase):
     def setUp(self):
         from parsedmarc.log import logger as _logger
@@ -3034,6 +3136,91 @@ watch = true
             refreshed,
             "Stale entry should have been cleared by reload",
         )
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config")
+    @patch("parsedmarc.cli._load_config")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def test_sighup_reload_rebuilds_parser_config(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_load_config,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """After a SIGHUP reload, the ParserConfig passed to watch_inbox as
+        ``config=`` must reflect the reloaded ``[general] dns_timeout``, not
+        the value from the initial config load.
+
+        Guards against _build_parser_config(opts) being called only once at
+        startup: opts itself is correctly refreshed in place by the existing
+        ``for k, v in vars(new_opts).items(): setattr(opts, k, v)`` loop, but
+        parser_config is a separate ParserConfig snapshot built from opts —
+        if the reload path forgot to rebuild it, watch_inbox would keep
+        receiving the stale pre-reload config object forever.
+        """
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+        mock_load_config.return_value = ConfigParser()
+
+        parse_calls = [0]
+
+        def parse_side_effect(config, opts):
+            parse_calls[0] += 1
+            opts.imap_host = "imap.example.com"
+            opts.imap_user = "user"
+            opts.imap_password = "pass"
+            opts.mailbox_watch = True
+            opts.dns_timeout = 5.0 if parse_calls[0] == 1 else 42.0
+            return None
+
+        mock_parse_config.side_effect = parse_side_effect
+        mock_init_clients.return_value = {}
+
+        watch_calls = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls[0] += 1
+            if watch_calls[0] == 1:
+                if hasattr(signal_module, "SIGHUP"):
+                    import os
+
+                    os.kill(os.getpid(), signal_module.SIGHUP)
+                return
+            else:
+                raise FileExistsError("stop-watch-loop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        self.assertEqual(mock_watch.call_count, 2)
+        first_config = mock_watch.call_args_list[0].kwargs["config"]
+        second_config = mock_watch.call_args_list[1].kwargs["config"]
+        self.assertEqual(first_config.dns_timeout, 5.0)
+        self.assertEqual(second_config.dns_timeout, 42.0)
 
 
 class TestSigtermShutdown(unittest.TestCase):

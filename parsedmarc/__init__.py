@@ -20,11 +20,11 @@ import xml.parsers.expat as expat
 import zipfile
 import zlib
 from base64 import b64decode
+from collections import deque
+from collections.abc import Callable, Sequence
 from csv import DictWriter
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
-from collections import deque
-from collections.abc import Callable, Sequence
 from typing import (
     Any,
     BinaryIO,
@@ -38,6 +38,12 @@ from expiringdict import ExpiringDict
 from mailsuite.smtp import send_email
 from tqdm import tqdm
 
+from parsedmarc.config import (
+    IP_ADDRESS_CACHE,
+    REVERSE_DNS_MAP,
+    SEEN_AGGREGATE_REPORT_IDS,
+    ParserConfig,
+)
 from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
     DEFAULT_DNS_TIMEOUT,
@@ -116,10 +122,6 @@ EMAIL_SAMPLE_CONTENT_TYPES = (
     "message/rfc-822-headers",
 )
 
-IP_ADDRESS_CACHE = ExpiringDict(max_len=10000, max_age_seconds=14400)
-SEEN_AGGREGATE_REPORT_IDS = ExpiringDict(max_len=100000000, max_age_seconds=3600)
-REVERSE_DNS_MAP = dict()
-
 
 class ParserError(RuntimeError):
     """Raised whenever the parser fails for some reason"""
@@ -143,6 +145,66 @@ class InvalidFailureReport(InvalidDMARCReport):
 
 # Backward-compatible alias
 InvalidForensicReport = InvalidFailureReport
+
+
+def _resolve_config(
+    config: ParserConfig | None,
+    *,
+    offline: bool = False,
+    ip_db_path: str | None = None,
+    always_use_local_files: bool = False,
+    reverse_dns_map_path: str | None = None,
+    reverse_dns_map_url: str | None = None,
+    nameservers: list[str] | None = None,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
+    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
+    strip_attachment_payloads: bool = False,
+    normalize_timespan_threshold_hours: float = 24.0,
+) -> ParserConfig:
+    """Resolve the effective :class:`~parsedmarc.config.ParserConfig` for a
+    public parsing call, from either an explicit ``config`` or the caller's
+    individual option keyword arguments.
+
+    If ``config`` is not ``None``, it is returned unchanged: per the
+    documented ``config=`` contract, the individual option keyword arguments
+    are ignored in favor of the config's own values, so no merging happens
+    here.
+
+    Otherwise, a new ``ParserConfig`` is built from the given keyword
+    arguments. Its three cache fields are deliberately *not* left to their
+    ``default_factory`` -- doing so would hand back a config with brand new,
+    empty caches on every call, silently defeating cross-call IP-info
+    caching and aggregate-report dedup. Instead, the module-default caches
+    (:data:`IP_ADDRESS_CACHE`, :data:`SEEN_AGGREGATE_REPORT_IDS`,
+    :data:`REVERSE_DNS_MAP`) are injected explicitly, so kwargs-style calls
+    keep observing and mutating the same shared caches they always have.
+
+    ``dataclasses.replace`` is deliberately not used here: it would need an
+    existing ``ParserConfig`` to start from, and there isn't one on the
+    kwargs path -- this function's job is to build the first one.
+
+    ``psl_overrides_path`` / ``psl_overrides_url`` have no corresponding
+    keyword arguments on the public functions (see AGENTS.md's guidance on
+    justifying new config options), so they stay ``None`` on this path; they
+    are only ever set via an explicitly constructed ``config=``.
+    """
+    if config is not None:
+        return config
+    return ParserConfig(
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=float(normalize_timespan_threshold_hours),
+        ip_address_cache=IP_ADDRESS_CACHE,
+        seen_aggregate_report_ids=SEEN_AGGREGATE_REPORT_IDS,
+        reverse_dns_map=REVERSE_DNS_MAP,
+    )
 
 
 def _exc_origin(error: BaseException) -> str:
@@ -378,14 +440,7 @@ def _append_parsed_record(
 def _parse_report_record(
     record: dict[str, Any],
     *,
-    ip_db_path: str | None = None,
-    always_use_local_files: bool = False,
-    reverse_dns_map_path: str | None = None,
-    reverse_dns_map_url: str | None = None,
-    offline: bool = False,
-    nameservers: list[str] | None = None,
-    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
-    dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
+    config: ParserConfig,
     is_rfc_9990: bool = False,
 ) -> dict[str, Any]:
     """
@@ -394,16 +449,9 @@ def _parse_report_record(
 
     Args:
         record (dict): The record to convert
-        always_use_local_files (bool): Do not download files
-        reverse_dns_map_path (str): Path to a reverse DNS map file
-        reverse_dns_map_url (str): URL to a reverse DNS map file
-        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
-        offline (bool): Do not query online for geolocation or DNS
-        nameservers (list): A list of one or more nameservers to use
-        (Cloudflare's public DNS resolvers by default)
-        dns_timeout (float): Sets the DNS timeout in seconds
-        dns_retries (int): Number of times to retry DNS queries on timeout
-            or other transient errors
+        config (ParserConfig): Parsing and enrichment options, plus caches
+        is_rfc_9990 (bool): Whether the enclosing report was detected as
+            RFC 9990-shaped, for RFC 9990-aware validation warnings
 
     Returns:
         dict: The converted record
@@ -414,16 +462,18 @@ def _parse_report_record(
         raise ValueError("Source IP address is empty")
     new_record_source = get_ip_address_info(
         record["row"]["source_ip"],
-        cache=IP_ADDRESS_CACHE,
-        ip_db_path=ip_db_path,
-        always_use_local_files=always_use_local_files,
-        reverse_dns_map_path=reverse_dns_map_path,
-        reverse_dns_map_url=reverse_dns_map_url,
-        reverse_dns_map=REVERSE_DNS_MAP,
-        offline=offline,
-        nameservers=nameservers,
-        timeout=dns_timeout,
-        retries=dns_retries,
+        cache=config.ip_address_cache,
+        ip_db_path=config.ip_db_path,
+        always_use_local_files=config.always_use_local_files,
+        reverse_dns_map_path=config.reverse_dns_map_path,
+        reverse_dns_map_url=config.reverse_dns_map_url,
+        reverse_dns_map=config.reverse_dns_map,
+        offline=config.offline,
+        nameservers=config.nameservers,
+        timeout=config.dns_timeout,
+        retries=config.dns_retries,
+        psl_overrides_path=config.psl_overrides_path,
+        psl_overrides_url=config.psl_overrides_url,
     )
     new_record["source"] = new_record_source
     new_record["count"] = int(record["row"]["count"])
@@ -783,6 +833,7 @@ def parse_aggregate_report_xml(
     retries: int = DEFAULT_DNS_MAX_RETRIES,
     keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
+    config: ParserConfig | None = None,
 ) -> AggregateReport:
     """Parses a DMARC XML report string and returns a consistent dict
 
@@ -799,12 +850,29 @@ def parse_aggregate_report_xml(
         timeout (float): Sets the DNS timeout in seconds
         retries (int): Number of times to retry DNS queries on timeout or
             other transient errors
-        keep_alive (callable): Keep alive function
+        keep_alive (callable): Keep alive function. Not part of ``config``;
+            always applies.
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: The parsed aggregate DMARC report
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=timeout,
+        dns_retries=retries,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
     errors = []
     # Parse XML and recover from errors
     if isinstance(xml, bytes):
@@ -896,7 +964,9 @@ def parse_aggregate_report_xml(
         end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
 
-        normalize_timespan = span_seconds > normalize_timespan_threshold_hours * 3600
+        normalize_timespan = (
+            span_seconds > cfg.normalize_timespan_threshold_hours * 3600
+        )
 
         date_range["begin"] = timestamp_to_human(begin_ts)
         date_range["end"] = timestamp_to_human(end_ts)
@@ -1006,14 +1076,7 @@ def parse_aggregate_report_xml(
                 try:
                     report_record = _parse_report_record(
                         report["record"][i],
-                        ip_db_path=ip_db_path,
-                        offline=offline,
-                        always_use_local_files=always_use_local_files,
-                        reverse_dns_map_path=reverse_dns_map_path,
-                        reverse_dns_map_url=reverse_dns_map_url,
-                        nameservers=nameservers,
-                        dns_timeout=timeout,
-                        dns_retries=retries,
+                        config=cfg,
                         is_rfc_9990=is_rfc_9990,
                     )
                     _append_parsed_record(
@@ -1029,14 +1092,7 @@ def parse_aggregate_report_xml(
         else:
             report_record = _parse_report_record(
                 report["record"],
-                ip_db_path=ip_db_path,
-                always_use_local_files=always_use_local_files,
-                reverse_dns_map_path=reverse_dns_map_path,
-                reverse_dns_map_url=reverse_dns_map_url,
-                offline=offline,
-                nameservers=nameservers,
-                dns_timeout=timeout,
-                dns_retries=retries,
+                config=cfg,
                 is_rfc_9990=is_rfc_9990,
             )
             _append_parsed_record(
@@ -1175,6 +1231,7 @@ def parse_aggregate_report_file(
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
+    config: ParserConfig | None = None,
 ) -> AggregateReport:
     """Parses a file at the given path, a file-like object. or bytes as an
     aggregate DMARC report
@@ -1191,12 +1248,29 @@ def parse_aggregate_report_file(
         dns_timeout (float): Sets the DNS timeout in seconds
         dns_retries (int): Number of times to retry DNS queries on timeout
             or other transient errors
-        keep_alive (callable): Keep alive function
+        keep_alive (callable): Keep alive function. Not part of ``config``;
+            always applies.
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: The parsed DMARC aggregate report
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
 
     try:
         xml = extract_report(_input)
@@ -1205,16 +1279,8 @@ def parse_aggregate_report_file(
 
     return parse_aggregate_report_xml(
         xml,
-        always_use_local_files=always_use_local_files,
-        reverse_dns_map_path=reverse_dns_map_path,
-        reverse_dns_map_url=reverse_dns_map_url,
-        ip_db_path=ip_db_path,
-        offline=offline,
-        nameservers=nameservers,
-        timeout=dns_timeout,
-        retries=dns_retries,
+        config=cfg,
         keep_alive=keep_alive,
-        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
     )
 
 
@@ -1441,6 +1507,7 @@ def parse_failure_report(
     dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
+    config: ParserConfig | None = None,
 ) -> FailureReport:
     """
     Converts a DMARC failure report and sample to a dict
@@ -1461,10 +1528,26 @@ def parse_failure_report(
             or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
             failure report results
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: A parsed report and sample
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+    )
     delivery_results = ["delivered", "spam", "policy", "reject", "other"]
 
     try:
@@ -1504,16 +1587,18 @@ def parse_failure_report(
         ip_address = re.split(r"\s", parsed_report["source_ip"]).pop(0)
         parsed_report_source = get_ip_address_info(
             ip_address,
-            cache=IP_ADDRESS_CACHE,
-            ip_db_path=ip_db_path,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            reverse_dns_map=REVERSE_DNS_MAP,
-            offline=offline,
-            nameservers=nameservers,
-            timeout=dns_timeout,
-            retries=dns_retries,
+            cache=cfg.ip_address_cache,
+            ip_db_path=cfg.ip_db_path,
+            always_use_local_files=cfg.always_use_local_files,
+            reverse_dns_map_path=cfg.reverse_dns_map_path,
+            reverse_dns_map_url=cfg.reverse_dns_map_url,
+            reverse_dns_map=cfg.reverse_dns_map,
+            offline=cfg.offline,
+            nameservers=cfg.nameservers,
+            timeout=cfg.dns_timeout,
+            retries=cfg.dns_retries,
+            psl_overrides_path=cfg.psl_overrides_path,
+            psl_overrides_url=cfg.psl_overrides_url,
         )
         parsed_report["source"] = parsed_report_source
         del parsed_report["source_ip"]
@@ -1582,7 +1667,7 @@ def parse_failure_report(
                 parsed_report[optional_field] = None
 
         parsed_sample = parse_email(
-            sample, strip_attachment_payloads=strip_attachment_payloads
+            sample, strip_attachment_payloads=cfg.strip_attachment_payloads
         )
 
         if "reported_domain" not in parsed_report:
@@ -1723,6 +1808,7 @@ def parse_report_email(
     strip_attachment_payloads: bool = False,
     keep_alive: Callable | None = None,
     normalize_timespan_threshold_hours: float = 24.0,
+    config: ParserConfig | None = None,
 ) -> ParsedReport:
     """
     Parses a DMARC report from an email
@@ -1740,14 +1826,32 @@ def parse_report_email(
             or other transient errors
         strip_attachment_payloads (bool): Remove attachment payloads from
             failure report results
-        keep_alive (callable): keep alive function
+        keep_alive (callable): keep alive function. Not part of ``config``;
+            always applies.
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict:
         * ``report_type``: ``aggregate`` or ``failure``
         * ``report``: The parsed report
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
     result: ParsedReport | None = None
     msg_date: datetime = datetime.now(timezone.utc)
 
@@ -1855,16 +1959,8 @@ def parse_report_email(
                 elif payload_text.strip().startswith("<"):
                     aggregate_report = parse_aggregate_report_xml(
                         payload_text,
-                        ip_db_path=ip_db_path,
-                        always_use_local_files=always_use_local_files,
-                        reverse_dns_map_path=reverse_dns_map_path,
-                        reverse_dns_map_url=reverse_dns_map_url,
-                        offline=offline,
-                        nameservers=nameservers,
-                        timeout=dns_timeout,
-                        retries=dns_retries,
+                        config=cfg,
                         keep_alive=keep_alive,
-                        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                     )
                     result = {"report_type": "aggregate", "report": aggregate_report}
 
@@ -1889,15 +1985,7 @@ def parse_report_email(
                 feedback_report,
                 sample,
                 msg_date,
-                offline=offline,
-                ip_db_path=ip_db_path,
-                always_use_local_files=always_use_local_files,
-                reverse_dns_map_path=reverse_dns_map_path,
-                reverse_dns_map_url=reverse_dns_map_url,
-                nameservers=nameservers,
-                dns_timeout=dns_timeout,
-                dns_retries=dns_retries,
-                strip_attachment_payloads=strip_attachment_payloads,
+                config=cfg,
             )
         except InvalidFailureReport as e:
             error = (
@@ -1978,7 +2066,8 @@ def parse_report_file(
     reverse_dns_map_url: str | None = None,
     offline: bool = False,
     keep_alive: Callable | None = None,
-    normalize_timespan_threshold_hours: float = 24,
+    normalize_timespan_threshold_hours: float = 24.0,
+    config: ParserConfig | None = None,
 ) -> ParsedReport:
     """Parses a DMARC aggregate or failure file at the given path, a
     file-like object. or bytes
@@ -1998,11 +2087,30 @@ def parse_report_file(
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
         offline (bool): Do not make online queries for geolocation or DNS
-        keep_alive (callable): Keep alive function
+        keep_alive (callable): Keep alive function. Not part of ``config``;
+            always applies.
+        normalize_timespan_threshold_hours (float): Normalize timespans beyond this
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: The parsed DMARC report
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
     file_object: BinaryIO
     if isinstance(input_, (str, os.PathLike)):
         file_path = os.fspath(input_)
@@ -2027,16 +2135,8 @@ def parse_report_file(
     try:
         report = parse_aggregate_report_file(
             content,
-            ip_db_path=ip_db_path,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            offline=offline,
-            nameservers=nameservers,
-            dns_timeout=dns_timeout,
-            dns_retries=dns_retries,
+            config=cfg,
             keep_alive=keep_alive,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
         )
         results = {"report_type": "aggregate", "report": report}
     except InvalidAggregateReport as aggregate_error:
@@ -2047,17 +2147,8 @@ def parse_report_file(
             try:
                 results = parse_report_email(
                     content,
-                    ip_db_path=ip_db_path,
-                    always_use_local_files=always_use_local_files,
-                    reverse_dns_map_path=reverse_dns_map_path,
-                    reverse_dns_map_url=reverse_dns_map_url,
-                    offline=offline,
-                    nameservers=nameservers,
-                    dns_timeout=dns_timeout,
-                    dns_retries=dns_retries,
-                    strip_attachment_payloads=strip_attachment_payloads,
+                    config=cfg,
                     keep_alive=keep_alive,
-                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
             except InvalidDMARCReport as email_error:
                 raise ParserError(
@@ -2076,14 +2167,19 @@ def _classify_parsed_email(
     aggregate_reports: list[AggregateReport],
     failure_reports: list[FailureReport],
     smtp_tls_reports: list[SMTPTLSReport],
+    *,
+    seen_aggregate_report_ids: ExpiringDict,
 ) -> ReportType:
     """Classify a parsed report email, appending it to the matching list.
 
-    Owns the ``SEEN_AGGREGATE_REPORT_IDS`` dedup check: an aggregate report
-    already seen (keyed on ``{org_name}_{report_id}``) is logged and
-    dropped instead of appended. Shared, unmodified, by the sequential and
-    parallel branches of ``get_dmarc_reports_from_mbox`` and
-    ``get_dmarc_reports_from_mailbox`` so both dedup identically.
+    Owns the seen-aggregate-report-ID dedup check against
+    ``seen_aggregate_report_ids``: an aggregate report already seen (keyed
+    on ``{org_name}_{report_id}``) is logged and dropped instead of
+    appended. Shared, unmodified, by the sequential and parallel branches
+    of ``get_dmarc_reports_from_mbox`` and ``get_dmarc_reports_from_mailbox``
+    so both dedup identically -- callers pass the config's
+    ``seen_aggregate_report_ids`` cache so dedup state stays scoped to
+    whichever ``ParserConfig`` (explicit or module-default) is in effect.
 
     Returns the report type so mailbox callers know which UID list to
     append the source message's UID to.
@@ -2096,8 +2192,8 @@ def _classify_parsed_email(
         report_org = parsed_email["report"]["report_metadata"]["org_name"]
         report_id = parsed_email["report"]["report_metadata"]["report_id"]
         report_key = f"{report_org}_{report_id}"
-        if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-            SEEN_AGGREGATE_REPORT_IDS[report_key] = True
+        if report_key not in seen_aggregate_report_ids:
+            seen_aggregate_report_ids[report_key] = True
             aggregate_reports.append(parsed_email["report"])
         else:
             logger.debug(
@@ -2179,6 +2275,7 @@ def get_dmarc_reports_from_mbox(
     offline: bool = False,
     normalize_timespan_threshold_hours: float = 24.0,
     n_procs: int = 1,
+    config: ParserConfig | None = None,
 ) -> ParsingResults:
     """Parses a mailbox in mbox format containing e-mails with attached
     DMARC reports
@@ -2200,12 +2297,30 @@ def get_dmarc_reports_from_mbox(
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
         n_procs (int): Number of processes to use for parsing messages in
             parallel. Message reading, deduplication, and result assembly
-            stay in the calling process; only parsing is parallelized.
+            stay in the calling process; only parsing is parallelized. Not
+            part of ``config``; always applies.
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
 
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
     aggregate_reports: list[AggregateReport] = []
     failure_reports: list[FailureReport] = []
     smtp_tls_reports: list[SMTPTLSReport] = []
@@ -2218,21 +2333,7 @@ def get_dmarc_reports_from_mbox(
         if n_procs > 1 and total_messages > 1:
             from parsedmarc.parallel import _parse_report_email_job, parallel_map
 
-            parse_kwargs = {
-                "ip_db_path": ip_db_path,
-                "always_use_local_files": always_use_local_files,
-                "reverse_dns_map_path": reverse_dns_map_path,
-                "reverse_dns_map_url": reverse_dns_map_url,
-                "offline": offline,
-                "nameservers": nameservers,
-                "dns_timeout": dns_timeout,
-                "dns_retries": dns_retries,
-                "strip_attachment_payloads": strip_attachment_payloads,
-                "normalize_timespan_threshold_hours": (
-                    normalize_timespan_threshold_hours
-                ),
-            }
-            func = functools.partial(_parse_report_email_job, kwargs=parse_kwargs)
+            func = functools.partial(_parse_report_email_job, config=cfg)
 
             def _jobs():
                 for i in range(total_messages):
@@ -2251,7 +2352,11 @@ def get_dmarc_reports_from_mbox(
                     raise result
                 else:
                     _classify_parsed_email(
-                        result, aggregate_reports, failure_reports, smtp_tls_reports
+                        result,
+                        aggregate_reports,
+                        failure_reports,
+                        smtp_tls_reports,
+                        seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
                     )
         else:
             for i in tqdm(range(total_messages), disable=None):
@@ -2259,25 +2364,13 @@ def get_dmarc_reports_from_mbox(
                 logger.info(f"Processing message {i + 1} of {total_messages}")
                 msg_content = mbox.get_string(message_key)
                 try:
-                    sa = strip_attachment_payloads
-                    parsed_email = parse_report_email(
-                        msg_content,
-                        ip_db_path=ip_db_path,
-                        always_use_local_files=always_use_local_files,
-                        reverse_dns_map_path=reverse_dns_map_path,
-                        reverse_dns_map_url=reverse_dns_map_url,
-                        offline=offline,
-                        nameservers=nameservers,
-                        dns_timeout=dns_timeout,
-                        dns_retries=dns_retries,
-                        strip_attachment_payloads=sa,
-                        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
-                    )
+                    parsed_email = parse_report_email(msg_content, config=cfg)
                     _classify_parsed_email(
                         parsed_email,
                         aggregate_reports,
                         failure_reports,
                         smtp_tls_reports,
+                        seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
                     )
                 except InvalidDMARCReport as error:
                     logger.warning(error.__str__())
@@ -2341,15 +2434,16 @@ def get_dmarc_reports_from_mailbox(
     reverse_dns_map_url: str | None = None,
     offline: bool = False,
     nameservers: list[str] | None = None,
-    dns_timeout: float = 6.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     results: ParsingResults | None = None,
     batch_size: int = 10,
     since: datetime | date | str | None = None,
     create_folders: bool = True,
-    normalize_timespan_threshold_hours: float = 24,
+    normalize_timespan_threshold_hours: float = 24.0,
     n_procs: int = 1,
+    config: ParserConfig | None = None,
 ) -> ParsingResults:
     """
     Fetches and parses DMARC reports from a mailbox
@@ -2385,6 +2479,11 @@ def get_dmarc_reports_from_mailbox(
             parallelized. With ``n_procs > 1``, invalid-message disposition
             happens after the parsing phase completes, rather than
             interleaved message-by-message as it is when ``n_procs`` is 1.
+            Not part of ``config``; always applies.
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2394,6 +2493,20 @@ def get_dmarc_reports_from_mailbox(
 
     if connection is None:
         raise ValueError("Must supply a connection")
+
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
 
     # current_time useful to fetch_messages later in the program
     current_time: datetime | date | str | None = None
@@ -2479,23 +2592,15 @@ def get_dmarc_reports_from_mailbox(
     if n_procs > 1 and message_limit > 1:
         from parsedmarc.parallel import _parse_report_email_job, parallel_map
 
-        # keep_alive is a bound method of the live connection object and is
-        # not picklable, so it must never cross the process boundary; the
-        # heartbeat passed to parallel_map below keeps the connection alive
-        # instead.
-        parse_kwargs = {
-            "nameservers": nameservers,
-            "dns_timeout": dns_timeout,
-            "dns_retries": dns_retries,
-            "ip_db_path": ip_db_path,
-            "always_use_local_files": always_use_local_files,
-            "reverse_dns_map_path": reverse_dns_map_path,
-            "reverse_dns_map_url": reverse_dns_map_url,
-            "offline": offline,
-            "strip_attachment_payloads": strip_attachment_payloads,
-            "normalize_timespan_threshold_hours": (normalize_timespan_threshold_hours),
-        }
-        func = functools.partial(_parse_report_email_job, kwargs=parse_kwargs)
+        # The config's caches (ip_address_cache, seen_aggregate_report_ids,
+        # reverse_dns_map) never cross the process boundary --
+        # ParserConfig.__getstate__ drops them, and each worker accumulates
+        # its own via the module defaults it rebinds to on unpickling (see
+        # ParserConfig.__setstate__). keep_alive is a bound method of the
+        # live connection object and is not a ParserConfig field, so it is
+        # never submitted to the pool either; the heartbeat passed to
+        # parallel_map below keeps the connection alive instead.
+        func = functools.partial(_parse_report_email_job, config=cfg)
 
         # parallel_map yields results in submission order, so the oldest
         # queued id always belongs to the next yielded result; popping as
@@ -2525,7 +2630,11 @@ def get_dmarc_reports_from_mailbox(
                 invalid_msg_ids.append(message_id)
             else:
                 report_type = _classify_parsed_email(
-                    result, aggregate_reports, failure_reports, smtp_tls_reports
+                    result,
+                    aggregate_reports,
+                    failure_reports,
+                    smtp_tls_reports,
+                    seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
                 )
                 if report_type == "aggregate":
                     aggregate_report_msg_uids.append(message_id)
@@ -2547,23 +2656,17 @@ def get_dmarc_reports_from_mailbox(
             )
             message_id, msg_content = _fetch_mailbox_message(connection, msg_uid, test)
             try:
-                sa = strip_attachment_payloads
                 parsed_email = parse_report_email(
                     msg_content,
-                    nameservers=nameservers,
-                    dns_timeout=dns_timeout,
-                    dns_retries=dns_retries,
-                    ip_db_path=ip_db_path,
-                    always_use_local_files=always_use_local_files,
-                    reverse_dns_map_path=reverse_dns_map_path,
-                    reverse_dns_map_url=reverse_dns_map_url,
-                    offline=offline,
-                    strip_attachment_payloads=sa,
+                    config=cfg,
                     keep_alive=connection.keepalive,
-                    normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
                 )
                 report_type = _classify_parsed_email(
-                    parsed_email, aggregate_reports, failure_reports, smtp_tls_reports
+                    parsed_email,
+                    aggregate_reports,
+                    failure_reports,
+                    smtp_tls_reports,
+                    seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
                 )
                 if report_type == "aggregate":
                     aggregate_report_msg_uids.append(message_id)
@@ -2669,19 +2772,10 @@ def get_dmarc_reports_from_mailbox(
             archive_folder=archive_folder,
             delete=delete,
             test=test,
-            nameservers=nameservers,
-            dns_timeout=dns_timeout,
-            dns_retries=dns_retries,
-            strip_attachment_payloads=strip_attachment_payloads,
             results=results,
-            ip_db_path=ip_db_path,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            offline=offline,
             since=current_time,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
             n_procs=n_procs,
+            config=cfg,
         )
 
     return results
@@ -2702,14 +2796,15 @@ def watch_inbox(
     reverse_dns_map_url: str | None = None,
     offline: bool = False,
     nameservers: list[str] | None = None,
-    dns_timeout: float = 6.0,
+    dns_timeout: float = DEFAULT_DNS_TIMEOUT,
     dns_retries: int = DEFAULT_DNS_MAX_RETRIES,
     strip_attachment_payloads: bool = False,
     batch_size: int = 10,
     since: datetime | date | str | None = None,
-    normalize_timespan_threshold_hours: float = 24,
+    normalize_timespan_threshold_hours: float = 24.0,
     config_reloading: Callable | None = None,
     n_procs: int = 1,
+    config: ParserConfig | None = None,
 ):
     """
     Watches the mailbox for new messages and
@@ -2745,8 +2840,25 @@ def watch_inbox(
             IDLE loop, so the watcher exits cleanly at a safe boundary.
         n_procs (int): Number of processes to use for parsing messages in
             parallel. Passed through to ``get_dmarc_reports_from_mailbox``
-            on each check.
+            on each check. Not part of ``config``; always applies.
+        config (ParserConfig): a single object carrying all parsing and
+            enrichment options plus the caches; when provided, the
+            individual option keyword arguments listed above are ignored in
+            favor of the config's values.
     """
+    cfg = _resolve_config(
+        config,
+        offline=offline,
+        ip_db_path=ip_db_path,
+        always_use_local_files=always_use_local_files,
+        reverse_dns_map_path=reverse_dns_map_path,
+        reverse_dns_map_url=reverse_dns_map_url,
+        nameservers=nameservers,
+        dns_timeout=dns_timeout,
+        dns_retries=dns_retries,
+        strip_attachment_payloads=strip_attachment_payloads,
+        normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+    )
 
     def check_callback(connection):
         res = get_dmarc_reports_from_mailbox(
@@ -2755,20 +2867,11 @@ def watch_inbox(
             archive_folder=archive_folder,
             delete=delete,
             test=test,
-            ip_db_path=ip_db_path,
-            always_use_local_files=always_use_local_files,
-            reverse_dns_map_path=reverse_dns_map_path,
-            reverse_dns_map_url=reverse_dns_map_url,
-            offline=offline,
-            nameservers=nameservers,
-            dns_timeout=dns_timeout,
-            n_procs=n_procs,
-            dns_retries=dns_retries,
-            strip_attachment_payloads=strip_attachment_payloads,
             batch_size=batch_size,
             since=since,
             create_folders=False,
-            normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
+            n_procs=n_procs,
+            config=cfg,
         )
         callback(res)
 
