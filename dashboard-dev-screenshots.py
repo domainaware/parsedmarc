@@ -20,6 +20,9 @@ Hard-won details encoded here:
   copies; pin ?security_tenant=global in the URL or you will screenshot
   old dashboards.
 - Grafana ignores HTTP basic auth for its UI; drive the login form.
+- Grafana lazy-renders panels only when they enter the viewport, so the
+  full-dashboard capture grows the viewport to the dashboard's full height
+  before screenshotting; per-panel viewPanel captures keep the normal size.
 - Splunk panels are the slowest to populate; wait ~25s before capturing.
 """
 
@@ -124,7 +127,25 @@ def grafana(pw):
             timeout=120000,
         )
         page.wait_for_timeout(10000)
+        # Grafana only renders a panel's queries once the panel scrolls into
+        # the viewport, so a fixed 1720x1200 viewport leaves everything
+        # below the fold as an empty placeholder in the full-page capture.
+        # Grow the viewport to cover the whole dashboard first so every
+        # panel is "visible" and runs its queries before we screenshot.
+        height = page.evaluate(
+            "() => Math.max(document.documentElement.scrollHeight,"
+            " document.body ? document.body.scrollHeight : 0)"
+        )
+        page.set_viewport_size(
+            {"width": VIEWPORT["width"], "height": min(height + 400, 12000)}
+        )
+        page.wait_for_timeout(20000)
         shot(page, "grafana_dashboard.png")
+        # Restore the normal viewport for the per-panel captures below; a
+        # viewPanel view fills the viewport, so a grown viewport would
+        # distort those screenshots.
+        page.set_viewport_size(VIEWPORT)
+        page.wait_for_timeout(2000)
         # Zoomed views of the alignment-detail panels.
         for pid, name in ((40, "dkim_details"), (16, "spf_details"), (41, "overview")):
             page.goto(
