@@ -2132,12 +2132,13 @@
               "showLegend": true,
               "style": {
                 "color": {
-                  "fixed": "dark-green"
+                  "fixed": "green"
                 },
-                "opacity": 0.5,
+                "opacity": 0.8,
                 "size": {
+                  "field": "Sum",
                   "fixed": 5,
-                  "min": 2,
+                  "min": 4,
                   "max": 30
                 },
                 "symbol": {
