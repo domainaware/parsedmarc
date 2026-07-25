@@ -266,9 +266,14 @@ else
     # 2001:db8::, etc.) that won't resolve, so cap retries/timeout to bound
     # the cost of those NXDOMAIN-bound lookups. Intentionally invalid samples
     # (empty_reason.xml, invalid_xml.xml, etc.) are skipped from the list.
+    # samples/aggregate/!large-example.com!1711897200!1711983600.xml is
+    # deliberately NOT seeded: its 2,286 synthetic records would be ~99% of
+    # the corpus, drowning the realistic mix on every unfiltered dashboard
+    # (and its records carry no envelope_from and empty SPF domains, so that
+    # column reads almost entirely blank). To load it for scale or backfill
+    # testing, run the seed command below manually with that file appended.
     SAMPLE_FILES=(
         samples/aggregate/!example.com!1538204542!1538463818.xml
-        samples/aggregate/!large-example.com!1711897200!1711983600.xml
         'samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml'
         samples/aggregate/addisonfoods.com!example.com!1536105600!1536191999.xml
         samples/aggregate/estadocuenta1.infonacot.gob.mx!example.com!1536853302!1536939702!2940.xml.zip
