@@ -551,11 +551,15 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
     for name in names:
         index = Index(name)
         try:
-            # Deliberately no Index.document() registration: Kibana/OpenSearch
-            # Dashboards/Grafana cannot terms-aggregate fields inside a
-            # `nested` mapping, so the dynamic `object` mapping produced by a
-            # bare create is load-bearing for the shipped dashboards. See
-            # issue #169 and the *_combined fields on _AggregateReportDoc.
+            # Deliberately no Index.document() registration: the shipped
+            # dashboards cannot rebuild their detail tables on a `nested`
+            # mapping — Kibana/OSD visual editors do not support nested
+            # fields, Vega can run nested aggregations but does not render
+            # tables, and Grafana's nested bucket aggregation (9.4+) lacks
+            # reverse_nested for parent-level metrics like message_count —
+            # so the dynamic `object` mapping produced by a bare create is
+            # load-bearing for the shipped dashboards. See issue #169 and
+            # the *_combined fields on _AggregateReportDoc.
             if not index.exists():
                 logger.debug("Creating Elasticsearch index: {0}".format(name))
                 if effective_settings:
