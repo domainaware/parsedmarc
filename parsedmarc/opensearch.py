@@ -185,6 +185,11 @@ class _AggregateReportDoc(Document):
     header_from = Text()
     envelope_from = Text()
     envelope_to = Text()
+    # Nested(...) on the two auth-result fields below is only the DSL's
+    # in-memory document shape; it is never installed as a mapping.
+    # create_indexes() deliberately skips Index.document() registration so
+    # these fields stay dynamic-mapped as plain `object` in the cluster
+    # (see the comment there and issue #169).
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
     # One "{selector} / {domain} / {result}" (DKIM) or "{scope} / {domain} /
@@ -476,8 +481,11 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             # tables, and Grafana's nested bucket aggregation (9.4+) lacks
             # reverse_nested for parent-level metrics like message_count —
             # so the dynamic `object` mapping produced by a bare create is
-            # load-bearing for the shipped dashboards. See issue #169 and
-            # the *_combined fields on _AggregateReportDoc.
+            # load-bearing for the shipped dashboards. _AggregateReportDoc
+            # still declares dkim_results/spf_results with Nested(...), but
+            # that is only the DSL's in-memory shape for building documents
+            # — it is never installed as a mapping. See issue #169 and the
+            # *_combined fields on _AggregateReportDoc.
             if not index.exists():
                 logger.debug("Creating OpenSearch index: {0}".format(name))
                 if settings is None:
