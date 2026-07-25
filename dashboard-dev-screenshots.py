@@ -23,6 +23,9 @@ Hard-won details encoded here:
 - Grafana lazy-renders panels only when they enter the viewport, so the
   full-dashboard capture grows the viewport to the dashboard's full height
   before screenshotting; per-panel viewPanel captures keep the normal size.
+  The capture itself is viewport-sized (not full-page) and capped at
+  12000px, so extremely tall dashboards are truncated at the cap rather
+  than padded out with unrendered blank panels.
 - Splunk panels are the slowest to populate; wait ~25s before capturing.
 """
 
@@ -131,16 +134,23 @@ def grafana(pw):
         # the viewport, so a fixed 1720x1200 viewport leaves everything
         # below the fold as an empty placeholder in the full-page capture.
         # Grow the viewport to cover the whole dashboard first so every
-        # panel is "visible" and runs its queries before we screenshot.
+        # panel is "visible" and runs its queries before we screenshot, then
+        # capture that viewport exactly (not full-page) so a dashboard
+        # taller than the cap below is truncated at the cap instead of
+        # having the full-page capture reach past it into unrendered panels.
         height = page.evaluate(
             "() => Math.max(document.documentElement.scrollHeight,"
             " document.body ? document.body.scrollHeight : 0)"
         )
-        page.set_viewport_size(
-            {"width": VIEWPORT["width"], "height": min(height + 400, 12000)}
-        )
+        capture_height = min(height + 400, 12000)
+        if height + 400 > 12000:
+            print(
+                "note: dashboard is taller than the 12000px viewport cap; "
+                "grafana_dashboard.png will be truncated at 12000px"
+            )
+        page.set_viewport_size({"width": VIEWPORT["width"], "height": capture_height})
         page.wait_for_timeout(20000)
-        shot(page, "grafana_dashboard.png")
+        shot(page, "grafana_dashboard.png", full=False)
         # Restore the normal viewport for the per-panel captures below; a
         # viewPanel view fills the viewport, so a grown viewport would
         # distort those screenshots.
