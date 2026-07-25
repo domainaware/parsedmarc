@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 10.2.4 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 10.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=2c8206f1"></script>
+      <script src="../../_static/documentation_options.js?v=a126560f"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -126,6 +126,181 @@
 <span class="c1"># settings (e.g. ``refresh_interval``) are accepted and pass through.</span>
 <span class="n">_SERVERLESS_REJECTED_SETTINGS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;number_of_shards&quot;</span><span class="p">,</span> <span class="s2">&quot;number_of_replicas&quot;</span><span class="p">})</span>
 
+<span class="c1"># Guard query for the dkim_results_combined/spf_results_combined backfill</span>
+<span class="c1"># (see ``migrate_indexes``). Matches only documents that have at least one</span>
+<span class="c1"># DKIM or SPF auth result and are missing the corresponding combined field.</span>
+<span class="c1"># Empty arrays are invisible to ``exists``, so documents with zero</span>
+<span class="c1"># DKIM/SPF results are correctly skipped (verified against real data;</span>
+<span class="c1"># this also makes the query idempotent — a backfilled document no longer</span>
+<span class="c1"># matches). Each result is matched on an OR of its ``domain``/``result``</span>
+<span class="c1"># subfields as defense in depth: the parsers we audited never store a</span>
+<span class="c1"># result without both, but an empty string indexes no text tokens and is</span>
+<span class="c1"># invisible to ``exists``, and the storage shape of every historical</span>
+<span class="c1"># parsedmarc version can&#39;t be audited — matching either subfield costs</span>
+<span class="c1"># nothing and cannot skip a document that has something to backfill.</span>
+<span class="n">_COMBINED_BACKFILL_QUERY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;must&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;dkim_results.domain&quot;</span><span class="p">}},</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;dkim_results.result&quot;</span><span class="p">}},</span>
+                                <span class="p">],</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;must_not&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;dkim_results_combined&quot;</span><span class="p">}}],</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;must&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;spf_results.domain&quot;</span><span class="p">}},</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;spf_results.result&quot;</span><span class="p">}},</span>
+                                <span class="p">],</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;must_not&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;spf_results_combined&quot;</span><span class="p">}}],</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># Painless script that (re)derives dkim_results_combined/spf_results_combined</span>
+<span class="c1"># from dkim_results/spf_results, matching the format written by</span>
+<span class="c1"># save_aggregate_report_to_elasticsearch(): &quot;{selector} / {domain} / {result}&quot;</span>
+<span class="c1"># per DKIM result and &quot;{scope} / {domain} / {result}&quot; per SPF result.</span>
+<span class="n">_COMBINED_BACKFILL_SCRIPT</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;List dk = new ArrayList(); &quot;</span>
+    <span class="s2">&quot;def dr = ctx._source.dkim_results; &quot;</span>
+    <span class="s2">&quot;if (dr != null) { &quot;</span>
+    <span class="s2">&quot;if (!(dr instanceof List)) { dr = [dr]; } &quot;</span>
+    <span class="s2">&quot;for (e in dr) { &quot;</span>
+    <span class="s2">&quot;if (e == null) { continue; } &quot;</span>
+    <span class="s1">&#39;def sel = e.selector != null ? e.selector : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def dom = e.domain != null ? e.domain : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def res = e.result != null ? e.result : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;dk.add(sel + &quot; / &quot; + dom + &quot; / &quot; + res); &#39;</span>
+    <span class="s2">&quot;} } &quot;</span>
+    <span class="s2">&quot;ctx._source.dkim_results_combined = dk; &quot;</span>
+    <span class="s2">&quot;List sp = new ArrayList(); &quot;</span>
+    <span class="s2">&quot;def sr = ctx._source.spf_results; &quot;</span>
+    <span class="s2">&quot;if (sr != null) { &quot;</span>
+    <span class="s2">&quot;if (!(sr instanceof List)) { sr = [sr]; } &quot;</span>
+    <span class="s2">&quot;for (e in sr) { &quot;</span>
+    <span class="s2">&quot;if (e == null) { continue; } &quot;</span>
+    <span class="s1">&#39;def sc = e.scope != null ? e.scope : &quot;mfrom&quot;; &#39;</span>
+    <span class="s1">&#39;def dom = e.domain != null ? e.domain : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def res = e.result != null ? e.result : (e.results != null ? e.results : &quot;none&quot;); &#39;</span>
+    <span class="s1">&#39;sp.add(sc + &quot; / &quot; + dom + &quot; / &quot; + res); &#39;</span>
+    <span class="s2">&quot;} } &quot;</span>
+    <span class="s2">&quot;ctx._source.spf_results_combined = sp;&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># Guard query for the policies_combined/failure_details_combined backfill</span>
+<span class="c1"># (see ``migrate_indexes``). Matches only SMTP TLS documents that have at</span>
+<span class="c1"># least one policy or failure detail and are missing the corresponding</span>
+<span class="c1"># combined field. Empty arrays are invisible to ``exists``, so documents</span>
+<span class="c1"># with zero policies/failure details are correctly skipped (this also</span>
+<span class="c1"># makes the query idempotent — a backfilled document no longer matches).</span>
+<span class="c1"># Each result is matched on an OR of its relevant subfields as defense in</span>
+<span class="c1"># depth: the parsers we audited never store a policy/failure detail</span>
+<span class="c1"># without these fields, but an empty string indexes no text tokens and is</span>
+<span class="c1"># invisible to ``exists``, and the storage shape of every historical</span>
+<span class="c1"># parsedmarc version can&#39;t be audited — matching either subfield costs</span>
+<span class="c1"># nothing and cannot skip a document that has something to backfill.</span>
+<span class="n">_SMTP_TLS_COMBINED_BACKFILL_QUERY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;must&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;policies.policy_domain&quot;</span><span class="p">}},</span>
+                                    <span class="p">{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;policies.policy_type&quot;</span><span class="p">}},</span>
+                                <span class="p">],</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;must_not&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;policies_combined&quot;</span><span class="p">}}],</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;must&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">&quot;minimum_should_match&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="s2">&quot;should&quot;</span><span class="p">:</span> <span class="p">[</span>
+                                    <span class="p">{</span>
+                                        <span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                            <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;policies.failure_details.result_type&quot;</span>
+                                        <span class="p">}</span>
+                                    <span class="p">},</span>
+                                    <span class="p">{</span>
+                                        <span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                            <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;policies.failure_details.sending_mta_ip&quot;</span>
+                                        <span class="p">}</span>
+                                    <span class="p">},</span>
+                                <span class="p">],</span>
+                            <span class="p">}</span>
+                        <span class="p">}</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;must_not&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;exists&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;failure_details_combined&quot;</span><span class="p">}}],</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># Painless script that (re)derives policies_combined/failure_details_combined</span>
+<span class="c1"># from policies/policies.failure_details, matching the format written by</span>
+<span class="c1"># save_smtp_tls_report_to_elasticsearch(): &quot;{policy_domain} / {policy_type}&quot;</span>
+<span class="c1"># per policy and &quot;{policy_domain} / {policy_type} / {result_type} /</span>
+<span class="c1"># {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}&quot; per failure</span>
+<span class="c1"># detail.</span>
+<span class="n">_SMTP_TLS_COMBINED_BACKFILL_SCRIPT</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;List pols = new ArrayList(); &quot;</span>
+    <span class="s2">&quot;List dets = new ArrayList(); &quot;</span>
+    <span class="s2">&quot;def ps = ctx._source.policies; &quot;</span>
+    <span class="s2">&quot;if (ps != null) { &quot;</span>
+    <span class="s2">&quot;if (!(ps instanceof List)) { ps = [ps]; } &quot;</span>
+    <span class="s2">&quot;for (p in ps) { &quot;</span>
+    <span class="s2">&quot;if (p == null) { continue; } &quot;</span>
+    <span class="s1">&#39;def dom = p.policy_domain != null ? p.policy_domain : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def typ = p.policy_type != null ? p.policy_type : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;pols.add(dom + &quot; / &quot; + typ); &#39;</span>
+    <span class="s2">&quot;def fds = p.failure_details; &quot;</span>
+    <span class="s2">&quot;if (fds != null) { &quot;</span>
+    <span class="s2">&quot;if (!(fds instanceof List)) { fds = [fds]; } &quot;</span>
+    <span class="s2">&quot;for (f in fds) { &quot;</span>
+    <span class="s2">&quot;if (f == null) { continue; } &quot;</span>
+    <span class="s1">&#39;def rt = f.result_type != null ? f.result_type : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def smi = f.sending_mta_ip != null ? f.sending_mta_ip : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def ri = f.receiving_ip != null ? f.receiving_ip : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;def rmh = f.receiving_mx_hostname != null ? f.receiving_mx_hostname : &quot;none&quot;; &#39;</span>
+    <span class="s1">&#39;dets.add(dom + &quot; / &quot; + typ + &quot; / &quot; + rt + &quot; / &quot; + smi + &quot; / &quot; + ri + &quot; / &quot; + rmh); &#39;</span>
+    <span class="s2">&quot;} } } } &quot;</span>
+    <span class="s2">&quot;ctx._source.policies_combined = pols; &quot;</span>
+    <span class="s2">&quot;ctx._source.failure_details_combined = dets;&quot;</span>
+<span class="p">)</span>
+
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_PolicyOverride</span><span class="p">(</span><span class="n">InnerDoc</span><span class="p">):</span>
     <span class="c1"># The elasticsearch.dsl 8.x type stubs use dataclass_transform and only</span>
@@ -229,6 +404,11 @@
     <span class="n">header_from</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">envelope_from</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">envelope_to</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="c1"># Nested(...) on the two auth-result fields below is only the DSL&#39;s</span>
+    <span class="c1"># in-memory document shape; it is never installed as a mapping.</span>
+    <span class="c1"># create_indexes() deliberately skips Index.document() registration so</span>
+    <span class="c1"># these fields stay dynamic-mapped as plain `object` in the cluster</span>
+    <span class="c1"># (see the comment there and issue #169).</span>
     <span class="n">dkim_results</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_DKIMResult</span><span class="p">)</span>
     <span class="n">spf_results</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SPFResult</span><span class="p">)</span>
     <span class="c1"># One &quot;{selector} / {domain} / {result}&quot; (DKIM) or &quot;{scope} / {domain} /</span>
@@ -266,9 +446,7 @@
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="s2"> / </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dkim_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">selector</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_spf_result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -285,9 +463,7 @@
                 <span class="n">human_result</span><span class="o">=</span><span class="n">human_result</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">spf_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="s2"> / </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spf_results_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportIncompatibleMethodOverride]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">passed_dmarc</span> <span class="o">=</span> <span class="kc">False</span>
@@ -404,6 +580,7 @@
     <span class="n">result_type</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">sending_mta_ip</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
     <span class="n">receiving_mx_helo</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
+    <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">receiving_ip</span> <span class="o">=</span> <span class="n">Ip</span><span class="p">()</span>
     <span class="n">failed_session_count</span> <span class="o">=</span> <span class="n">Integer</span><span class="p">()</span>
     <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
@@ -445,7 +622,7 @@
             <span class="n">receiving_mx_helo</span><span class="o">=</span><span class="n">receiving_mx_helo</span><span class="p">,</span>
             <span class="n">receiving_ip</span><span class="o">=</span><span class="n">receiving_ip</span><span class="p">,</span>
             <span class="n">failed_session_count</span><span class="o">=</span><span class="n">failed_session_count</span><span class="p">,</span>
-            <span class="n">additional_information</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
+            <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
             <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">failure_details</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_details</span><span class="p">)</span>
@@ -468,6 +645,19 @@
     <span class="n">contact_info</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">report_id</span> <span class="o">=</span> <span class="n">Text</span><span class="p">()</span>
     <span class="n">policies</span> <span class="o">=</span> <span class="n">Nested</span><span class="p">(</span><span class="n">_SMTPTLSPolicyDoc</span><span class="p">)</span>
+    <span class="c1"># One &quot;{policy_domain} / {policy_type}&quot; string per policy. Kibana/</span>
+    <span class="c1"># Grafana tables cannot terms-aggregate the subfields of an object</span>
+    <span class="c1"># array without producing a cross-product of values (issue #169), so</span>
+    <span class="c1"># dashboards aggregate these composed keywords instead. Declared to</span>
+    <span class="c1"># match what dynamic mapping produces for a string array (text +</span>
+    <span class="c1"># .keyword).</span>
+    <span class="n">policies_combined</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="n">multi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="n">Keyword</span><span class="p">(</span><span class="n">ignore_above</span><span class="o">=</span><span class="mi">256</span><span class="p">)})</span>
+    <span class="c1"># One &quot;{policy_domain} / {policy_type} / {result_type} /</span>
+    <span class="c1"># {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}&quot; string</span>
+    <span class="c1"># per failure detail, across all policies.</span>
+    <span class="n">failure_details_combined</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span>
+        <span class="n">multi</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="n">Keyword</span><span class="p">(</span><span class="n">ignore_above</span><span class="o">=</span><span class="mi">256</span><span class="p">)}</span>
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="AlreadySaved">
@@ -516,9 +706,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">hosts</span> <span class="o">=</span> <span class="p">[</span><span class="n">hosts</span><span class="p">]</span>
     <span class="n">scheme</span> <span class="o">=</span> <span class="s2">&quot;https://&quot;</span> <span class="k">if</span> <span class="n">use_ssl</span> <span class="k">else</span> <span class="s2">&quot;http://&quot;</span>
-    <span class="n">normalized_hosts</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">host</span> <span class="k">if</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">host</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span> <span class="n">host</span><span class="p">)</span> <span class="k">for</span> <span class="n">host</span> <span class="ow">in</span> <span class="n">hosts</span>
-    <span class="p">]</span>
+    <span class="n">normalized_hosts</span> <span class="o">=</span> <span class="p">[</span><span class="n">host</span> <span class="k">if</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">host</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">scheme</span><span class="si">}{</span><span class="n">host</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">host</span> <span class="ow">in</span> <span class="n">hosts</span><span class="p">]</span>
     <span class="n">conn_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;hosts&quot;</span><span class="p">:</span> <span class="n">normalized_hosts</span><span class="p">,</span> <span class="s2">&quot;request_timeout&quot;</span><span class="p">:</span> <span class="n">timeout</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">use_ssl</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ssl_cert_path</span><span class="p">:</span>
@@ -561,18 +749,25 @@
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1"># Deliberately no Index.document() registration: Kibana/OpenSearch</span>
-            <span class="c1"># Dashboards/Grafana cannot terms-aggregate fields inside a</span>
-            <span class="c1"># `nested` mapping, so the dynamic `object` mapping produced by a</span>
-            <span class="c1"># bare create is load-bearing for the shipped dashboards (issue</span>
-            <span class="c1"># #169; see the *_combined fields on _AggregateReportDoc).</span>
+            <span class="c1"># Deliberately no Index.document() registration: the shipped</span>
+            <span class="c1"># dashboards cannot rebuild their detail tables on a `nested`</span>
+            <span class="c1"># mapping — Kibana/OSD visual editors do not support nested</span>
+            <span class="c1"># fields, Vega can run nested aggregations but does not render</span>
+            <span class="c1"># tables, and Grafana&#39;s nested bucket aggregation (9.4+) lacks</span>
+            <span class="c1"># reverse_nested for parent-level metrics like message_count —</span>
+            <span class="c1"># so the dynamic `object` mapping produced by a bare create is</span>
+            <span class="c1"># load-bearing for the shipped dashboards. _AggregateReportDoc</span>
+            <span class="c1"># still declares dkim_results/spf_results with Nested(...), but</span>
+            <span class="c1"># that is only the DSL&#39;s in-memory shape for building documents</span>
+            <span class="c1"># — it is never installed as a mapping. See issue #169 and the</span>
+            <span class="c1"># *_combined fields on _AggregateReportDoc.</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating Elasticsearch index: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">effective_settings</span><span class="p">:</span>
                     <span class="n">index</span><span class="o">.</span><span class="n">settings</span><span class="p">(</span><span class="o">**</span><span class="n">effective_settings</span><span class="p">)</span>
                 <span class="n">index</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
 
@@ -581,25 +776,118 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">migrate_indexes</span><span class="p">(</span>
     <span class="n">aggregate_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">failure_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">smtp_tls_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Updates index mappings</span>
+<span class="sd">    Backfills the ``dkim_results_combined``/``spf_results_combined`` fields</span>
+<span class="sd">    (added for issue #169) on aggregate report documents, and the</span>
+<span class="sd">    ``policies_combined``/``failure_details_combined`` fields on SMTP TLS</span>
+<span class="sd">    report documents, that were saved before those fields existed.</span>
 
-<span class="sd">    This is a no-op kept for API compatibility (``cli.py`` calls it on</span>
-<span class="sd">    startup). The only migration this function ever performed was</span>
-<span class="sd">    re-typing ``published_policy.fo`` from ``long`` to ``text``, which</span>
-<span class="sd">    applied exclusively to indices still carrying the legacy</span>
-<span class="sd">    Elasticsearch 6-era ``&quot;doc&quot;`` mapping type. The 8.x client can only</span>
-<span class="sd">    reach servers (Elasticsearch 8.x/9.x) whose indices were created on</span>
-<span class="sd">    Elasticsearch 7.x or later and are therefore typeless, so that</span>
-<span class="sd">    migration path is unreachable and has been removed.</span>
+<span class="sd">    For each name in ``aggregate_indexes``/``smtp_tls_indexes``, this</span>
+<span class="sd">    submits an ``update_by_query`` against the ``f&quot;{name}*&quot;`` index pattern</span>
+<span class="sd">    (the real indexes are date-suffixed) as a non-blocking background task</span>
+<span class="sd">    (``wait_for_completion=False``), so it never delays parsedmarc startup.</span>
+<span class="sd">    Submission is guarded by a cheap ``count`` query that only matches</span>
+<span class="sd">    documents with DKIM/SPF results (or policies/failure details) but no</span>
+<span class="sd">    combined field, so once an index is fully backfilled, later calls are a</span>
+<span class="sd">    fast no-op. Any error talking to the cluster (e.g. no indexes yet on a</span>
+<span class="sd">    fresh install, or a transient connection issue) is caught and logged as</span>
+<span class="sd">    a warning rather than raised; the backfill is simply retried on the</span>
+<span class="sd">    next startup, and the manual ``_update_by_query`` commands documented in</span>
+<span class="sd">    ``docs/source/elasticsearch.md`` remain available in the meantime.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        aggregate_indexes (list): A list of aggregate index names</span>
-<span class="sd">            (accepted for API compatibility; unused)</span>
 <span class="sd">        failure_indexes (list): A list of failure index names</span>
 <span class="sd">            (accepted for API compatibility; unused)</span>
-<span class="sd">    &quot;&quot;&quot;</span></div>
+<span class="sd">        smtp_tls_indexes (list): A list of SMTP TLS index names</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">aggregate_indexes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">smtp_tls_indexes</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;Skipping the dkim_results_combined/spf_results_combined/&quot;</span>
+            <span class="s2">&quot;policies_combined/failure_details_combined backfill: could &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;not get an Elasticsearch connection: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. This will be &quot;</span>
+            <span class="s2">&quot;retried at the next startup.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">aggregate_indexes</span> <span class="ow">or</span> <span class="p">[]:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">*&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">count_response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">_COMBINED_BACKFILL_QUERY</span><span class="p">,</span>
+                <span class="n">ignore_unavailable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">allow_no_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">count_response</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">count</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">update_response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">update_by_query</span><span class="p">(</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">_COMBINED_BACKFILL_QUERY</span><span class="p">,</span>
+                <span class="n">script</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="n">_COMBINED_BACKFILL_SCRIPT</span><span class="p">,</span> <span class="s2">&quot;lang&quot;</span><span class="p">:</span> <span class="s2">&quot;painless&quot;</span><span class="p">},</span>
+                <span class="n">conflicts</span><span class="o">=</span><span class="s2">&quot;proceed&quot;</span><span class="p">,</span>
+                <span class="n">wait_for_completion</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">ignore_unavailable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">allow_no_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">task_id</span> <span class="o">=</span> <span class="n">update_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;task&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Backfilling dkim_results_combined/spf_results_combined on &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> existing documents in </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2"> (task </span><span class="si">{</span><span class="n">task_id</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to check/submit the dkim_results_combined/&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;spf_results_combined backfill for </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. This &quot;</span>
+                <span class="s2">&quot;will be retried at the next startup; the manual &quot;</span>
+                <span class="s2">&quot;_update_by_query command in the documentation remains &quot;</span>
+                <span class="s2">&quot;available in the meantime.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">smtp_tls_indexes</span> <span class="ow">or</span> <span class="p">[]:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">*&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">count_response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">_SMTP_TLS_COMBINED_BACKFILL_QUERY</span><span class="p">,</span>
+                <span class="n">ignore_unavailable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">allow_no_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">count_response</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">count</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">update_response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">update_by_query</span><span class="p">(</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">_SMTP_TLS_COMBINED_BACKFILL_QUERY</span><span class="p">,</span>
+                <span class="n">script</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="n">_SMTP_TLS_COMBINED_BACKFILL_SCRIPT</span><span class="p">,</span>
+                    <span class="s2">&quot;lang&quot;</span><span class="p">:</span> <span class="s2">&quot;painless&quot;</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="n">conflicts</span><span class="o">=</span><span class="s2">&quot;proceed&quot;</span><span class="p">,</span>
+                <span class="n">wait_for_completion</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">ignore_unavailable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">allow_no_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">task_id</span> <span class="o">=</span> <span class="n">update_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;task&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Backfilling policies_combined/failure_details_combined on &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> existing documents in </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2"> (task </span><span class="si">{</span><span class="n">task_id</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Failed to check/submit the policies_combined/&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;failure_details_combined backfill for </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="s2">&quot;This will be retried at the next startup; the manual &quot;</span>
+                <span class="s2">&quot;_update_by_query command in the documentation remains &quot;</span>
+                <span class="s2">&quot;available in the meantime.&quot;</span>
+            <span class="p">)</span></div>
 
 
 
@@ -648,11 +936,11 @@
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">lte</span><span class="o">=</span><span class="n">end_date</span><span class="p">))))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;dmarc_aggregate_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">*&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate*&quot;</span>
     <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">search_index</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span> <span class="o">&amp;</span> <span class="n">domain_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
@@ -667,18 +955,15 @@
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-            <span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
-<span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="sa">f</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report error: </span><span class="si">{</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span>
-            <span class="s2">&quot;An aggregate report ID </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> about </span><span class="si">{2}</span><span class="s2"> &quot;</span>
-            <span class="s2">&quot;with a date range of </span><span class="si">{3}</span><span class="s2"> UTC to </span><span class="si">{4}</span><span class="s2"> UTC already &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;An aggregate report ID </span><span class="si">{</span><span class="n">report_id</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">org_name</span><span class="si">}</span><span class="s2"> about </span><span class="si">{</span><span class="n">domain</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;with a date range of </span><span class="si">{</span><span class="n">begin_date_human</span><span class="si">}</span><span class="s2"> UTC to </span><span class="si">{</span><span class="n">end_date_human</span><span class="si">}</span><span class="s2"> UTC already &quot;</span>
             <span class="s2">&quot;exists in &quot;</span>
-            <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">report_id</span><span class="p">,</span> <span class="n">org_name</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">begin_date_human</span><span class="p">,</span> <span class="n">end_date_human</span>
-            <span class="p">)</span>
+            <span class="s2">&quot;Elasticsearch&quot;</span>
         <span class="p">)</span>
     <span class="n">published_policy</span> <span class="o">=</span> <span class="n">_PublishedPolicy</span><span class="p">(</span>
         <span class="n">domain</span><span class="o">=</span><span class="n">aggregate_report</span><span class="p">[</span><span class="s2">&quot;policy_published&quot;</span><span class="p">][</span><span class="s2">&quot;domain&quot;</span><span class="p">],</span>
@@ -771,11 +1056,11 @@
 
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_aggregate&quot;</span>
         <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span>
 
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">index_date</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
         <span class="p">)</span>
@@ -785,7 +1070,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">agg_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
 
@@ -836,12 +1121,12 @@
     <span class="n">arrival_date_epoch_milliseconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">arrival_date</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_failure_</span><span class="si">{0}</span><span class="s2">*,dmarc_forensic_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;dmarc_failure_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">*,dmarc_forensic_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">*&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_failure*,dmarc_forensic*&quot;</span>
     <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">part</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">search_index</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">part</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">search_index</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrival_date</span><span class="o">=</span><span class="n">arrival_date_epoch_milliseconds</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
@@ -893,8 +1178,8 @@
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">AlreadySaved</span><span class="p">(</span>
-            <span class="s2">&quot;A failure sample to </span><span class="si">{0}</span><span class="s2"> from </span><span class="si">{1}</span><span class="s2"> &quot;</span>
-            <span class="s2">&quot;with a subject of </span><span class="si">{2}</span><span class="s2"> and arrival date of </span><span class="si">{3}</span><span class="s2"> &quot;</span>
+            <span class="s2">&quot;A failure sample to </span><span class="si">{}</span><span class="s2"> from </span><span class="si">{}</span><span class="s2"> &quot;</span>
+            <span class="s2">&quot;with a subject of </span><span class="si">{}</span><span class="s2"> and arrival date of </span><span class="si">{}</span><span class="s2"> &quot;</span>
             <span class="s2">&quot;already exists in &quot;</span>
             <span class="s2">&quot;Elasticsearch&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">to_</span><span class="p">,</span> <span class="n">from_</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">failure_report</span><span class="p">[</span><span class="s2">&quot;arrival_date_utc&quot;</span><span class="p">]</span>
@@ -955,14 +1240,14 @@
 
         <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;dmarc_failure&quot;</span>
         <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">monthly_indexes</span><span class="p">:</span>
             <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">index_date</span> <span class="o">=</span> <span class="n">arrival_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">index_date</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
         <span class="p">)</span>
@@ -971,10 +1256,10 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">failure_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span>
+            <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">InvalidFailureReport</span><span class="p">(</span>
-            <span class="s2">&quot;Failure report missing required field: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="sa">f</span><span class="s2">&quot;Failure report missing required field: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span></div>
 
 
@@ -1024,11 +1309,11 @@
     <span class="n">end_date_query</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">match</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">date_end</span><span class="o">=</span><span class="n">end_date</span><span class="p">)))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
 
     <span class="k">if</span> <span class="n">index_suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls_</span><span class="si">{0}</span><span class="s2">*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_suffix</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;smtp_tls_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">*&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls*&quot;</span>
     <span class="k">if</span> <span class="n">index_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">search_index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">search_index</span><span class="p">)</span>
+        <span class="n">search_index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">search_index</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="n">search</span> <span class="o">=</span> <span class="n">Search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">search_index</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">org_name_query</span> <span class="o">&amp;</span> <span class="n">report_id_query</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">query</span> <span class="o">&amp;</span> <span class="n">begin_date_query</span> <span class="o">&amp;</span> <span class="n">end_date_query</span>
@@ -1038,8 +1323,7 @@
         <span class="n">existing</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error_</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span>
-            <span class="s2">&quot;Elasticsearch&#39;s search for existing report </span><span class="se">\</span>
-<span class="s2">            error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="sa">f</span><span class="s2">&quot;Elasticsearch&#39;s search for existing report error: </span><span class="si">{</span><span class="n">error_</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -1053,10 +1337,10 @@
 
     <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;smtp_tls&quot;</span>
     <span class="k">if</span> <span class="n">index_suffix</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">_</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_suffix</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">index_suffix</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">index_prefix</span><span class="p">:</span>
-        <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index_prefix</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-    <span class="n">index</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">-</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">index_date</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_prefix</span><span class="si">}{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">index_date</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="n">index_settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">number_of_shards</span><span class="o">=</span><span class="n">number_of_shards</span><span class="p">,</span> <span class="n">number_of_replicas</span><span class="o">=</span><span class="n">number_of_replicas</span>
     <span class="p">)</span>
@@ -1077,6 +1361,16 @@
             <span class="n">policy_strings</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_strings&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="s2">&quot;mx_host_patterns&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="p">:</span>
             <span class="n">mx_host_patterns</span> <span class="o">=</span> <span class="n">policy</span><span class="p">[</span><span class="s2">&quot;mx_host_patterns&quot;</span><span class="p">]</span>
+        <span class="c1"># policies_combined/failure_details_combined: see the field</span>
+        <span class="c1"># declarations on _SMTPTLSReportDoc and issue #169. policies and</span>
+        <span class="c1"># their failure_details are object arrays with the same</span>
+        <span class="c1"># cross-product problem as dkim_results/spf_results, so dashboards</span>
+        <span class="c1"># aggregate these composed strings instead of the raw subfields.</span>
+        <span class="n">policy_domain_combined</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span>
+        <span class="n">policy_type_combined</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;policy_type&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span>
+        <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">policy_domain_combined</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">policy_type_combined</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
         <span class="n">policy_doc</span> <span class="o">=</span> <span class="n">_SMTPTLSPolicyDoc</span><span class="p">(</span>
             <span class="n">policy_domain</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_domain&quot;</span><span class="p">],</span>
             <span class="n">policy_type</span><span class="o">=</span><span class="n">policy</span><span class="p">[</span><span class="s2">&quot;policy_type&quot;</span><span class="p">],</span>
@@ -1097,7 +1391,12 @@
 
                 <span class="k">if</span> <span class="s2">&quot;receiving_mx_hostname&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
                     <span class="n">receiving_mx_hostname</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;receiving_mx_hostname&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                <span class="c1"># The parser&#39;s key is additional_info_uri (see</span>
+                <span class="c1"># SMTPTLSFailureDetailsOptional in types.py); accept the</span>
+                <span class="c1"># long-form key too for dicts built by other callers.</span>
+                <span class="k">if</span> <span class="s2">&quot;additional_info_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
+                    <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span><span class="s2">&quot;additional_info_uri&quot;</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="s2">&quot;additional_information_uri&quot;</span> <span class="ow">in</span> <span class="n">failure_detail</span><span class="p">:</span>
                     <span class="n">additional_information_uri</span> <span class="o">=</span> <span class="n">failure_detail</span><span class="p">[</span>
                         <span class="s2">&quot;additional_information_uri&quot;</span>
                     <span class="p">]</span>
@@ -1122,6 +1421,16 @@
                     <span class="n">additional_information_uri</span><span class="o">=</span><span class="n">additional_information_uri</span><span class="p">,</span>
                     <span class="n">failure_reason_code</span><span class="o">=</span><span class="n">failure_reason_code</span><span class="p">,</span>
                 <span class="p">)</span>
+                <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">failure_details_combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">policy_domain_combined</span><span class="p">,</span>
+                        <span class="n">policy_type_combined</span><span class="p">,</span>
+                        <span class="n">failure_detail</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;result_type&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                        <span class="n">sending_mta_ip</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                        <span class="n">receiving_ip</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                        <span class="n">receiving_mx_hostname</span> <span class="ow">or</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">policies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">policy_doc</span><span class="p">)</span>
 
     <span class="n">create_indexes</span><span class="p">([</span><span class="n">index</span><span class="p">],</span> <span class="n">index_settings</span><span class="p">)</span>
@@ -1130,7 +1439,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">smtp_tls_doc</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()))</span></div>
+        <span class="k">raise</span> <span class="n">ElasticsearchError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elasticsearch error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
 

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 10.2.4 documentation</title>
+  <title>API reference &mdash; parsedmarc 10.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2c8206f1"></script>
+      <script src="_static/documentation_options.js?v=a126560f"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -872,23 +872,30 @@ remaining keys are passed through; defaults are skipped entirely.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.elastic.migrate_indexes">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Link to this definition"></a></dt>
-<dd><p>Updates index mappings</p>
-<p>This is a no-op kept for API compatibility (<code class="docutils literal notranslate"><span class="pre">cli.py</span></code> calls it on
-startup). The only migration this function ever performed was
-re-typing <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> from <code class="docutils literal notranslate"><span class="pre">long</span></code> to <code class="docutils literal notranslate"><span class="pre">text</span></code>, which
-applied exclusively to indices still carrying the legacy
-Elasticsearch 6-era <code class="docutils literal notranslate"><span class="pre">&quot;doc&quot;</span></code> mapping type. The 8.x client can only
-reach servers (Elasticsearch 8.x/9.x) whose indices were created on
-Elasticsearch 7.x or later and are therefore typeless, so that
-migration path is unreachable and has been removed.</p>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Link to this definition"></a></dt>
+<dd><p>Backfills the <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> fields
+(added for issue #169) on aggregate report documents, and the
+<code class="docutils literal notranslate"><span class="pre">policies_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">failure_details_combined</span></code> fields on SMTP TLS
+report documents, that were saved before those fields existed.</p>
+<p>For each name in <code class="docutils literal notranslate"><span class="pre">aggregate_indexes</span></code>/<code class="docutils literal notranslate"><span class="pre">smtp_tls_indexes</span></code>, this
+submits an <code class="docutils literal notranslate"><span class="pre">update_by_query</span></code> against the <code class="docutils literal notranslate"><span class="pre">f&quot;{name}*&quot;</span></code> index pattern
+(the real indexes are date-suffixed) as a non-blocking background task
+(<code class="docutils literal notranslate"><span class="pre">wait_for_completion=False</span></code>), so it never delays parsedmarc startup.
+Submission is guarded by a cheap <code class="docutils literal notranslate"><span class="pre">count</span></code> query that only matches
+documents with DKIM/SPF results (or policies/failure details) but no
+combined field, so once an index is fully backfilled, later calls are a
+fast no-op. Any error talking to the cluster (e.g. no indexes yet on a
+fresh install, or a transient connection issue) is caught and logged as
+a warning rather than raised; the backfill is simply retried on the
+next startup, and the manual <code class="docutils literal notranslate"><span class="pre">_update_by_query</span></code> commands documented in
+<code class="docutils literal notranslate"><span class="pre">docs/source/elasticsearch.md</span></code> remain available in the meantime.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names
-(accepted for API compatibility; unused)</p></li>
+<li><p><strong>aggregate_indexes</strong> (<em>list</em>) – A list of aggregate index names</p></li>
 <li><p><strong>failure_indexes</strong> (<em>list</em>) – A list of failure index names
 (accepted for API compatibility; unused)</p></li>
+<li><p><strong>smtp_tls_indexes</strong> (<em>list</em>) – A list of SMTP TLS index names</p></li>
 </ul>
 </dd>
 </dl>
@@ -1039,8 +1046,29 @@ any other settings through unchanged.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.opensearch.migrate_indexes">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.opensearch.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/opensearch.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.opensearch.migrate_indexes" title="Link to this definition"></a></dt>
-<dd><p>Updates index mappings</p>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.opensearch.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/opensearch.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.opensearch.migrate_indexes" title="Link to this definition"></a></dt>
+<dd><p>Runs index migrations and backfills.</p>
+<p>First, the legacy <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> migration: indexes where that
+field was mapped as <code class="docutils literal notranslate"><span class="pre">long</span></code> (data indexed by very old parsedmarc
+releases under the Elasticsearch 6-era <code class="docutils literal notranslate"><span class="pre">doc</span></code> mapping type) are rebuilt
+as a <code class="docutils literal notranslate"><span class="pre">-v2</span></code> index with the text/keyword shape.</p>
+<p>Second, the <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> backfill
+(added for issue #169) for aggregate report documents that were saved
+before those fields existed. For each name in <code class="docutils literal notranslate"><span class="pre">aggregate_indexes</span></code>,
+this submits an <code class="docutils literal notranslate"><span class="pre">update_by_query</span></code> against the <code class="docutils literal notranslate"><span class="pre">f&quot;{name}*&quot;</span></code> index
+pattern (the real indexes are date-suffixed) as a non-blocking
+background task (<code class="docutils literal notranslate"><span class="pre">wait_for_completion=False</span></code>), so it never delays
+parsedmarc startup. Submission is guarded by a cheap <code class="docutils literal notranslate"><span class="pre">count</span></code> query
+that only matches documents with DKIM/SPF results but no combined
+field, so once an index is fully backfilled, later calls are a fast
+no-op. Any error talking to the cluster (e.g. no indexes yet on a
+fresh install, or a transient connection issue) is caught and logged
+as a warning rather than raised; the backfill is simply retried on the
+next startup, and the manual <code class="docutils literal notranslate"><span class="pre">_update_by_query</span></code> command documented
+in <code class="docutils literal notranslate"><span class="pre">docs/source/elasticsearch.md</span></code> remains available in the meantime.</p>
+<p>Third, the same treatment for the <code class="docutils literal notranslate"><span class="pre">policies_combined</span></code>/
+<code class="docutils literal notranslate"><span class="pre">failure_details_combined</span></code> fields (same issue #169) on SMTP TLS
+report documents, for each name in <code class="docutils literal notranslate"><span class="pre">smtp_tls_indexes</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1048,6 +1076,7 @@ any other settings through unchanged.</p></li>
 <li><p><strong>failure_indexes</strong> (<em>list</em>) – A list of failure index names
 (accepted for API compatibility; no migrations are
 currently needed for failure indexes)</p></li>
+<li><p><strong>smtp_tls_indexes</strong> (<em>list</em>) – A list of SMTP TLS index names</p></li>
 </ul>
 </dd>
 </dl>
