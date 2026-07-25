@@ -90,7 +90,7 @@ rather than aggregating them as separate columns. Because a message that
 carries multiple DKIM signatures appears once per signature, summing the
 messages column across rows can exceed the total number of messages.
 
-The "Aggregate DMARC auth result filters" panel above the details tables
+The "Auth result filters" panel above the details tables
 provides dropdowns for the individual auth-result components — DKIM
 selector, DKIM domain, DKIM result, SPF scope, SPF domain, and SPF
 result — and filters the whole dashboard by them. Because components from
