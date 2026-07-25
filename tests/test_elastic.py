@@ -474,6 +474,64 @@ class TestMigrateIndexes(unittest.TestCase):
         )
         self.assertTrue(any("no connection" in msg for msg in cm.output))
 
+    def test_smtp_tls_backfill_submitted_when_old_docs_exist(self):
+        """SMTP TLS analogue of test_backfill_submitted_when_old_docs_exist:
+        policies_combined/failure_details_combined backfill (also issue
+        #169) is submitted with its own guard query and painless script."""
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 7}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "smtp_tls*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(
+            kwargs["query"], elastic_module._SMTP_TLS_COMBINED_BACKFILL_QUERY
+        )
+        script_source = kwargs["script"]["source"]
+        self.assertIn("ctx._source.policies_combined", script_source)
+        self.assertIn("ctx._source.failure_details_combined", script_source)
+
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "smtp_tls*")
+        self.assertEqual(
+            count_kwargs["query"], elastic_module._SMTP_TLS_COMBINED_BACKFILL_QUERY
+        )
+
+    def test_smtp_tls_backfill_skipped_when_no_old_docs(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_smtp_tls_backfill_skipped_when_no_smtp_tls_indexes_or_aggregate(self):
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(smtp_tls_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_smtp_tls_backfill_failure_does_not_raise(self):
+        """SMTP TLS analogue of test_backfill_failure_does_not_raise: an
+        error from the cluster during the smtp_tls_indexes loop is caught
+        and logged rather than raised."""
+        with patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn:
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # save_aggregate_report_to_elasticsearch
@@ -1108,6 +1166,69 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
         ):
             save_smtp_tls_report_to_elasticsearch(report)
         mock_save.assert_called_once()
+
+    def test_save_populates_combined_policy_and_failure_detail_fields(self):
+        """Regression guard for the SMTP TLS analogue of issue #169:
+        policies and their failure_details are object arrays, so stacked
+        terms aggregations on their subfields cross-product just like
+        dkim_results/spf_results did. Two policies (one with two failure
+        details, one with none) must yield exactly two policies_combined
+        entries and two failure_details_combined entries, not a
+        cross-product. autospec=True is required on the save patch so
+        mock_save.call_args captures the doc instance as ``self``."""
+        report = _smtp_tls_report(
+            policies=[
+                {
+                    "policy_domain": "example.com",
+                    "policy_type": "sts",
+                    "successful_session_count": 100,
+                    "failed_session_count": 2,
+                    "failure_details": [
+                        {
+                            "result_type": "certificate-expired",
+                            "failed_session_count": 1,
+                            "sending_mta_ip": "192.0.2.1",
+                            "receiving_ip": "203.0.113.1",
+                            "receiving_mx_hostname": "mx1.example.com",
+                        },
+                        {
+                            "result_type": "starttls-not-supported",
+                            "failed_session_count": 1,
+                            "sending_mta_ip": "192.0.2.2",
+                            "receiving_ip": "203.0.113.2",
+                            "receiving_mx_hostname": "mx2.example.com",
+                        },
+                    ],
+                },
+                {
+                    "policy_domain": "example.net",
+                    "policy_type": "tlsa",
+                    "successful_session_count": 50,
+                    "failed_session_count": 0,
+                },
+            ]
+        )
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index"),
+            patch.object(
+                elastic_module._SMTPTLSReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_smtp_tls_report_to_elasticsearch(report)
+        doc = mock_save.call_args[0][0]
+        self.assertEqual(
+            list(doc.policies_combined), ["example.com / sts", "example.net / tlsa"]
+        )
+        self.assertEqual(
+            list(doc.failure_details_combined),
+            [
+                "example.com / sts / certificate-expired / 192.0.2.1 / "
+                "203.0.113.1 / mx1.example.com",
+                "example.com / sts / starttls-not-supported / 192.0.2.2 / "
+                "203.0.113.2 / mx2.example.com",
+            ],
+        )
 
 
 class TestBackwardCompatAlias(unittest.TestCase):

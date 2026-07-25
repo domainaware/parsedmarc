@@ -318,6 +318,66 @@ curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=
 dashboards ndjson (the index pattern saved object changed too) per the
 import instructions above.
 
+SMTP TLS documents have the same class of defect one level deeper:
+`policies` is an object array, and each policy's `failure_details` is an
+object array inside it. SMTP TLS documents now also carry
+`policies_combined` and `failure_details_combined`, backfilled
+automatically at startup the same way, and the equivalent manual command
+is:
+
+```bash
+curl -X POST "http://localhost:9200/smtp_tls*/_update_by_query?conflicts=proceed&wait_for_completion=false" \
+  -H "Content-Type: application/json" -d '
+{
+  "query": {
+    "bool": {
+      "minimum_should_match": 1,
+      "should": [
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {"exists": {"field": "policies.policy_domain"}},
+                    {"exists": {"field": "policies.policy_type"}}
+                  ]
+                }
+              }
+            ],
+            "must_not": [{"exists": {"field": "policies_combined"}}]
+          }
+        },
+        {
+          "bool": {
+            "must": [
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {"exists": {"field": "policies.failure_details.result_type"}},
+                    {"exists": {"field": "policies.failure_details.sending_mta_ip"}}
+                  ]
+                }
+              }
+            ],
+            "must_not": [{"exists": {"field": "failure_details_combined"}}]
+          }
+        }
+      ]
+    }
+  },
+  "script": {
+    "lang": "painless",
+    "source": "List pols = new ArrayList(); List dets = new ArrayList(); def ps = ctx._source.policies; if (ps != null) { if (!(ps instanceof List)) { ps = [ps]; } for (p in ps) { if (p == null) { continue; } def dom = p.policy_domain != null ? p.policy_domain : \"none\"; def typ = p.policy_type != null ? p.policy_type : \"none\"; pols.add(dom + \" / \" + typ); def fds = p.failure_details; if (fds != null) { if (!(fds instanceof List)) { fds = [fds]; } for (f in fds) { if (f == null) { continue; } def rt = f.result_type != null ? f.result_type : \"none\"; def smi = f.sending_mta_ip != null ? f.sending_mta_ip : \"none\"; def ri = f.receiving_ip != null ? f.receiving_ip : \"none\"; def rmh = f.receiving_mx_hostname != null ? f.receiving_mx_hostname : \"none\"; dets.add(dom + \" / \" + typ + \" / \" + rt + \" / \" + smi + \" / \" + ri + \" / \" + rmh); } } } } ctx._source.policies_combined = pols; ctx._source.failure_details_combined = dets;"
+  }
+}'
+```
+
+It works identically on OpenSearch; just adjust the URL and credentials, same
+as the aggregate command above.
+
 ## Records retention
 
 Starting in version 5.0.0, `parsedmarc` stores data in a separate

@@ -117,6 +117,98 @@ _COMBINED_BACKFILL_SCRIPT = (
     "ctx._source.spf_results_combined = sp;"
 )
 
+# Guard query for the policies_combined/failure_details_combined backfill
+# (see ``migrate_indexes``). Matches only SMTP TLS documents that have at
+# least one policy or failure detail and are missing the corresponding
+# combined field. Empty arrays are invisible to ``exists``, so documents
+# with zero policies/failure details are correctly skipped (this also
+# makes the query idempotent — a backfilled document no longer matches).
+# Each result is matched on an OR of its relevant subfields as defense in
+# depth: the parsers we audited never store a policy/failure detail
+# without these fields, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
+_SMTP_TLS_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "policies.policy_domain"}},
+                                    {"exists": {"field": "policies.policy_type"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "policies_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.result_type"
+                                        }
+                                    },
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.sending_mta_ip"
+                                        }
+                                    },
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "failure_details_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives policies_combined/failure_details_combined
+# from policies/policies.failure_details, matching the format written by
+# save_smtp_tls_report_to_opensearch(): "{policy_domain} / {policy_type}"
+# per policy and "{policy_domain} / {policy_type} / {result_type} /
+# {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" per failure
+# detail.
+_SMTP_TLS_COMBINED_BACKFILL_SCRIPT = (
+    "List pols = new ArrayList(); "
+    "List dets = new ArrayList(); "
+    "def ps = ctx._source.policies; "
+    "if (ps != null) { "
+    "if (!(ps instanceof List)) { ps = [ps]; } "
+    "for (p in ps) { "
+    "if (p == null) { continue; } "
+    'def dom = p.policy_domain != null ? p.policy_domain : "none"; '
+    'def typ = p.policy_type != null ? p.policy_type : "none"; '
+    'pols.add(dom + " / " + typ); '
+    "def fds = p.failure_details; "
+    "if (fds != null) { "
+    "if (!(fds instanceof List)) { fds = [fds]; } "
+    "for (f in fds) { "
+    "if (f == null) { continue; } "
+    'def rt = f.result_type != null ? f.result_type : "none"; '
+    'def smi = f.sending_mta_ip != null ? f.sending_mta_ip : "none"; '
+    'def ri = f.receiving_ip != null ? f.receiving_ip : "none"; '
+    'def rmh = f.receiving_mx_hostname != null ? f.receiving_mx_hostname : "none"; '
+    'dets.add(dom + " / " + typ + " / " + rt + " / " + smi + " / " + ri + " / " + rmh); '
+    "} } } } "
+    "ctx._source.policies_combined = pols; "
+    "ctx._source.failure_details_combined = dets;"
+)
+
 
 class _PolicyOverride(InnerDoc):
     type = Text()
@@ -335,6 +427,7 @@ class _SMTPTLSFailureDetailsDoc(InnerDoc):
     result_type = Text()
     sending_mta_ip = Ip()
     receiving_mx_helo = Text()
+    receiving_mx_hostname = Text()
     receiving_ip = Ip()
     failed_session_count = Integer()
     additional_information_uri = Text()
@@ -370,7 +463,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             receiving_mx_helo=receiving_mx_helo,
             receiving_ip=receiving_ip,
             failed_session_count=failed_session_count,
-            additional_information=additional_information_uri,
+            additional_information_uri=additional_information_uri,
             failure_reason_code=failure_reason_code,
         )
         self.failure_details.append(_details)
@@ -387,6 +480,19 @@ class _SMTPTLSReportDoc(Document):
     contact_info = Text()
     report_id = Text()
     policies = Nested(_SMTPTLSPolicyDoc)
+    # One "{policy_domain} / {policy_type}" string per policy. Kibana/
+    # Grafana tables cannot terms-aggregate the subfields of an object
+    # array without producing a cross-product of values (issue #169), so
+    # dashboards aggregate these composed keywords instead. Declared to
+    # match what dynamic mapping produces for a string array (text +
+    # .keyword).
+    policies_combined = Text(multi=True, fields={"keyword": Keyword(ignore_above=256)})
+    # One "{policy_domain} / {policy_type} / {result_type} /
+    # {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" string
+    # per failure detail, across all policies.
+    failure_details_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
 
 
 class AlreadySaved(ValueError):
@@ -500,6 +606,7 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
 def migrate_indexes(
     aggregate_indexes: list[str] | None = None,
     failure_indexes: list[str] | None = None,
+    smtp_tls_indexes: list[str] | None = None,
 ):
     """
     Runs index migrations and backfills.
@@ -524,17 +631,22 @@ def migrate_indexes(
     next startup, and the manual ``_update_by_query`` command documented
     in ``docs/source/elasticsearch.md`` remains available in the meantime.
 
+    Third, the same treatment for the ``policies_combined``/
+    ``failure_details_combined`` fields (same issue #169) on SMTP TLS
+    report documents, for each name in ``smtp_tls_indexes``.
+
     Args:
         aggregate_indexes (list): A list of aggregate index names
         failure_indexes (list): A list of failure index names
             (accepted for API compatibility; no migrations are
             currently needed for failure indexes)
+        smtp_tls_indexes (list): A list of SMTP TLS index names
     """
-    if not aggregate_indexes:
+    if not aggregate_indexes and not smtp_tls_indexes:
         return
 
     version = 2
-    for aggregate_index_name in aggregate_indexes:
+    for aggregate_index_name in aggregate_indexes or []:
         try:
             if not Index(aggregate_index_name).exists():
                 continue
@@ -578,12 +690,13 @@ def migrate_indexes(
         client = connections.get_connection()
     except Exception as e:
         logger.warning(
-            "Skipping the dkim_results_combined/spf_results_combined "
-            f"backfill: could not get an OpenSearch connection: {e}. "
-            "This will be retried at the next startup."
+            "Skipping the dkim_results_combined/spf_results_combined/"
+            "policies_combined/failure_details_combined backfill: could "
+            f"not get an OpenSearch connection: {e}. This will be retried "
+            "at the next startup."
         )
         return
-    for name in aggregate_indexes:
+    for name in aggregate_indexes or []:
         pattern = f"{name}*"
         try:
             count_response = client.count(
@@ -619,6 +732,46 @@ def migrate_indexes(
                 "Failed to check/submit the dkim_results_combined/"
                 f"spf_results_combined backfill for {pattern}: {e}. This "
                 "will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
+
+    for name in smtp_tls_indexes or []:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                body={"query": _SMTP_TLS_COMBINED_BACKFILL_QUERY},
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                body={
+                    "query": _SMTP_TLS_COMBINED_BACKFILL_QUERY,
+                    "script": {
+                        "source": _SMTP_TLS_COMBINED_BACKFILL_SCRIPT,
+                        "lang": "painless",
+                    },
+                },
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling policies_combined/failure_details_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the policies_combined/"
+                f"failure_details_combined backfill for {pattern}: {e}. "
+                "This will be retried at the next startup; the manual "
                 "_update_by_query command in the documentation remains "
                 "available in the meantime."
             )
@@ -1085,6 +1238,16 @@ def save_smtp_tls_report_to_opensearch(
             policy_strings = policy["policy_strings"]
         if "mx_host_patterns" in policy:
             mx_host_patterns = policy["mx_host_patterns"]
+        # policies_combined/failure_details_combined: see the field
+        # declarations on _SMTPTLSReportDoc and issue #169. policies and
+        # their failure_details are object arrays with the same
+        # cross-product problem as dkim_results/spf_results, so dashboards
+        # aggregate these composed strings instead of the raw subfields.
+        policy_domain_combined = policy.get("policy_domain") or "none"
+        policy_type_combined = policy.get("policy_type") or "none"
+        smtp_tls_doc.policies_combined.append(
+            "{0} / {1}".format(policy_domain_combined, policy_type_combined)
+        )
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
             policy_type=policy["policy_type"],
@@ -1129,6 +1292,16 @@ def save_smtp_tls_report_to_opensearch(
                     receiving_mx_hostname=receiving_mx_hostname,
                     additional_information_uri=additional_information_uri,
                     failure_reason_code=failure_reason_code,
+                )
+                smtp_tls_doc.failure_details_combined.append(
+                    "{0} / {1} / {2} / {3} / {4} / {5}".format(
+                        policy_domain_combined,
+                        policy_type_combined,
+                        failure_detail.get("result_type") or "none",
+                        sending_mta_ip or "none",
+                        receiving_ip or "none",
+                        receiving_mx_hostname or "none",
+                    )
                 )
         smtp_tls_doc.policies.append(policy_doc)
 
