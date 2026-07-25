@@ -34,6 +34,182 @@ class OpenSearchError(Exception):
     """Raised when an OpenSearch error occurs"""
 
 
+# Guard query for the dkim_results_combined/spf_results_combined backfill
+# (see ``migrate_indexes``). Matches only documents that have at least one
+# DKIM or SPF auth result and are missing the corresponding combined field.
+# Empty arrays are invisible to ``exists``, so documents with zero
+# DKIM/SPF results are correctly skipped (verified against real data;
+# this also makes the query idempotent — a backfilled document no longer
+# matches). Each result is matched on an OR of its ``domain``/``result``
+# subfields as defense in depth: the parsers we audited never store a
+# result without both, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
+_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "dkim_results.domain"}},
+                                    {"exists": {"field": "dkim_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "dkim_results_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "spf_results.domain"}},
+                                    {"exists": {"field": "spf_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "spf_results_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives dkim_results_combined/spf_results_combined
+# from dkim_results/spf_results, matching the format written by
+# save_aggregate_report_to_opensearch(): "{selector} / {domain} / {result}"
+# per DKIM result and "{scope} / {domain} / {result}" per SPF result.
+_COMBINED_BACKFILL_SCRIPT = (
+    "List dk = new ArrayList(); "
+    "def dr = ctx._source.dkim_results; "
+    "if (dr != null) { "
+    "if (!(dr instanceof List)) { dr = [dr]; } "
+    "for (e in dr) { "
+    "if (e == null) { continue; } "
+    'def sel = e.selector != null ? e.selector : "none"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : "none"; '
+    'dk.add(sel + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.dkim_results_combined = dk; "
+    "List sp = new ArrayList(); "
+    "def sr = ctx._source.spf_results; "
+    "if (sr != null) { "
+    "if (!(sr instanceof List)) { sr = [sr]; } "
+    "for (e in sr) { "
+    "if (e == null) { continue; } "
+    'def sc = e.scope != null ? e.scope : "mfrom"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : (e.results != null ? e.results : "none"); '
+    'sp.add(sc + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.spf_results_combined = sp;"
+)
+
+# Guard query for the policies_combined/failure_details_combined backfill
+# (see ``migrate_indexes``). Matches only SMTP TLS documents that have at
+# least one policy or failure detail and are missing the corresponding
+# combined field. Empty arrays are invisible to ``exists``, so documents
+# with zero policies/failure details are correctly skipped (this also
+# makes the query idempotent — a backfilled document no longer matches).
+# Each result is matched on an OR of its relevant subfields as defense in
+# depth: the parsers we audited never store a policy/failure detail
+# without these fields, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
+_SMTP_TLS_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "policies.policy_domain"}},
+                                    {"exists": {"field": "policies.policy_type"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "policies_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.result_type"
+                                        }
+                                    },
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.sending_mta_ip"
+                                        }
+                                    },
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "failure_details_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives policies_combined/failure_details_combined
+# from policies/policies.failure_details, matching the format written by
+# save_smtp_tls_report_to_opensearch(): "{policy_domain} / {policy_type}"
+# per policy and "{policy_domain} / {policy_type} / {result_type} /
+# {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" per failure
+# detail.
+_SMTP_TLS_COMBINED_BACKFILL_SCRIPT = (
+    "List pols = new ArrayList(); "
+    "List dets = new ArrayList(); "
+    "def ps = ctx._source.policies; "
+    "if (ps != null) { "
+    "if (!(ps instanceof List)) { ps = [ps]; } "
+    "for (p in ps) { "
+    "if (p == null) { continue; } "
+    'def dom = p.policy_domain != null ? p.policy_domain : "none"; '
+    'def typ = p.policy_type != null ? p.policy_type : "none"; '
+    'pols.add(dom + " / " + typ); '
+    "def fds = p.failure_details; "
+    "if (fds != null) { "
+    "if (!(fds instanceof List)) { fds = [fds]; } "
+    "for (f in fds) { "
+    "if (f == null) { continue; } "
+    'def rt = f.result_type != null ? f.result_type : "none"; '
+    'def smi = f.sending_mta_ip != null ? f.sending_mta_ip : "none"; '
+    'def ri = f.receiving_ip != null ? f.receiving_ip : "none"; '
+    'def rmh = f.receiving_mx_hostname != null ? f.receiving_mx_hostname : "none"; '
+    'dets.add(dom + " / " + typ + " / " + rt + " / " + smi + " / " + ri + " / " + rmh); '
+    "} } } } "
+    "ctx._source.policies_combined = pols; "
+    "ctx._source.failure_details_combined = dets;"
+)
+
+
 class _PolicyOverride(InnerDoc):
     type = Text()
     comment = Text()
@@ -62,7 +238,7 @@ class _DKIMResult(InnerDoc):
 class _SPFResult(InnerDoc):
     domain = Text()
     scope = Text()
-    results = Text()
+    result = Text()
     human_result = Text()
 
 
@@ -101,8 +277,25 @@ class _AggregateReportDoc(Document):
     header_from = Text()
     envelope_from = Text()
     envelope_to = Text()
+    # Nested(...) on the two auth-result fields below is only the DSL's
+    # in-memory document shape; it is never installed as a mapping.
+    # create_indexes() deliberately skips Index.document() registration so
+    # these fields stay dynamic-mapped as plain `object` in the cluster
+    # (see the comment there and issue #169).
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
+    # One "{selector} / {domain} / {result}" (DKIM) or "{scope} / {domain} /
+    # {result}" (SPF) string per auth result. Kibana/Grafana tables cannot
+    # terms-aggregate the subfields of an object array without producing a
+    # cross-product of values (issue #169), so dashboards aggregate these
+    # composed keywords instead. Declared to match what dynamic mapping
+    # produces for a string array (text + .keyword).
+    dkim_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
+    spf_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
     np = Keyword()
     testing = Keyword()
     discovery_method = Keyword()
@@ -115,7 +308,7 @@ class _AggregateReportDoc(Document):
         self,
         domain: str,
         selector: str,
-        result: _DKIMResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.dkim_results.append(
@@ -126,12 +319,15 @@ class _AggregateReportDoc(Document):
                 human_result=human_result,
             )
         )
+        self.dkim_results_combined.append(
+            "{0} / {1} / {2}".format(selector, domain, result)
+        )
 
     def add_spf_result(
         self,
         domain: str,
         scope: str,
-        result: _SPFResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.spf_results.append(
@@ -141,6 +337,9 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
+        )
+        self.spf_results_combined.append(
+            "{0} / {1} / {2}".format(scope, domain, result)
         )
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
@@ -228,6 +427,7 @@ class _SMTPTLSFailureDetailsDoc(InnerDoc):
     result_type = Text()
     sending_mta_ip = Ip()
     receiving_mx_helo = Text()
+    receiving_mx_hostname = Text()
     receiving_ip = Ip()
     failed_session_count = Integer()
     additional_information_uri = Text()
@@ -263,7 +463,7 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             receiving_mx_helo=receiving_mx_helo,
             receiving_ip=receiving_ip,
             failed_session_count=failed_session_count,
-            additional_information=additional_information_uri,
+            additional_information_uri=additional_information_uri,
             failure_reason_code=failure_reason_code,
         )
         self.failure_details.append(_details)
@@ -280,6 +480,19 @@ class _SMTPTLSReportDoc(Document):
     contact_info = Text()
     report_id = Text()
     policies = Nested(_SMTPTLSPolicyDoc)
+    # One "{policy_domain} / {policy_type}" string per policy. Kibana/
+    # Grafana tables cannot terms-aggregate the subfields of an object
+    # array without producing a cross-product of values (issue #169), so
+    # dashboards aggregate these composed keywords instead. Declared to
+    # match what dynamic mapping produces for a string array (text +
+    # .keyword).
+    policies_combined = Text(multi=True, fields={"keyword": Keyword(ignore_above=256)})
+    # One "{policy_domain} / {policy_type} / {result_type} /
+    # {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" string
+    # per failure detail, across all policies.
+    failure_details_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
 
 
 class AlreadySaved(ValueError):
@@ -367,6 +580,18 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
     for name in names:
         index = Index(name)
         try:
+            # Deliberately no Index.document() registration: the shipped
+            # dashboards cannot rebuild their detail tables on a `nested`
+            # mapping — Kibana/OSD visual editors do not support nested
+            # fields, Vega can run nested aggregations but does not render
+            # tables, and Grafana's nested bucket aggregation (9.4+) lacks
+            # reverse_nested for parent-level metrics like message_count —
+            # so the dynamic `object` mapping produced by a bare create is
+            # load-bearing for the shipped dashboards. _AggregateReportDoc
+            # still declares dkim_results/spf_results with Nested(...), but
+            # that is only the DSL's in-memory shape for building documents
+            # — it is never installed as a mapping. See issue #169 and the
+            # *_combined fields on _AggregateReportDoc.
             if not index.exists():
                 logger.debug("Creating OpenSearch index: {0}".format(name))
                 if settings is None:
@@ -381,47 +606,175 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
 def migrate_indexes(
     aggregate_indexes: list[str] | None = None,
     failure_indexes: list[str] | None = None,
+    smtp_tls_indexes: list[str] | None = None,
 ):
     """
-    Updates index mappings
+    Runs index migrations and backfills.
+
+    First, the legacy ``published_policy.fo`` migration: indexes where that
+    field was mapped as ``long`` (data indexed by very old parsedmarc
+    releases under the Elasticsearch 6-era ``doc`` mapping type) are rebuilt
+    as a ``-v2`` index with the text/keyword shape.
+
+    Second, the ``dkim_results_combined``/``spf_results_combined`` backfill
+    (added for issue #169) for aggregate report documents that were saved
+    before those fields existed. For each name in ``aggregate_indexes``,
+    this submits an ``update_by_query`` against the ``f"{name}*"`` index
+    pattern (the real indexes are date-suffixed) as a non-blocking
+    background task (``wait_for_completion=False``), so it never delays
+    parsedmarc startup. Submission is guarded by a cheap ``count`` query
+    that only matches documents with DKIM/SPF results but no combined
+    field, so once an index is fully backfilled, later calls are a fast
+    no-op. Any error talking to the cluster (e.g. no indexes yet on a
+    fresh install, or a transient connection issue) is caught and logged
+    as a warning rather than raised; the backfill is simply retried on the
+    next startup, and the manual ``_update_by_query`` command documented
+    in ``docs/source/elasticsearch.md`` remains available in the meantime.
+
+    Third, the same treatment for the ``policies_combined``/
+    ``failure_details_combined`` fields (same issue #169) on SMTP TLS
+    report documents, for each name in ``smtp_tls_indexes``.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
         failure_indexes (list): A list of failure index names
             (accepted for API compatibility; no migrations are
             currently needed for failure indexes)
+        smtp_tls_indexes (list): A list of SMTP TLS index names
     """
-    version = 2
-    if aggregate_indexes is None:
-        aggregate_indexes = []
-    for aggregate_index_name in aggregate_indexes:
-        if not Index(aggregate_index_name).exists():
-            continue
-        aggregate_index = Index(aggregate_index_name)
-        doc = "doc"
-        fo_field = "published_policy.fo"
-        fo = "fo"
-        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
-        fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
-        if doc not in fo_mapping:
-            continue
+    if not aggregate_indexes and not smtp_tls_indexes:
+        return
 
-        fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
-        fo_type = fo_mapping["type"]
-        if fo_type == "long":
-            new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
-            body = {
-                "properties": {
-                    "published_policy.fo": {
-                        "type": "text",
-                        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+    version = 2
+    for aggregate_index_name in aggregate_indexes or []:
+        try:
+            if not Index(aggregate_index_name).exists():
+                continue
+            aggregate_index = Index(aggregate_index_name)
+            doc = "doc"
+            fo_field = "published_policy.fo"
+            fo = "fo"
+            fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
+            fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
+            if doc not in fo_mapping:
+                continue
+
+            fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
+            fo_type = fo_mapping["type"]
+            if fo_type == "long":
+                new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
+                body = {
+                    "properties": {
+                        "published_policy.fo": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {"type": "keyword", "ignore_above": 256}
+                            },
+                        }
                     }
                 }
-            }
-            Index(new_index_name).create()
-            Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)
-            Index(aggregate_index_name).delete()
+                Index(new_index_name).create()
+                Index(new_index_name).put_mapping(doc_type=doc, body=body)
+                reindex(
+                    connections.get_connection(), aggregate_index_name, new_index_name
+                )
+                Index(aggregate_index_name).delete()
+        except Exception as e:
+            logger.warning(
+                "Failed the legacy published_policy.fo migration for "
+                f"{aggregate_index_name}: {e}. This will be retried at the "
+                "next startup."
+            )
+
+    try:
+        client = connections.get_connection()
+    except Exception as e:
+        logger.warning(
+            "Skipping the dkim_results_combined/spf_results_combined/"
+            "policies_combined/failure_details_combined backfill: could "
+            f"not get an OpenSearch connection: {e}. This will be retried "
+            "at the next startup."
+        )
+        return
+    for name in aggregate_indexes or []:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                body={"query": _COMBINED_BACKFILL_QUERY},
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                body={
+                    "query": _COMBINED_BACKFILL_QUERY,
+                    "script": {
+                        "source": _COMBINED_BACKFILL_SCRIPT,
+                        "lang": "painless",
+                    },
+                },
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling dkim_results_combined/spf_results_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the dkim_results_combined/"
+                f"spf_results_combined backfill for {pattern}: {e}. This "
+                "will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
+
+    for name in smtp_tls_indexes or []:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                body={"query": _SMTP_TLS_COMBINED_BACKFILL_QUERY},
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                body={
+                    "query": _SMTP_TLS_COMBINED_BACKFILL_QUERY,
+                    "script": {
+                        "source": _SMTP_TLS_COMBINED_BACKFILL_SCRIPT,
+                        "lang": "painless",
+                    },
+                },
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling policies_combined/failure_details_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the policies_combined/"
+                f"failure_details_combined backfill for {pattern}: {e}. "
+                "This will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
 
 
 def save_aggregate_report_to_opensearch(
@@ -885,6 +1238,16 @@ def save_smtp_tls_report_to_opensearch(
             policy_strings = policy["policy_strings"]
         if "mx_host_patterns" in policy:
             mx_host_patterns = policy["mx_host_patterns"]
+        # policies_combined/failure_details_combined: see the field
+        # declarations on _SMTPTLSReportDoc and issue #169. policies and
+        # their failure_details are object arrays with the same
+        # cross-product problem as dkim_results/spf_results, so dashboards
+        # aggregate these composed strings instead of the raw subfields.
+        policy_domain_combined = policy.get("policy_domain") or "none"
+        policy_type_combined = policy.get("policy_type") or "none"
+        smtp_tls_doc.policies_combined.append(
+            "{0} / {1}".format(policy_domain_combined, policy_type_combined)
+        )
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
             policy_type=policy["policy_type"],
@@ -905,7 +1268,12 @@ def save_smtp_tls_report_to_opensearch(
 
                 if "receiving_mx_hostname" in failure_detail:
                     receiving_mx_hostname = failure_detail["receiving_mx_hostname"]
-                if "additional_information_uri" in failure_detail:
+                # The parser's key is additional_info_uri (see
+                # SMTPTLSFailureDetailsOptional in types.py); accept the
+                # long-form key too for dicts built by other callers.
+                if "additional_info_uri" in failure_detail:
+                    additional_information_uri = failure_detail["additional_info_uri"]
+                elif "additional_information_uri" in failure_detail:
                     additional_information_uri = failure_detail[
                         "additional_information_uri"
                     ]
@@ -929,6 +1297,16 @@ def save_smtp_tls_report_to_opensearch(
                     receiving_mx_hostname=receiving_mx_hostname,
                     additional_information_uri=additional_information_uri,
                     failure_reason_code=failure_reason_code,
+                )
+                smtp_tls_doc.failure_details_combined.append(
+                    "{0} / {1} / {2} / {3} / {4} / {5}".format(
+                        policy_domain_combined,
+                        policy_type_combined,
+                        failure_detail.get("result_type") or "none",
+                        sending_mta_ip or "none",
+                        receiving_ip or "none",
+                        receiving_mx_hostname or "none",
+                    )
                 )
         smtp_tls_doc.policies.append(policy_doc)
 

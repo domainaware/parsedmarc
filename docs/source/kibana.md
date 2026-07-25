@@ -82,7 +82,23 @@ Further down the dashboard, you can filter by source country or source IP
 address.
 
 Tables showing SPF and DKIM alignment details are located under the IP address
-table.
+table. Each row of the DKIM details table is one real DKIM signature, shown
+as a combined `selector / domain / result` value; the SPF details table
+shows `scope / domain / result` the same way. Combining the values into one
+column keeps each signature's selector, domain, and result paired together,
+rather than aggregating them as separate columns. Because a message that
+carries multiple DKIM signatures appears once per signature, summing the
+messages column across rows can exceed the total number of messages.
+
+The "Auth result filters" panel above the details tables
+provides dropdowns for the individual auth-result components — DKIM
+selector, DKIM domain, DKIM result, SPF scope, SPF domain, and SPF
+result — and filters the whole dashboard by them. Because components from
+different signatures of the same message are indexed together, combining
+two of these component filters matches documents where any signature
+satisfies each condition individually, not necessarily the same signature;
+the combined `selector / domain / result` (`scope / domain / result`)
+column remains the per-signature source of truth.
 
 :::{note}
 The alignment tables (SPF details, DKIM details) and the per-IP source
@@ -112,3 +128,15 @@ reporting organizations, the policy domains they report on, and the
 specific failure types — certificate expiry, STARTTLS not supported,
 STS policy fetch errors, validation failures, and similar — together with
 the sending and receiving MTA addresses involved.
+
+Like the DKIM and SPF details tables above, the "SMTP TLS domains" and
+"SMTP TLS failure details" tables show one row per policy and one row per
+failure detail, respectively, using combined `policy (domain / type)` and
+`failure detail (domain / type / result / sending mta / receiving ip / mx)`
+columns so that each policy's or failure detail's fields stay paired
+together, rather than aggregating them as separate columns. The
+`successful_sessions` and `failed_sessions` columns are summed per report
+document, though, not per policy: when a single report carries multiple
+policies, a row's session sums include the sibling policies from that
+report as well as its own. Fully attributing session counts to a single
+policy would require restructuring the stored documents.

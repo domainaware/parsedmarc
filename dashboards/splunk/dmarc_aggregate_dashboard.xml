@@ -323,7 +323,12 @@
       <title>SPF details</title>
       <table>
         <search base="base_search">
-          <query>| fillnull value="none" source_base_domain | stats sum(message_count) as message_count by header_from,envelope_from,spf_result,source_base_domain,spf_aligned
+          <query>| fillnull value="none" source_base_domain envelope_domain spf_scope spf_result
+| eval spf_signature=mvzip(mvzip(spf_scope, envelope_domain, " / "), spf_result, " / ")
+| mvexpand spf_signature
+| stats sum(message_count) as message_count by header_from, envelope_from, spf_signature, source_base_domain, spf_aligned
+| eval parts=split(spf_signature, " / "), spf_scope=mvindex(parts, 0), spf_domain=mvindex(parts, 1), spf_result=mvindex(parts, 2)
+| table header_from, envelope_from, spf_scope, spf_domain, spf_result, spf_aligned, source_base_domain, message_count
 | sort -message_count</query>
         </search>
         <option name="drilldown">none</option>
@@ -339,7 +344,13 @@
       <title>DKIM details</title>
       <table>
         <search base="base_search">
-          <query>| fillnull value="none" source_base_domain | stats sum(message_count) as message_count by header_from,dkim_selector,dkim_domain,dkim_result,dkim_aligned,source_base_domain
+          <query>| fillnull value="none" source_base_domain
+| eval dkim_signature=mvzip(mvzip(dkim_selector, dkim_domain, " / "), dkim_result, " / ")
+| mvexpand dkim_signature
+| stats sum(message_count) as message_count by header_from, dkim_signature, dkim_aligned, source_base_domain
+| eval parts=split(dkim_signature, " / "), dkim_selector=mvindex(parts, 0), dkim_domain=mvindex(parts, 1), dkim_result=mvindex(parts, 2)
+| eval dkim_selector=if(dkim_selector=="null", "none", dkim_selector), dkim_domain=if(dkim_domain=="null", "none", dkim_domain), dkim_result=if(dkim_result=="null", "none", dkim_result)
+| table header_from, dkim_selector, dkim_domain, dkim_result, dkim_aligned, source_base_domain, message_count
 | sort -message_count</query>
         </search>
         <option name="drilldown">none</option>

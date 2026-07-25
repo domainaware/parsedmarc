@@ -1472,6 +1472,7 @@ def _init_output_clients(opts):
                 elastic.migrate_indexes(
                     aggregate_indexes=[es_aggregate_index],
                     failure_indexes=[es_failure_index],
+                    smtp_tls_indexes=[es_smtp_tls_index],
                 )
                 clients["elasticsearch"] = _ElasticsearchHandle()
         except Exception as e:
@@ -1518,6 +1519,7 @@ def _init_output_clients(opts):
                 opensearch.migrate_indexes(
                     aggregate_indexes=[os_aggregate_index],
                     failure_indexes=[os_failure_index],
+                    smtp_tls_indexes=[os_smtp_tls_index],
                 )
                 clients["opensearch"] = _OpenSearchHandle()
         except Exception as e:

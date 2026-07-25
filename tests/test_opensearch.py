@@ -376,16 +376,193 @@ class TestCreateIndexes(unittest.TestCase):
 
 
 class TestMigrateIndexes(unittest.TestCase):
+    """migrate_indexes backfills dkim_results_combined/spf_results_combined
+    (issue #169) on pre-existing aggregate documents as a non-blocking
+    background task. It is guarded by a cheap count() query so repeated
+    startups against an already-backfilled index are a no-op, and any SDK
+    error is caught and logged rather than raised, so it never blocks
+    parsedmarc startup."""
+
+    def test_backfill_submitted_when_old_docs_exist(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            # The legacy fo migration that runs first sees no base index.
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 42}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(
+            kwargs["body"]["query"], opensearch_module._COMBINED_BACKFILL_QUERY
+        )
+        script_source = kwargs["body"]["script"]["source"]
+        self.assertIn("ctx._source.dkim_results_combined", script_source)
+        self.assertIn("ctx._source.spf_results_combined", script_source)
+
+        # The count() guard query also targets the date-suffixed pattern.
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "dmarc_aggregate*")
+        self.assertEqual(
+            count_kwargs["body"]["query"], opensearch_module._COMBINED_BACKFILL_QUERY
+        )
+
+    def test_backfill_skipped_when_no_old_docs(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_backfill_skipped_when_no_aggregate_indexes(self):
+        with patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(aggregate_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_backfill_failure_does_not_raise(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
+
+    def test_get_connection_failure_does_not_raise(self):
+        """connections.get_connection() itself sits outside the per-index
+        try/except for the combined-field backfill; if it raises (e.g. no
+        OpenSearch connection has been configured yet), migrate_indexes must
+        still not propagate the exception, per its docstring's promise that
+        any cluster error is caught and logged."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            # The legacy fo migration that runs first sees no base index.
+            mock_index_cls.return_value.exists.return_value = False
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
+
+    def test_smtp_tls_backfill_submitted_when_old_docs_exist(self):
+        """SMTP TLS analogue of test_backfill_submitted_when_old_docs_exist:
+        policies_combined/failure_details_combined backfill (also issue
+        #169) is submitted with its own guard query and painless script."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            # The legacy fo migration that runs first sees no base index.
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 7}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        mock_client.update_by_query.assert_called_once()
+        kwargs = mock_client.update_by_query.call_args.kwargs
+        self.assertEqual(kwargs["index"], "smtp_tls*")
+        self.assertEqual(kwargs["conflicts"], "proceed")
+        self.assertFalse(kwargs["wait_for_completion"])
+        self.assertEqual(
+            kwargs["body"]["query"], opensearch_module._SMTP_TLS_COMBINED_BACKFILL_QUERY
+        )
+        script_source = kwargs["body"]["script"]["source"]
+        self.assertIn("ctx._source.policies_combined", script_source)
+        self.assertIn("ctx._source.failure_details_combined", script_source)
+
+        count_kwargs = mock_client.count.call_args.kwargs
+        self.assertEqual(count_kwargs["index"], "smtp_tls*")
+        self.assertEqual(
+            count_kwargs["body"]["query"],
+            opensearch_module._SMTP_TLS_COMBINED_BACKFILL_QUERY,
+        )
+
+    def test_smtp_tls_backfill_skipped_when_no_old_docs(self):
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.return_value = {"count": 0}
+            mock_get_conn.return_value = mock_client
+            migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        mock_client.update_by_query.assert_not_called()
+
+    def test_smtp_tls_backfill_skipped_when_no_smtp_tls_indexes_or_aggregate(self):
+        with patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn:
+            migrate_indexes()
+            migrate_indexes(smtp_tls_indexes=None)
+
+        mock_get_conn.assert_not_called()
+
+    def test_smtp_tls_backfill_failure_does_not_raise(self):
+        """SMTP TLS analogue of test_backfill_failure_does_not_raise: an
+        error from the cluster during the smtp_tls_indexes loop is caught
+        and logged rather than raised."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            mock_client = MagicMock()
+            mock_client.count.side_effect = RuntimeError("cluster unreachable")
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(smtp_tls_indexes=["smtp_tls"])
+
+        self.assertTrue(any("cluster unreachable" in msg for msg in cm.output))
+        mock_client.update_by_query.assert_not_called()
+
+
+class TestMigrateIndexesFoMigration(unittest.TestCase):
     """The legacy `published_policy.fo` field was mapped as `long` in
     older indexes. migrate_indexes detects that and rebuilds the index
     with the text/keyword shape. The branch is gnarly; a regression
-    would silently leave old data un-migrated."""
+    would silently leave old data un-migrated. Each test stubs the
+    combined-field backfill that now runs afterwards in the same call
+    (count 0 → no-op)."""
 
-    def test_no_indexes_is_noop(self):
-        migrate_indexes()  # Should not raise
+    @staticmethod
+    def _noop_backfill_client():
+        client = MagicMock()
+        client.count.return_value = {"count": 0}
+        return client
 
     def test_skips_non_existent_index(self):
-        with patch("parsedmarc.opensearch.Index") as mock_index_cls:
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             mock_index_cls.return_value.exists.return_value = False
             migrate_indexes(aggregate_indexes=["missing"])
         # exists() returned False — no field_mapping fetch.
@@ -394,12 +571,16 @@ class TestMigrateIndexes(unittest.TestCase):
     def test_skips_when_doc_mapping_absent(self):
         """An index that has 'fo' but not under the 'doc' type
         (e.g., empty index with default mapping) is left alone."""
-        with patch("parsedmarc.opensearch.Index") as mock_index_cls:
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+            patch("parsedmarc.opensearch.reindex") as mock_reindex,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {"some_key": {"mappings": {}}}
-            with patch("parsedmarc.opensearch.reindex") as mock_reindex:
-                migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
         mock_reindex.assert_not_called()
 
     def test_migrates_when_fo_is_long(self):
@@ -411,6 +592,8 @@ class TestMigrateIndexes(unittest.TestCase):
             patch("parsedmarc.opensearch.reindex") as mock_reindex,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
+            mock_client = self._noop_backfill_client()
+            mock_get_conn.return_value = mock_client
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {
@@ -423,16 +606,18 @@ class TestMigrateIndexes(unittest.TestCase):
                 }
             }
             migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
-        # reindex called from old → new (v2) index.
+        # reindex called from old → new (v2) index, with the client from
+        # connections.get_connection().
         mock_reindex.assert_called_once()
-        # connections.get_connection consulted to get the ES client.
-        mock_get_conn.assert_called_once()
+        self.assertIs(mock_reindex.call_args.args[0], mock_client)
 
     def test_skips_when_fo_already_text(self):
         with (
             patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
             patch("parsedmarc.opensearch.reindex") as mock_reindex,
         ):
+            mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
             idx.get_field_mapping.return_value = {
@@ -446,6 +631,35 @@ class TestMigrateIndexes(unittest.TestCase):
             }
             migrate_indexes(aggregate_indexes=["dmarc_aggregate-2024-01-01"])
         mock_reindex.assert_not_called()
+
+    def test_index_exists_failure_does_not_raise(self):
+        """A cluster error inside the per-index fo-migration loop (e.g.
+        Index(...).exists() raising because the cluster is unreachable)
+        must not abort startup: it is caught, logged, and the loop moves
+        on to the combined-field backfill, which is exercised here with
+        its own connection failure so both warnings are asserted."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.side_effect = ConnectionError(
+                "cluster unreachable"
+            )
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any(
+                "legacy published_policy.fo migration" in msg
+                and "cluster unreachable" in msg
+                for msg in cm.output
+            )
+        )
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
 
 
 # ---------------------------------------------------------------------------
@@ -602,6 +816,54 @@ class TestSaveAggregateReport(unittest.TestCase):
             mock_doc_cls.call_args.kwargs["date_begin"].timestamp(), 1705276800
         )
 
+    def test_save_populates_combined_dkim_and_spf_fields(self):
+        """Regression guard for issue #169: two DKIM signatures on one
+        record must yield exactly two combined entries, not a 4-way
+        cross-product. autospec=True is required on the save patch so
+        mock_save.call_args captures the doc instance as ``self``."""
+        report = _aggregate_report()
+        report["records"][0]["auth_results"] = {
+            "dkim": [
+                {
+                    "domain": "example.net",
+                    "selector": "net1",
+                    "result": "fail",
+                    "human_result": None,
+                },
+                {
+                    "domain": "example.org",
+                    "selector": "org1",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+            "spf": [
+                {
+                    "domain": "example.org",
+                    "scope": "mfrom",
+                    "result": "pass",
+                    "human_result": None,
+                },
+            ],
+        }
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch(
+                "parsedmarc.opensearch.Index",
+                return_value=MagicMock(exists=MagicMock(return_value=True)),
+            ),
+            patch.object(
+                opensearch_module._AggregateReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_aggregate_report_to_opensearch(report)
+        doc = mock_save.call_args[0][0]
+        self.assertEqual(
+            list(doc.dkim_results_combined),
+            ["net1 / example.net / fail", "org1 / example.org / pass"],
+        )
+        self.assertEqual(list(doc.spf_results_combined), ["mfrom / example.org / pass"])
+
 
 class TestAggregateDocPassedDmarc(unittest.TestCase):
     """The _AggregateReportDoc.save() override derives passed_dmarc — the
@@ -627,6 +889,56 @@ class TestAggregateDocPassedDmarc(unittest.TestCase):
                     doc.save()
                 mock_super_save.assert_called_once()
                 self.assertEqual(bool(doc.passed_dmarc), expected)
+
+
+class TestAggregateDocCombinedResults(unittest.TestCase):
+    """add_dkim_result/add_spf_result never touch the network, so these
+    construct _AggregateReportDoc directly rather than going through the
+    save_* entry point."""
+
+    def test_add_dkim_result_appends_combined_string(self):
+        """Regression guard for issue #169: dkim_results/spf_results are
+        arrays of objects that the engine dynamic-maps as plain ``object``
+        (not ``nested``) and flattens, so Kibana/Grafana tables cannot
+        terms-aggregate their subfields without producing a cross-product
+        of selector/domain/result values. The composed
+        "selector / domain / result" string preserves the per-signature
+        pairing that the flattened array loses."""
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_dkim_result(
+            domain="example.net", selector="net1", result="fail", human_result=None
+        )
+        doc.add_dkim_result(
+            domain="example.org", selector="org1", result="pass", human_result=None
+        )
+        expected = ["net1 / example.net / fail", "org1 / example.org / pass"]
+        # dkim_results_combined is declared as Text(multi=True, ...); the SDK
+        # stub types the class attribute as Text (no Iterable protocol),
+        # even though the runtime value is an AttrList once multi=True is
+        # set.
+        self.assertEqual(list(doc.dkim_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["dkim_results_combined"], expected)
+
+    def test_add_spf_result_appends_combined_string(self):
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        expected = ["mfrom / example.org / pass"]
+        self.assertEqual(list(doc.spf_results_combined), expected)  # pyright: ignore[reportArgumentType]
+        self.assertEqual(doc.to_dict()["spf_results_combined"], expected)
+
+    def test_spf_result_serializes_under_singular_result_key(self):
+        """The _SPFResult class previously declared a dead ``results``
+        (plural) field while the save path wrote ``result``; verify the
+        serialized inner doc actually uses the singular key."""
+        doc = opensearch_module._AggregateReportDoc()
+        doc.add_spf_result(
+            domain="example.org", scope="mfrom", result="pass", human_result=None
+        )
+        d = doc.to_dict()["spf_results"][0]
+        self.assertEqual(d["result"], "pass")
+        self.assertNotIn("results", d)
 
 
 # ---------------------------------------------------------------------------
@@ -978,6 +1290,82 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
         ):
             save_smtp_tls_report_to_opensearch(report)
         mock_save.assert_called_once()
+
+    def test_save_populates_combined_policy_and_failure_detail_fields(self):
+        """Regression guard for the SMTP TLS analogue of issue #169:
+        policies and their failure_details are object arrays, so stacked
+        terms aggregations on their subfields cross-product just like
+        dkim_results/spf_results did. Two policies (one with two failure
+        details, one with none) must yield exactly two policies_combined
+        entries and two failure_details_combined entries, not a
+        cross-product. autospec=True is required on the save patch so
+        mock_save.call_args captures the doc instance as ``self``."""
+        report = _smtp_tls_report(
+            policies=[
+                {
+                    "policy_domain": "example.com",
+                    "policy_type": "sts",
+                    "successful_session_count": 100,
+                    "failed_session_count": 2,
+                    "failure_details": [
+                        {
+                            "result_type": "certificate-expired",
+                            "failed_session_count": 1,
+                            "sending_mta_ip": "192.0.2.1",
+                            "receiving_ip": "203.0.113.1",
+                            "receiving_mx_hostname": "mx1.example.com",
+                            "additional_info_uri": (
+                                "https://reports.example.com/tls-help"
+                            ),
+                        },
+                        {
+                            "result_type": "starttls-not-supported",
+                            "failed_session_count": 1,
+                            "sending_mta_ip": "192.0.2.2",
+                            "receiving_ip": "203.0.113.2",
+                            "receiving_mx_hostname": "mx2.example.com",
+                        },
+                    ],
+                },
+                {
+                    "policy_domain": "example.net",
+                    "policy_type": "tlsa",
+                    "successful_session_count": 50,
+                    "failed_session_count": 0,
+                },
+            ]
+        )
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(
+                opensearch_module._SMTPTLSReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_smtp_tls_report_to_opensearch(report)
+        doc = mock_save.call_args[0][0]
+        self.assertEqual(
+            list(doc.policies_combined), ["example.com / sts", "example.net / tlsa"]
+        )
+        expected_detail_expired = (
+            "example.com / sts / certificate-expired / 192.0.2.1 / "
+            "203.0.113.1 / mx1.example.com"
+        )
+        expected_detail_starttls = (
+            "example.com / sts / starttls-not-supported / 192.0.2.2 / "
+            "203.0.113.2 / mx2.example.com"
+        )
+        self.assertEqual(
+            list(doc.failure_details_combined),
+            [expected_detail_expired, expected_detail_starttls],
+        )
+        # The parser emits additional_info_uri (SMTPTLSFailureDetailsOptional
+        # in types.py); the saver must persist it on the declared
+        # additional_information_uri field rather than dropping it.
+        self.assertEqual(
+            doc.policies[0].failure_details[0].additional_information_uri,
+            "https://reports.example.com/tls-help",
+        )
 
 
 class TestBackwardCompatAlias(unittest.TestCase):
