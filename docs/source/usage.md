@@ -3,23 +3,25 @@
 ## CLI help
 
 ```text
-usage: parsedmarc [-h] [-c CONFIG_FILE] [--strip-attachment-payloads] [-o OUTPUT]
+usage: parsedmarc [-h] [-c CONFIG_FILE] [-r] [--strip-attachment-payloads] [-o OUTPUT]
                   [--aggregate-json-filename AGGREGATE_JSON_FILENAME] [--failure-json-filename FAILURE_JSON_FILENAME]
                   [--smtp-tls-json-filename SMTP_TLS_JSON_FILENAME] [--aggregate-csv-filename AGGREGATE_CSV_FILENAME]
                   [--failure-csv-filename FAILURE_CSV_FILENAME] [--smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME]
-                  [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--offline] [-s] [-w] [--verbose] [--debug]
-                  [--log-file LOG_FILE] [--no-prettify-json] [-v]
+                  [-n NAMESERVERS [NAMESERVERS ...]] [-t DNS_TIMEOUT] [--dns-retries DNS_RETRIES] [--offline] [-s]
+                  [-w] [--verbose] [--debug] [--log-file LOG_FILE] [--no-prettify-json] [-v]
                   [file_path ...]
 
 Parses DMARC reports
 
 positional arguments:
-  file_path             one or more paths to aggregate or failure report files, emails, or mbox files'
+  file_path             one or more paths to aggregate or failure report files, emails, mbox files, or directories
+                        containing them
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG_FILE, --config-file CONFIG_FILE
                         a path to a configuration file (--silent implied)
+  -r, --recursive       search directories given as file_path recursively, and enable '**' recursion in glob patterns
   --strip-attachment-payloads
                         remove attachment payloads from failure report output
   -o OUTPUT, --output OUTPUT
@@ -40,6 +42,8 @@ options:
                         nameservers to query
   -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                         number of seconds to wait for an answer from DNS (default: 2.0)
+  --dns-retries DNS_RETRIES
+                        number of times to retry DNS queries on timeout or other transient errors (default: 0)
   --offline             do not make online queries for geolocation or DNS
   -s, --silent          only print errors
   -w, --warnings        print warnings in addition to errors

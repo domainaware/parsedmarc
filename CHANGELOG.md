@@ -6,6 +6,7 @@
 
 - **Added a per-domain DMARC compliance percentage to the aggregate dashboards of every provider** ([#112](https://github.com/domainaware/parsedmarc/issues/112)): OpenSearch Dashboards/Kibana, Grafana Elasticsearch, Grafana PostgreSQL, and Splunk. The from-domain volume table on each dashboard is now "Message volume and DMARC compliance by from domain", with columns for From Domain, Messages, and % DMARC Compliant.
   - On OpenSearch Dashboards/Kibana, the table is now a TSVB visualization using a Filter Ratio metric (passed messages over total messages per `header_from`), since the previous agg-based data table can't compute a per-domain ratio. Editing the imported visualization on Kibana 8.x requires first enabling the `metrics:allowStringIndices` advanced setting.
+- **Directory paths are now accepted as `file_path` CLI arguments** ([#397](https://github.com/domainaware/parsedmarc/issues/397)): a directory expands to the report files inside it using shell-glob semantics (dotfile entries excluded, subdirectories skipped by default), and the new `-r`/`--recursive` flag descends into subdirectories and enables `**` recursion in glob patterns.
 
 ### Bug fixes
 
