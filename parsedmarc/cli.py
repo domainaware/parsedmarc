@@ -2376,7 +2376,7 @@ def _main():
     results = []
 
     pbar = None
-    if sys.stdout.isatty() and len(file_paths) > 0:
+    if sys.stderr.isatty() and len(file_paths) > 0:
         pbar = tqdm(total=len(file_paths))
 
     n_procs = int(opts.n_procs or 1)
