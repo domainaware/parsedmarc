@@ -170,19 +170,22 @@ The full set of configuration options are:
       reports (Default: `False`)
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of processes to run in parallel when
-      parsing report files passed directly as CLI arguments
+      parsing report files passed directly as CLI arguments, messages
+      in mbox files, and messages from mailbox connections (IMAP,
+      Microsoft Graph, Gmail API, Maildir), including watch mode
       (Default: `1`)
 
     :::{note}
     Setting this to a number larger than one can improve
-    performance when processing thousands of files
+    performance when processing thousands of files or messages
     :::
 
     :::{note}
-    `n_procs` only applies to report files passed directly on the
-    command line. Messages from mbox files and from mailbox
-    connections (IMAP, Microsoft Graph, Gmail API, Maildir) are
-    always processed sequentially.
+    Only parsing is parallelized across worker processes. Fetching
+    messages, deduplicating reports, archiving/deleting mailbox
+    messages, and saving/publishing to outputs all stay sequential
+    in the main process. Each worker process keeps its own DNS/GeoIP
+    cache.
     :::
 
 - `mailbox`
@@ -951,8 +954,12 @@ imports more predictable:
 - Reduce `mailbox.batch_size` to smaller values such as `100-500` instead of
   processing a very large message set at once. Smaller batches trade throughput
   for lower peak memory use and less sink pressure.
-- Keep `n_procs` low for mailbox-heavy runs. In practice, `1-2` workers is often
-  a safer starting point for large backfills than aggressive parallelism.
+- `n_procs` now parallelizes parsing for mailbox and mbox runs too, not just
+  report files passed directly as CLI arguments. It pays off most when a run
+  is bound by DNS/GeoIP enrichment rather than fetching or output. The
+  trade-off is memory and DNS load: at most roughly `2 * n_procs` messages
+  are held in flight at once, each worker process keeps its own DNS/GeoIP
+  cache, and DNS query volume can multiply by up to `n_procs`.
 - Use `mailbox.since` to process reports in smaller time windows such as `1d`,
   `7d`, or another interval that fits the backlog. This makes it easier to catch
   up incrementally instead of loading an entire mailbox history in one run.
