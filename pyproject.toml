@@ -91,7 +91,12 @@ build = [
     # stays on requests because its permissive-TLS fallback is built on
     # urllib3's HTTPAdapter machinery.
     "requests>=2.22.0",
-    "ruff",
+    # Pinned exactly for the same reason as pyright: ruff's default rule
+    # set evolves between releases (0.16.0 began flagging this codebase's
+    # str.format() style), so an unpinned version breaks CI without any
+    # code change. Bump deliberately and fix any new findings in the same
+    # PR as the bump.
+    "ruff==0.15.21",
     "sphinx",
     "sphinx_rtd_theme",
 ]
