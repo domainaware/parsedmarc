@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -34,14 +35,25 @@ def configure_logging(log_level: int, log_file: str | None = None) -> None:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
-    # Add FileHandler if log_file is specified
+    # Add FileHandler if log_file is specified and no handler for that
+    # file is attached yet. FileHandler stores its target as an absolute
+    # path in baseFilename, so compare against the absolute path; without
+    # this check, repeated calls (e.g. a SIGHUP config reload) would stack
+    # duplicate handlers that write every record twice and leak file
+    # descriptors.
     if log_file:
         try:
-            fh = logging.FileHandler(log_file, "a")
-            formatter = logging.Formatter(
-                "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+            log_file_path = os.path.abspath(log_file)
+            has_file_handler = any(
+                isinstance(h, logging.FileHandler) and h.baseFilename == log_file_path
+                for h in logger.handlers
             )
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
+            if not has_file_handler:
+                fh = logging.FileHandler(log_file, "a")
+                formatter = logging.Formatter(
+                    "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+                )
+                fh.setFormatter(formatter)
+                logger.addHandler(fh)
         except (IOError, OSError, PermissionError) as error:
             logger.warning(f"Unable to write to log file: {error}")
