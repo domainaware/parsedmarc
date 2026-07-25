@@ -34,6 +34,7 @@ import mailparser
 import xmltodict
 from expiringdict import ExpiringDict
 from mailsuite.smtp import send_email
+from tqdm import tqdm
 
 from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
@@ -2126,7 +2127,7 @@ def get_dmarc_reports_from_mbox(
         message_keys = mbox.keys()
         total_messages = len(message_keys)
         logger.debug("Found {0} messages in {1}".format(total_messages, input_))
-        for i in range(len(message_keys)):
+        for i in tqdm(range(total_messages), disable=None):
             message_key = message_keys[i]
             logger.info("Processing message {0} of {1}".format(i + 1, total_messages))
             msg_content = mbox.get_string(message_key)

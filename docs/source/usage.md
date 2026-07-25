@@ -169,12 +169,20 @@ The full set of configuration options are:
       any configured output destination fails while saving/publishing
       reports (Default: `False`)
   - `log_file` - str: Write log messages to a file at this path
-  - `n_procs` - int: Number of process to run in parallel when
-      parsing in CLI mode (Default: `1`)
+  - `n_procs` - int: Number of processes to run in parallel when
+      parsing report files passed directly as CLI arguments
+      (Default: `1`)
 
     :::{note}
     Setting this to a number larger than one can improve
     performance when processing thousands of files
+    :::
+
+    :::{note}
+    `n_procs` only applies to report files passed directly on the
+    command line. Messages from mbox files and from mailbox
+    connections (IMAP, Microsoft Graph, Gmail API, Maildir) are
+    always processed sequentially.
     :::
 
 - `mailbox`
