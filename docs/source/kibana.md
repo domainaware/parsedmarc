@@ -90,6 +90,16 @@ rather than aggregating them as separate columns. Because a message that
 carries multiple DKIM signatures appears once per signature, summing the
 messages column across rows can exceed the total number of messages.
 
+The "Aggregate DMARC auth result filters" panel above the details tables
+provides dropdowns for the individual auth-result components — DKIM
+selector, DKIM domain, DKIM result, SPF scope, SPF domain, and SPF
+result — and filters the whole dashboard by them. Because components from
+different signatures of the same message are indexed together, combining
+two of these component filters matches documents where any signature
+satisfies each condition individually, not necessarily the same signature;
+the combined `selector / domain / result` (`scope / domain / result`)
+column remains the per-signature source of truth.
+
 :::{note}
 The alignment tables (SPF details, DKIM details) and the per-IP source
 table live on the same dashboard, further down. To view failures only,
