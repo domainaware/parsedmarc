@@ -88,7 +88,7 @@ class HECClient(object):
             return
 
         data = self._common_data.copy()
-        json_str = ""
+        json_lines: list[str] = []
         for report in aggregate_reports:
             for record in report["records"]:
                 new_report: dict[str, str | int | float | dict] = dict()
@@ -127,13 +127,13 @@ class HECClient(object):
                 )
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
-                json_str += f"{json.dumps(data)}\n"
+                json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, content=json_str, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -159,7 +159,7 @@ class HECClient(object):
         if len(failure_reports) < 1:
             return
 
-        json_str = ""
+        json_lines: list[str] = []
         for report in failure_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:failure"
@@ -170,13 +170,13 @@ class HECClient(object):
             )
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += f"{json.dumps(data)}\n"
+            json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, content=json_str, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -203,19 +203,19 @@ class HECClient(object):
             return
 
         data = self._common_data.copy()
-        json_str = ""
+        json_lines: list[str] = []
         for report in reports:
             data["sourcetype"] = "smtp:tls"
             timestamp = human_timestamp_to_unix_timestamp(report["begin_date"])
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += f"{json.dumps(data)}\n"
+            json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, content=json_str, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:

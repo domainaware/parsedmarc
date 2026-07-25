@@ -856,8 +856,7 @@ def save_aggregate_report_to_elasticsearch(
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            f"Elasticsearch's search for existing report \
-            error: {error_.__str__()}"
+            f"Elasticsearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
@@ -1219,8 +1218,7 @@ def save_smtp_tls_report_to_elasticsearch(
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            f"Elasticsearch's search for existing report \
-            error: {error_.__str__()}"
+            f"Elasticsearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:

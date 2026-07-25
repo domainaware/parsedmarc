@@ -832,8 +832,7 @@ def save_aggregate_report_to_opensearch(
         existing = search.execute()
     except Exception as error_:
         raise OpenSearchError(
-            f"OpenSearch's search for existing report \
-            error: {error_.__str__()}"
+            f"OpenSearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
@@ -1193,8 +1192,7 @@ def save_smtp_tls_report_to_opensearch(
         existing = search.execute()
     except Exception as error_:
         raise OpenSearchError(
-            f"OpenSearch's search for existing report \
-            error: {error_.__str__()}"
+            f"OpenSearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:

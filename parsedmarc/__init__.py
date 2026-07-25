@@ -874,9 +874,8 @@ def parse_aggregate_report_xml(
         if not org_name:
             logger.debug(f"Could not parse org_name from XML.\r\n{report.__str__()}")
             raise KeyError(
-                "Organization name is missing. \
-                           This field is a requirement for \
-                           saving the report"
+                "Organization name is missing. This field is a requirement "
+                "for saving the report"
             )
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
@@ -2299,17 +2298,17 @@ def get_dmarc_reports_from_mailbox(
                 _since = int(s[1]) * 60 * 24 * 7
         else:
             logger.warning(
-                f"Incorrect format for 'since' option. \
-                           Provided value:{since}, Expected values:(5m|3h|2d|1w). \
-                           Ignoring option, fetching messages for last 24hrs"
-                "SMTP does not support a time or timezone in since."
-                "See https://www.rfc-editor.org/rfc/rfc3501#page-52"
+                f"Incorrect format for 'since' option. Provided value: {since}, "
+                "expected values: (5m|3h|2d|1w). Ignoring option, fetching "
+                "messages for last 24hrs. SMTP does not support a time or "
+                "timezone in since. See "
+                "https://www.rfc-editor.org/rfc/rfc3501#page-52"
             )
 
         if isinstance(connection, IMAPConnection):
             logger.debug(
-                "Only days and weeks values in 'since' option are \
-                         considered for IMAP connections. Examples: 2d or 1w"
+                "Only days and weeks values in 'since' option are considered "
+                "for IMAP connections. Examples: 2d or 1w"
             )
             since = (datetime.now(timezone.utc) - timedelta(minutes=_since)).strftime(
                 "%d-%b-%Y"
