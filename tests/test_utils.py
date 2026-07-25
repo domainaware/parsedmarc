@@ -490,6 +490,67 @@ class TestLoadReverseDnsMapReloadsPSLOverrides(unittest.TestCase):
             offline=True,
         )
 
+    def _write_psl_overrides_file(self):
+        """Write a temp PSL overrides file with a unique suffix and register
+        cleanup, returning its path."""
+        tf = tempfile.NamedTemporaryFile(
+            "w", suffix=".txt", delete=False, encoding="utf-8"
+        )
+        tf.write(".internal.example-503.net\n")
+        tf.close()
+        self.addCleanup(os.unlink, tf.name)
+        return tf.name
+
+    def test_lazy_reverse_dns_map_load_applies_psl_overrides(self):
+        """Regression test for GitHub issue #503: the lazy
+        ``load_reverse_dns_map()`` call inside
+        ``get_service_from_reverse_dns_base_domain`` previously omitted
+        ``psl_overrides_path``/``psl_overrides_url``, so
+        ``load_reverse_dns_map``'s unconditional ``load_psl_overrides()``
+        call (utils.py) silently reloaded ``psl_overrides`` with the bundled
+        defaults, discarding an operator-configured overrides file. This
+        proves the lazy load now threads the caller's
+        ``psl_overrides_path`` through: after calling with an empty
+        ``reverse_dns_map`` (which forces the lazy load) and a custom
+        ``psl_overrides_path``, the custom override must be in effect.
+        """
+        path = self._write_psl_overrides_file()
+        parsedmarc.utils.get_service_from_reverse_dns_base_domain(
+            "something.example",
+            reverse_dns_map={},
+            always_use_local_file=True,
+            offline=True,
+            psl_overrides_path=path,
+        )
+        self.assertEqual(
+            parsedmarc.utils.get_base_domain("deep.sub.internal.example-503.net"),
+            "internal.example-503.net",
+        )
+
+    def test_get_ip_address_info_lazy_load_applies_psl_overrides(self):
+        """Regression test for GitHub issue #503, exercising the
+        ASN-fallback lazy ``load_reverse_dns_map()`` call inside
+        ``get_ip_address_info`` (used when no PTR record resolves). Before
+        the fix, this lazy load also omitted ``psl_overrides_path``/
+        ``psl_overrides_url``, so it clobbered operator-configured PSL
+        overrides with the bundled defaults the same way. ``offline=True``
+        forces the no-PTR path so this call reaches the ASN-fallback lazy
+        load rather than the PTR-driven
+        ``get_service_from_reverse_dns_base_domain`` call.
+        """
+        path = self._write_psl_overrides_file()
+        parsedmarc.utils.get_ip_address_info(
+            "192.0.2.1",
+            offline=True,
+            reverse_dns_map={},
+            always_use_local_files=True,
+            psl_overrides_path=path,
+        )
+        self.assertEqual(
+            parsedmarc.utils.get_base_domain("deep.sub.internal.example-503.net"),
+            "internal.example-503.net",
+        )
+
 
 class TestGetBaseDomainWithOverrides(unittest.TestCase):
     """`get_base_domain` must honour the current psl_overrides list."""

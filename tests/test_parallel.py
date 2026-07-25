@@ -68,7 +68,9 @@ class TestParallelMapParseReportFile(_ParallelTestCase):
             for path in SAMPLE_PATHS
         ]
 
-        job = functools.partial(_parse_report_file_job, kwargs=dict(offline=True))
+        job = functools.partial(
+            _parse_report_file_job, config=parsedmarc.ParserConfig(offline=True)
+        )
         results = list(parallel_map(job, SAMPLE_PATHS, n_procs=2))
 
         self.assertEqual(len(results), len(SAMPLE_PATHS))
@@ -94,7 +96,9 @@ class TestParallelMapJunkFile(_ParallelTestCase):
             junk_path = tf.name
         self.addCleanup(os.remove, junk_path)
 
-        job = functools.partial(_parse_report_file_job, kwargs=dict(offline=True))
+        job = functools.partial(
+            _parse_report_file_job, config=parsedmarc.ParserConfig(offline=True)
+        )
         results = list(parallel_map(job, [junk_path, junk_path], n_procs=2))
 
         self.assertEqual(len(results), 2)
@@ -208,7 +212,9 @@ class TestWorkerLogging(_ParallelTestCase):
         configure_logging(logging.DEBUG, log_path)
 
         sample = SAMPLE_PATHS[0]
-        job = functools.partial(_parse_report_file_job, kwargs=dict(offline=True))
+        job = functools.partial(
+            _parse_report_file_job, config=parsedmarc.ParserConfig(offline=True)
+        )
         results = list(parallel_map(job, [sample], n_procs=2))
 
         self.assertEqual(len(results), 1)
@@ -275,7 +281,7 @@ class TestParseReportEmailJob(_ParallelTestCase):
 
     def test_invalid_email_returns_parser_error_value(self):
         result = _parse_report_email_job(
-            b"not a valid email", kwargs=dict(offline=True)
+            b"not a valid email", config=parsedmarc.ParserConfig(offline=True)
         )
         self.assertIsInstance(result, parsedmarc.ParserError)
 

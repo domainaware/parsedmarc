@@ -842,6 +842,8 @@ def get_service_from_reverse_dns_base_domain(
     url: str | None = None,
     offline: bool = False,
     reverse_dns_map: ReverseDNSMap | None = None,
+    psl_overrides_path: str | None = None,
+    psl_overrides_url: str | None = None,
 ) -> ReverseDNSService:
     """
     Returns the service name of a given base domain name from reverse DNS.
@@ -850,9 +852,11 @@ def get_service_from_reverse_dns_base_domain(
         base_domain (str): The base domain of the reverse DNS lookup
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
-        url (str): URL ro a reverse DNS map
+        url (str): URL to a reverse DNS map
         offline (bool): Use the built-in copy of the reverse DNS map
         reverse_dns_map (dict): A reverse DNS map
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
     Returns:
         dict: A dictionary containing name and type.
         If the service is unknown, the name will be
@@ -873,6 +877,8 @@ def get_service_from_reverse_dns_base_domain(
             local_file_path=local_file_path,
             url=url,
             offline=offline,
+            psl_overrides_path=psl_overrides_path,
+            psl_overrides_url=psl_overrides_url,
         )
 
     service: ReverseDNSService
@@ -897,6 +903,8 @@ def get_ip_address_info(
     nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
+    psl_overrides_path: str | None = None,
+    psl_overrides_url: str | None = None,
 ) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
@@ -915,6 +923,8 @@ def get_ip_address_info(
         timeout (float): Sets the DNS timeout in seconds
         retries (int): Number of times to retry on timeout or other transient
             errors
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
 
     Returns:
         dict: ``ip_address``, ``reverse_dns``, ``country``
@@ -967,6 +977,8 @@ def get_ip_address_info(
                 url=reverse_dns_map_url,
                 always_use_local_file=always_use_local_files,
                 reverse_dns_map=reverse_dns_map,
+                psl_overrides_path=psl_overrides_path,
+                psl_overrides_url=psl_overrides_url,
             )
             info["base_domain"] = base_domain
             info["type"] = service["type"]
@@ -986,6 +998,8 @@ def get_ip_address_info(
                 local_file_path=reverse_dns_map_path,
                 url=reverse_dns_map_url,
                 offline=offline,
+                psl_overrides_path=psl_overrides_path,
+                psl_overrides_url=psl_overrides_url,
             )
         if info["as_domain"] and info["as_domain"] in map_value:
             service = map_value[info["as_domain"]]
