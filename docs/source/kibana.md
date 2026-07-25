@@ -128,3 +128,15 @@ reporting organizations, the policy domains they report on, and the
 specific failure types — certificate expiry, STARTTLS not supported,
 STS policy fetch errors, validation failures, and similar — together with
 the sending and receiving MTA addresses involved.
+
+Like the DKIM and SPF details tables above, the "SMTP TLS domains" and
+"SMTP TLS failure details" tables show one row per policy and one row per
+failure detail, respectively, using combined `policy (domain / type)` and
+`failure detail (domain / type / result / sending mta / receiving ip / mx)`
+columns so that each policy's or failure detail's fields stay paired
+together, rather than aggregating them as separate columns. The
+`successful_sessions` and `failed_sessions` columns are summed per report
+document, though, not per policy: when a single report carries multiple
+policies, a row's session sums include the sibling policies from that
+report as well as its own. Fully attributing session counts to a single
+policy would require restructuring the stored documents.
