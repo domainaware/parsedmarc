@@ -283,6 +283,7 @@ Workflow:
 
 ```python
 from parsedmarc.utils import load_psl_overrides, get_base_domain
+
 load_psl_overrides(offline=True)
 assert get_base_domain("host01.netlify.app") == "netlify.app"
 ```

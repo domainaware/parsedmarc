@@ -661,10 +661,8 @@ class PostgreSQLClient:
                     )
                     if cur.fetchone() is not None:
                         raise AlreadySaved(
-                            "A failure report with subject {subj!r} arriving "
-                            "at {date} has already been saved".format(
-                                subj=sample_subject, date=arrival_date_utc
-                            )
+                            f"A failure report with subject {sample_subject!r} arriving "
+                            f"at {arrival_date_utc} has already been saved"
                         )
                     cur.execute(
                         """

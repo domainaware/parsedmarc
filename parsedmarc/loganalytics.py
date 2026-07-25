@@ -129,7 +129,7 @@ class LogAnalyticsClient(object):
         try:
             logs_client.upload(self.conf.dcr_immutable_id, dcr_stream, results)
         except HttpResponseError as e:
-            raise LogAnalyticsException("Upload failed: {error}".format(error=e))
+            raise LogAnalyticsException(f"Upload failed: {e}")
 
     def publish_results(
         self,
