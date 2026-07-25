@@ -1268,7 +1268,12 @@ def save_smtp_tls_report_to_opensearch(
 
                 if "receiving_mx_hostname" in failure_detail:
                     receiving_mx_hostname = failure_detail["receiving_mx_hostname"]
-                if "additional_information_uri" in failure_detail:
+                # The parser's key is additional_info_uri (see
+                # SMTPTLSFailureDetailsOptional in types.py); accept the
+                # long-form key too for dicts built by other callers.
+                if "additional_info_uri" in failure_detail:
+                    additional_information_uri = failure_detail["additional_info_uri"]
+                elif "additional_information_uri" in failure_detail:
                     additional_information_uri = failure_detail[
                         "additional_information_uri"
                     ]

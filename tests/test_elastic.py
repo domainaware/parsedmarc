@@ -1190,6 +1190,9 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
                             "sending_mta_ip": "192.0.2.1",
                             "receiving_ip": "203.0.113.1",
                             "receiving_mx_hostname": "mx1.example.com",
+                            "additional_info_uri": (
+                                "https://reports.example.com/tls-help"
+                            ),
                         },
                         {
                             "result_type": "starttls-not-supported",
@@ -1220,14 +1223,24 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
         self.assertEqual(
             list(doc.policies_combined), ["example.com / sts", "example.net / tlsa"]
         )
+        expected_detail_expired = (
+            "example.com / sts / certificate-expired / 192.0.2.1 / "
+            "203.0.113.1 / mx1.example.com"
+        )
+        expected_detail_starttls = (
+            "example.com / sts / starttls-not-supported / 192.0.2.2 / "
+            "203.0.113.2 / mx2.example.com"
+        )
         self.assertEqual(
             list(doc.failure_details_combined),
-            [
-                "example.com / sts / certificate-expired / 192.0.2.1 / "
-                "203.0.113.1 / mx1.example.com",
-                "example.com / sts / starttls-not-supported / 192.0.2.2 / "
-                "203.0.113.2 / mx2.example.com",
-            ],
+            [expected_detail_expired, expected_detail_starttls],
+        )
+        # The parser emits additional_info_uri (SMTPTLSFailureDetailsOptional
+        # in types.py); the saver must persist it on the declared
+        # additional_information_uri field rather than dropping it.
+        self.assertEqual(
+            doc.policies[0].failure_details[0].additional_information_uri,
+            "https://reports.example.com/tls-help",
         )
 
 
