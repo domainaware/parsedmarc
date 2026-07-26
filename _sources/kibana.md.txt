@@ -38,7 +38,7 @@ valid when a message is forwarded without changing the from address, which is
 often caused by a mailbox forwarding rule. This is because DKIM signatures are
 part of the message headers, whereas SPF relies on SMTP session headers.
 
-Underneath the pie charts. you can see graphs of DMARC passage and message
+Underneath the pie charts, you can see graphs of DMARC compliance and message
 disposition over time.
 
 Under the graphs you will find the most useful data tables on the dashboard. On

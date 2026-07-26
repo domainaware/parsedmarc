@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parsedmarc.config &mdash; parsedmarc 10.4.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2f7da7c1"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            parsedmarc
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Using parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../output.html">Sample outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../elasticsearch.html">Elasticsearch and Kibana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../opensearch.html">OpenSearch and Grafana</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../kibana.html">Using the Kibana dashboards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../splunk.html">Splunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../davmail.html">Accessing an inbox using OWA/EWS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dmarc.html">Understanding DMARC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to parsedmarc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">parsedmarc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../parsedmarc.html">parsedmarc</a></li>
+      <li class="breadcrumb-item active">parsedmarc.config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parsedmarc.config</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Centralized parser configuration (GitHub issue #503).</span>
+
+<span class="sd">This module defines :class:`ParserConfig`, a single frozen dataclass that</span>
+<span class="sd">carries every parsing/enrichment option (offline mode, IP database path,</span>
+<span class="sd">reverse DNS map location, PSL overrides location, DNS behavior, etc.) plus</span>
+<span class="sd">the three caches that the parser and enrichment code share across calls:</span>
+<span class="sd">the IP address info cache, the seen-aggregate-report-ID cache, and the</span>
+<span class="sd">reverse DNS map.</span>
+
+<span class="sd">``parsedmarc/__init__.py`` re-exports :data:`IP_ADDRESS_CACHE`,</span>
+<span class="sd">:data:`SEEN_AGGREGATE_REPORT_IDS`, and :data:`REVERSE_DNS_MAP` under the</span>
+<span class="sd">same names for backward compatibility. That compatibility is</span>
+<span class="sd">identity-based: ``parsedmarc.IP_ADDRESS_CACHE is parsedmarc.config.IP_ADDRESS_CACHE``</span>
+<span class="sd">must hold, not merely equal contents, since callers may mutate the caches</span>
+<span class="sd">in place.</span>
+
+<span class="sd">Only :mod:`parsedmarc.constants` and :mod:`parsedmarc.utils` are imported</span>
+<span class="sd">from the package here — importing :mod:`parsedmarc` itself would be</span>
+<span class="sd">circular, since ``parsedmarc/__init__.py`` imports from this module.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">fields</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">expiringdict</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExpiringDict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span> <span class="n">DEFAULT_DNS_TIMEOUT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReverseDNSMap</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_new_ip_address_cache</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ExpiringDict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a fresh IP-address-info cache (4 hour expiry).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">14400</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_new_seen_aggregate_report_ids</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ExpiringDict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a fresh seen-aggregate-report-ID cache (1 hour expiry).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ExpiringDict</span><span class="p">(</span><span class="n">max_len</span><span class="o">=</span><span class="mi">100000000</span><span class="p">,</span> <span class="n">max_age_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+
+
+<span class="c1"># Canonical default caches. parsedmarc/__init__.py re-exports these three</span>
+<span class="c1"># objects under the same names (IP_ADDRESS_CACHE, SEEN_AGGREGATE_REPORT_IDS,</span>
+<span class="c1"># REVERSE_DNS_MAP) for backward compatibility with code that imported them</span>
+<span class="c1"># directly from the top-level package. That compatibility promise is</span>
+<span class="c1"># identity-based — the re-exported names must point at these very same</span>
+<span class="c1"># objects, not merely equivalent ones — so that library callers who obtained</span>
+<span class="c1"># a reference before this refactor keep observing the same mutations as code</span>
+<span class="c1"># that goes through a ParserConfig built from these defaults (e.g. during</span>
+<span class="c1"># unpickling in a multiprocessing worker; see ParserConfig.__setstate__).</span>
+<span class="n">IP_ADDRESS_CACHE</span> <span class="o">=</span> <span class="n">_new_ip_address_cache</span><span class="p">()</span>
+<span class="n">SEEN_AGGREGATE_REPORT_IDS</span> <span class="o">=</span> <span class="n">_new_seen_aggregate_report_ids</span><span class="p">()</span>
+<span class="n">REVERSE_DNS_MAP</span><span class="p">:</span> <span class="n">ReverseDNSMap</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c1"># The ParserConfig fields excluded from pickling; every other field must</span>
+<span class="c1"># survive the round-trip, so __getstate__ derives its contents from</span>
+<span class="c1"># dataclasses.fields() rather than enumerating option fields by hand.</span>
+<span class="n">_CACHE_FIELD_NAMES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;ip_address_cache&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;seen_aggregate_report_ids&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;reverse_dns_map&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="ParserConfig">
+<a class="viewcode-back" href="../../api.html#parsedmarc.config.ParserConfig">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParserConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Carries all parsing/enrichment options, plus the caches they share.</span>
+
+<span class="sd">    When passed as ``config=`` to parsedmarc&#39;s public parsing functions, the</span>
+<span class="sd">    individual option keyword arguments (``offline``, ``ip_db_path``,</span>
+<span class="sd">    ``nameservers``, etc.) are ignored in favor of the values carried on this</span>
+<span class="sd">    object.</span>
+
+<span class="sd">    Every explicitly constructed ``ParserConfig()`` owns fresh, isolated</span>
+<span class="sd">    cache objects (``ip_address_cache``, ``seen_aggregate_report_ids``,</span>
+<span class="sd">    ``reverse_dns_map``) via ``default_factory`` — two independently</span>
+<span class="sd">    constructed configs never share cache state. To derive a variant of an</span>
+<span class="sd">    existing config that *does* keep sharing its caches (e.g. to override</span>
+<span class="sd">    ``offline`` for one call while still benefiting from warm caches), use</span>
+<span class="sd">    ``dataclasses.replace(cfg, ...)``: since every field, including the three</span>
+<span class="sd">    cache fields, is an init field, ``replace()`` copies the source&#39;s cache</span>
+<span class="sd">    objects onto the new instance rather than constructing fresh ones.</span>
+
+<span class="sd">    Pickling (as happens when a config is captured in a</span>
+<span class="sd">    ``functools.partial`` payload submitted to a multiprocessing worker)</span>
+<span class="sd">    intentionally drops cache *contents*: ``__getstate__`` omits the three</span>
+<span class="sd">    cache fields, and ``__setstate__`` rebinds them to this module&#39;s</span>
+<span class="sd">    :data:`IP_ADDRESS_CACHE`, :data:`SEEN_AGGREGATE_REPORT_IDS`, and</span>
+<span class="sd">    :data:`REVERSE_DNS_MAP` — the unpickling process&#39;s module-default</span>
+<span class="sd">    caches — rather than either the sender&#39;s cache contents (which would be</span>
+<span class="sd">    expensive and stale to serialize per task) or brand new empty caches per</span>
+<span class="sd">    unpickle (which would silently defeat per-worker caching, since a</span>
+<span class="sd">    ``functools.partial`` payload is re-pickled for every task submitted to a</span>
+<span class="sd">    worker). Binding the module defaults means a freshly spawned worker</span>
+<span class="sd">    interpreter starts with empty caches and accumulates hits across the</span>
+<span class="sd">    tasks it handles, matching pre-refactor behavior.</span>
+
+<span class="sd">    Note that ``keep_alive`` and ``n_procs`` are deliberately **not** fields</span>
+<span class="sd">    on this class: those control process/worker orchestration, not parsing</span>
+<span class="sd">    or enrichment behavior.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        offline: Do not make online requests (DNS, IP database download,</span>
+<span class="sd">            reverse DNS map download, PSL overrides download).</span>
+<span class="sd">        ip_db_path: Path to a local MMDB file from IPinfo, MaxMind, or DBIP.</span>
+<span class="sd">        always_use_local_files: Always use local/bundled files instead of</span>
+<span class="sd">            downloading the IP database, reverse DNS map, or PSL overrides.</span>
+<span class="sd">        reverse_dns_map_path: Path to a local reverse DNS map file.</span>
+<span class="sd">        reverse_dns_map_url: URL to a reverse DNS map file.</span>
+<span class="sd">        psl_overrides_path: Path to a local PSL overrides file.</span>
+<span class="sd">        psl_overrides_url: URL to a PSL overrides file.</span>
+<span class="sd">        nameservers: A list of one or more nameservers to use for DNS</span>
+<span class="sd">            queries (Cloudflare&#39;s public DNS resolvers by default).</span>
+<span class="sd">        dns_timeout: DNS query timeout, in seconds.</span>
+<span class="sd">        dns_retries: Number of times to retry a DNS query after a timeout or</span>
+<span class="sd">            other transient error.</span>
+<span class="sd">        strip_attachment_payloads: Remove attachment payloads from parsed</span>
+<span class="sd">            email results.</span>
+<span class="sd">        normalize_timespan_threshold_hours: Aggregate reports whose</span>
+<span class="sd">            timespan exceeds this many hours are normalized/split.</span>
+<span class="sd">        ip_address_cache: Cache of IP address enrichment results.</span>
+<span class="sd">        seen_aggregate_report_ids: Cache of already-seen aggregate report</span>
+<span class="sd">            IDs, used for de-duplication.</span>
+<span class="sd">        reverse_dns_map: The reverse DNS map used to classify base domains</span>
+<span class="sd">            found via reverse DNS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">ip_db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">always_use_local_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">reverse_dns_map_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">reverse_dns_map_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">psl_overrides_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">psl_overrides_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dns_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span>
+    <span class="n">dns_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span>
+    <span class="n">strip_attachment_payloads</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">normalize_timespan_threshold_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">24.0</span>
+    <span class="n">ip_address_cache</span><span class="p">:</span> <span class="n">ExpiringDict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">_new_ip_address_cache</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">seen_aggregate_report_ids</span><span class="p">:</span> <span class="n">ExpiringDict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">_new_seen_aggregate_report_ids</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">reverse_dns_map</span><span class="p">:</span> <span class="n">ReverseDNSMap</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return picklable state, excluding the three cache fields.</span>
+
+<span class="sd">        Cache contents are process-local and potentially huge; they are</span>
+<span class="sd">        never serialized. See the class docstring for the full rationale.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CACHE_FIELD_NAMES</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restore option fields, then rebind caches to this module&#39;s</span>
+<span class="sd">        process-wide defaults (never fresh empty caches — see the class</span>
+<span class="sd">        docstring for why that would silently break per-worker caching).</span>
+
+<span class="sd">        Non-cache fields are first initialized to their class defaults, so</span>
+<span class="sd">        unpickling a ``ParserConfig`` serialized by an older parsedmarc</span>
+<span class="sd">        version (whose state predates fields added since) leaves the newer</span>
+<span class="sd">        fields at their defaults instead of unset entirely — ``__init__``</span>
+<span class="sd">        never runs during unpickling, so without this an absent field would</span>
+<span class="sd">        raise ``AttributeError`` on first access.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CACHE_FIELD_NAMES</span><span class="p">:</span>
+                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;ip_address_cache&quot;</span><span class="p">,</span> <span class="n">IP_ADDRESS_CACHE</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;seen_aggregate_report_ids&quot;</span><span class="p">,</span> <span class="n">SEEN_AGGREGATE_REPORT_IDS</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;reverse_dns_map&quot;</span><span class="p">,</span> <span class="n">REVERSE_DNS_MAP</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018 - 2025, Sean Whalen and contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

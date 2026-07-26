@@ -132,6 +132,24 @@ The full set of configuration options are:
       payloads from results
   - `silent` - bool: Set this to `False` to output results to STDOUT
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
+  - `archive_directory` - str: Optional. When set, successfully
+      processed report files given as local file/directory path
+      arguments are moved into
+      `<archive_directory>/<year>/<month>/<Aggregate|Failure|SMTP-TLS>/`
+      (year and month come from the report's own begin/arrival date, with
+      the month zero-padded). A successfully parsed report whose archive
+      date can't be determined is left in place with a logged warning.
+      Files that fail to parse as a report are moved to
+      `<archive_directory>/Invalid/`; files that fail for other reasons,
+      such as transient I/O errors, are left in place so a later run can
+      retry them. An existing destination file is never overwritten; a
+      numeric suffix is appended before the extension (e.g.
+      `report-1.xml`). This applies only to direct local file input —
+      reports fetched from mailboxes (IMAP, Microsoft Graph, Gmail API,
+      Maildir) use `[mailbox] archive_folder` instead, and mbox files are
+      never moved. Files already inside `archive_directory` are excluded
+      from processing, so the archive may safely live inside an input
+      directory. A failed move is logged and does not stop the run.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
   - `failure_json_filename` - str: filename for the failure
@@ -168,21 +186,32 @@ The full set of configuration options are:
   - `fail_on_output_error` - bool: Exit with a non-zero status code if
       any configured output destination fails while saving/publishing
       reports (Default: `False`)
+
+    :::{note}
+    This option only controls the process exit code. Retaining mailbox
+    messages whose reports could not be saved is automatic and happens
+    either way — see
+    [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved).
+    :::
+
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of processes to run in parallel when
-      parsing report files passed directly as CLI arguments
+      parsing report files passed directly as CLI arguments, messages
+      in mbox files, and messages from mailbox connections (IMAP,
+      Microsoft Graph, Gmail API, Maildir), including watch mode
       (Default: `1`)
 
     :::{note}
     Setting this to a number larger than one can improve
-    performance when processing thousands of files
+    performance when processing thousands of files or messages
     :::
 
     :::{note}
-    `n_procs` only applies to report files passed directly on the
-    command line. Messages from mbox files and from mailbox
-    connections (IMAP, Microsoft Graph, Gmail API, Maildir) are
-    always processed sequentially.
+    Only parsing is parallelized across worker processes. Fetching
+    messages, deduplicating reports, archiving/deleting mailbox
+    messages, and saving/publishing to outputs all stay sequential
+    in the main process. Each worker process keeps its own DNS/GeoIP
+    cache.
     :::
 
 - `mailbox`
@@ -195,12 +224,46 @@ The full set of configuration options are:
       messages as they arrive or poll MS Graph for new messages
   - `delete` - bool: Delete messages after processing them,
       instead of archiving them
+  - `delete_aggregate` - bool: Delete aggregate report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_failure` - bool: Delete failure report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_smtp_tls` - bool: Delete SMTP TLS report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_invalid` - bool: Delete messages that could not be
+      parsed, instead of archiving them in the `Invalid`
+      subfolder, where they can be inspected for debugging
+      (Default: the value of `delete`)
+
+    :::{note}
+    Each of these four options overrides `delete` for one kind of
+    message only, and the other three keep inheriting `delete`. So
+    `delete = True` combined with `delete_failure = False` archives
+    failure report messages while deleting processed aggregate and
+    SMTP TLS report messages — and unparseable ones, unless
+    `delete_invalid = False` is set as well.
+    :::
+
   - `test` - bool: Do not move or delete messages
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
-  - `check_timeout` - int: Number of seconds to wait for a IMAP
+  - `check_timeout` - int: Number of seconds to wait for an IMAP
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
+  - `max_unsaved_retries` - int: How many times a batch of messages
+      whose reports could not be saved is retried before its messages
+      are moved to the `Unsaved` archive subfolder instead of being
+      retried again (Default: `2`, i.e. the initial attempt plus two
+      retries). Use `0` to move messages on the first failed save;
+      negative values are rejected.
+      Failures are counted in memory, so the cap applies across watch-mode
+      checks within one long-running process, not across separate one-shot
+      runs. See
+      [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
+      below.
   - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
       Defaults to `1d` if incorrect value is provided.
@@ -806,6 +869,78 @@ PUT _cluster/settings
 Increasing this value increases resource usage.
 :::
 
+### Mailbox messages are only archived once the reports are saved
+
+parsedmarc processes a mailbox in batches of `batch_size` messages. Each
+batch is written to every configured output destination *before* any of
+that batch's messages are archived or deleted. If any destination reports a
+failure — an Elasticsearch outage, an expired Splunk HEC token, an
+unreachable Kafka broker, a full `--output` disk — the whole batch is left
+in the reports folder and retried on the next run or watch-mode check, so a
+report is never removed from the mailbox while it exists nowhere else
+([issue #242](https://github.com/domainaware/parsedmarc/issues/242)).
+
+This is all-or-nothing per batch: archiving a batch because most
+destinations accepted it would still permanently lose the data for the one
+that didn't. It also applies regardless of `fail_on_output_error`, which
+only controls the process exit code. Messages that could not be parsed at
+all carry no report data, so they are filed under `Invalid` (or deleted per
+`delete_invalid`) as usual.
+
+A destination that is broken rather than briefly unavailable would
+otherwise be retried forever, so retries are capped. Once a message's batch
+has failed `max_unsaved_retries + 1` times (three times by default), that
+message is moved to `<archive_folder>/Unsaved` and stops being retried. **A
+message is never deleted on this path, whatever the `delete` options say.**
+To recover after fixing the output destination, either move the messages
+from `Archive/Unsaved` back into the reports folder, or run parsedmarc once
+with `reports_folder = Archive/Unsaved`.
+
+:::{note}
+The failure counts live in memory, so they are counted per parsedmarc
+process. In watch mode — a long-running process that checks the mailbox
+repeatedly — the cap works as described across checks. A one-shot run
+(`cron`, `systemd` timers) attempts each message exactly once and then
+exits, so its counts start over every time and the default cap is never
+reached: messages simply keep being retried on every run, which is the
+safe direction. Set `max_unsaved_retries = 0` if you want one-shot runs to
+move unsavable messages to `Unsaved` immediately instead.
+:::
+
+:::{warning}
+Retrying a batch means re-sending it. Output destinations that
+deduplicate — Elasticsearch, OpenSearch, and PostgreSQL, which recognize
+an already-saved report — are unaffected, and S3 is idempotent because
+each report is written to an object key built from its type, date, and
+report ID, so a retry overwrites the same object. Kafka,
+Splunk HEC, syslog, GELF, webhooks, Azure Log Analytics, and the
+`--output` JSON/CSV files all append unconditionally, so each retry adds
+another copy of every report in the batch. That is why the default retry
+cap is deliberately low: at most three deliveries per report before its
+message is set aside in `Unsaved`. The summary email covers everything
+parsed in a run, including reports whose batch failed to save, so a report
+retried across runs can also appear in more than one summary email.
+:::
+
+:::{note}
+Not every destination can report a failed delivery. The webhook output
+deliberately logs and swallows its own HTTP and network errors, and the
+syslog and GELF outputs send through Python logging handlers, which
+swallow delivery errors by design — so an unreachable webhook, syslog, or
+GELF endpoint is *not* treated as a failed save and does not hold a
+batch's messages back. Failures in Elasticsearch, OpenSearch, Splunk HEC,
+Kafka, S3, PostgreSQL, Azure Log Analytics, and the `--output` files are
+all detected and do.
+:::
+
+:::{note}
+`since` interacts with retries: a message that ages out of the configured
+`since` window stops being fetched, and therefore stops being retried
+automatically. It is never deleted or moved — it simply stays in the
+reports folder until it is processed by a run with a wider (or no)
+`since` window.
+:::
+
 ## Environment variable configuration
 
 Any configuration option can be set via environment variables using the
@@ -941,6 +1076,50 @@ For sections with underscores in the name, the full section name is used:
 | `gelf` | `PARSEDMARC_GELF_` |
 | `webhook` | `PARSEDMARC_WEBHOOK_` |
 
+## Using parsedmarc as a library
+
+`parsedmarc` is also importable as a regular Python package, not just a CLI
+tool. The main entry points — `parse_report_file()`, `parse_aggregate_report_xml()`,
+`parse_aggregate_report_file()`, `parse_failure_report()`, `parse_report_email()`,
+`get_dmarc_reports_from_mbox()`, `get_dmarc_reports_from_mailbox()`, and
+`watch_inbox()` — are all importable
+directly from the `parsedmarc` package. See the [API reference](api.md) for
+the full set of modules and members.
+
+Each of these functions accepts either individual option keyword arguments
+(`offline`, `nameservers`, `dns_timeout`, etc.) or a single `config=` keyword
+argument carrying a `ParserConfig` instance:
+
+```python
+from parsedmarc import ParserConfig, parse_report_file, get_dmarc_reports_from_mailbox
+from parsedmarc.mail import IMAPConnection
+
+config = ParserConfig(
+    offline=False,
+    nameservers=["1.1.1.1", "1.0.0.1"],
+    dns_timeout=5.0,
+)
+
+report = parse_report_file("aggregate_report.xml.gz", config=config)
+
+connection = IMAPConnection(
+    host="imap.example.com", user="dmarc@example.com", password="..."
+)
+results = get_dmarc_reports_from_mailbox(connection, config=config)
+```
+
+A few things to keep in mind:
+
+- When `config=` is passed, the individual option keyword arguments are
+  ignored in favor of the values carried on the `ParserConfig` instance.
+- Each explicitly constructed `ParserConfig` owns its own isolated caches
+  (IP address info, seen aggregate report IDs, and the reverse DNS map).
+  Omitting `config=` falls back to the process-wide caches shared by every
+  call that doesn't pass one.
+- `keep_alive` and `n_procs` are not part of `ParserConfig` — they control
+  process/worker orchestration rather than parsing or enrichment behavior,
+  so they are always passed as separate keyword arguments.
+
 ## Performance tuning
 
 For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
@@ -951,8 +1130,12 @@ imports more predictable:
 - Reduce `mailbox.batch_size` to smaller values such as `100-500` instead of
   processing a very large message set at once. Smaller batches trade throughput
   for lower peak memory use and less sink pressure.
-- Keep `n_procs` low for mailbox-heavy runs. In practice, `1-2` workers is often
-  a safer starting point for large backfills than aggressive parallelism.
+- `n_procs` now parallelizes parsing for mailbox and mbox runs too, not just
+  report files passed directly as CLI arguments. It pays off most when a run
+  is bound by DNS/GeoIP enrichment rather than fetching or output. The
+  trade-off is memory and DNS load: at most roughly `2 * n_procs` messages
+  are held in flight at once, each worker process keeps its own DNS/GeoIP
+  cache, and DNS query volume can multiply by up to `n_procs`.
 - Use `mailbox.since` to process reports in smaller time windows such as `1d`,
   `7d`, or another interval that fits the backlog. This makes it easier to catch
   up incrementally instead of loading an entire mailbox history in one run.

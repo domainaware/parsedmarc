@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.utils &mdash; parsedmarc 10.3.0 documentation</title>
+  <title>parsedmarc.utils &mdash; parsedmarc 10.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=a126560f"></script>
+      <script src="../../_static/documentation_options.js?v=2f7da7c1"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -983,6 +983,8 @@
     <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">offline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">reverse_dns_map</span><span class="p">:</span> <span class="n">ReverseDNSMap</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">psl_overrides_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">psl_overrides_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReverseDNSService</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns the service name of a given base domain name from reverse DNS.</span>
@@ -991,9 +993,11 @@
 <span class="sd">        base_domain (str): The base domain of the reverse DNS lookup</span>
 <span class="sd">        always_use_local_file (bool): Always use a local map file</span>
 <span class="sd">        local_file_path (str): Path to a local map file</span>
-<span class="sd">        url (str): URL ro a reverse DNS map</span>
+<span class="sd">        url (str): URL to a reverse DNS map</span>
 <span class="sd">        offline (bool): Use the built-in copy of the reverse DNS map</span>
 <span class="sd">        reverse_dns_map (dict): A reverse DNS map</span>
+<span class="sd">        psl_overrides_path (str): Path to a local PSL overrides file</span>
+<span class="sd">        psl_overrides_url (str): URL to a PSL overrides file</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: A dictionary containing name and type.</span>
 <span class="sd">        If the service is unknown, the name will be</span>
@@ -1014,6 +1018,8 @@
             <span class="n">local_file_path</span><span class="o">=</span><span class="n">local_file_path</span><span class="p">,</span>
             <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
             <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+            <span class="n">psl_overrides_path</span><span class="o">=</span><span class="n">psl_overrides_path</span><span class="p">,</span>
+            <span class="n">psl_overrides_url</span><span class="o">=</span><span class="n">psl_overrides_url</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">service</span><span class="p">:</span> <span class="n">ReverseDNSService</span>
@@ -1041,6 +1047,8 @@
     <span class="n">nameservers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_TIMEOUT</span><span class="p">,</span>
     <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_DNS_MAX_RETRIES</span><span class="p">,</span>
+    <span class="n">psl_overrides_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">psl_overrides_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IPAddressInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns reverse DNS and country information for the given IP address</span>
@@ -1059,6 +1067,8 @@
 <span class="sd">        timeout (float): Sets the DNS timeout in seconds</span>
 <span class="sd">        retries (int): Number of times to retry on timeout or other transient</span>
 <span class="sd">            errors</span>
+<span class="sd">        psl_overrides_path (str): Path to a local PSL overrides file</span>
+<span class="sd">        psl_overrides_url (str): URL to a PSL overrides file</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: ``ip_address``, ``reverse_dns``, ``country``</span>
@@ -1111,6 +1121,8 @@
                 <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
                 <span class="n">always_use_local_file</span><span class="o">=</span><span class="n">always_use_local_files</span><span class="p">,</span>
                 <span class="n">reverse_dns_map</span><span class="o">=</span><span class="n">reverse_dns_map</span><span class="p">,</span>
+                <span class="n">psl_overrides_path</span><span class="o">=</span><span class="n">psl_overrides_path</span><span class="p">,</span>
+                <span class="n">psl_overrides_url</span><span class="o">=</span><span class="n">psl_overrides_url</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;base_domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_domain</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">service</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
@@ -1130,6 +1142,8 @@
                 <span class="n">local_file_path</span><span class="o">=</span><span class="n">reverse_dns_map_path</span><span class="p">,</span>
                 <span class="n">url</span><span class="o">=</span><span class="n">reverse_dns_map_url</span><span class="p">,</span>
                 <span class="n">offline</span><span class="o">=</span><span class="n">offline</span><span class="p">,</span>
+                <span class="n">psl_overrides_path</span><span class="o">=</span><span class="n">psl_overrides_path</span><span class="p">,</span>
+                <span class="n">psl_overrides_url</span><span class="o">=</span><span class="n">psl_overrides_url</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;as_domain&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;as_domain&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">map_value</span><span class="p">:</span>
             <span class="n">service</span> <span class="o">=</span> <span class="n">map_value</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;as_domain&quot;</span><span class="p">]]</span>

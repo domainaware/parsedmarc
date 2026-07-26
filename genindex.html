@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; parsedmarc 10.3.0 documentation</title>
+  <title>Index &mdash; parsedmarc 10.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=a126560f"></script>
+      <script src="_static/documentation_options.js?v=2f7da7c1"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -91,6 +91,7 @@
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#Q"><strong>Q</strong></a>
@@ -131,6 +132,8 @@
 </li>
       <li><a href="api.html#parsedmarc.elastic.AlreadySaved">AlreadySaved</a>, <a href="api.html#parsedmarc.opensearch.AlreadySaved">[1]</a>
 </li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.always_use_local_files">always_use_local_files (parsedmarc.config.ParserConfig attribute)</a>
+</li>
       <li><a href="api.html#parsedmarc.append_json">append_json() (in module parsedmarc)</a>
 </li>
   </ul></td>
@@ -161,8 +164,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.utils.decode_base64">decode_base64() (in module parsedmarc.utils)</a>
 </li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.dns_retries">dns_retries (parsedmarc.config.ParserConfig attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.dns_timeout">dns_timeout (parsedmarc.config.ParserConfig attribute)</a>
+</li>
       <li><a href="api.html#parsedmarc.utils.DownloadError">DownloadError</a>
 </li>
   </ul></td>
@@ -263,9 +270,13 @@
 </li>
       <li><a href="api.html#parsedmarc.utils.InvalidIPinfoAPIKey">InvalidIPinfoAPIKey</a>
 </li>
+      <li><a href="api.html#parsedmarc.InvalidSMTPTLSReport">InvalidSMTPTLSReport</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#parsedmarc.InvalidSMTPTLSReport">InvalidSMTPTLSReport</a>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.ip_address_cache">ip_address_cache (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.ip_db_path">ip_db_path (parsedmarc.config.ParserConfig attribute)</a>
 </li>
       <li><a href="api.html#parsedmarc.utils.IPAddressInfo">IPAddressInfo (class in parsedmarc.utils)</a>
 </li>
@@ -307,6 +318,8 @@
       <ul>
         <li><a href="api.html#module-parsedmarc">parsedmarc</a>
 </li>
+        <li><a href="api.html#module-parsedmarc.config">parsedmarc.config</a>
+</li>
         <li><a href="api.html#module-parsedmarc.elastic">parsedmarc.elastic</a>
 </li>
         <li><a href="api.html#module-parsedmarc.opensearch">parsedmarc.opensearch</a>
@@ -321,8 +334,24 @@
   </ul></td>
 </tr></table>
 
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.nameservers">nameservers (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.normalize_timespan_threshold_hours">normalize_timespan_threshold_hours (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.offline">offline (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.opensearch.OpenSearchError">OpenSearchError</a>
 </li>
@@ -362,8 +391,6 @@
 </li>
       <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv">parsed_smtp_tls_reports_to_csv() (in module parsedmarc)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.parsed_smtp_tls_reports_to_csv_rows">parsed_smtp_tls_reports_to_csv_rows() (in module parsedmarc)</a>
 </li>
       <li><a href="api.html#parsedmarc.types.ParsedEmail">ParsedEmail (class in parsedmarc.types)</a>
@@ -373,6 +400,15 @@
 
       <ul>
         <li><a href="api.html#module-parsedmarc">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    parsedmarc.config
+
+      <ul>
+        <li><a href="api.html#module-parsedmarc.config">module</a>
 </li>
       </ul></li>
       <li>
@@ -410,9 +446,15 @@
         <li><a href="api.html#module-parsedmarc.utils">module</a>
 </li>
       </ul></li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig">ParserConfig (class in parsedmarc.config)</a>
+</li>
       <li><a href="api.html#parsedmarc.ParserError">ParserError</a>
 </li>
       <li><a href="api.html#parsedmarc.types.ParsingResults">ParsingResults (class in parsedmarc.types)</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.psl_overrides_path">psl_overrides_path (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.psl_overrides_url">psl_overrides_url (parsedmarc.config.ParserConfig attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -428,6 +470,14 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.reverse_dns_map">reverse_dns_map (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.reverse_dns_map_path">reverse_dns_map_path (parsedmarc.config.ParserConfig attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.reverse_dns_map_url">reverse_dns_map_url (parsedmarc.config.ParserConfig attribute)</a>
+</li>
       <li><a href="api.html#parsedmarc.utils.ReverseDNSService">ReverseDNSService (class in parsedmarc.utils)</a>
 </li>
   </ul></td>
@@ -458,11 +508,13 @@
 </li>
       <li><a href="api.html#parsedmarc.elastic.save_smtp_tls_report_to_elasticsearch">save_smtp_tls_report_to_elasticsearch() (in module parsedmarc.elastic)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.opensearch.save_smtp_tls_report_to_opensearch">save_smtp_tls_report_to_opensearch() (in module parsedmarc.opensearch)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#parsedmarc.splunk.HECClient.save_smtp_tls_reports_to_splunk">save_smtp_tls_reports_to_splunk() (parsedmarc.splunk.HECClient method)</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.seen_aggregate_report_ids">seen_aggregate_report_ids (parsedmarc.config.ParserConfig attribute)</a>
 </li>
       <li><a href="api.html#parsedmarc.elastic.set_hosts">set_hosts() (in module parsedmarc.elastic)</a>
 
@@ -483,6 +535,8 @@
       <li><a href="api.html#parsedmarc.types.SMTPTLSReport">SMTPTLSReport (class in parsedmarc.types)</a>
 </li>
       <li><a href="api.html#parsedmarc.splunk.SplunkError">SplunkError</a>
+</li>
+      <li><a href="api.html#parsedmarc.config.ParserConfig.strip_attachment_payloads">strip_attachment_payloads (parsedmarc.config.ParserConfig attribute)</a>
 </li>
   </ul></td>
 </tr></table>

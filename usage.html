@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 10.3.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 10.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=a126560f"></script>
+      <script src="_static/documentation_options.js?v=2f7da7c1"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -47,7 +47,10 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using parsedmarc</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#cli-help">CLI help</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mailbox-messages-are-only-archived-once-the-reports-are-saved">Mailbox messages are only archived once the reports are saved</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#environment-variable-configuration">Environment variable configuration</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#specifying-the-config-file-via-environment-variable">Specifying the config file via environment variable</a></li>
@@ -57,6 +60,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#section-name-mapping">Section name mapping</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#using-parsedmarc-as-a-library">Using parsedmarc as a library</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance tuning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-tenant-support">Multi-tenant support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-parsedmarc-as-a-systemd-service">Running parsedmarc as a systemd service</a><ul>
@@ -231,6 +235,24 @@ Elasticsearch, Splunk and/or S3</p></li>
 payloads from results</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Set this to <code class="docutils literal notranslate"><span class="pre">False</span></code> to output results to STDOUT</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">archive_directory</span></code> - str: Optional. When set, successfully
+processed report files given as local file/directory path
+arguments are moved into
+<code class="docutils literal notranslate"><span class="pre">&lt;archive_directory&gt;/&lt;year&gt;/&lt;month&gt;/&lt;Aggregate|Failure|SMTP-TLS&gt;/</span></code>
+(year and month come from the report’s own begin/arrival date, with
+the month zero-padded). A successfully parsed report whose archive
+date can’t be determined is left in place with a logged warning.
+Files that fail to parse as a report are moved to
+<code class="docutils literal notranslate"><span class="pre">&lt;archive_directory&gt;/Invalid/</span></code>; files that fail for other reasons,
+such as transient I/O errors, are left in place so a later run can
+retry them. An existing destination file is never overwritten; a
+numeric suffix is appended before the extension (e.g.
+<code class="docutils literal notranslate"><span class="pre">report-1.xml</span></code>). This applies only to direct local file input —
+reports fetched from mailboxes (IMAP, Microsoft Graph, Gmail API,
+Maildir) use <code class="docutils literal notranslate"><span class="pre">[mailbox]</span> <span class="pre">archive_folder</span></code> instead, and mbox files are
+never moved. Files already inside <code class="docutils literal notranslate"><span class="pre">archive_directory</span></code> are excluded
+from processing, so the archive may safely live inside an input
+directory. A failed move is logged and does not stop the run.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_json_filename</span></code> - str: filename for the aggregate
 JSON output file</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">failure_json_filename</span></code> - str: filename for the failure
@@ -266,28 +288,39 @@ DNS resolvers (Default: <code class="docutils literal notranslate"><span class="
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Only print errors (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">fail_on_output_error</span></code> - bool: Exit with a non-zero status code if
 any configured output destination fails while saving/publishing
-reports (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
+reports (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option only controls the process exit code. Retaining mailbox
+messages whose reports could not be saved is automatic and happens
+either way — see
+<a class="reference internal" href="#mailbox-messages-are-only-archived-once-the-reports-are-saved">Mailbox messages are only archived once the reports are saved</a>.</p>
+</div>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code> - str: Write log messages to a file at this path</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> - int: Number of processes to run in parallel when
-parsing report files passed directly as CLI arguments
+parsing report files passed directly as CLI arguments, messages
+in mbox files, and messages from mailbox connections (IMAP,
+Microsoft Graph, Gmail API, Maildir), including watch mode
 (Default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Setting this to a number larger than one can improve
-performance when processing thousands of files</p>
+performance when processing thousands of files or messages</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> only applies to report files passed directly on the
-command line. Messages from mbox files and from mailbox
-connections (IMAP, Microsoft Graph, Gmail API, Maildir) are
-always processed sequentially.</p>
+<p>Only parsing is parallelized across worker processes. Fetching
+messages, deduplicating reports, archiving/deleting mailbox
+messages, and saving/publishing to outputs all stay sequential
+in the main process. Each worker process keeps its own DNS/GeoIP
+cache.</p>
 </div>
 </li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">mailbox</span></code></p>
-<ul class="simple">
+<ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">reports_folder</span></code> - str: The mailbox folder (or label for
 Gmail) where the incoming reports can be found
 (Default: <code class="docutils literal notranslate"><span class="pre">INBOX</span></code>)</p></li>
@@ -297,12 +330,46 @@ Gmail) to sort processed emails into (Default: <code class="docutils literal not
 messages as they arrive or poll MS Graph for new messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - bool: Delete messages after processing them,
 instead of archiving them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_aggregate</span></code> - bool: Delete aggregate report messages
+after processing them, instead of archiving them
+(Default: the value of <code class="docutils literal notranslate"><span class="pre">delete</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_failure</span></code> - bool: Delete failure report messages
+after processing them, instead of archiving them
+(Default: the value of <code class="docutils literal notranslate"><span class="pre">delete</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_smtp_tls</span></code> - bool: Delete SMTP TLS report messages
+after processing them, instead of archiving them
+(Default: the value of <code class="docutils literal notranslate"><span class="pre">delete</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_invalid</span></code> - bool: Delete messages that could not be
+parsed, instead of archiving them in the <code class="docutils literal notranslate"><span class="pre">Invalid</span></code>
+subfolder, where they can be inspected for debugging
+(Default: the value of <code class="docutils literal notranslate"><span class="pre">delete</span></code>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each of these four options overrides <code class="docutils literal notranslate"><span class="pre">delete</span></code> for one kind of
+message only, and the other three keep inheriting <code class="docutils literal notranslate"><span class="pre">delete</span></code>. So
+<code class="docutils literal notranslate"><span class="pre">delete</span> <span class="pre">=</span> <span class="pre">True</span></code> combined with <code class="docutils literal notranslate"><span class="pre">delete_failure</span> <span class="pre">=</span> <span class="pre">False</span></code> archives
+failure report messages while deleting processed aggregate and
+SMTP TLS report messages — and unparseable ones, unless
+<code class="docutils literal notranslate"><span class="pre">delete_invalid</span> <span class="pre">=</span> <span class="pre">False</span></code> is set as well.</p>
+</div>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test</span></code> - bool: Do not move or delete messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> - int: Number of messages to read and process
 before saving. Default <code class="docutils literal notranslate"><span class="pre">10</span></code>. Use <code class="docutils literal notranslate"><span class="pre">0</span></code> for no limit.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for a IMAP
+<li><p><code class="docutils literal notranslate"><span class="pre">check_timeout</span></code> - int: Number of seconds to wait for an IMAP
 IDLE response or the number of seconds until the next
 mail check (Default: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_unsaved_retries</span></code> - int: How many times a batch of messages
+whose reports could not be saved is retried before its messages
+are moved to the <code class="docutils literal notranslate"><span class="pre">Unsaved</span></code> archive subfolder instead of being
+retried again (Default: <code class="docutils literal notranslate"><span class="pre">2</span></code>, i.e. the initial attempt plus two
+retries). Use <code class="docutils literal notranslate"><span class="pre">0</span></code> to move messages on the first failed save;
+negative values are rejected.
+Failures are counted in memory, so the cap applies across watch-mode
+checks within one long-running process, not across separate one-shot
+runs. See
+<a class="reference internal" href="#mailbox-messages-are-only-archived-once-the-reports-are-saved">Mailbox messages are only archived once the reports are saved</a>
+below.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">since</span></code> - str: Search for messages since certain time. (Examples: <code class="docutils literal notranslate"><span class="pre">5m|3h|2d|1w</span></code>)
 Acceptable units - {“m”:“minutes”, “h”:“hours”, “d”:“days”, “w”:“weeks”}.
 Defaults to <code class="docutils literal notranslate"><span class="pre">1d</span></code> if incorrect value is provided.</p></li>
@@ -986,6 +1053,76 @@ Check current usage (from Management -&gt; Dev Tools -&gt; Console):</p>
 </div>
 <p>Increasing this value increases resource usage.</p>
 </div>
+<section id="mailbox-messages-are-only-archived-once-the-reports-are-saved">
+<h3>Mailbox messages are only archived once the reports are saved<a class="headerlink" href="#mailbox-messages-are-only-archived-once-the-reports-are-saved" title="Link to this heading"></a></h3>
+<p>parsedmarc processes a mailbox in batches of <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> messages. Each
+batch is written to every configured output destination <em>before</em> any of
+that batch’s messages are archived or deleted. If any destination reports a
+failure — an Elasticsearch outage, an expired Splunk HEC token, an
+unreachable Kafka broker, a full <code class="docutils literal notranslate"><span class="pre">--output</span></code> disk — the whole batch is left
+in the reports folder and retried on the next run or watch-mode check, so a
+report is never removed from the mailbox while it exists nowhere else
+(<a class="reference external" href="https://github.com/domainaware/parsedmarc/issues/242">issue #242</a>).</p>
+<p>This is all-or-nothing per batch: archiving a batch because most
+destinations accepted it would still permanently lose the data for the one
+that didn’t. It also applies regardless of <code class="docutils literal notranslate"><span class="pre">fail_on_output_error</span></code>, which
+only controls the process exit code. Messages that could not be parsed at
+all carry no report data, so they are filed under <code class="docutils literal notranslate"><span class="pre">Invalid</span></code> (or deleted per
+<code class="docutils literal notranslate"><span class="pre">delete_invalid</span></code>) as usual.</p>
+<p>A destination that is broken rather than briefly unavailable would
+otherwise be retried forever, so retries are capped. Once a message’s batch
+has failed <code class="docutils literal notranslate"><span class="pre">max_unsaved_retries</span> <span class="pre">+</span> <span class="pre">1</span></code> times (three times by default), that
+message is moved to <code class="docutils literal notranslate"><span class="pre">&lt;archive_folder&gt;/Unsaved</span></code> and stops being retried. <strong>A
+message is never deleted on this path, whatever the <code class="docutils literal notranslate"><span class="pre">delete</span></code> options say.</strong>
+To recover after fixing the output destination, either move the messages
+from <code class="docutils literal notranslate"><span class="pre">Archive/Unsaved</span></code> back into the reports folder, or run parsedmarc once
+with <code class="docutils literal notranslate"><span class="pre">reports_folder</span> <span class="pre">=</span> <span class="pre">Archive/Unsaved</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The failure counts live in memory, so they are counted per parsedmarc
+process. In watch mode — a long-running process that checks the mailbox
+repeatedly — the cap works as described across checks. A one-shot run
+(<code class="docutils literal notranslate"><span class="pre">cron</span></code>, <code class="docutils literal notranslate"><span class="pre">systemd</span></code> timers) attempts each message exactly once and then
+exits, so its counts start over every time and the default cap is never
+reached: messages simply keep being retried on every run, which is the
+safe direction. Set <code class="docutils literal notranslate"><span class="pre">max_unsaved_retries</span> <span class="pre">=</span> <span class="pre">0</span></code> if you want one-shot runs to
+move unsavable messages to <code class="docutils literal notranslate"><span class="pre">Unsaved</span></code> immediately instead.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Retrying a batch means re-sending it. Output destinations that
+deduplicate — Elasticsearch, OpenSearch, and PostgreSQL, which recognize
+an already-saved report — are unaffected, and S3 is idempotent because
+each report is written to an object key built from its type, date, and
+report ID, so a retry overwrites the same object. Kafka,
+Splunk HEC, syslog, GELF, webhooks, Azure Log Analytics, and the
+<code class="docutils literal notranslate"><span class="pre">--output</span></code> JSON/CSV files all append unconditionally, so each retry adds
+another copy of every report in the batch. That is why the default retry
+cap is deliberately low: at most three deliveries per report before its
+message is set aside in <code class="docutils literal notranslate"><span class="pre">Unsaved</span></code>. The summary email covers everything
+parsed in a run, including reports whose batch failed to save, so a report
+retried across runs can also appear in more than one summary email.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Not every destination can report a failed delivery. The webhook output
+deliberately logs and swallows its own HTTP and network errors, and the
+syslog and GELF outputs send through Python logging handlers, which
+swallow delivery errors by design — so an unreachable webhook, syslog, or
+GELF endpoint is <em>not</em> treated as a failed save and does not hold a
+batch’s messages back. Failures in Elasticsearch, OpenSearch, Splunk HEC,
+Kafka, S3, PostgreSQL, Azure Log Analytics, and the <code class="docutils literal notranslate"><span class="pre">--output</span></code> files are
+all detected and do.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">since</span></code> interacts with retries: a message that ages out of the configured
+<code class="docutils literal notranslate"><span class="pre">since</span></code> window stops being fetched, and therefore stops being retried
+automatically. It is never deleted or moved — it simply stays in the
+reports folder until it is processed by a run with a wider (or no)
+<code class="docutils literal notranslate"><span class="pre">since</span></code> window.</p>
+</div>
+</section>
 </section>
 <section id="environment-variable-configuration">
 <h2>Environment variable configuration<a class="headerlink" href="#environment-variable-configuration" title="Link to this heading"></a></h2>
@@ -1154,6 +1291,48 @@ then read and stored as the <code class="docutils literal notranslate"><span cla
 </table>
 </section>
 </section>
+<section id="using-parsedmarc-as-a-library">
+<h2>Using parsedmarc as a library<a class="headerlink" href="#using-parsedmarc-as-a-library" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> is also importable as a regular Python package, not just a CLI
+tool. The main entry points — <code class="docutils literal notranslate"><span class="pre">parse_report_file()</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_aggregate_report_xml()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parse_aggregate_report_file()</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_failure_report()</span></code>, <code class="docutils literal notranslate"><span class="pre">parse_report_email()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mbox()</span></code>, <code class="docutils literal notranslate"><span class="pre">get_dmarc_reports_from_mailbox()</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">watch_inbox()</span></code> — are all importable
+directly from the <code class="docutils literal notranslate"><span class="pre">parsedmarc</span></code> package. See the <a class="reference internal" href="api.html"><span class="std std-doc">API reference</span></a> for
+the full set of modules and members.</p>
+<p>Each of these functions accepts either individual option keyword arguments
+(<code class="docutils literal notranslate"><span class="pre">offline</span></code>, <code class="docutils literal notranslate"><span class="pre">nameservers</span></code>, <code class="docutils literal notranslate"><span class="pre">dns_timeout</span></code>, etc.) or a single <code class="docutils literal notranslate"><span class="pre">config=</span></code> keyword
+argument carrying a <code class="docutils literal notranslate"><span class="pre">ParserConfig</span></code> instance:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParserConfig</span><span class="p">,</span> <span class="n">parse_report_file</span><span class="p">,</span> <span class="n">get_dmarc_reports_from_mailbox</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.mail</span><span class="w"> </span><span class="kn">import</span> <span class="n">IMAPConnection</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">ParserConfig</span><span class="p">(</span>
+    <span class="n">offline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">nameservers</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;1.1.1.1&quot;</span><span class="p">,</span> <span class="s2">&quot;1.0.0.1&quot;</span><span class="p">],</span>
+    <span class="n">dns_timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">report</span> <span class="o">=</span> <span class="n">parse_report_file</span><span class="p">(</span><span class="s2">&quot;aggregate_report.xml.gz&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+<span class="n">connection</span> <span class="o">=</span> <span class="n">IMAPConnection</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="s2">&quot;imap.example.com&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;dmarc@example.com&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">get_dmarc_reports_from_mailbox</span><span class="p">(</span><span class="n">connection</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A few things to keep in mind:</p>
+<ul class="simple">
+<li><p>When <code class="docutils literal notranslate"><span class="pre">config=</span></code> is passed, the individual option keyword arguments are
+ignored in favor of the values carried on the <code class="docutils literal notranslate"><span class="pre">ParserConfig</span></code> instance.</p></li>
+<li><p>Each explicitly constructed <code class="docutils literal notranslate"><span class="pre">ParserConfig</span></code> owns its own isolated caches
+(IP address info, seen aggregate report IDs, and the reverse DNS map).
+Omitting <code class="docutils literal notranslate"><span class="pre">config=</span></code> falls back to the process-wide caches shared by every
+call that doesn’t pass one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">keep_alive</span></code> and <code class="docutils literal notranslate"><span class="pre">n_procs</span></code> are not part of <code class="docutils literal notranslate"><span class="pre">ParserConfig</span></code> — they control
+process/worker orchestration rather than parsing or enrichment behavior,
+so they are always passed as separate keyword arguments.</p></li>
+</ul>
+</section>
 <section id="performance-tuning">
 <h2>Performance tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>
 <p>For large mailbox imports or backfills, parsedmarc can consume a noticeable amount
@@ -1164,8 +1343,12 @@ imports more predictable:</p>
 <li><p>Reduce <code class="docutils literal notranslate"><span class="pre">mailbox.batch_size</span></code> to smaller values such as <code class="docutils literal notranslate"><span class="pre">100-500</span></code> instead of
 processing a very large message set at once. Smaller batches trade throughput
 for lower peak memory use and less sink pressure.</p></li>
-<li><p>Keep <code class="docutils literal notranslate"><span class="pre">n_procs</span></code> low for mailbox-heavy runs. In practice, <code class="docutils literal notranslate"><span class="pre">1-2</span></code> workers is often
-a safer starting point for large backfills than aggressive parallelism.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_procs</span></code> now parallelizes parsing for mailbox and mbox runs too, not just
+report files passed directly as CLI arguments. It pays off most when a run
+is bound by DNS/GeoIP enrichment rather than fetching or output. The
+trade-off is memory and DNS load: at most roughly <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">n_procs</span></code> messages
+are held in flight at once, each worker process keeps its own DNS/GeoIP
+cache, and DNS query volume can multiply by up to <code class="docutils literal notranslate"><span class="pre">n_procs</span></code>.</p></li>
 <li><p>Use <code class="docutils literal notranslate"><span class="pre">mailbox.since</span></code> to process reports in smaller time windows such as <code class="docutils literal notranslate"><span class="pre">1d</span></code>,
 <code class="docutils literal notranslate"><span class="pre">7d</span></code>, or another interval that fits the backlog. This makes it easier to catch
 up incrementally instead of loading an entire mailbox history in one run.</p></li>
