@@ -1552,6 +1552,146 @@ since = 2d
         self.assertEqual(mock_watch_inbox.call_args.kwargs.get("since"), "2d")
 
 
+class TestMailboxPerTypeDeleteOptions(unittest.TestCase):
+    """The [mailbox] per-report-type delete options (issue #256) must reach
+    the library unchanged, including the difference between an explicit
+    ``false`` and an unset option (``None``, meaning "inherit ``delete``")."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+
+    def tearDown(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        self._stderr_patch.stop()
+        self._stdout_patch.stop()
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    IMAP_CONFIG = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+delete = true
+delete_failure = false
+"""
+
+    def _assert_per_type_delete_kwargs(self, kwargs):
+        self.assertIs(kwargs.get("delete"), True)
+        self.assertIs(kwargs.get("delete_failure"), False)
+        # Unset options stay None so the library applies the inheritance.
+        self.assertIsNone(kwargs.get("delete_aggregate"))
+        self.assertIsNone(kwargs.get("delete_smtp_tls"))
+        self.assertIsNone(kwargs.get("delete_invalid"))
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesPerTypeDeleteToWatchInbox(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_mailbox_reports
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+        cfg_path = self._write_config(self.IMAP_CONFIG + "watch = true\n")
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        self._assert_per_type_delete_kwargs(mock_watch_inbox.call_args.kwargs)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testCliPassesPerTypeDeleteToOneShotMailboxRun(
+        self, mock_imap_connection, mock_get_mailbox_reports
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config(self.IMAP_CONFIG)
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            parsedmarc.cli._main()
+
+        self._assert_per_type_delete_kwargs(mock_get_mailbox_reports.call_args.kwargs)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.GmailConnection")
+    def testGmailScopeGuardForcesAllDeleteFlagsOff(
+        self, mock_gmail_connection, mock_get_mailbox_reports
+    ):
+        """The Gmail deletion scope is a mailbox-wide capability grant, so a
+        per-report-type delete option alone (with ``delete`` unset) is enough
+        to trip the guard, and a missing scope turns every delete flag off."""
+        mock_gmail_connection.return_value = MagicMock()
+        mock_get_mailbox_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        cfg_path = self._write_config("""[general]
+silent = true
+
+[gmail_api]
+credentials_file = /tmp/gmail-credentials.json
+scopes = https://www.googleapis.com/auth/gmail.modify
+
+[mailbox]
+delete_aggregate = true
+""")
+
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = False
+        try:
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+                with self.assertLogs("parsedmarc.log", level="ERROR") as logs:
+                    parsedmarc.cli._main()
+        finally:
+            _logger.disabled = True
+
+        self.assertTrue(
+            any("Message deletion requires scope" in line for line in logs.output),
+            logs.output,
+        )
+        kwargs = mock_get_mailbox_reports.call_args.kwargs
+        for option in (
+            "delete",
+            "delete_aggregate",
+            "delete_failure",
+            "delete_smtp_tls",
+            "delete_invalid",
+        ):
+            with self.subTest(option=option):
+                self.assertIs(kwargs.get(option), False)
+
+
 class TestCliParserConfigWiring(unittest.TestCase):
     """Tests that _main() builds a single ParserConfig (via
     _build_parser_config) from parsed opts and passes it as ``config=`` to
@@ -4482,6 +4622,68 @@ def _config_with(section: str, settings: dict) -> "ConfigParser":
     for k, v in settings.items():
         cp.set(section, k, str(v))
     return cp
+
+
+class TestParseConfigMailbox(unittest.TestCase):
+    """The [mailbox] section, including the per-report-type delete options
+    (issue #256). An option that is absent from the INI must be left alone
+    entirely: _main defaults the four per-type options to None so the library
+    inherits the overall ``delete`` value, and writing False for an absent key
+    would silently disable that inheritance."""
+
+    PER_TYPE_DELETE_OPTS = (
+        "mailbox_delete_aggregate",
+        "mailbox_delete_failure",
+        "mailbox_delete_smtp_tls",
+        "mailbox_delete_invalid",
+    )
+
+    def test_mailbox_full_section(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "mailbox",
+            {
+                "reports_folder": "Reports",
+                "archive_folder": "Processed",
+                "watch": "true",
+                "delete": "true",
+                "delete_aggregate": "true",
+                "delete_failure": "false",
+                "delete_smtp_tls": "true",
+                "delete_invalid": "false",
+                "test": "false",
+                "batch_size": "25",
+                "check_timeout": "60",
+                "since": "3d",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.mailbox_reports_folder, "Reports")
+        self.assertEqual(opts.mailbox_archive_folder, "Processed")
+        self.assertIs(opts.mailbox_watch, True)
+        self.assertIs(opts.mailbox_delete, True)
+        self.assertIs(opts.mailbox_delete_aggregate, True)
+        # Explicitly false, not None: this type opts out of delete = true.
+        self.assertIs(opts.mailbox_delete_failure, False)
+        self.assertIs(opts.mailbox_delete_smtp_tls, True)
+        self.assertIs(opts.mailbox_delete_invalid, False)
+        self.assertIs(opts.mailbox_test, False)
+        self.assertEqual(opts.mailbox_batch_size, 25)
+        self.assertEqual(opts.mailbox_check_timeout, 60)
+        self.assertEqual(opts.mailbox_since, "3d")
+
+    def test_mailbox_absent_per_type_delete_keys_are_not_set(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("mailbox", {"delete": "true"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertIs(opts.mailbox_delete, True)
+        for option in self.PER_TYPE_DELETE_OPTS:
+            with self.subTest(option=option):
+                self.assertFalse(hasattr(opts, option))
 
 
 class TestParseConfigGeneral(unittest.TestCase):
