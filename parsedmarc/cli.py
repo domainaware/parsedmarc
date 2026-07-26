@@ -1811,7 +1811,7 @@ def _main():
                 # run outright, and now that a failed save holds mailbox
                 # messages back it also has to be recorded like any other
                 # destination's failure rather than escaping.
-                log_output_error("File output", error_.__str__())
+                log_output_error("File output", str(error_))
 
         kafka_client = clients.get("kafka_client")
         s3_client = clients.get("s3_client")
@@ -2839,7 +2839,11 @@ def _main():
         and to ``watch_inbox()`` as its ``callback``. Returning ``False``
         when any output destination failed keeps that batch's messages in
         the mailbox to be retried, instead of archiving or deleting reports
-        that were never persisted anywhere (#242).
+        that were never persisted anywhere (#242). With
+        ``fail_on_output_error`` enabled it never returns ``False``:
+        ``process_reports()`` raises ``ParserError`` instead, which the
+        library treats as "unsaved" too (same retention and retry-cap
+        bookkeeping) before the exception propagates back out here.
         """
         return not process_reports(batch)
 
