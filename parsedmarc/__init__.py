@@ -2243,6 +2243,8 @@ def _dispose_invalid_message(
 ) -> None:
     """Delete or move an unparseable message, per ``delete``.
 
+    Callers pass their effective ``delete_invalid`` value as ``delete``.
+
     Shared, unmodified, by the sequential and parallel branches of
     ``get_dmarc_reports_from_mailbox`` so both dispose of invalid messages
     identically.
@@ -2427,6 +2429,10 @@ def get_dmarc_reports_from_mailbox(
     reports_folder: str = "INBOX",
     archive_folder: str = "Archive",
     delete: bool = False,
+    delete_aggregate: bool | None = None,
+    delete_failure: bool | None = None,
+    delete_smtp_tls: bool | None = None,
+    delete_invalid: bool | None = None,
     test: bool = False,
     ip_db_path: str | None = None,
     always_use_local_files: bool = False,
@@ -2452,7 +2458,19 @@ def get_dmarc_reports_from_mailbox(
         connection: A Mailbox connection object
         reports_folder (str): The folder where reports can be found
         archive_folder (str): The folder to move processed mail to
-        delete (bool): Delete  messages after processing them
+        delete (bool): Delete messages after processing them
+        delete_aggregate (bool): Delete aggregate report messages after
+            processing them, instead of moving them to the ``Aggregate``
+            archive subfolder (default: the value of ``delete``)
+        delete_failure (bool): Delete failure report messages after
+            processing them, instead of moving them to the ``Failure``
+            archive subfolder (default: the value of ``delete``)
+        delete_smtp_tls (bool): Delete SMTP TLS report messages after
+            processing them, instead of moving them to the ``SMTP-TLS``
+            archive subfolder (default: the value of ``delete``)
+        delete_invalid (bool): Delete unparseable messages, instead of
+            moving them to the ``Invalid`` archive subfolder where they can
+            be inspected for debugging (default: the value of ``delete``)
         test (bool): Do not move or delete messages after processing them
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
@@ -2488,8 +2506,21 @@ def get_dmarc_reports_from_mailbox(
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
     """
-    if delete and test:
-        raise ValueError("delete and test options are mutually exclusive")
+    # Each per-report-type flag inherits the overall ``delete`` value when it
+    # is left unset (``None``). Resolve once, up front: every decision below
+    # reads only these four resolved flags. The raw ``delete`` parameter is
+    # still forwarded verbatim to the recursive self-call at the end of this
+    # function, where it is inert because all four resolved flags accompany
+    # it.
+    delete_aggregate = delete if delete_aggregate is None else delete_aggregate
+    delete_failure = delete if delete_failure is None else delete_failure
+    delete_smtp_tls = delete if delete_smtp_tls is None else delete_smtp_tls
+    delete_invalid = delete if delete_invalid is None else delete_invalid
+
+    if test and (
+        delete_aggregate or delete_failure or delete_smtp_tls or delete_invalid
+    ):
+        raise ValueError("delete options and test are mutually exclusive")
 
     if connection is None:
         raise ValueError("Must supply a connection")
@@ -2646,7 +2677,10 @@ def get_dmarc_reports_from_mailbox(
         if not test:
             for invalid_message_id in invalid_msg_ids:
                 _dispose_invalid_message(
-                    connection, invalid_message_id, delete, invalid_reports_folder
+                    connection,
+                    invalid_message_id,
+                    delete_invalid,
+                    invalid_reports_folder,
                 )
     else:
         for i in range(message_limit):
@@ -2678,73 +2712,57 @@ def get_dmarc_reports_from_mailbox(
                 logger.warning(error.__str__())
                 if not test:
                     _dispose_invalid_message(
-                        connection, message_id, delete, invalid_reports_folder
+                        connection, message_id, delete_invalid, invalid_reports_folder
                     )
 
     if not test:
-        if delete:
-            processed_messages = (
-                aggregate_report_msg_uids + failure_report_msg_uids + smtp_tls_msg_uids
-            )
-
-            number_of_processed_msgs = len(processed_messages)
-            for i in range(number_of_processed_msgs):
-                msg_uid = processed_messages[i]
-                logger.debug(
-                    f"Deleting message {i + 1} of {number_of_processed_msgs}: UID {msg_uid}"
-                )
-                try:
-                    connection.delete_message(msg_uid)
-
-                except Exception as e:
-                    message = "Error deleting message UID"
-                    e = f"{message} {msg_uid}: {e}"
-                    logger.error(f"Mailbox error: {e}")
-        else:
-            if len(aggregate_report_msg_uids) > 0:
-                log_message = "Moving aggregate report messages from"
-                logger.debug(
-                    f"{log_message} {reports_folder} to {aggregate_reports_folder}"
-                )
-                number_of_agg_report_msgs = len(aggregate_report_msg_uids)
-                for i in range(number_of_agg_report_msgs):
-                    msg_uid = aggregate_report_msg_uids[i]
+        # Each report type is disposed of according to its own effective
+        # delete flag: deleted outright, or moved to its archive subfolder.
+        for msg_uids, delete_type, destination_folder, label in (
+            (
+                aggregate_report_msg_uids,
+                delete_aggregate,
+                aggregate_reports_folder,
+                "aggregate report",
+            ),
+            (
+                failure_report_msg_uids,
+                delete_failure,
+                failure_reports_folder,
+                "failure report",
+            ),
+            (
+                smtp_tls_msg_uids,
+                delete_smtp_tls,
+                smtp_tls_reports_folder,
+                "SMTP TLS report",
+            ),
+        ):
+            number_of_msgs = len(msg_uids)
+            if number_of_msgs == 0:
+                continue
+            if not delete_type:
+                message = f"Moving {label} messages from"
+                logger.debug(f"{message} {reports_folder} to {destination_folder}")
+            for i in range(number_of_msgs):
+                msg_uid = msg_uids[i]
+                if delete_type:
                     logger.debug(
-                        f"Moving message {i + 1} of {number_of_agg_report_msgs}: UID {msg_uid}"
+                        f"Deleting message {i + 1} of {number_of_msgs}: UID {msg_uid}"
                     )
                     try:
-                        connection.move_message(msg_uid, aggregate_reports_folder)
+                        connection.delete_message(msg_uid)
                     except Exception as e:
-                        message = "Error moving message UID"
+                        message = "Error deleting message UID"
                         e = f"{message} {msg_uid}: {e}"
                         logger.error(f"Mailbox error: {e}")
-            if len(failure_report_msg_uids) > 0:
-                message = "Moving failure report messages from"
-                logger.debug(f"{message} {reports_folder} to {failure_reports_folder}")
-                number_of_failure_msgs = len(failure_report_msg_uids)
-                for i in range(number_of_failure_msgs):
-                    msg_uid = failure_report_msg_uids[i]
+                else:
                     message = "Moving message"
                     logger.debug(
-                        f"{message} {i + 1} of {number_of_failure_msgs}: UID {msg_uid}"
+                        f"{message} {i + 1} of {number_of_msgs}: UID {msg_uid}"
                     )
                     try:
-                        connection.move_message(msg_uid, failure_reports_folder)
-                    except Exception as e:
-                        e = f"Error moving message UID {msg_uid}: {e}"
-                        logger.error(f"Mailbox error: {e}")
-            if len(smtp_tls_msg_uids) > 0:
-                message = "Moving SMTP TLS report messages from"
-                logger.debug(f"{message} {reports_folder} to {smtp_tls_reports_folder}")
-                number_of_smtp_tls_uids = len(smtp_tls_msg_uids)
-                for i in range(number_of_smtp_tls_uids):
-                    msg_uid = smtp_tls_msg_uids[i]
-                    message = "Moving message"
-                    logger.debug(
-                        f"{message} {i + 1} of {number_of_smtp_tls_uids}: UID {msg_uid}"
-                    )
-                    try:
-                        connection.move_message(msg_uid, smtp_tls_reports_folder)
+                        connection.move_message(msg_uid, destination_folder)
                     except Exception as e:
                         e = f"Error moving message UID {msg_uid}: {e}"
                         logger.error(f"Mailbox error: {e}")
@@ -2771,6 +2789,10 @@ def get_dmarc_reports_from_mailbox(
             reports_folder=reports_folder,
             archive_folder=archive_folder,
             delete=delete,
+            delete_aggregate=delete_aggregate,
+            delete_failure=delete_failure,
+            delete_smtp_tls=delete_smtp_tls,
+            delete_invalid=delete_invalid,
             test=test,
             results=results,
             since=current_time,
@@ -2788,6 +2810,10 @@ def watch_inbox(
     reports_folder: str = "INBOX",
     archive_folder: str = "Archive",
     delete: bool = False,
+    delete_aggregate: bool | None = None,
+    delete_failure: bool | None = None,
+    delete_smtp_tls: bool | None = None,
+    delete_invalid: bool | None = None,
     test: bool = False,
     check_timeout: int = 30,
     ip_db_path: str | None = None,
@@ -2815,7 +2841,19 @@ def watch_inbox(
         callback: The callback function to receive the parsing results
         reports_folder (str): The IMAP folder where reports can be found
         archive_folder (str): The folder to move processed mail to
-        delete (bool): Delete  messages after processing them
+        delete (bool): Delete messages after processing them
+        delete_aggregate (bool): Delete aggregate report messages after
+            processing them, instead of moving them to the ``Aggregate``
+            archive subfolder (default: the value of ``delete``)
+        delete_failure (bool): Delete failure report messages after
+            processing them, instead of moving them to the ``Failure``
+            archive subfolder (default: the value of ``delete``)
+        delete_smtp_tls (bool): Delete SMTP TLS report messages after
+            processing them, instead of moving them to the ``SMTP-TLS``
+            archive subfolder (default: the value of ``delete``)
+        delete_invalid (bool): Delete unparseable messages, instead of
+            moving them to the ``Invalid`` archive subfolder where they can
+            be inspected for debugging (default: the value of ``delete``)
         test (bool): Do not move or delete messages after processing them
         check_timeout (int): Number of seconds to wait for a IMAP IDLE response
             or the number of seconds until the next mail check
@@ -2866,6 +2904,10 @@ def watch_inbox(
             reports_folder=reports_folder,
             archive_folder=archive_folder,
             delete=delete,
+            delete_aggregate=delete_aggregate,
+            delete_failure=delete_failure,
+            delete_smtp_tls=delete_smtp_tls,
+            delete_invalid=delete_invalid,
             test=test,
             batch_size=batch_size,
             since=since,

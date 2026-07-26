@@ -13,6 +13,7 @@ import logging
 import mailbox
 import os
 import unittest
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from glob import glob
 from io import BytesIO
@@ -2963,6 +2964,38 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
             )
         self.assertIn("mutually exclusive", str(ctx.exception))
 
+    def test_inherited_delete_with_test_raises(self):
+        """The guard checks the effective per-type flags, so delete=True still
+        raises alongside test=True when only *one* per-type flag opts out --
+        the remaining three inherit the deletion."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), delete=True, delete_aggregate=False, test=True
+            )
+        self.assertIn("mutually exclusive", str(ctx.exception))
+
+    def test_explicit_per_type_delete_with_test_raises(self):
+        """Each per-type delete flag on its own is enough to conflict with
+        test=True, with the overall delete option left False and the other
+        three flags explicitly False."""
+        for flag in (
+            "delete_aggregate",
+            "delete_failure",
+            "delete_smtp_tls",
+            "delete_invalid",
+        ):
+            with self.subTest(flag=flag):
+                with self.assertRaises(ValueError) as ctx:
+                    parsedmarc.get_dmarc_reports_from_mailbox(
+                        connection=MagicMock(),
+                        test=True,
+                        delete_aggregate=flag == "delete_aggregate",
+                        delete_failure=flag == "delete_failure",
+                        delete_smtp_tls=flag == "delete_smtp_tls",
+                        delete_invalid=flag == "delete_invalid",
+                    )
+                self.assertIn("mutually exclusive", str(ctx.exception))
+
     def test_none_connection_raises(self):
         with self.assertRaises(ValueError) as ctx:
             parsedmarc.get_dmarc_reports_from_mailbox(
@@ -3184,6 +3217,113 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
         self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
 
+    def test_delete_aggregate_overrides_delete_false(self):
+        """delete_aggregate=True with delete left at its False default: only
+        the aggregate report message is deleted; the other two report types
+        (and the unparseable message) are still archived."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete_aggregate=True)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
+    def test_delete_failure_false_overrides_delete_true(self):
+        """delete=True with delete_failure=False: failure report messages are
+        kept (archived) while every other message -- aggregate, SMTP TLS, and
+        the unparseable one, all inheriting delete=True -- is deleted. This is
+        the motivating case from issue #256."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete=True, delete_failure=False)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
+
+    def test_delete_invalid_true_deletes_unparseable_messages(self):
+        """delete_invalid=True on its own: the unparseable message is deleted
+        while the parsed failure report is still archived."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete_invalid=True)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+
+    def test_delete_invalid_false_keeps_unparseable_when_delete_true(self):
+        """delete=True with delete_invalid=False: the unparseable message is
+        kept in Archive/Invalid for debugging while the parsed failure report
+        message is deleted."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete=True, delete_invalid=False)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_per_type_delete_flags_parallel(self):
+        """Same per-type semantics on the n_procs=2 branch, where
+        invalid-message disposition happens after the parse phase: the
+        failure report and the unparseable message are archived (both
+        explicitly False) while the aggregate report inherits delete=True and
+        is deleted."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(
+            n_procs=2, delete=True, delete_failure=False, delete_invalid=False
+        )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+
+    def test_test_mode_allowed_when_all_delete_flags_explicitly_false(self):
+        """The test/delete guard fires on the *effective* per-type flags, so
+        delete=True alongside all four per-type flags explicitly False is
+        valid with test=True: nothing would be deleted. The message is parsed
+        and left in the INBOX."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(
+            delete=True,
+            delete_aggregate=False,
+            delete_failure=False,
+            delete_smtp_tls=False,
+            delete_invalid=False,
+            test=True,
+        )
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertFalse(conn.folder_exists("Archive/Failure"))
+
     def test_test_mode_parses_without_moving_or_creating_folders(self):
         """test=True: the report is parsed and returned, but the message stays
         in the INBOX and no archive folders are created/touched."""
@@ -3300,6 +3440,104 @@ class TestGetDmarcReportsFromMailboxMaildirBatchSizeZeroRecursion(unittest.TestC
         self.assertEqual(len(result["failure_reports"]), 1)
         self.assertEqual(len(result["smtp_tls_reports"]), 1)
         self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_batch_size_zero_recursion_threads_per_type_delete(self):
+        """The per-report-type delete flags must be threaded through the
+        recursive re-check call too. The SMTP TLS report only "arrives" after
+        the main pass's fetch, so it is disposed of by the recursive call: with
+        delete_smtp_tls=True it must be deleted, not archived. Dropping the
+        kwarg from the recursive call archives it instead and fails here."""
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, batch_size=0, delete_smtp_tls=True
+        )
+
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+        # The types that inherit the (False) delete default are unaffected.
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+
+
+class _SingleCheckMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose watch() performs exactly one check.
+
+    mailsuite's own MaildirConnection.watch() loops forever (sleeping
+    check_timeout seconds between checks) and swallows every exception the
+    callback raises, so it cannot be driven from a test as-is. This override
+    keeps the same signature, invokes watch_inbox's check_callback once, lets
+    exceptions propagate, and returns -- so the real closure inside
+    watch_inbox runs against a real on-disk Maildir, with no parsedmarc
+    internals mocked.
+    """
+
+    def watch(
+        self,
+        check_callback: Callable[[parsedmarc.MailboxConnection], None],
+        check_timeout: int,
+        config_reloading: Callable[[], bool] | None = None,
+    ) -> None:
+        del check_timeout, config_reloading
+        check_callback(self)
+
+
+class TestWatchInboxMaildir(unittest.TestCase):
+    """watch_inbox builds a check_callback closure that calls
+    get_dmarc_reports_from_mailbox on every mailbox check. Everything watch
+    mode does to messages therefore flows through that closure, which is
+    reached only via the backend's watch() -- so it needs a connection whose
+    watch() actually runs one check (see _SingleCheckMaildirConnection)."""
+
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        inbox = mailbox.Maildir(self._maildir, create=True)
+        with open(self.FAILURE, "rb") as failure_file:
+            inbox.add(mailbox.MaildirMessage(failure_file.read()))
+        inbox.add(mailbox.MaildirMessage(self.JUNK))
+        inbox.flush()
+
+    def test_watch_inbox_forwards_per_type_delete_flags(self):
+        """Trip-wire for the per-report-type delete flags on watch_inbox's
+        inner call: delete=True with delete_failure=False must archive the
+        failure report message while the unparseable message, inheriting
+        delete=True, is deleted. Dropping delete_failure from the closure
+        would silently delete the failure report message instead -- watch
+        mode ignoring what the caller asked for -- and fail here."""
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        # watch_inbox passes create_folders=False (in real watch mode the
+        # archive folders already exist, created by the run's first pass), so
+        # the destination folder and its parent are seeded here.
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Failure")
+        received = []
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=received.append,
+            offline=True,
+            delete=True,
+            delete_failure=False,
+        )
+
+        # The results reach the callback through the same closure.
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["failure_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        # delete_invalid inherited delete=True, so the unparseable message was
+        # deleted rather than filed in the Invalid subfolder.
+        self.assertFalse(conn.folder_exists("Archive/Invalid"))
 
 
 class TestEmailResultsErrorBranches(unittest.TestCase):

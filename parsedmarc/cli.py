@@ -783,6 +783,22 @@ def _parse_config(config: ConfigParser, opts):
             opts.mailbox_watch = bool(mailbox_config.getboolean("watch"))
         if "delete" in mailbox_config:
             opts.mailbox_delete = bool(mailbox_config.getboolean("delete"))
+        if "delete_aggregate" in mailbox_config:
+            opts.mailbox_delete_aggregate = bool(
+                mailbox_config.getboolean("delete_aggregate")
+            )
+        if "delete_failure" in mailbox_config:
+            opts.mailbox_delete_failure = bool(
+                mailbox_config.getboolean("delete_failure")
+            )
+        if "delete_smtp_tls" in mailbox_config:
+            opts.mailbox_delete_smtp_tls = bool(
+                mailbox_config.getboolean("delete_smtp_tls")
+            )
+        if "delete_invalid" in mailbox_config:
+            opts.mailbox_delete_invalid = bool(
+                mailbox_config.getboolean("delete_invalid")
+            )
         if "test" in mailbox_config:
             opts.mailbox_test = bool(mailbox_config.getboolean("test"))
         if "batch_size" in mailbox_config:
@@ -2217,6 +2233,13 @@ def _main():
         mailbox_archive_folder="Archive",
         mailbox_watch=False,
         mailbox_delete=False,
+        # None means "unset": each per-report-type flag inherits mailbox_delete
+        # in get_dmarc_reports_from_mailbox, so an explicit False (opting one
+        # type out of a global delete = true) stays distinct from being unset.
+        mailbox_delete_aggregate=None,
+        mailbox_delete_failure=None,
+        mailbox_delete_smtp_tls=None,
+        mailbox_delete_invalid=None,
         mailbox_test=False,
         mailbox_batch_size=10,
         mailbox_check_timeout=30,
@@ -2686,7 +2709,21 @@ def _main():
             exit(1)
 
     if opts.gmail_api_credentials_file:
-        if opts.mailbox_delete:
+        # Any effective delete flag needs the deletion scope: the per-report-type
+        # flags inherit mailbox_delete when unset (None), so this reduces to
+        # mailbox_delete alone when none of them is set. The scope is a
+        # mailbox-wide capability grant rather than a per-type one, so when it
+        # is missing every flag is turned off explicitly.
+        per_type_delete_opts = (
+            "mailbox_delete_aggregate",
+            "mailbox_delete_failure",
+            "mailbox_delete_smtp_tls",
+            "mailbox_delete_invalid",
+        )
+        if any(
+            opts.mailbox_delete if getattr(opts, name) is None else getattr(opts, name)
+            for name in per_type_delete_opts
+        ):
             if "https://mail.google.com/" not in opts.gmail_api_scopes:
                 logger.error(
                     "Message deletion requires scope"
@@ -2695,6 +2732,8 @@ def _main():
                     "to acquire proper access."
                 )
                 opts.mailbox_delete = False
+                for name in per_type_delete_opts:
+                    setattr(opts, name, False)
 
         try:
             mailbox_connection = GmailConnection(
@@ -2737,6 +2776,10 @@ def _main():
             reports = get_dmarc_reports_from_mailbox(
                 connection=mailbox_connection,
                 delete=opts.mailbox_delete,
+                delete_aggregate=opts.mailbox_delete_aggregate,
+                delete_failure=opts.mailbox_delete_failure,
+                delete_smtp_tls=opts.mailbox_delete_smtp_tls,
+                delete_invalid=opts.mailbox_delete_invalid,
                 batch_size=mailbox_batch_size_value,
                 reports_folder=opts.mailbox_reports_folder,
                 archive_folder=opts.mailbox_archive_folder,
@@ -2859,6 +2902,10 @@ def _main():
                     reports_folder=opts.mailbox_reports_folder,
                     archive_folder=opts.mailbox_archive_folder,
                     delete=opts.mailbox_delete,
+                    delete_aggregate=opts.mailbox_delete_aggregate,
+                    delete_failure=opts.mailbox_delete_failure,
+                    delete_smtp_tls=opts.mailbox_delete_smtp_tls,
+                    delete_invalid=opts.mailbox_delete_invalid,
                     test=opts.mailbox_test,
                     check_timeout=mailbox_check_timeout_value,
                     batch_size=mailbox_batch_size_value,

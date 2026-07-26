@@ -216,6 +216,29 @@ The full set of configuration options are:
       messages as they arrive or poll MS Graph for new messages
   - `delete` - bool: Delete messages after processing them,
       instead of archiving them
+  - `delete_aggregate` - bool: Delete aggregate report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_failure` - bool: Delete failure report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_smtp_tls` - bool: Delete SMTP TLS report messages
+      after processing them, instead of archiving them
+      (Default: the value of `delete`)
+  - `delete_invalid` - bool: Delete messages that could not be
+      parsed, instead of archiving them in the `Invalid`
+      subfolder, where they can be inspected for debugging
+      (Default: the value of `delete`)
+
+    :::{note}
+    Each of these four options overrides `delete` for one kind of
+    message only, and the other three keep inheriting `delete`. So
+    `delete = True` combined with `delete_failure = False` archives
+    failure report messages while deleting processed aggregate and
+    SMTP TLS report messages — and unparseable ones, unless
+    `delete_invalid = False` is set as well.
+    :::
+
   - `test` - bool: Do not move or delete messages
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
