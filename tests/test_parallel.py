@@ -47,7 +47,8 @@ class _CountingIterable:
 
 
 class _ParallelTestCase(unittest.TestCase):
-    """Common env setup shared by parallel.py tests: offline mode, no DNS."""
+    """Common env setup shared by parallel.py tests: offline mode, no DNS,
+    and a cold IP address cache."""
 
     def setUp(self):
         self._env_patcher = patch.dict(
@@ -55,6 +56,13 @@ class _ParallelTestCase(unittest.TestCase):
         )
         self._env_patcher.start()
         self.addCleanup(self._env_patcher.stop)
+        # Earlier test modules (e.g. tests/test_init.py) may run with DNS
+        # enabled locally and warm the shared module-level
+        # parsedmarc.IP_ADDRESS_CACHE. get_ip_address_info consults the
+        # cache before the offline check, so a warm cache would leak
+        # DNS-enriched entries into offline parses run in this process
+        # while spawned workers start cold, breaking parity.
+        parsedmarc.IP_ADDRESS_CACHE.clear()
 
 
 class TestParallelMapParseReportFile(_ParallelTestCase):
