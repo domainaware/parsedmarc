@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import signal
+import stat
 import sys
 import tempfile
 import unittest
@@ -4346,6 +4347,13 @@ class TestMoveFileToArchive(unittest.TestCase):
             placeholder = os.path.join(dest_dir, "report.xml")
             self.assertTrue(os.path.isfile(placeholder))
             self.assertEqual(os.path.getsize(placeholder), 0)
+            # A leftover placeholder must never be executable or
+            # group/other-accessible: it's created with mode 0o600, not
+            # os.open's 0o777 default. The requested mode is masked by
+            # the process umask, which only clears bits, so asserting on
+            # the owner-exec and group/other bits is umask-independent.
+            placeholder_mode = stat.S_IMODE(os.stat(placeholder).st_mode)
+            self.assertEqual(placeholder_mode & 0o177, 0)
 
 
 class TestArchiveProcessedFile(unittest.TestCase):

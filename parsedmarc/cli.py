@@ -337,7 +337,13 @@ def _move_file_to_archive(file_path: str, dest_dir: str) -> str:
     while True:
         dest_path = os.path.join(dest_dir, candidate)
         try:
-            fd = os.open(dest_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            # 0o600 (not os.open's 0o777 default) so a placeholder that
+            # outlives a failed move+cleanup is never executable or
+            # group/other-accessible. The mode never reaches the real
+            # archived file: os.rename replaces the placeholder's inode
+            # outright, and the copy2 fallback's copystat overwrites the
+            # mode with the source file's.
+            fd = os.open(dest_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
             candidate = f"{base}-{n}{ext}"
             n += 1
