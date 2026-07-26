@@ -132,7 +132,7 @@ These rules govern *every* test added to `tests/`. They exist because the projec
 
 `[tool.coverage.run]` in `pyproject.toml` sets `source = ["parsedmarc"]` and omits `*/parsedmarc/resources/maps/*.py` (maintainer scripts that ship out of the wheel). Counting the test files in the denominator inflates the headline by ~8 percentage points without telling anyone anything useful — pytest discovers test files and runs them, so they're trivially "covered". The number that matters is "what fraction of the installed library does the test suite actually exercise". Don't reintroduce `tests/*` to the coverage scope, don't expand the `omit` list to hide gaps, don't add `# pragma: no cover` to dodge ugly branches. If a branch is genuinely unreachable, delete it; if it's reachable but hard to test, write the test.
 
-### Honest tests assert on observable behaviour
+### Honest tests assert on observable behavior
 
 A test that mocks every dependency and asserts that the mocks were invoked is testing the mocks, not the code. The benchmark for a good test is: *would this test fail if the code under test were silently wrong?* If the answer is no — if the test would pass regardless of whether the function does what its docstring claims — it isn't a test, it's coverage-padding.
 
@@ -154,13 +154,13 @@ If a test surfaces something that looks like a bug, cite the spec before changin
 1. **The relevant RFC** for protocol or report-format questions (RFC 9989 for DMARC policy, RFC 9990 for aggregate reports, RFC 9991 for failure reports, RFC 8460 for SMTP TLS reports, RFC 6591 for legacy ARF).
 2. **The internal type contract** (`parsedmarc/types.py` TypedDicts) for project-internal data shapes.
 3. **The installed SDK source in the venv** for third-party API questions where the docs are inaccessible — `find venv -name '*.py' -path '*<package>*'` and grep, rather than asking a subagent to synthesize an answer.
-4. **The official upstream documentation** (Python docs, vendor docs) for language- or platform-level behaviour. The `append_json` bug fix in #775 cited the explicit "writes in `a`/`a+` mode always go to EOF regardless of seek" line from <https://docs.python.org/3/library/functions.html#open>.
+4. **The official upstream documentation** (Python docs, vendor docs) for language- or platform-level behavior. The `append_json` bug fix in #775 cited the explicit "writes in `a`/`a+` mode always go to EOF regardless of seek" line from <https://docs.python.org/3/library/functions.html#open>.
 
-Cite the source in the commit message and the test docstring. A reviewer should be able to look at the test and confirm both *what* changed and *why the prior behaviour was wrong*. Two examples worth pattern-matching are #775's SMTP-TLS-to-S3 fix (RFC 8460 §4.3 cited) and the `append_json` fix (Python docs quoted).
+Cite the source in the commit message and the test docstring. A reviewer should be able to look at the test and confirm both *what* changed and *why the prior behavior was wrong*. Two examples worth pattern-matching are #775's SMTP-TLS-to-S3 fix (RFC 8460 §4.3 cited) and the `append_json` fix (Python docs quoted).
 
 ### Bugs found while writing tests are fixed in the same PR
 
-When a test for the documented behaviour fails because the code is wrong, the right move is to fix the code, not to lock in the broken behaviour. Don't write `self.assertRaises(KeyError)` to make a passing test out of a known bug, and don't skip the test with a "TODO: file separately". If the fix is small and clearly correct against the cited authority above, it belongs in the same PR as the test that found it — the test then doubles as the regression guard. List each fix in `CHANGELOG.md` under the in-progress version's **Bug fixes** section (introducing the heading if it's not there yet).
+When a test for the documented behavior fails because the code is wrong, the right move is to fix the code, not to lock in the broken behavior. Don't write `self.assertRaises(KeyError)` to make a passing test out of a known bug, and don't skip the test with a "TODO: file separately". If the fix is small and clearly correct against the cited authority above, it belongs in the same PR as the test that found it — the test then doubles as the regression guard. List each fix in `CHANGELOG.md` under the in-progress version's **Bug fixes** section (introducing the heading if it's not there yet).
 
 ### File layout is non-negotiable
 
@@ -176,7 +176,7 @@ Before rewriting a tracked list/data file from freshly-generated content (anythi
 
 ## Review discipline
 
-Every rule here was distilled from a real review cycle (#834, #839, #849, #851, #858) in which a defect survived a thorough author-side review — in the later cycles, a fresh-context diff review as well; the parenthetical incident is what the rule would have caught. Grouped by theme, not by PR.
+The rules here were distilled from real review cycles (#834, #839, #849, #851, #858) in which defects survived thorough author-side reviews — in the later cycles, fresh-context diff reviews as well; each parenthetical incident is what its rule would have caught. Grouped by theme, not by PR.
 
 ### Review prose as prose
 
