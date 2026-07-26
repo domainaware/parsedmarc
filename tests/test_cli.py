@@ -44,6 +44,29 @@ def _sample_aggregate_reports() -> list[AggregateReport]:
     return [cast(AggregateReport, result["report"])]
 
 
+def _fetch_invoking_save_callback(reports, *, batch=None):
+    """Build a ``get_dmarc_reports_from_mailbox`` mock side effect that
+    honors the real contract: every fetched batch is handed to
+    ``save_callback`` *before* the function returns, and the accumulated
+    results are returned afterward.
+
+    A plain ``return_value`` mock would leave ``save_callback`` uncalled, so
+    nothing would ever be written to any output destination -- which is not
+    how the CLI behaves against a real mailbox since #242.
+
+    ``batch`` overrides what the callback receives, for tests that need the
+    batch dict to be a distinct object from the returned results (the real
+    function builds its return value from its own accumulated lists, not
+    from the dict it passed to the callback).
+    """
+
+    def _fetch_and_save(**kwargs):
+        kwargs["save_callback"](reports if batch is None else batch)
+        return reports
+
+    return _fetch_and_save
+
+
 class _BreakLoop(BaseException):
     pass
 
@@ -191,11 +214,13 @@ aws_service = aoss
     ):
         """CLI should exit with code 1 when fail_on_output_error is enabled"""
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
-            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "failure_reports": [],
-            "smtp_tls_reports": [],
-        }
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+        )
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "simulated output failure"
         )
@@ -241,11 +266,13 @@ hosts = localhost
         mock_save_aggregate,
     ):
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
-            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "failure_reports": [],
-            "smtp_tls_reports": [],
-        }
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+        )
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "simulated output failure"
         )
@@ -297,11 +324,13 @@ hosts = localhost
         mock_save_failure_opensearch,
     ):
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
-            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
-            "failure_reports": [{"reported_domain": "example.com"}],
-            "smtp_tls_reports": [],
-        }
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+                "failure_reports": [{"reported_domain": "example.com"}],
+                "smtp_tls_reports": [],
+            }
+        )
         mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
             "aggregate sink failed"
         )
@@ -3959,6 +3988,70 @@ watch = true
         es_client.close.assert_called_once()
 
 
+def _domain_map_tls_reports():
+    """Four SMTP TLS reports for the index_prefix_domain_map tests: two
+    whose policy domains fold to the mapped base domain example.com (one of
+    them mixed-case), one for an unmapped domain, and one with an empty
+    policies list -- parse_smtp_tls_report_json() accepts those, and
+    get_index_prefix() must treat them as unmappable (dropped by the
+    filter) rather than crash on policies[0]."""
+    return [
+        {
+            "organization_name": "Allowed Org",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "report_id": "allowed-1",
+            "contact_info": "tls@allowed.example.com",
+            "policies": [
+                {
+                    "policy_domain": "allowed.example.com",
+                    "policy_type": "sts",
+                    "successful_session_count": 1,
+                    "failed_session_count": 0,
+                }
+            ],
+        },
+        {
+            "organization_name": "Unmapped Org",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "report_id": "unmapped-1",
+            "contact_info": "tls@unmapped.example.net",
+            "policies": [
+                {
+                    "policy_domain": "unmapped.example.net",
+                    "policy_type": "sts",
+                    "successful_session_count": 5,
+                    "failed_session_count": 0,
+                }
+            ],
+        },
+        {
+            "organization_name": "Mixed Case Org",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "report_id": "mixed-case-1",
+            "contact_info": "tls@mixedcase.example.com",
+            "policies": [
+                {
+                    "policy_domain": "MixedCase.Example.Com",
+                    "policy_type": "sts",
+                    "successful_session_count": 2,
+                    "failed_session_count": 0,
+                }
+            ],
+        },
+        {
+            "organization_name": "No Policies Org",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "report_id": "no-policies-1",
+            "contact_info": "tls@nopolicies.example.org",
+            "policies": [],
+        },
+    ]
+
+
 class TestIndexPrefixDomainMapTlsFiltering(unittest.TestCase):
     """Tests that SMTP TLS reports for unmapped domains are filtered out
     when index_prefix_domain_map is configured."""
@@ -3972,57 +4065,13 @@ class TestIndexPrefixDomainMapTlsFiltering(unittest.TestCase):
     ):
         """TLS reports for domains not in the map should be silently dropped."""
         mock_imap_connection.return_value = object()
-        mock_get_reports.return_value = {
-            "aggregate_reports": [],
-            "failure_reports": [],
-            "smtp_tls_reports": [
-                {
-                    "organization_name": "Allowed Org",
-                    "begin_date": "2024-01-01T00:00:00Z",
-                    "end_date": "2024-01-01T23:59:59Z",
-                    "report_id": "allowed-1",
-                    "contact_info": "tls@allowed.example.com",
-                    "policies": [
-                        {
-                            "policy_domain": "allowed.example.com",
-                            "policy_type": "sts",
-                            "successful_session_count": 1,
-                            "failed_session_count": 0,
-                        }
-                    ],
-                },
-                {
-                    "organization_name": "Unmapped Org",
-                    "begin_date": "2024-01-01T00:00:00Z",
-                    "end_date": "2024-01-01T23:59:59Z",
-                    "report_id": "unmapped-1",
-                    "contact_info": "tls@unmapped.example.net",
-                    "policies": [
-                        {
-                            "policy_domain": "unmapped.example.net",
-                            "policy_type": "sts",
-                            "successful_session_count": 5,
-                            "failed_session_count": 0,
-                        }
-                    ],
-                },
-                {
-                    "organization_name": "Mixed Case Org",
-                    "begin_date": "2024-01-01T00:00:00Z",
-                    "end_date": "2024-01-01T23:59:59Z",
-                    "report_id": "mixed-case-1",
-                    "contact_info": "tls@mixedcase.example.com",
-                    "policies": [
-                        {
-                            "policy_domain": "MixedCase.Example.Com",
-                            "policy_type": "sts",
-                            "successful_session_count": 2,
-                            "failed_session_count": 0,
-                        }
-                    ],
-                },
-            ],
-        }
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": _domain_map_tls_reports(),
+            }
+        )
 
         domain_map = {"tenant_a": ["example.com"]}
         with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
@@ -4052,6 +4101,9 @@ password = test-password
             with patch("sys.stdout", captured):
                 parsedmarc.cli._main()
 
+        # A single JSON document, not two: a run whose only reports came
+        # from the mailbox saves them inside save_callback and skips the
+        # second, empty pass rather than printing another blob after it.
         output = json.loads(captured.getvalue())
         tls_reports = output["smtp_tls_reports"]
         self.assertEqual(len(tls_reports), 2)
@@ -4059,6 +4111,341 @@ password = test-password
         self.assertIn("allowed-1", report_ids)
         self.assertIn("mixed-case-1", report_ids)
         self.assertNotIn("unmapped-1", report_ids)
+        # Unmappable (no policies -> no domain), dropped rather than an
+        # IndexError from get_index_prefix() on policies[0].
+        self.assertNotIn("no-policies-1", report_ids)
+
+    @patch("parsedmarc.cli.email_results")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testTlsReportsFilteredForEmailResults(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        mock_email_results,
+    ):
+        """The combined results handed to email_results() are filtered by
+        index_prefix_domain_map exactly like the batches that were saved.
+
+        Regression test: get_dmarc_reports_from_mailbox() builds its return
+        value from its own accumulated lists, not from the batch dict it
+        passes to save_callback, so the in-place filtering process_reports()
+        applies to each batch never reaches the combined dict. The mock
+        mirrors that by handing save_callback a copy while returning the
+        full, unfiltered set."""
+        mock_imap_connection.return_value = object()
+        reports_dict = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": _domain_map_tls_reports(),
+        }
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            reports_dict,
+            batch={
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": list(reports_dict["smtp_tls_reports"]),
+            },
+        )
+
+        domain_map = {"tenant_a": ["example.com"]}
+        with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
+            import yaml
+
+            yaml.dump(domain_map, map_file)
+            map_path = map_file.name
+        self.addCleanup(lambda: os.path.exists(map_path) and os.remove(map_path))
+
+        config = f"""[general]
+save_smtp_tls = true
+silent = true
+index_prefix_domain_map = {map_path}
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[smtp]
+host = smtp.example.com
+user = smtp-user
+password = smtp-password
+from = dmarc@example.com
+to = admin@example.com
+"""
+        with NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        mock_email_results.assert_called_once()
+        emailed_results = mock_email_results.call_args.args[0]
+        report_ids = {r["report_id"] for r in emailed_results["smtp_tls_reports"]}
+        self.assertEqual(report_ids, {"allowed-1", "mixed-case-1"})
+
+
+class TestMailboxSaveCallbackWiring(unittest.TestCase):
+    """The CLI's end of the #242 contract: the callback it hands to
+    get_dmarc_reports_from_mailbox() (and to watch_inbox()) reports whether
+    a batch reached every configured output destination, so the library
+    knows whether archiving that batch is safe."""
+
+    def setUp(self):
+        # _main()'s file-parsing loop dedups aggregate reports against this
+        # process-wide cache, so a sample parsed here would be dropped from
+        # a later test's results (and vice versa).
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+
+    def _write_config(self, text):
+        with NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(text)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+        return config_path
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testSaveCallbackIsFalseOnlyWhenAnOutputDestinationFailed(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """The save_callback saves the batch it is given and returns a
+        truthy value only when every destination accepted it. That verdict
+        is the whole basis on which get_dmarc_reports_from_mailbox() decides
+        whether to archive or delete the batch's messages."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        save_callback = mock_get_reports.call_args.kwargs.get("save_callback")
+        self.assertTrue(callable(save_callback))
+
+        report = {"policy_published": {"domain": "example.com"}}
+        batch = {
+            "aggregate_reports": [report],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        self.assertTrue(save_callback(batch))
+        self.assertIs(mock_save_aggregate.call_args.args[0], report)
+
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+        self.assertFalse(save_callback(batch))
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testWatchCallbackIsTheSameAdapterAndRetryCapReachesBothCallSites(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_reports
+    ):
+        """watch_inbox's callback must be the same save-then-report adapter
+        the single-shot fetch gets, not process_reports directly -- watch
+        mode would otherwise still archive before confirming the save. The
+        configured max_unsaved_retries has to reach both call sites too, or
+        one of the two paths would silently use the default cap."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+        config_path = self._write_config(
+            """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+max_unsaved_retries = 7
+"""
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        single_shot_kwargs = mock_get_reports.call_args.kwargs
+        watch_kwargs = mock_watch_inbox.call_args.kwargs
+        self.assertTrue(callable(single_shot_kwargs.get("save_callback")))
+        self.assertIs(watch_kwargs.get("callback"), single_shot_kwargs["save_callback"])
+        self.assertEqual(single_shot_kwargs.get("max_unsaved_retries"), 7)
+        self.assertEqual(watch_kwargs.get("max_unsaved_retries"), 7)
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testFileOutputFailureIsRecordedAndReportsTheBatchUnsaved(
+        self, mock_imap_connection, mock_get_reports
+    ):
+        """A failed --output write is recorded like any other destination's
+        failure instead of escaping uncaught, so it blocks archiving too.
+        Pointing `output` at a regular file makes save_output() raise the
+        real ValueError it raises for a non-directory path."""
+        mock_imap_connection.return_value = object()
+        with NamedTemporaryFile("w", suffix=".txt", delete=False) as not_a_directory:
+            output_path = not_a_directory.name
+        self.addCleanup(lambda: os.path.exists(output_path) and os.remove(output_path))
+
+        reports_dict = {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        verdicts = []
+
+        def _fetch_and_save(**kwargs):
+            verdicts.append(kwargs["save_callback"](reports_dict))
+            return reports_dict
+
+        mock_get_reports.side_effect = _fetch_and_save
+        config_path = self._write_config(
+            f"""[general]
+silent = true
+output = {output_path}
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+"""
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                parsedmarc.cli._main()
+
+        self.assertEqual(verdicts, [False])
+        self.assertTrue(
+            any("File output Error" in line for line in cm.output), cm.output
+        )
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testMailboxAndFileReportsAreEachSavedExactlyOnce(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """A run combining a file argument and a mailbox saves in two passes:
+        the mailbox batch inside save_callback, the file-derived reports
+        afterward. The final pass must run on the file snapshot alone --
+        running it on the combined results would send every mailbox report
+        to every destination a second time."""
+        mock_imap_connection.return_value = object()
+        mailbox_report = {"policy_published": {"domain": "mailbox.example.com"}}
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [mailbox_report],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+        )
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+offline = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+"""
+        )
+
+        argv = ["parsedmarc", "-c", config_path, SAMPLE_AGGREGATE_REPORT_PATH]
+        with patch.object(sys, "argv", argv):
+            parsedmarc.cli._main()
+
+        saved_domains = [
+            call.args[0]["policy_published"]["domain"]
+            for call in mock_save_aggregate.call_args_list
+        ]
+        self.assertEqual(saved_domains.count("mailbox.example.com"), 1)
+        self.assertEqual(len(saved_domains), 2)
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    def testFailOnOutputErrorExitsForFileDerivedReports(
+        self,
+        _mock_set_hosts,
+        _mock_migrate_indexes,
+        mock_save_aggregate,
+    ):
+        """fail_on_output_error still exits non-zero for reports that came
+        from a file argument rather than a mailbox: with no mailbox
+        connection there is no save_callback to raise inside, so the failure
+        surfaces from the final pass over the file snapshot instead."""
+        mock_save_aggregate.side_effect = parsedmarc.elastic.ElasticsearchError(
+            "simulated output failure"
+        )
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+fail_on_output_error = true
+silent = true
+offline = true
+
+[elasticsearch]
+hosts = localhost
+"""
+        )
+
+        argv = ["parsedmarc", "-c", config_path, SAMPLE_AGGREGATE_REPORT_PATH]
+        with patch.object(sys, "argv", argv):
+            with self.assertRaises(SystemExit) as system_exit:
+                parsedmarc.cli._main()
+
+        self.assertEqual(system_exit.exception.code, 1)
+        mock_save_aggregate.assert_called_once()
 
 
 class TestConfigAliases(unittest.TestCase):
@@ -4655,6 +5042,7 @@ class TestParseConfigMailbox(unittest.TestCase):
                 "test": "false",
                 "batch_size": "25",
                 "check_timeout": "60",
+                "max_unsaved_retries": "5",
                 "since": "3d",
             },
         )
@@ -4672,7 +5060,21 @@ class TestParseConfigMailbox(unittest.TestCase):
         self.assertIs(opts.mailbox_test, False)
         self.assertEqual(opts.mailbox_batch_size, 25)
         self.assertEqual(opts.mailbox_check_timeout, 60)
+        self.assertEqual(opts.mailbox_max_unsaved_retries, 5)
         self.assertEqual(opts.mailbox_since, "3d")
+
+    def test_mailbox_max_unsaved_retries_from_env_var(self):
+        """PARSEDMARC_MAILBOX_MAX_UNSAVED_RETRIES resolves to
+        [mailbox] max_unsaved_retries and parses as an int -- including 0,
+        which is a meaningful value ("never retry"), not an absent one."""
+        from parsedmarc.cli import _load_config, _parse_config
+
+        env = {"PARSEDMARC_MAILBOX_MAX_UNSAVED_RETRIES": "0"}
+        with patch.dict(os.environ, env, clear=False):
+            config = _load_config(None)
+        opts = _opts()
+        _parse_config(config, opts)
+        self.assertEqual(opts.mailbox_max_unsaved_retries, 0)
 
     def test_mailbox_absent_per_type_delete_keys_are_not_set(self):
         from parsedmarc.cli import _parse_config
@@ -5547,11 +5949,13 @@ host = db.example.com
             patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
             patch(
                 "parsedmarc.cli.get_dmarc_reports_from_mailbox",
-                return_value={
-                    "aggregate_reports": [report],
-                    "failure_reports": [],
-                    "smtp_tls_reports": [],
-                },
+                side_effect=_fetch_invoking_save_callback(
+                    {
+                        "aggregate_reports": [report],
+                        "failure_reports": [],
+                        "smtp_tls_reports": [],
+                    }
+                ),
             ),
             patch("parsedmarc.cli.IMAPConnection", return_value=object()),
             patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
@@ -5593,7 +5997,7 @@ host = db.example.com
             patch("parsedmarc.cli.postgres.PostgreSQLClient") as mock_client_cls,
             patch(
                 "parsedmarc.cli.get_dmarc_reports_from_mailbox",
-                return_value=reports,
+                side_effect=_fetch_invoking_save_callback(reports),
             ),
             patch("parsedmarc.cli.IMAPConnection", return_value=object()),
             patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),

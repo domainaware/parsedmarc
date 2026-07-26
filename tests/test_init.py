@@ -1774,6 +1774,19 @@ class TestExtractReport(unittest.TestCase):
         result = parsedmarc.extract_report(compressed)
         self.assertIn("<feedback>", result)
 
+    def testExtractReportFromPlainJson(self):
+        """extract_report passes uncompressed JSON bytes through as text.
+
+        Regression test: MAGIC_JSON was written as b"\\7b", which Python
+        reads as the octal escape \\7 (BEL, 0x07) followed by a literal
+        "b" -- not 0x7B, the "{" every RFC 8259 JSON object begins with --
+        so plain JSON was rejected as "Not a valid zip, gzip, json, or
+        xml file". Every in-tree caller pre-guarded with its own zip/gzip
+        or "{" check, which masked the dead branch."""
+        json_bytes = b'{"organization-name": "Example"}'
+        result = parsedmarc.extract_report(json_bytes)
+        self.assertEqual(result, '{"organization-name": "Example"}')
+
     def testExtractReportFromZip(self):
         """extract_report handles zip compressed content"""
         import zipfile
@@ -3004,6 +3017,32 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
             )
         self.assertIn("connection", str(ctx.exception).lower())
 
+    def test_negative_max_unsaved_retries_raises(self):
+        """max_unsaved_retries is user-configurable (INI/env/kwarg), so an
+        invalid negative value is rejected at the door with a clear error
+        instead of silently behaving like 0 (move to Unsaved on the first
+        failed save)."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), max_unsaved_retries=-1
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+
+    def test_watch_inbox_negative_max_unsaved_retries_raises(self):
+        """watch_inbox validates before entering the watch loop: raised
+        inside a check, the ValueError would be swallowed and endlessly
+        retried by the IMAP and Maildir backends' per-check exception
+        handling instead of surfacing to the caller."""
+        conn = MagicMock()
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.watch_inbox(
+                mailbox_connection=conn,
+                callback=lambda batch: None,
+                max_unsaved_retries=-1,
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+        conn.watch.assert_not_called()
+
 
 class TestMigrateForensicArchiveFolderErrorHandling(unittest.TestCase):
     """The one migration scenario a real on-disk Maildir can't reproduce: a
@@ -3455,6 +3494,480 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
 
 
+class _UncreatableFolderMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose folder_exists() always fails.
+
+    Real backends can reject a folder listing (permissions, a dropped
+    connection, an IMAP server that dislikes the name). The Unsaved holding
+    folder's defensive pre-move check has to warn and carry on rather than
+    crash the run, which is only observable with a backend that fails it.
+    """
+
+    def folder_exists(self, folder_name: str) -> bool:
+        raise RuntimeError("server said no")
+
+
+class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
+    """The save_callback contract of get_dmarc_reports_from_mailbox, on the
+    same real on-disk Maildir harness as the class above (no mocks): a batch
+    is only archived or deleted once the callback confirms it was saved, and
+    a batch that keeps failing eventually moves to the Unsaved holding
+    folder instead of being retried forever (#242)."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        # Both of these are module-global process state: a report "seen" by
+        # an earlier test would be dropped from this test's results, and a
+        # stale retry count would move messages to Unsaved early.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        self._inbox = mailbox.Maildir(self._maildir, create=True)
+
+    def _deliver(self, source):
+        if isinstance(source, str):
+            with open(source, "rb") as source_file:
+                raw = source_file.read()
+        else:
+            raw = source
+        self._inbox.add(mailbox.MaildirMessage(raw))
+        self._inbox.flush()
+
+    def _run(self, connection=None, **kwargs):
+        conn = connection or MaildirConnection(self._maildir, maildir_create=True)
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, **kwargs
+        )
+        return conn, result
+
+    @staticmethod
+    def _fail(batch):
+        del batch
+        return False
+
+    def test_failed_save_callback_leaves_messages_in_inbox(self):
+        """A save_callback returning False leaves the batch's messages in the
+        INBOX untouched, while the parsed reports are still returned to the
+        caller."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(save_callback=self._fail)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_failed_save_logs_an_error_naming_the_reports_folder(self):
+        """The retry is logged at error level, not debug or warning: an
+        output destination that keeps rejecting reports is something
+        operators alert on."""
+        self._deliver(self.AGGREGATE)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            self._run(save_callback=self._fail)
+
+        self.assertTrue(
+            any(
+                "Reports were not saved: leaving 1 message(s) in INBOX" in line
+                for line in cm.output
+            ),
+            cm.output,
+        )
+
+    def test_failed_save_then_retry_is_not_deduplicated(self):
+        """A failed save must not poison the aggregate-report dedup cache:
+        the message stays in the INBOX and, on the next run, the same report
+        is parsed and handed to save_callback again rather than being
+        silently skipped as an already-seen duplicate."""
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=self._fail)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        received = []
+        conn, result = self._run(save_callback=received.append)
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+    def test_save_callback_exception_leaves_messages(self):
+        """An exception raised by save_callback counts as a failed save --
+        the batch's messages stay in the reports folder and the attempt is
+        recorded against the retry cap -- and is then re-raised to the
+        caller."""
+        self._deliver(self.AGGREGATE)
+
+        def _boom(batch):
+            del batch
+            raise RuntimeError("sink is down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=_boom)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+        # The dedup keys were staged, not committed, so the next run
+        # reparses the report instead of dropping it as a duplicate.
+        _, result = self._run(save_callback=None)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+
+    def test_save_callback_exception_still_bounded_by_the_retry_cap(self):
+        """A callback that always raises -- the CLI's does, under
+        fail_on_output_error -- is bounded by max_unsaved_retries exactly
+        like one that returns False: the failure bookkeeping runs before the
+        exception is re-raised, so the message moves to Archive/Unsaved at
+        the cap instead of being re-delivered on every check forever. This
+        matters because mailsuite's IMAP and Maildir watch loops swallow the
+        exception and keep checking."""
+        self._deliver(self.AGGREGATE)
+
+        def _boom(batch):
+            del batch
+            raise RuntimeError("sink is down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=_boom, max_unsaved_retries=0)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_successful_save_callback_archives_messages(self):
+        """A save_callback returning None (or any non-False value) commits the
+        batch exactly as when no callback is supplied, and is handed that
+        batch's parsed reports before any archiving happens."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        received = []
+
+        def _record(batch):
+            # Nothing has been archived yet at this point -- that is the
+            # whole contract: the caller gets to veto the archiving.
+            received.append((batch, len(conn.fetch_messages("INBOX"))))
+
+        _, result = self._run(connection=conn, save_callback=_record)
+
+        self.assertEqual(len(received), 1)
+        batch, inbox_count_at_callback_time = received[0]
+        self.assertEqual(len(batch["aggregate_reports"]), 1)
+        self.assertEqual(len(batch["failure_reports"]), 1)
+        self.assertEqual(len(batch["smtp_tls_reports"]), 1)
+        self.assertEqual(inbox_count_at_callback_time, 3)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+
+    def test_failed_save_callback_with_delete_does_not_delete(self):
+        """delete=True does not bypass the save_callback contract: a failed
+        save leaves the message in place instead of deleting it, since the
+        mailbox is the only remaining copy of the report."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(delete=True, save_callback=self._fail)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_invalid_message_still_filed_when_save_fails(self):
+        """An unparseable message carries no report data, so nothing about it
+        can fail to save: it is filed to Archive/Invalid regardless of the
+        callback's verdict, and only the successfully parsed report's message
+        is held back."""
+        self._deliver(self.JUNK)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=self._fail)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_unsaved_folder_created_only_with_a_save_callback(self):
+        """The Unsaved holding folder is only reachable when a callback can
+        report a batch unsaved, so it is only created up front in that case
+        -- it would otherwise sit empty in every user's mailbox. The
+        without-callback half runs in a second, fresh Maildir: the first run
+        already created the folder in the shared one, so its absence is only
+        observable somewhere the callback never touched."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=lambda batch: None)
+        self.assertTrue(conn.folder_exists("Archive/Unsaved"))
+
+        other_maildir = os.path.join(self._tmp, "MaildirNoCallback")
+        other_inbox = mailbox.Maildir(other_maildir, create=True)
+        with open(self.FAILURE, "rb") as failure_file:
+            other_inbox.add(mailbox.MaildirMessage(failure_file.read()))
+        other_inbox.flush()
+        other_conn = MaildirConnection(other_maildir, maildir_create=True)
+        parsedmarc.get_dmarc_reports_from_mailbox(connection=other_conn, offline=True)
+        self.assertTrue(other_conn.folder_exists("Archive/Failure"))
+        self.assertFalse(other_conn.folder_exists("Archive/Unsaved"))
+
+    def test_repeated_failures_move_the_message_to_unsaved(self):
+        """With the default max_unsaved_retries of 2, a message stays in the
+        reports folder through its first failed save and the retry after it,
+        and moves to Archive/Unsaved on the third -- the initial attempt plus
+        two retries, so a permanently broken output destination receives the
+        same reports at most three times instead of forever."""
+        self._deliver(self.AGGREGATE)
+
+        for _ in range(2):
+            conn, _ = self._run(save_callback=self._fail)
+            self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+            self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            conn, _ = self._run(save_callback=self._fail)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertTrue(any("Archive/Unsaved" in line for line in cm.output), cm.output)
+
+    def test_max_unsaved_retries_zero_moves_on_the_first_failure(self):
+        """max_unsaved_retries=0 is valid and means "do not retry": the
+        message moves to Archive/Unsaved the first time its batch fails to
+        save."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=0)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_unsaved_messages_are_moved_not_deleted(self):
+        """A message that ran out of retries is moved to Unsaved even when
+        every delete flag says delete: it holds the only copy of a report
+        that was never saved anywhere, so deleting it is the one outcome
+        this feature exists to prevent."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(
+            save_callback=self._fail, max_unsaved_retries=0, delete=True
+        )
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_successful_save_clears_the_retry_counters(self):
+        """A successful save resets the batch's failure counts, so an
+        unrelated failure later starts from zero rather than inheriting a
+        near-cap count. The counters are asserted directly because the
+        messages they were counting are archived on success, taking their
+        own future behavior with them."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+
+        conn, _ = self._run(save_callback=lambda batch: True)
+
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+    def test_test_mode_invokes_the_callback_without_touching_anything(self):
+        """test=True still runs the callback, so a test run exercises the
+        whole output pipeline, but neither the mailbox nor the retry
+        counters move regardless of the verdict -- even at
+        max_unsaved_retries=0, which would otherwise file the message under
+        Unsaved immediately."""
+        self._deliver(self.AGGREGATE)
+
+        received = []
+
+        def _record_and_fail(batch):
+            received.append(batch)
+            return False
+
+        conn = None
+        for _ in range(2):
+            conn, _ = self._run(
+                save_callback=_record_and_fail, max_unsaved_retries=0, test=True
+            )
+        assert conn is not None
+
+        self.assertEqual(len(received), 2)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertFalse(conn.folder_exists("Archive/Unsaved"))
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_unsaved_folder_is_created_when_folder_creation_was_skipped(self):
+        """Watch mode calls in with create_folders=False, so the Unsaved
+        folder may not exist by the time a message needs to go there. The
+        defensive check before the move creates it."""
+        self._deliver(self.AGGREGATE)
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+
+        self._run(
+            connection=conn,
+            save_callback=self._fail,
+            max_unsaved_retries=0,
+            create_folders=False,
+        )
+
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_unsaved_folder_check_failure_is_logged_not_raised(self):
+        """A backend that cannot answer whether the Unsaved folder exists is
+        warned about and skipped rather than crashing the run; the move
+        itself is still attempted."""
+        self._deliver(self.AGGREGATE)
+        conn = _UncreatableFolderMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            self._run(
+                connection=conn,
+                save_callback=self._fail,
+                max_unsaved_retries=0,
+                create_folders=False,
+            )
+
+        self.assertTrue(
+            any(
+                "Could not create folder Archive/Unsaved" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_failed_move_to_unsaved_is_logged_and_leaves_the_message(self):
+        """A backend that rejects the move to Unsaved is logged like any
+        other mailbox error, and the message simply stays in the reports
+        folder -- it is never dropped."""
+        self._deliver(self.AGGREGATE)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            self._run(connection=conn, save_callback=self._fail, max_unsaved_retries=0)
+
+        self.assertTrue(
+            any(
+                "Mailbox error: Error moving message UID" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+    def test_failed_move_keeps_the_counter_so_the_move_is_retried(self):
+        """A failed move to Unsaved must not reset the message's failure
+        counter: the still-in-place message would otherwise get a fresh set
+        of under-cap retries (and duplicate deliveries) each time the move
+        failed. With the counter kept, the next failed save classifies the
+        message over-cap again and re-attempts the move -- which succeeds
+        here once the backend allows it. Cap 1 makes the distinction
+        observable: were the counter reset by run 2's failed move, run 3
+        would count the message back under the cap and leave it in the
+        INBOX instead of moving it."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        failing_conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+        with self.assertLogs("parsedmarc.log", level="ERROR"):
+            self._run(
+                connection=failing_conn,
+                save_callback=self._fail,
+                max_unsaved_retries=1,
+            )
+        self.assertEqual(len(failing_conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_failed_save_skips_the_batch_size_zero_re_check(self):
+        """With batch_size=0 the function re-checks the folder and recurses
+        on whatever is still there. After a failed save that would re-fetch
+        the very messages just held back and burn the whole retry budget
+        inside one call, so the re-check is skipped: one run costs a message
+        exactly one retry."""
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(
+            save_callback=self._fail, batch_size=0, max_unsaved_retries=1
+        )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+    def test_save_callback_receives_each_batch_separately(self):
+        """batch_size=0 recursion hands each fetched batch to the callback on
+        its own, and each batch is archived before the next is fetched --
+        the callback never sees an earlier batch's reports twice, while the
+        returned results accumulate all of them."""
+        self._deliver(self.AGGREGATE)
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+        received = []
+
+        _, result = self._run(
+            connection=conn, save_callback=received.append, batch_size=0
+        )
+
+        self.assertEqual(len(received), 2)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(received[0]["smtp_tls_reports"], [])
+        self.assertEqual(received[1]["aggregate_reports"], [])
+        self.assertEqual(len(received[1]["smtp_tls_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_failed_save_callback_parallel(self):
+        """The n_procs>1 parsing branch stages its dedup keys and holds its
+        messages back exactly like the sequential one; only parsing moves to
+        the worker processes."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(save_callback=self._fail, n_procs=2)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+
+        # The dedup keys were not committed, so a retry reparses.
+        conn, result = self._run(save_callback=None, n_procs=2)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+
 class _MidRunArrivalMaildirConnection(MaildirConnection):
     """A MaildirConnection that delivers one extra message into the INBOX
     right after its first fetch_messages() call returns, simulating mail
@@ -3624,6 +4137,57 @@ class TestWatchInboxMaildir(unittest.TestCase):
         # delete_invalid inherited delete=True, so the unparseable message was
         # deleted rather than filed in the Invalid subfolder.
         self.assertFalse(conn.folder_exists("Archive/Invalid"))
+
+    def test_watch_inbox_callback_returning_false_defers_the_batch(self):
+        """watch_inbox's callback is the batch's save_callback, not a
+        notification that runs after archiving: returning False leaves the
+        failure report message in the INBOX for the next check. Before this
+        was wired through, watch mode archived every batch first and told the
+        callback afterward, which is the data-loss path of #242."""
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Invalid")
+        received = []
+
+        def _record_and_fail(batch):
+            received.append(batch)
+            return False
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=_record_and_fail,
+            offline=True,
+        )
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+        # The unparseable message carries no report data and is filed either
+        # way, so only the report message is held back.
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
+    def test_watch_inbox_forwards_max_unsaved_retries(self):
+        """max_unsaved_retries reaches the per-check mailbox call: with 0,
+        the first failed save in watch mode files the message under
+        Archive/Unsaved instead of leaving it for the next check."""
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Invalid")
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=lambda batch: False,
+            offline=True,
+            max_unsaved_retries=0,
+        )
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
 
 
 class TestEmailResultsErrorBranches(unittest.TestCase):
