@@ -2459,18 +2459,22 @@ def get_dmarc_reports_from_mailbox(
         reports_folder (str): The folder where reports can be found
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete messages after processing them
-        delete_aggregate (bool): Delete aggregate report messages after
-            processing them, instead of moving them to the ``Aggregate``
-            archive subfolder (default: the value of ``delete``)
-        delete_failure (bool): Delete failure report messages after
+        delete_aggregate (bool | None): Delete aggregate report messages
+            after processing them, instead of moving them to the
+            ``Aggregate`` archive subfolder; ``None`` (the default) inherits
+            the value of ``delete``
+        delete_failure (bool | None): Delete failure report messages after
             processing them, instead of moving them to the ``Failure``
-            archive subfolder (default: the value of ``delete``)
-        delete_smtp_tls (bool): Delete SMTP TLS report messages after
+            archive subfolder; ``None`` (the default) inherits the value of
+            ``delete``
+        delete_smtp_tls (bool | None): Delete SMTP TLS report messages after
             processing them, instead of moving them to the ``SMTP-TLS``
-            archive subfolder (default: the value of ``delete``)
-        delete_invalid (bool): Delete unparseable messages, instead of
-            moving them to the ``Invalid`` archive subfolder where they can
-            be inspected for debugging (default: the value of ``delete``)
+            archive subfolder; ``None`` (the default) inherits the value of
+            ``delete``
+        delete_invalid (bool | None): Delete unparseable messages, instead
+            of moving them to the ``Invalid`` archive subfolder where they
+            can be inspected for debugging; ``None`` (the default) inherits
+            the value of ``delete``
         test (bool): Do not move or delete messages after processing them
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
@@ -2842,18 +2846,22 @@ def watch_inbox(
         reports_folder (str): The IMAP folder where reports can be found
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete messages after processing them
-        delete_aggregate (bool): Delete aggregate report messages after
-            processing them, instead of moving them to the ``Aggregate``
-            archive subfolder (default: the value of ``delete``)
-        delete_failure (bool): Delete failure report messages after
+        delete_aggregate (bool | None): Delete aggregate report messages
+            after processing them, instead of moving them to the
+            ``Aggregate`` archive subfolder; ``None`` (the default) inherits
+            the value of ``delete``
+        delete_failure (bool | None): Delete failure report messages after
             processing them, instead of moving them to the ``Failure``
-            archive subfolder (default: the value of ``delete``)
-        delete_smtp_tls (bool): Delete SMTP TLS report messages after
+            archive subfolder; ``None`` (the default) inherits the value of
+            ``delete``
+        delete_smtp_tls (bool | None): Delete SMTP TLS report messages after
             processing them, instead of moving them to the ``SMTP-TLS``
-            archive subfolder (default: the value of ``delete``)
-        delete_invalid (bool): Delete unparseable messages, instead of
-            moving them to the ``Invalid`` archive subfolder where they can
-            be inspected for debugging (default: the value of ``delete``)
+            archive subfolder; ``None`` (the default) inherits the value of
+            ``delete``
+        delete_invalid (bool | None): Delete unparseable messages, instead
+            of moving them to the ``Invalid`` archive subfolder where they
+            can be inspected for debugging; ``None`` (the default) inherits
+            the value of ``delete``
         test (bool): Do not move or delete messages after processing them
         check_timeout (int): Number of seconds to wait for a IMAP IDLE response
             or the number of seconds until the next mail check
