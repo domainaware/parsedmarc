@@ -2599,10 +2599,11 @@ def get_dmarc_reports_from_mailbox(
             being retried again (default 2, i.e. the initial attempt plus
             two retries -- at most three deliveries to any output
             destination that does not deduplicate). ``0`` moves a message on
-            the first failed save; negative values raise ``ValueError``. Messages moved to ``Unsaved`` are never
-            deleted, whatever the ``delete`` options say; recover them by
-            fixing the output destination and moving them back into
-            ``reports_folder``. Counts are kept in memory, per message and
+            the first failed save; negative values raise ``ValueError``.
+            Messages moved to ``Unsaved`` are never deleted, whatever the
+            ``delete`` options say; recover them by fixing the output
+            destination and moving them back into ``reports_folder``.
+            Counts are kept in memory, per message and
             per process, are reset by a successful save, and are only kept
             when a ``save_callback`` is supplied -- so the cap applies
             across repeated calls within one process (``watch_inbox()``'s
