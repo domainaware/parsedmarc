@@ -314,8 +314,12 @@ def _move_file_to_archive(file_path: str, dest_dir: str) -> str:
     existing destination on POSIX, which would violate the
     never-overwrite guarantee. Instead, each candidate name is staked
     out with a zero-byte placeholder file before the real move happens;
-    ``os.rename`` (POSIX) or the ``copy2`` fallback (Windows) that
-    backs ``shutil.move()`` then replaces that placeholder atomically.
+    ``shutil.move()`` then replaces that placeholder with the real file
+    — atomically via ``os.rename`` when source and destination are on
+    the same POSIX filesystem, otherwise (Windows, or a cross-device
+    move) via a ``copy2``-and-overwrite that is not atomic but still
+    cannot collide with a concurrent invocation, since the placeholder
+    already claimed the name.
     """
     os.makedirs(dest_dir, exist_ok=True)
     base, ext = os.path.splitext(os.path.basename(file_path))
@@ -338,6 +342,8 @@ def _move_file_to_archive(file_path: str, dest_dir: str) -> str:
         try:
             os.remove(dest_path)
         except OSError:
+            # Best-effort cleanup of the just-created placeholder; the
+            # move failure re-raised below is the error that matters.
             pass
         raise
     return dest_path

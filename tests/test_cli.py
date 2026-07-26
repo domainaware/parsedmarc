@@ -4525,8 +4525,11 @@ class TestParseConfigGeneral(unittest.TestCase):
 
     def test_general_archive_directory_unset_leaves_attribute_absent(self):
         """When archive_directory is absent from the INI, _parse_config
-        never sets opts.archive_directory (the CLI's Namespace default of
-        None applies instead)."""
+        never sets opts.archive_directory at all — asserted here as the
+        attribute staying absent from this test's bare Namespace. (In the
+        real CLI the attribute pre-exists with the Namespace default of
+        None, so _parse_config leaving it untouched is what keeps
+        archiving disabled.)"""
         from parsedmarc.cli import _parse_config
 
         cp = _config_with("general", {"silent": "false"})
