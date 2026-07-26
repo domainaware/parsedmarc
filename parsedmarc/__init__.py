@@ -2503,9 +2503,15 @@ def get_dmarc_reports_from_mailbox(
             interleaved message-by-message as it is when ``n_procs`` is 1.
             Not part of ``config``; always applies.
         config (ParserConfig): a single object carrying all parsing and
-            enrichment options plus the caches; when provided, the
-            individual option keyword arguments listed above are ignored in
-            favor of the config's values.
+            enrichment options plus the caches; when provided, it replaces
+            the individual parsing and enrichment option keyword arguments
+            listed above (DNS, GeoIP, offline mode, attachment payload
+            stripping, timespan normalization), whose values are then
+            ignored. The remaining keyword arguments control mailbox
+            handling and orchestration rather than parsing (the folder
+            names, the ``delete`` options, ``test``, ``since``,
+            ``batch_size``); they are not part of ``config`` and always
+            apply.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2888,9 +2894,15 @@ def watch_inbox(
             parallel. Passed through to ``get_dmarc_reports_from_mailbox``
             on each check. Not part of ``config``; always applies.
         config (ParserConfig): a single object carrying all parsing and
-            enrichment options plus the caches; when provided, the
-            individual option keyword arguments listed above are ignored in
-            favor of the config's values.
+            enrichment options plus the caches; when provided, it replaces
+            the individual parsing and enrichment option keyword arguments
+            listed above (DNS, GeoIP, offline mode, attachment payload
+            stripping, timespan normalization), whose values are then
+            ignored. The remaining keyword arguments control mailbox
+            handling and orchestration rather than parsing (the folder
+            names, the ``delete`` options, ``test``, ``since``,
+            ``batch_size``); they are not part of ``config`` and always
+            apply.
     """
     cfg = _resolve_config(
         config,

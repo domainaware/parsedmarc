@@ -3104,6 +3104,34 @@ class TestMigrateForensicArchiveFolderMaildir(unittest.TestCase):
         self.assertEqual(result["failure_reports"], [])
 
 
+class _FailingDisposalMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose first disposal call fails.
+
+    Real mailbox backends can reject an individual delete or move (permission
+    denied, a UID that vanished, a dropped connection) while the rest of the
+    batch is still fine. Failing only the *first* call, then behaving
+    normally, is what makes that observable: the message the failure hit
+    stays put, and every message after it must still be disposed of.
+    """
+
+    def __init__(self, *args, fail_delete=False, fail_move=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._fail_delete = fail_delete
+        self._fail_move = fail_move
+
+    def delete_message(self, message_id):
+        if self._fail_delete:
+            self._fail_delete = False
+            raise RuntimeError("server said no")
+        super().delete_message(message_id)
+
+    def move_message(self, message_id, folder_name):
+        if self._fail_move:
+            self._fail_move = False
+            raise RuntimeError("server said no")
+        super().move_message(message_id, folder_name)
+
+
 class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
     """parsedmarc's real mailbox processing loop, end to end on an on-disk
     Maildir (mailsuite MaildirConnection, no mocks, offline parsing): fetch
@@ -3367,6 +3395,64 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(result["aggregate_reports"]), 1)
         self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 2)
         self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_delete_error_is_logged_and_disposal_continues(self):
+        """A backend that rejects one delete must not abort the disposal of
+        the remaining messages: the error is logged and the loop moves on to
+        the next report type. The aggregate message's delete fails, so it
+        stays in the INBOX, while the SMTP TLS message is still deleted."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.SMTP_TLS)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_delete=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True, delete=True
+            )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertTrue(
+            any(
+                "Mailbox error: Error deleting message UID" in line
+                for line in cm.output
+            ),
+            cm.output,
+        )
+        # Only the message whose delete raised is left behind.
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+
+    def test_move_error_is_logged_and_disposal_continues(self):
+        """The same for the archiving half of the disposal loop: a rejected
+        move is logged and the loop continues, so the aggregate message stays
+        in the INBOX while the SMTP TLS message still reaches its archive
+        subfolder."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.SMTP_TLS)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True
+            )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertTrue(
+            any(
+                "Mailbox error: Error moving message UID" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
 
 
 class _MidRunArrivalMaildirConnection(MaildirConnection):
