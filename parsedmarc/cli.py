@@ -805,6 +805,10 @@ def _parse_config(config: ConfigParser, opts):
             opts.mailbox_batch_size = mailbox_config.getint("batch_size")
         if "check_timeout" in mailbox_config:
             opts.mailbox_check_timeout = mailbox_config.getint("check_timeout")
+        if "max_unsaved_retries" in mailbox_config:
+            opts.mailbox_max_unsaved_retries = mailbox_config.getint(
+                "max_unsaved_retries"
+            )
         if "since" in mailbox_config:
             opts.mailbox_since = mailbox_config["since"]
 
@@ -1732,7 +1736,44 @@ def _main():
                         return prefix
         return None
 
+    def filter_smtp_tls_reports_for_index_prefix(tls_reports):
+        """Drop SMTP TLS reports whose domain isn't covered by
+        ``index_prefix_domain_map``.
+
+        Shared by ``process_reports()`` (which filters each batch it saves)
+        and by the combined ``parsing_results`` that feeds
+        ``email_results()``. Mailbox batches are saved inside
+        ``get_dmarc_reports_from_mailbox()``, so the dicts
+        ``process_reports()`` filters in place are no longer the same
+        objects as the combined results assembled afterward -- without this,
+        the emailed summary would list SMTP TLS reports that were
+        deliberately excluded from every output destination.
+        """
+        if index_prefix_domain_map is None:
+            return tls_reports
+        filtered_tls = []
+        for report in tls_reports:
+            if get_index_prefix(report) is not None:
+                filtered_tls.append(report)
+            else:
+                domain = "unknown"
+                if "policies" in report and report["policies"]:
+                    domain = report["policies"][0].get("policy_domain", "unknown")
+                logger.debug(
+                    "Ignoring SMTP TLS report for domain not in "
+                    "index_prefix_domain_map: %s",
+                    domain,
+                )
+        return filtered_tls
+
     def process_reports(reports_):
+        """Write ``reports_`` to every configured output destination.
+
+        Returns the list of human-readable output-error messages recorded
+        along the way -- empty when every destination accepted the reports.
+        Callers use that as the "was this batch saved?" signal; see
+        ``mailbox_save_callback()``.
+        """
         output_errors = []
 
         def log_output_error(destination, error):
@@ -1741,20 +1782,9 @@ def _main():
             output_errors.append(message)
 
         if index_prefix_domain_map is not None:
-            filtered_tls = []
-            for report in reports_.get("smtp_tls_reports", []):
-                if get_index_prefix(report) is not None:
-                    filtered_tls.append(report)
-                else:
-                    domain = "unknown"
-                    if "policies" in report and report["policies"]:
-                        domain = report["policies"][0].get("policy_domain", "unknown")
-                    logger.debug(
-                        "Ignoring SMTP TLS report for domain not in "
-                        "index_prefix_domain_map: %s",
-                        domain,
-                    )
-            reports_["smtp_tls_reports"] = filtered_tls
+            reports_["smtp_tls_reports"] = filter_smtp_tls_reports_for_index_prefix(
+                reports_.get("smtp_tls_reports", [])
+            )
 
         indent_value = 2 if opts.prettify_json else None
         output_str = (
@@ -1764,16 +1794,24 @@ def _main():
         if not opts.silent:
             print(output_str)
         if opts.output:
-            save_output(
-                reports_,
-                output_directory=opts.output,
-                aggregate_json_filename=opts.aggregate_json_filename,
-                failure_json_filename=opts.failure_json_filename,
-                smtp_tls_json_filename=opts.smtp_tls_json_filename,
-                aggregate_csv_filename=opts.aggregate_csv_filename,
-                failure_csv_filename=opts.failure_csv_filename,
-                smtp_tls_csv_filename=opts.smtp_tls_csv_filename,
-            )
+            try:
+                save_output(
+                    reports_,
+                    output_directory=opts.output,
+                    aggregate_json_filename=opts.aggregate_json_filename,
+                    failure_json_filename=opts.failure_json_filename,
+                    smtp_tls_json_filename=opts.smtp_tls_json_filename,
+                    aggregate_csv_filename=opts.aggregate_csv_filename,
+                    failure_csv_filename=opts.failure_csv_filename,
+                    smtp_tls_csv_filename=opts.smtp_tls_csv_filename,
+                )
+            except (OSError, ValueError) as error_:
+                # The only output destination that was not already caught:
+                # a full disk or an unwritable directory used to crash the
+                # run outright, and now that a failed save holds mailbox
+                # messages back it also has to be recorded like any other
+                # destination's failure rather than escaping.
+                log_output_error("File output", error_.__str__())
 
         kafka_client = clients.get("kafka_client")
         s3_client = clients.get("s3_client")
@@ -2096,6 +2134,8 @@ def _main():
                 )
             )
 
+        return output_errors
+
     arg_parser = ArgumentParser(description="Parses DMARC reports")
     arg_parser.add_argument(
         "-c",
@@ -2243,6 +2283,7 @@ def _main():
         mailbox_test=False,
         mailbox_batch_size=10,
         mailbox_check_timeout=30,
+        mailbox_max_unsaved_retries=2,
         mailbox_since=None,
         imap_host=None,
         imap_skip_certificate_verification=False,
@@ -2596,10 +2637,24 @@ def _main():
         failure_reports += reports["failure_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
 
+    # Snapshot of the file/mbox-derived reports, taken before the mailbox
+    # block below appends anything fetched from a live mailbox connection.
+    # Mailbox batches are handed to process_reports() by
+    # mailbox_save_callback() before get_dmarc_reports_from_mailbox() even
+    # returns -- that is what lets it decide whether archiving is safe -- so
+    # the final process_reports() call runs on this snapshot only, or the
+    # mailbox-derived reports would be saved twice.
+    file_parsing_results: ParsingResults = {
+        "aggregate_reports": list(aggregate_reports),
+        "failure_reports": list(failure_reports),
+        "smtp_tls_reports": list(smtp_tls_reports),
+    }
+
     mailbox_connection = None
     msgraph_connection: MSGraphConnection | None = None
     mailbox_batch_size_value = 10
     mailbox_check_timeout_value = 30
+    mailbox_max_unsaved_retries_value = 2
 
     if opts.imap_host:
         try:
@@ -2771,6 +2826,23 @@ def _main():
             if opts.mailbox_check_timeout is not None
             else 30
         )
+        mailbox_max_unsaved_retries_value = (
+            int(opts.mailbox_max_unsaved_retries)
+            if opts.mailbox_max_unsaved_retries is not None
+            else 2
+        )
+
+    def mailbox_save_callback(batch: ParsingResults) -> bool:
+        """Save one mailbox batch and report whether it actually landed.
+
+        Passed to ``get_dmarc_reports_from_mailbox()`` as ``save_callback``
+        and to ``watch_inbox()`` as its ``callback``. Returning ``False``
+        when any output destination failed keeps that batch's messages in
+        the mailbox to be retried, instead of archiving or deleting reports
+        that were never persisted anywhere (#242).
+        """
+        return not process_reports(batch)
+
     if mailbox_connection and not _shutdown_requested:
         try:
             reports = get_dmarc_reports_from_mailbox(
@@ -2787,12 +2859,21 @@ def _main():
                 since=opts.mailbox_since,
                 config=parser_config,
                 n_procs=n_procs,
+                save_callback=mailbox_save_callback,
+                max_unsaved_retries=mailbox_max_unsaved_retries_value,
             )
 
             aggregate_reports += reports["aggregate_reports"]
             failure_reports += reports["failure_reports"]
             smtp_tls_reports += reports["smtp_tls_reports"]
 
+        except ParserError as error:
+            # fail_on_output_error turns a failed batch save into a
+            # ParserError inside mailbox_save_callback; it reaches here
+            # through get_dmarc_reports_from_mailbox, which leaves the
+            # batch's messages in the mailbox on its way out.
+            logger.error(error.__str__())
+            exit(1)
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
             if msgraph_connection is None:
                 logger.exception("Mailbox Error")
@@ -2809,17 +2890,31 @@ def _main():
             logger.exception("Mailbox Error")
             exit(1)
 
+    # Filtered here rather than relying on process_reports()'s in-place
+    # filtering: the dicts it filters are the file snapshot and the mailbox
+    # batches, not this combined dict, which exists only to feed
+    # email_results() / email_results_via_msgraph() below.
     parsing_results: ParsingResults = {
         "aggregate_reports": aggregate_reports,
         "failure_reports": failure_reports,
-        "smtp_tls_reports": smtp_tls_reports,
+        "smtp_tls_reports": filter_smtp_tls_reports_for_index_prefix(smtp_tls_reports),
     }
 
-    try:
-        process_reports(parsing_results)
-    except ParserError as error:
-        logger.error(error.__str__())
-        exit(1)
+    file_results_nonempty = bool(
+        file_parsing_results["aggregate_reports"]
+        or file_parsing_results["failure_reports"]
+        or file_parsing_results["smtp_tls_reports"]
+    )
+    # Mailbox-derived reports were already saved by mailbox_save_callback;
+    # only file/mbox-derived reports are left to save here. With a mailbox
+    # connection and nothing from files, skip the call entirely so the run
+    # doesn't print a second, empty JSON blob.
+    if file_results_nonempty or not mailbox_connection:
+        try:
+            process_reports(file_parsing_results)
+        except ParserError as error:
+            logger.error(error.__str__())
+            exit(1)
 
     smtp_to_value = (
         list(opts.smtp_to)
@@ -2898,7 +2993,7 @@ def _main():
                 # at a safe boundary once the current batch is processed.
                 watch_inbox(
                     mailbox_connection=mailbox_connection,
-                    callback=process_reports,
+                    callback=mailbox_save_callback,
                     reports_folder=opts.mailbox_reports_folder,
                     archive_folder=opts.mailbox_archive_folder,
                     delete=opts.mailbox_delete,
@@ -2913,6 +3008,7 @@ def _main():
                     config=parser_config,
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
                     n_procs=n_procs,
+                    max_unsaved_retries=mailbox_max_unsaved_retries_value,
                 )
             except FileExistsError as error:
                 logger.error(f"{error.__str__()}")
@@ -3011,6 +3107,11 @@ def _main():
                     int(opts.mailbox_check_timeout)
                     if opts.mailbox_check_timeout is not None
                     else 30
+                )
+                mailbox_max_unsaved_retries_value = (
+                    int(opts.mailbox_max_unsaved_retries)
+                    if opts.mailbox_max_unsaved_retries is not None
+                    else 2
                 )
 
                 # Update log level

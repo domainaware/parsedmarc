@@ -111,6 +111,25 @@ MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_XML_TAG = b"\x3c"  # '<' - XML starting with an element tag (no declaration)
 MAGIC_JSON = b"\7b"
 
+# Per-message count of consecutive failed saves, keyed on
+# ``(reports_folder, str(message_uid))``. Populated only when
+# ``get_dmarc_reports_from_mailbox()`` is given a ``save_callback`` that
+# reports a batch as unsaved; a message whose count exceeds
+# ``max_unsaved_retries`` is moved to ``{archive_folder}/Unsaved`` instead
+# of being retried forever, and its entry is dropped. A successful save
+# clears the entries for that batch's messages.
+#
+# Process-local and deliberately not persisted: a restart re-attempts every
+# message still in the reports folder, which is the safe direction (retry
+# rather than shelve). The key carries no connection identity, so a library
+# caller processing two connections that share a folder name (two IMAP
+# servers, both "INBOX") in one process could collide counters if UIDs
+# happen to match; the CLI uses one connection per process. It is not a
+# ``ParserConfig`` field for the same reason ``batch_size`` and the
+# ``delete`` flags are not -- it governs mailbox orchestration, not
+# parsing.
+_FAILED_SAVE_ATTEMPTS: dict[tuple[str, str], int] = {}
+
 EMAIL_SAMPLE_CONTENT_TYPES = (
     "text/rfc822",
     "text-rfc-822",
@@ -2169,6 +2188,7 @@ def _classify_parsed_email(
     smtp_tls_reports: list[SMTPTLSReport],
     *,
     seen_aggregate_report_ids: ExpiringDict,
+    pending_aggregate_keys: set[str] | None = None,
 ) -> ReportType:
     """Classify a parsed report email, appending it to the matching list.
 
@@ -2181,6 +2201,15 @@ def _classify_parsed_email(
     ``seen_aggregate_report_ids`` cache so dedup state stays scoped to
     whichever ``ParserConfig`` (explicit or module-default) is in effect.
 
+    ``pending_aggregate_keys`` lets a caller *defer* the dedup-cache write:
+    when a set is supplied, a newly seen key is staged in that set instead
+    of being written to ``seen_aggregate_report_ids``, and the dedup check
+    consults both. The caller then folds the staged keys into the cache
+    once the batch is known to have been saved (see
+    ``get_dmarc_reports_from_mailbox``), or drops them so a retry reparses
+    the same reports rather than silently skipping them as duplicates.
+    ``None`` (the default) keeps the immediate-write behavior.
+
     Returns the report type so mailbox callers know which UID list to
     append the source message's UID to.
     """
@@ -2192,8 +2221,14 @@ def _classify_parsed_email(
         report_org = parsed_email["report"]["report_metadata"]["org_name"]
         report_id = parsed_email["report"]["report_metadata"]["report_id"]
         report_key = f"{report_org}_{report_id}"
-        if report_key not in seen_aggregate_report_ids:
-            seen_aggregate_report_ids[report_key] = True
+        already_seen = report_key in seen_aggregate_report_ids or (
+            pending_aggregate_keys is not None and report_key in pending_aggregate_keys
+        )
+        if not already_seen:
+            if pending_aggregate_keys is None:
+                seen_aggregate_report_ids[report_key] = True
+            else:
+                pending_aggregate_keys.add(report_key)
             aggregate_reports.append(parsed_email["report"])
         else:
             logger.debug(
@@ -2423,6 +2458,28 @@ def _migrate_forensic_archive_folder(
         )
 
 
+def _ensure_folder(connection: MailboxConnection, folder: str) -> None:
+    """Best-effort create ``folder`` if the backend says it is missing.
+
+    ``get_dmarc_reports_from_mailbox()`` creates its destination folders up
+    front, but only when ``create_folders`` is set -- watch mode calls it
+    with ``create_folders=False``, and the ``Unsaved`` holding folder is
+    only created up front when a ``save_callback`` was supplied. This is the
+    defensive check immediately before a message is moved there.
+
+    Like ``_migrate_forensic_archive_folder``, it never raises: a backend
+    that cannot report on or create the folder is logged and skipped, and
+    the move that follows either succeeds anyway (the folder already
+    existed) or fails and is logged by its own error handler -- warn, don't
+    crash.
+    """
+    try:
+        if not connection.folder_exists(folder):
+            connection.create_folder(folder)
+    except Exception as error:
+        logger.warning(f"Could not create folder {folder}: {error}")
+
+
 def get_dmarc_reports_from_mailbox(
     connection: MailboxConnection,
     *,
@@ -2449,6 +2506,8 @@ def get_dmarc_reports_from_mailbox(
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24.0,
     n_procs: int = 1,
+    save_callback: Callable[[ParsingResults], bool | None] | None = None,
+    max_unsaved_retries: int = 2,
     config: ParserConfig | None = None,
 ) -> ParsingResults:
     """
@@ -2502,6 +2561,49 @@ def get_dmarc_reports_from_mailbox(
             happens after the parsing phase completes, rather than
             interleaved message-by-message as it is when ``n_procs`` is 1.
             Not part of ``config``; always applies.
+        save_callback: An optional callable invoked once per fetched batch
+            with a ``ParsingResults`` dict holding only that batch's newly
+            parsed reports, after parsing but before any of the batch's
+            messages are deleted or moved out of ``reports_folder``. It
+            tells this function whether the batch was actually persisted:
+
+            * Returning ``False`` means "not saved": the batch's messages
+              are left in ``reports_folder`` for retry on the next run (or
+              moved to ``{archive_folder}/Unsaved`` once they have failed
+              ``max_unsaved_retries`` retries -- see below), and the
+              aggregate-report dedup cache is not updated for that batch, so
+              a retry reparses the same reports instead of skipping them as
+              duplicates.
+            * Raising counts as "not saved" too: the same bookkeeping runs
+              (the batch's messages are held back or moved to ``Unsaved`` at
+              the cap, and the failed attempt counts toward
+              ``max_unsaved_retries``), and the exception is then re-raised
+              to the caller.
+            * Any other return value, including ``None``, commits the batch:
+              the dedup cache is updated and the messages are deleted or
+              archived exactly as they are with no callback.
+
+            ``None`` (the default) commits every batch, preserving the prior
+            behavior. The callback is still invoked when ``test`` is
+            ``True``, so a test run exercises the full pipeline, but neither
+            the mailbox nor the retry counters are touched regardless of
+            what it returns.
+        max_unsaved_retries (int): How many times a message may be *retried*
+            after ``save_callback`` first reported its batch unsaved, before
+            it is moved to the ``Unsaved`` archive subfolder instead of
+            being retried again (default 2, i.e. the initial attempt plus
+            two retries -- at most three deliveries to any output
+            destination that does not deduplicate). ``0`` moves a message on
+            the first failed save. Messages moved to ``Unsaved`` are never
+            deleted, whatever the ``delete`` options say; recover them by
+            fixing the output destination and moving them back into
+            ``reports_folder``. Counts are kept in memory, per message and
+            per process, are reset by a successful save, and are only kept
+            when a ``save_callback`` is supplied -- so the cap applies
+            across repeated calls within one process (``watch_inbox()``'s
+            checks), not across separate one-shot processes, each of which
+            starts a message's count over. Mailbox orchestration, so like
+            ``batch_size`` it is not part of ``config``.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, it replaces
             the individual parsing and enrichment option keyword arguments
@@ -2510,8 +2612,8 @@ def get_dmarc_reports_from_mailbox(
             ignored. The remaining keyword arguments control mailbox
             handling and orchestration rather than parsing (the folder
             names, the ``delete`` options, ``test``, ``since``,
-            ``batch_size``); they are not part of ``config`` and always
-            apply.
+            ``batch_size``, ``save_callback``, ``max_unsaved_retries``);
+            they are not part of ``config`` and always apply.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -2555,6 +2657,17 @@ def get_dmarc_reports_from_mailbox(
     aggregate_reports: list[AggregateReport] = []
     failure_reports: list[FailureReport] = []
     smtp_tls_reports: list[SMTPTLSReport] = []
+    # This call's own reports, kept separate from the accumulated lists
+    # above (which carry earlier batches' reports in via ``results``) so the
+    # save callback is handed only what this batch parsed.
+    batch_aggregate_reports: list[AggregateReport] = []
+    batch_failure_reports: list[FailureReport] = []
+    batch_smtp_tls_reports: list[SMTPTLSReport] = []
+    # Aggregate dedup keys are staged here and only written to the shared
+    # cache once the batch is known to be saved, so an unsaved batch (or a
+    # mid-batch crash) leaves the cache clean and the reports are reparsed
+    # on the retry instead of being dropped as duplicates.
+    pending_aggregate_keys: set[str] = set()
     aggregate_report_msg_uids = []
     failure_report_msg_uids = []
     smtp_tls_msg_uids = []
@@ -2562,6 +2675,7 @@ def get_dmarc_reports_from_mailbox(
     failure_reports_folder = f"{archive_folder}/Failure"
     smtp_tls_reports_folder = f"{archive_folder}/SMTP-TLS"
     invalid_reports_folder = f"{archive_folder}/Invalid"
+    unsaved_reports_folder = f"{archive_folder}/Unsaved"
 
     if results:
         aggregate_reports = results["aggregate_reports"].copy()
@@ -2575,6 +2689,11 @@ def get_dmarc_reports_from_mailbox(
         connection.create_folder(failure_reports_folder)
         connection.create_folder(smtp_tls_reports_folder)
         connection.create_folder(invalid_reports_folder)
+        if save_callback is not None:
+            # Only reachable when a callback can report a batch unsaved;
+            # without one no message is ever held back, so the folder would
+            # sit empty in every mailbox.
+            connection.create_folder(unsaved_reports_folder)
 
     if since and isinstance(since, str):
         _since = 1440  # default one day
@@ -2672,10 +2791,11 @@ def get_dmarc_reports_from_mailbox(
             else:
                 report_type = _classify_parsed_email(
                     result,
-                    aggregate_reports,
-                    failure_reports,
-                    smtp_tls_reports,
+                    batch_aggregate_reports,
+                    batch_failure_reports,
+                    batch_smtp_tls_reports,
                     seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
+                    pending_aggregate_keys=pending_aggregate_keys,
                 )
                 if report_type == "aggregate":
                     aggregate_report_msg_uids.append(message_id)
@@ -2707,10 +2827,11 @@ def get_dmarc_reports_from_mailbox(
                 )
                 report_type = _classify_parsed_email(
                     parsed_email,
-                    aggregate_reports,
-                    failure_reports,
-                    smtp_tls_reports,
+                    batch_aggregate_reports,
+                    batch_failure_reports,
+                    batch_smtp_tls_reports,
                     seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
+                    pending_aggregate_keys=pending_aggregate_keys,
                 )
                 if report_type == "aggregate":
                     aggregate_report_msg_uids.append(message_id)
@@ -2725,7 +2846,97 @@ def get_dmarc_reports_from_mailbox(
                         connection, message_id, delete_invalid, invalid_reports_folder
                     )
 
-    if not test:
+    # Ask the caller whether this batch actually made it to its output
+    # destinations before touching a single message. A callback that says
+    # otherwise (or raises) means the reports exist nowhere else yet, so no
+    # message may be archived or deleted -- only retained for retry, or moved
+    # intact to the Unsaved folder once retries run out (#242).
+    batch_results: ParsingResults = {
+        "aggregate_reports": batch_aggregate_reports,
+        "failure_reports": batch_failure_reports,
+        "smtp_tls_reports": batch_smtp_tls_reports,
+    }
+    persisted = True
+    callback_error: Exception | None = None
+    if save_callback is not None:
+        try:
+            persisted = save_callback(batch_results) is not False
+        except Exception as error:
+            # A raising callback is a failed save too: the failure
+            # bookkeeping below still runs (count the attempt, hold or shelve
+            # the messages) before the exception is re-raised, so a callback
+            # that always raises -- e.g. the CLI's under
+            # ``fail_on_output_error`` -- is still bounded by
+            # ``max_unsaved_retries`` even when the caller's watch loop
+            # swallows the exception and keeps checking, as mailsuite's IMAP
+            # and Maildir backends do.
+            persisted = False
+            callback_error = error
+
+    batch_msg_uids = (
+        aggregate_report_msg_uids + failure_report_msg_uids + smtp_tls_msg_uids
+    )
+
+    if persisted:
+        # Committing: the reports are safely stored elsewhere, so record
+        # their dedup keys and forget any earlier failures for these
+        # messages.
+        for report_key in pending_aggregate_keys:
+            cfg.seen_aggregate_report_ids[report_key] = True
+        if not test:
+            for msg_uid in batch_msg_uids:
+                _FAILED_SAVE_ATTEMPTS.pop((reports_folder, str(msg_uid)), None)
+    elif not test:
+        # Held back for retry. Messages that have now failed the initial
+        # attempt plus ``max_unsaved_retries`` retries stop being retried and
+        # move to the Unsaved folder, bounding duplicate delivery to output
+        # destinations that do not deduplicate; the rest stay put.
+        retained_uids: list[int | str] = []
+        over_cap_uids: list[int | str] = []
+        highest_attempt = 0
+        for msg_uid in batch_msg_uids:
+            attempts_key = (reports_folder, str(msg_uid))
+            attempts = _FAILED_SAVE_ATTEMPTS.get(attempts_key, 0) + 1
+            if attempts > max_unsaved_retries:
+                over_cap_uids.append(msg_uid)
+                # pop, not del: with max_unsaved_retries=0 the cap is
+                # exceeded on the first failure, before any entry exists.
+                _FAILED_SAVE_ATTEMPTS.pop(attempts_key, None)
+            else:
+                _FAILED_SAVE_ATTEMPTS[attempts_key] = attempts
+                retained_uids.append(msg_uid)
+                highest_attempt = max(highest_attempt, attempts)
+        if retained_uids:
+            logger.error(
+                f"Reports were not saved: leaving {len(retained_uids)} "
+                f"message(s) in {reports_folder} to retry on the next run "
+                f"or check (failed attempt {highest_attempt} of "
+                f"{max_unsaved_retries + 1})"
+            )
+        if over_cap_uids:
+            logger.error(
+                f"Reports were not saved after {max_unsaved_retries + 1} "
+                f"attempt(s): moving {len(over_cap_uids)} message(s) from "
+                f"{reports_folder} to {unsaved_reports_folder} instead of "
+                "retrying them further. They are never deleted -- fix the "
+                f"output destination, then move them back to {reports_folder}"
+            )
+            _ensure_folder(connection, unsaved_reports_folder)
+            for msg_uid in over_cap_uids:
+                try:
+                    connection.move_message(msg_uid, unsaved_reports_folder)
+                except Exception as e:
+                    e = f"Error moving message UID {msg_uid}: {e}"
+                    logger.error(f"Mailbox error: {e}")
+
+    if callback_error is not None:
+        raise callback_error
+
+    aggregate_reports += batch_aggregate_reports
+    failure_reports += batch_failure_reports
+    smtp_tls_reports += batch_smtp_tls_reports
+
+    if persisted and not test:
         # Each report type is disposed of according to its own effective
         # delete flag: deleted outright, or moved to its archive subfolder.
         for msg_uids, delete_type, destination_folder, label in (
@@ -2782,7 +2993,11 @@ def get_dmarc_reports_from_mailbox(
         "smtp_tls_reports": smtp_tls_reports,
     }
 
-    if not test and not batch_size:
+    # An unsaved batch left its messages in ``reports_folder``, so the
+    # re-check below would find them again and immediately reprocess the
+    # very messages that just failed -- burning through the retry cap in one
+    # call. Skip it and let the next run retry them.
+    if persisted and not test and not batch_size:
         if current_time:
             total_messages = len(
                 connection.fetch_messages(reports_folder, since=current_time)
@@ -2807,6 +3022,8 @@ def get_dmarc_reports_from_mailbox(
             results=results,
             since=current_time,
             n_procs=n_procs,
+            save_callback=save_callback,
+            max_unsaved_retries=max_unsaved_retries,
             config=cfg,
         )
 
@@ -2840,6 +3057,7 @@ def watch_inbox(
     normalize_timespan_threshold_hours: float = 24.0,
     config_reloading: Callable | None = None,
     n_procs: int = 1,
+    max_unsaved_retries: int = 2,
     config: ParserConfig | None = None,
 ):
     """
@@ -2848,7 +3066,21 @@ def watch_inbox(
 
     Args:
         mailbox_connection: The mailbox connection object
-        callback: The callback function to receive the parsing results
+        callback: The callback function to receive the parsing results.
+            Passed straight through to ``get_dmarc_reports_from_mailbox()``
+            as its ``save_callback``, so it now runs once per fetched batch,
+            with only that batch's reports, *before* those messages are
+            deleted or moved out of ``reports_folder`` -- rather than once
+            afterward with the whole check's accumulated results. Returning
+            ``False`` reports the batch as unsaved, leaving its messages in
+            place to be retried on the next check instead of archived or
+            deleted (see ``save_callback`` and ``max_unsaved_retries`` on
+            ``get_dmarc_reports_from_mailbox()``). Raising counts as an
+            unsaved batch too -- same retention and retry cap -- before the
+            exception reaches the mailbox backend's watch loop; what happens
+            then is backend-specific: the Microsoft Graph and Gmail backends
+            let it propagate and end the watch, while mailsuite's IMAP and
+            Maildir watch loops log it and keep checking.
         reports_folder (str): The IMAP folder where reports can be found
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete messages after processing them
@@ -2893,6 +3125,11 @@ def watch_inbox(
         n_procs (int): Number of processes to use for parsing messages in
             parallel. Passed through to ``get_dmarc_reports_from_mailbox``
             on each check. Not part of ``config``; always applies.
+        max_unsaved_retries (int): How many times a message may be retried
+            after ``callback`` first reported its batch unsaved, before it is
+            moved to the ``Unsaved`` archive subfolder (default 2). Passed
+            through to ``get_dmarc_reports_from_mailbox``, where it is
+            documented in full. Not part of ``config``; always applies.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, it replaces
             the individual parsing and enrichment option keyword arguments
@@ -2901,8 +3138,8 @@ def watch_inbox(
             ignored. The remaining keyword arguments control mailbox
             handling and orchestration rather than parsing (the folder
             names, the ``delete`` options, ``test``, ``since``,
-            ``batch_size``); they are not part of ``config`` and always
-            apply.
+            ``batch_size``, ``max_unsaved_retries``); they are not part of
+            ``config`` and always apply.
     """
     cfg = _resolve_config(
         config,
@@ -2919,7 +3156,7 @@ def watch_inbox(
     )
 
     def check_callback(connection):
-        res = get_dmarc_reports_from_mailbox(
+        get_dmarc_reports_from_mailbox(
             connection=connection,
             reports_folder=reports_folder,
             archive_folder=archive_folder,
@@ -2933,9 +3170,10 @@ def watch_inbox(
             since=since,
             create_folders=False,
             n_procs=n_procs,
+            save_callback=callback,
+            max_unsaved_retries=max_unsaved_retries,
             config=cfg,
         )
-        callback(res)
 
     watch_kwargs: dict = {
         "check_callback": check_callback,

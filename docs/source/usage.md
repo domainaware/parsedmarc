@@ -186,6 +186,15 @@ The full set of configuration options are:
   - `fail_on_output_error` - bool: Exit with a non-zero status code if
       any configured output destination fails while saving/publishing
       reports (Default: `False`)
+
+    :::{note}
+    This option only controls the process exit code. Retaining mailbox
+    messages whose reports could not be saved is automatic and happens
+    either way — see [Mailbox messages are only archived once the
+    reports are
+    saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved).
+    :::
+
   - `log_file` - str: Write log messages to a file at this path
   - `n_procs` - int: Number of processes to run in parallel when
       parsing report files passed directly as CLI arguments, messages
@@ -245,6 +254,17 @@ The full set of configuration options are:
   - `check_timeout` - int: Number of seconds to wait for a IMAP
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
+  - `max_unsaved_retries` - int: How many times a batch of messages
+      whose reports could not be saved is retried before its messages
+      are moved to the `Unsaved` archive subfolder instead of being
+      retried again (Default: `2`, i.e. the initial attempt plus two
+      retries). Use `0` to move messages on the first failed save.
+      Failures are counted in memory, so the cap applies across watch-mode
+      checks within one long-running process, not across separate one-shot
+      runs.
+      See [Mailbox messages are only archived once the reports are
+      saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
+      below.
   - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
       Defaults to `1d` if incorrect value is provided.
@@ -848,6 +868,78 @@ PUT _cluster/settings
 ```
 
 Increasing this value increases resource usage.
+:::
+
+### Mailbox messages are only archived once the reports are saved
+
+parsedmarc processes a mailbox in batches of `batch_size` messages. Each
+batch is written to every configured output destination *before* any of
+that batch's messages are archived or deleted. If any destination reports a
+failure — an Elasticsearch outage, an expired Splunk HEC token, an
+unreachable Kafka broker, a full `--output` disk — the whole batch is left
+in the reports folder and retried on the next run or watch-mode check, so a
+report is never removed from the mailbox while it exists nowhere else
+([issue #242](https://github.com/domainaware/parsedmarc/issues/242)).
+
+This is all-or-nothing per batch: archiving a batch because most
+destinations accepted it would still permanently lose the data for the one
+that didn't. It also applies regardless of `fail_on_output_error`, which
+only controls the process exit code. Messages that could not be parsed at
+all carry no report data, so they are filed under `Invalid` (or deleted per
+`delete_invalid`) as usual.
+
+A destination that is broken rather than briefly unavailable would
+otherwise be retried forever, so retries are capped. Once a message's batch
+has failed `max_unsaved_retries + 1` times (three times by default), that
+message is moved to `<archive_folder>/Unsaved` and stops being retried. **A
+message is never deleted on this path, whatever the `delete` options say.**
+To recover after fixing the output destination, either move the messages
+from `Archive/Unsaved` back into the reports folder, or run parsedmarc once
+with `reports_folder = Archive/Unsaved`.
+
+:::{note}
+The failure counts live in memory, so they are counted per parsedmarc
+process. In watch mode — a long-running process that checks the mailbox
+repeatedly — the cap works as described across checks. A one-shot run
+(`cron`, `systemd` timers) attempts each message exactly once and then
+exits, so its counts start over every time and the default cap is never
+reached: messages simply keep being retried on every run, which is the
+safe direction. Set `max_unsaved_retries = 0` if you want one-shot runs to
+move unsavable messages to `Unsaved` immediately instead.
+:::
+
+:::{warning}
+Retrying a batch means re-sending it. Output destinations that
+deduplicate — Elasticsearch, OpenSearch, and PostgreSQL, which recognize
+an already-saved report — are unaffected, and S3 is idempotent because
+each report is written to an object key built from its type, date, and
+report ID, so a retry overwrites the same object. Kafka,
+Splunk HEC, syslog, GELF, webhooks, Azure Log Analytics, and the
+`--output` JSON/CSV files all append unconditionally, so each retry adds
+another copy of every report in the batch. That is why the default retry
+cap is deliberately low: at most three deliveries per report before its
+message is set aside in `Unsaved`. The summary email covers everything
+parsed in a run, including reports whose batch failed to save, so a report
+retried across runs can also appear in more than one summary email.
+:::
+
+:::{note}
+Not every destination can report a failed delivery. The webhook output
+deliberately logs and swallows its own HTTP and network errors, and the
+syslog and GELF outputs send through Python logging handlers, which
+swallow delivery errors by design — so an unreachable webhook, syslog, or
+GELF endpoint is *not* treated as a failed save and does not hold a
+batch's messages back. Failures in Elasticsearch, OpenSearch, Splunk HEC,
+Kafka, S3, PostgreSQL, Azure Log Analytics, and the `--output` files are
+all detected and do.
+:::
+
+:::{note}
+`since` interacts with retries: a message that ages out of the configured
+`since` window stops being fetched, and therefore stops being retried
+automatically. It is never deleted or moved — it simply stays in the
+reports folder until it is processed by a run with a wider (or no)
+`since` window.
 :::
 
 ## Environment variable configuration
