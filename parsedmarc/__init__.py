@@ -2897,13 +2897,10 @@ def get_dmarc_reports_from_mailbox(
         for msg_uid in batch_msg_uids:
             attempts_key = (reports_folder, str(msg_uid))
             attempts = _FAILED_SAVE_ATTEMPTS.get(attempts_key, 0) + 1
+            _FAILED_SAVE_ATTEMPTS[attempts_key] = attempts
             if attempts > max_unsaved_retries:
                 over_cap_uids.append(msg_uid)
-                # pop, not del: with max_unsaved_retries=0 the cap is
-                # exceeded on the first failure, before any entry exists.
-                _FAILED_SAVE_ATTEMPTS.pop(attempts_key, None)
             else:
-                _FAILED_SAVE_ATTEMPTS[attempts_key] = attempts
                 retained_uids.append(msg_uid)
                 highest_attempt = max(highest_attempt, attempts)
         if retained_uids:
@@ -2928,6 +2925,14 @@ def get_dmarc_reports_from_mailbox(
                 except Exception as e:
                     e = f"Error moving message UID {msg_uid}: {e}"
                     logger.error(f"Mailbox error: {e}")
+                else:
+                    # Drop the counter only once the message is actually out
+                    # of the retry loop. Clearing it before a failed move
+                    # would hand the still-in-place message a fresh set of
+                    # under-cap retries (and deliveries); keeping it means
+                    # the next failed save classifies the message over-cap
+                    # again and re-attempts the move instead.
+                    _FAILED_SAVE_ATTEMPTS.pop((reports_folder, str(msg_uid)), None)
 
     if callback_error is not None:
         raise callback_error

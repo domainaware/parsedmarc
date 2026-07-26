@@ -190,9 +190,8 @@ The full set of configuration options are:
     :::{note}
     This option only controls the process exit code. Retaining mailbox
     messages whose reports could not be saved is automatic and happens
-    either way — see [Mailbox messages are only archived once the
-    reports are
-    saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved).
+    either way — see
+    [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved).
     :::
 
   - `log_file` - str: Write log messages to a file at this path
@@ -251,7 +250,7 @@ The full set of configuration options are:
   - `test` - bool: Do not move or delete messages
   - `batch_size` - int: Number of messages to read and process
       before saving. Default `10`. Use `0` for no limit.
-  - `check_timeout` - int: Number of seconds to wait for a IMAP
+  - `check_timeout` - int: Number of seconds to wait for an IMAP
       IDLE response or the number of seconds until the next
       mail check (Default: `30`)
   - `max_unsaved_retries` - int: How many times a batch of messages
@@ -261,9 +260,8 @@ The full set of configuration options are:
       retries). Use `0` to move messages on the first failed save.
       Failures are counted in memory, so the cap applies across watch-mode
       checks within one long-running process, not across separate one-shot
-      runs.
-      See [Mailbox messages are only archived once the reports are
-      saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
+      runs. See
+      [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
       below.
   - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.

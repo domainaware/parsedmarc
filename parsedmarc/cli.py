@@ -2873,7 +2873,7 @@ def _main():
             # through get_dmarc_reports_from_mailbox, which leaves the
             # batch's messages in the mailbox on its way out.
             logger.error(error.__str__())
-            exit(1)
+            sys.exit(1)
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
             if msgraph_connection is None:
                 logger.exception("Mailbox Error")
@@ -2914,7 +2914,7 @@ def _main():
             process_reports(file_parsing_results)
         except ParserError as error:
             logger.error(error.__str__())
-            exit(1)
+            sys.exit(1)
 
     smtp_to_value = (
         list(opts.smtp_to)

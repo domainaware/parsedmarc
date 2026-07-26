@@ -3493,7 +3493,11 @@ class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
         self._inbox = mailbox.Maildir(self._maildir, create=True)
 
     def _deliver(self, source):
-        raw = open(source, "rb").read() if isinstance(source, str) else source
+        if isinstance(source, str):
+            with open(source, "rb") as source_file:
+                raw = source_file.read()
+        else:
+            raw = source
         self._inbox.add(mailbox.MaildirMessage(raw))
         self._inbox.flush()
 
@@ -3675,8 +3679,8 @@ class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
 
         other_maildir = os.path.join(self._tmp, "MaildirNoCallback")
         other_inbox = mailbox.Maildir(other_maildir, create=True)
-        raw = open(self.FAILURE, "rb").read()
-        other_inbox.add(mailbox.MaildirMessage(raw))
+        with open(self.FAILURE, "rb") as failure_file:
+            other_inbox.add(mailbox.MaildirMessage(failure_file.read()))
         other_inbox.flush()
         other_conn = MaildirConnection(other_maildir, maildir_create=True)
         parsedmarc.get_dmarc_reports_from_mailbox(connection=other_conn, offline=True)
@@ -3832,6 +3836,39 @@ class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
         )
         self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
         self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+    def test_failed_move_keeps_the_counter_so_the_move_is_retried(self):
+        """A failed move to Unsaved must not reset the message's failure
+        counter: the still-in-place message would otherwise get a fresh set
+        of under-cap retries (and duplicate deliveries) each time the move
+        failed. With the counter kept, the next failed save classifies the
+        message over-cap again and re-attempts the move -- which succeeds
+        here once the backend allows it. Cap 1 makes the distinction
+        observable: were the counter reset by run 2's failed move, run 3
+        would count the message back under the cap and leave it in the
+        INBOX instead of moving it."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        failing_conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+        with self.assertLogs("parsedmarc.log", level="ERROR"):
+            self._run(
+                connection=failing_conn,
+                save_callback=self._fail,
+                max_unsaved_retries=1,
+            )
+        self.assertEqual(len(failing_conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
 
     def test_failed_save_skips_the_batch_size_zero_re_check(self):
         """With batch_size=0 the function re-checks the folder and recurses
