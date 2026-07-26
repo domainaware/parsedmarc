@@ -28,7 +28,7 @@
       <default>*</default>
     </input>
     <input type="dropdown" token="passed_dmarc" searchWhenChanged="true">
-      <label>Passed DMARC</label>
+      <label>DMARC compliant</label>
       <choice value="*">any</choice>
       <choice value="true">true</choice>
       <choice value="false">false</choice>
@@ -157,7 +157,7 @@
       </chart>
     </panel>
     <panel>
-      <title>Passed DMARC</title>
+      <title>DMARC compliance</title>
       <chart>
         <search base="base_search">
           <query>| stats sum(message_count) by passed_dmarc</query>
@@ -246,7 +246,7 @@
   </row>
   <row>
     <panel>
-      <title>DMARC passage over time</title>
+      <title>DMARC compliance over time</title>
       <chart>
         <search base="base_search">
           <query>| timechart span=1d sum(message_count) as message_count by passed_dmarc</query>
