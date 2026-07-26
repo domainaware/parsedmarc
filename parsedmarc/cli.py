@@ -9,6 +9,7 @@ import http.client
 import json
 import logging
 import os
+import shutil
 import signal
 import sys
 import time
@@ -58,12 +59,13 @@ from parsedmarc.mail import (
     MSGraphConnection,
 )
 from parsedmarc.parallel import _parse_report_file_job, parallel_map
-from parsedmarc.types import ParsingResults
+from parsedmarc.types import ParsedReport, ParsingResults
 from parsedmarc.utils import (
     InvalidIPinfoAPIKey,
     configure_ipinfo_api,
     get_base_domain,
     get_reverse_dns,
+    human_timestamp_to_datetime,
     is_mbox,
     load_ip_db,
     load_psl_overrides,
@@ -223,6 +225,171 @@ def _expand_file_path_args(paths: list[str], recursive: bool = False) -> list[st
         else:
             expanded += glob(path, recursive=recursive)
     return expanded
+
+
+def _exclude_archived_paths(file_paths: list[str], archive_directory: str) -> list[str]:
+    """Filter *file_paths* down to paths that are not already inside
+    *archive_directory*.
+
+    The archive directory may live inside an input directory (e.g.
+    ``<input>/archive``), so without this filter a file already moved
+    into the archive on a previous run would be picked up again by a
+    later ``file_path`` directory expansion, re-parsed, and re-archived
+    (colliding with itself and accumulating numeric suffixes forever).
+
+    Paths are resolved with ``os.path.realpath`` (not just
+    ``os.path.abspath``) so a symlinked spelling of either the archive
+    directory or an input path still matches: e.g. ``archive_directory``
+    configured via a ``/data`` symlink while the input directory is
+    passed as the real ``/mnt/...`` path would otherwise never compare
+    equal, and every run would re-archive the same files with a new
+    numeric suffix forever.
+    """
+    archive_root = os.path.normcase(os.path.realpath(archive_directory))
+    kept: list[str] = []
+    for path in file_paths:
+        abs_path = os.path.normcase(os.path.realpath(path))
+        try:
+            inside_archive = (
+                os.path.commonpath([archive_root, abs_path]) == archive_root
+            )
+        except ValueError:
+            # Paths are on different drives (Windows) or otherwise not
+            # comparable, so the path can't be inside the archive.
+            inside_archive = False
+        if inside_archive:
+            logger.debug(f"Excluding already-archived file {path}")
+            continue
+        kept.append(path)
+    return kept
+
+
+def _archive_subdir_for_result(result: ParsedReport) -> str | None:
+    """Return the ``<year>/<month>/<type folder>`` subdirectory a parsed
+    report's source file should be archived under, or ``None`` when the
+    report type is unrecognized or its date can't be determined.
+
+    The date comes from the parsed report itself, not the source
+    filename or file mtime: aggregate reports use
+    ``report_metadata.begin_date``, failure reports use
+    ``arrival_date_utc``, and SMTP TLS reports use ``begin_date``.
+    """
+    report_type = result["report_type"]
+    try:
+        if result["report_type"] == "aggregate":
+            type_folder = "Aggregate"
+            date_string = result["report"]["report_metadata"]["begin_date"]
+        elif result["report_type"] == "failure":
+            type_folder = "Failure"
+            date_string = result["report"]["arrival_date_utc"]
+        elif result["report_type"] == "smtp_tls":
+            type_folder = "SMTP-TLS"
+            date_string = result["report"]["begin_date"]
+        else:
+            logger.warning(f"Cannot archive unknown report type: {report_type}")
+            return None
+        dt = human_timestamp_to_datetime(date_string)
+    except (KeyError, TypeError, ValueError, OverflowError) as e:
+        logger.warning(f"Cannot determine archive date for {report_type} report: {e}")
+        return None
+
+    return os.path.join(f"{dt.year:04d}", f"{dt.month:02d}", type_folder)
+
+
+def _move_file_to_archive(file_path: str, dest_dir: str) -> str:
+    """Move *file_path* into *dest_dir*, creating it if needed, and return
+    the final destination path.
+
+    An existing file at the destination is never overwritten: a numeric
+    suffix is appended before the extension (``name-1.xml``,
+    ``name-2.xml``, ...) until a free name is found. For multi-suffix
+    names like ``report.xml.gz`` the numeric suffix lands before the
+    last suffix only (``report.xml-1.gz``); this is acceptable.
+
+    The free-name claim is atomic (``os.open`` with
+    ``O_CREAT | O_EXCL``) rather than an exists-check-then-move: a plain
+    ``os.path.exists()`` check followed by ``shutil.move()`` is a
+    TOCTOU race between concurrent ``parsedmarc`` invocations sharing an
+    archive directory, and ``shutil.move()`` silently overwrites an
+    existing destination on POSIX, which would violate the
+    never-overwrite guarantee. Instead, each candidate name is staked
+    out with a zero-byte placeholder file before the real move happens;
+    ``os.rename`` (POSIX) or the ``copy2`` fallback (Windows) that
+    backs ``shutil.move()`` then replaces that placeholder atomically.
+    """
+    os.makedirs(dest_dir, exist_ok=True)
+    base, ext = os.path.splitext(os.path.basename(file_path))
+    candidate = os.path.basename(file_path)
+    n = 1
+    while True:
+        dest_path = os.path.join(dest_dir, candidate)
+        try:
+            fd = os.open(dest_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            candidate = f"{base}-{n}{ext}"
+            n += 1
+            continue
+        os.close(fd)
+        break
+
+    try:
+        shutil.move(file_path, dest_path)
+    except Exception:
+        try:
+            os.remove(dest_path)
+        except OSError:
+            pass
+        raise
+    return dest_path
+
+
+def _archive_processed_file(
+    file_path: str, archive_directory: str, result: ParsedReport | Exception
+) -> None:
+    """Move *file_path* into *archive_directory* after processing.
+
+    Files that failed to parse as a report (*result* is a
+    ``ParserError`` — every parse-failure exception, including
+    ``InvalidSMTPTLSReport``, subclasses it) go to
+    ``<archive_directory>/Invalid/``. Files that failed for some other
+    reason (a transient ``OSError``/``PermissionError`` from the parse
+    job's broad catch, or an unexpected parser bug) are left in place so
+    a later run can retry them — renaming a valid-but-currently-unreadable
+    report into ``Invalid/`` would permanently sideline it, since moving
+    a file needs no read permission on its contents, and
+    ``_exclude_archived_paths`` would then hide it from every future run
+    too. The parse loop already logged the error either way.
+
+    Successfully parsed files go to the dated ``<year>/<month>/<type>``
+    subdirectory returned by ``_archive_subdir_for_result``; if that
+    returns ``None`` (unknown report type or unparseable date), the file
+    is left in place — a warning was already logged by that helper.
+
+    A move failure is logged and never allowed to abort the run: the
+    file has already been successfully parsed (or definitively failed
+    to parse), so a filesystem error while archiving it should not
+    cause the caller to lose that work.
+    """
+    if isinstance(result, ParserError):
+        subdir = "Invalid"
+    elif isinstance(result, Exception):
+        logger.debug(
+            f"Leaving {file_path} in place: {result.__class__.__name__} is not "
+            "a report-parsing failure, so it may be retryable"
+        )
+        return
+    else:
+        subdir = _archive_subdir_for_result(result)
+        if subdir is None:
+            return
+
+    dest_dir = os.path.join(archive_directory, subdir)
+    try:
+        dest_path = _move_file_to_archive(file_path, dest_dir)
+    except Exception as e:
+        logger.error(f"Error moving {file_path} to the archive: {e}")
+        return
+    logger.debug(f"Archived {file_path} to {dest_path}")
 
 
 # All known INI config section names, used for env var resolution.
@@ -483,6 +650,8 @@ def _parse_config(config: ConfigParser, opts):
             )
         if "output" in general_config:
             opts.output = _expand_path(general_config["output"])
+        if "archive_directory" in general_config:
+            opts.archive_directory = _expand_path(general_config["archive_directory"])
         if "aggregate_json_filename" in general_config:
             opts.aggregate_json_filename = general_config["aggregate_json_filename"]
         if "failure_json_filename" in general_config:
@@ -2131,6 +2300,7 @@ def _main():
         maildir_create=False,
         log_file=args.log_file,
         n_procs=1,
+        archive_directory=None,
         ip_db_path=None,
         ipinfo_url=None,
         ipinfo_api_token=None,
@@ -2307,6 +2477,8 @@ def _main():
     signal.signal(signal.SIGINT, _handle_sigint)
 
     file_paths = _expand_file_path_args(args.file_path, recursive=args.recursive)
+    if opts.archive_directory:
+        file_paths = _exclude_archived_paths(file_paths, opts.archive_directory)
     mbox_paths = []
 
     for file_path in file_paths:
@@ -2354,6 +2526,8 @@ def _main():
                 failure_reports.append(result["report"])
             elif result["report_type"] == "smtp_tls":
                 smtp_tls_reports.append(result["report"])
+        if opts.archive_directory:
+            _archive_processed_file(file_path, opts.archive_directory, result)
 
     if pbar is not None:
         pbar.close()
