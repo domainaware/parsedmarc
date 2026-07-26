@@ -141,6 +141,7 @@ Concrete patterns:
 - **Mock at SDK boundaries, not at internal helpers.** Patch `boto3.resource`, `kafka.KafkaProducer`, `requests.Session.post`, `elasticsearch.dsl.Document.save`, `azure.monitor.ingestion.LogsIngestionClient` — the seams where the project's code stops and an external system begins. Don't patch our own functions just to make a test "easier"; that hides bugs in the function instead of testing it.
 - **Assert on what gets sent, not that something was sent.** For an output module, parse the body that was passed to the mocked transport (`json.loads(call.kwargs["data"])`, `kafka.send.call_args.args[1]`, `bucket.put_object.call_args.kwargs["Key"]`) and verify the *fields and values a dashboard or downstream consumer would actually filter on*. A test that only checks `mock.assert_called_once()` would pass even if the payload were `{}`.
 - **No trivial passthrough tests.** A test that calls a getter and asserts it returns the value just set isn't testing the code; it's testing Python's attribute machinery.
+- **A test named for an exclusive claim must observe both halves of it.** "Only", "never", and "exactly once" each assert a negative as well as a positive; when the shared fixture can't observe the negative half (the folder already exists, the cache is already warm), build a fresh fixture for it rather than substituting an adjacent always-true assertion (#863: the "`Unsaved` folder created *only* with a callback" test asserted an unrelated folder existed in place of the untestable without-callback half).
 - **No `# pragma: no cover`.** If a branch is unreachable, the right fix is to delete the branch, not to hide it.
 
 ### "If 90% requires faking it, ship 85% honestly"
@@ -176,7 +177,7 @@ Before rewriting a tracked list/data file from freshly-generated content (anythi
 
 ## Review discipline
 
-The rules here were distilled from real review cycles (#834, #839, #849, #851, #858) in which defects survived thorough author-side reviews — in the later cycles, fresh-context diff reviews as well; each parenthetical incident is what its rule would have caught. Grouped by theme, not by PR.
+The rules here were distilled from real review cycles (#834, #839, #849, #851, #858, #863) in which defects survived thorough author-side reviews — in the later cycles, fresh-context diff reviews as well; each parenthetical incident is what its rule would have caught. Grouped by theme, not by PR.
 
 ### Review prose as prose
 
@@ -187,6 +188,7 @@ A review that only verifies functional correctness (queries return the right val
 - **Clean inert config inside hunks the diff already rewrites** — stale entries cost nothing to remove and confuse every later reader; "minimize the diff" is the wrong tiebreaker there, and remains the right one for untouched panels/files (#839).
 - **Docstrings and comments are prose surface too — beware dual-use terms.** Words that are both colloquial English and load-bearing technical terms near the code in question ("nested", "index", "keyword" in anything Elasticsearch-adjacent) pattern-match as true for an author who holds both facts (#839: a docstring said results were "stored as nested object arrays" when the fix under review hinged on the fields *not* being `nested`-mapped).
 - **A plain-type docstring is wrong when `None` is a semantic state.** Documenting optionals with bare types (`ip_db_path (str)`) is fine while `None` merely means "not provided"; when `None` is a meaningful third state, document the union type and the sentinel's meaning, reading the entry as a naive caller who doesn't share your context (#858: `delete_aggregate (bool)` hid that `None`, not `False`, selects inherit-from-`delete`).
+- **Adjacent code is fair game like adjacent prose.** Constants and expressions one line from a new hunk deserve the same scrutiny as adjacent typos — especially literals whose escape rules differ from their look (#863: `MAGIC_JSON = b"\7b"`, the octal escape BEL plus a literal `b` rather than `{`, sat beside a new hunk for years; every caller pre-guarded, so tests never exercised the dead branch).
 
 ### Nothing is pre-verified
 
@@ -206,12 +208,15 @@ The defects that author-side reviews miss are rarely inside one artifact — the
 - **Count enumerations against the code-defined set they enumerate** — derive the set from the code and count both sides; a reader can't tell an intentional subset from an omission (#851: docs listed seven of the eight `config=`-accepting functions).
 - **A quantified claim is an enumeration in disguise, and "pre-existing" triage stops applying when the diff extends its set** (#858: the `config=` paragraph's "arguments listed above are ignored" was filed as pre-existing looseness — but the PR added four arguments to the list that claim quantifies over, making it false for them).
 - **Build verification fixtures containing what the sample corpus lacks** — optional fields, injected errors, over-the-cap sizes — because an absent field makes the wrong key and the right key behave identically (#839).
+- **A contract that signals failure two ways owes both ways the same safety bookkeeping.** When a callback can report failure by sentinel return *and* by raising, grep for every raiser and trace it through the same retention/cleanup logic as the return path — and remember that propagation claims range over every backend the code runs under (#863: `fail_on_output_error` made the save callback raise instead of returning `False`, skipping the retry-cap bookkeeping, while the IMAP and Maildir watch loops swallow exceptions — so "propagates out of the watch loop" was true for two of four mailbox backends and the cap silently never applied on the others).
+- **Bookkeeping paired with a side effect must follow it, not precede it.** Clear or advance tracking state only after the operation it tracks succeeds, and trace each failure branch of that operation for what prematurely-cleared state means (#863: the retry counter was popped when a message was classified over-cap, *before* the move to `Unsaved` was attempted; a failed move handed the still-in-place message a fresh set of retries — survived the implementer and two fresh-context reviews).
 
 ### Verify what CI enforces, not a plausible subset
 
 - **Run CI's literal commands from the repo root** — read the workflow file (#851: checks scoped to `parsedmarc/` and `tests/` declared the tree green while repo-wide `ruff format --check .` failed on a Python block inside `docs/source/usage.md`). When repo-wide runs are noisy because of untracked local directories, fix the exclusion in config rather than narrowing the command — a narrowed command is a different check that happens to share a name.
 - **Cover CI's gates, not just its commands.** Patch coverage corresponds to no replayable workflow command, so command-replay never asks "does a test execute every new line?" — compare coverage's missing-lines set against the diff (`pytest --cov --cov-report=term-missing`, or diff `coverage.xml` against the patch) before opening a PR (#858: the disposal loop's delete-error handler shipped uncovered).
 - **An ad hoc check that matches nothing is broken, not green** (#858: a post hoc script filtered `coverage.xml` on `parsedmarc/__init__.py`, the report stores source-relative `__init__.py`, and the empty result read as "all covered"). Build one-off checks to fail loudly on zero matches; silence is not success.
+- **An end-to-end run must execute the working tree, not a stale installed copy.** `python -m parsedmarc.cli` run outside the repo resolves site-packages; confirm the import source (traceback paths, `parsedmarc.__file__`) or set `PYTHONPATH` before trusting the result (#863: a stale venv copy faithfully reproduced the very bug under fix and consumed the test mailbox).
 
 ### End with a fresh-context review, not a self re-read
 
