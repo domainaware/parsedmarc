@@ -257,7 +257,8 @@ The full set of configuration options are:
       whose reports could not be saved is retried before its messages
       are moved to the `Unsaved` archive subfolder instead of being
       retried again (Default: `2`, i.e. the initial attempt plus two
-      retries). Use `0` to move messages on the first failed save.
+      retries). Use `0` to move messages on the first failed save;
+      negative values are rejected.
       Failures are counted in memory, so the cap applies across watch-mode
       checks within one long-running process, not across separate one-shot
       runs. See

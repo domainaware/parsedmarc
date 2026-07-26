@@ -2594,7 +2594,7 @@ def get_dmarc_reports_from_mailbox(
             being retried again (default 2, i.e. the initial attempt plus
             two retries -- at most three deliveries to any output
             destination that does not deduplicate). ``0`` moves a message on
-            the first failed save. Messages moved to ``Unsaved`` are never
+            the first failed save; negative values raise ``ValueError``. Messages moved to ``Unsaved`` are never
             deleted, whatever the ``delete`` options say; recover them by
             fixing the output destination and moving them back into
             ``reports_folder``. Counts are kept in memory, per message and
@@ -2633,6 +2633,9 @@ def get_dmarc_reports_from_mailbox(
         delete_aggregate or delete_failure or delete_smtp_tls or delete_invalid
     ):
         raise ValueError("delete options and test are mutually exclusive")
+
+    if max_unsaved_retries < 0:
+        raise ValueError("max_unsaved_retries must be >= 0")
 
     if connection is None:
         raise ValueError("Must supply a connection")
@@ -3146,6 +3149,12 @@ def watch_inbox(
             ``batch_size``, ``max_unsaved_retries``); they are not part of
             ``config`` and always apply.
     """
+    # Validate before the watch loop starts: raised inside a check, this
+    # would be swallowed and endlessly retried by the IMAP and Maildir
+    # backends' per-check exception handling instead of surfacing.
+    if max_unsaved_retries < 0:
+        raise ValueError("max_unsaved_retries must be >= 0")
+
     cfg = _resolve_config(
         config,
         offline=offline,

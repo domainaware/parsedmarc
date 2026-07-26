@@ -3004,6 +3004,32 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
             )
         self.assertIn("connection", str(ctx.exception).lower())
 
+    def test_negative_max_unsaved_retries_raises(self):
+        """max_unsaved_retries is user-configurable (INI/env/kwarg), so an
+        invalid negative value is rejected at the door with a clear error
+        instead of silently behaving like 0 (move to Unsaved on the first
+        failed save)."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), max_unsaved_retries=-1
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+
+    def test_watch_inbox_negative_max_unsaved_retries_raises(self):
+        """watch_inbox validates before entering the watch loop: raised
+        inside a check, the ValueError would be swallowed and endlessly
+        retried by the IMAP and Maildir backends' per-check exception
+        handling instead of surfacing to the caller."""
+        conn = MagicMock()
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.watch_inbox(
+                mailbox_connection=conn,
+                callback=lambda batch: None,
+                max_unsaved_retries=-1,
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+        conn.watch.assert_not_called()
+
 
 class TestMigrateForensicArchiveFolderErrorHandling(unittest.TestCase):
     """The one migration scenario a real on-disk Maildir can't reproduce: a
