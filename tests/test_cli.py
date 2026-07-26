@@ -4217,6 +4217,33 @@ class TestExcludeArchivedPaths(unittest.TestCase):
 
         self.assertEqual(result, [])
 
+    def test_non_comparable_paths_are_kept(self):
+        """Per the Python docs, ``os.path.commonpath`` raises
+        ``ValueError`` when the paths "are on the different drives"
+        (Windows) or mix absolute and relative pathnames
+        (https://docs.python.org/3/library/os.path.html#os.path.commonpath).
+        Both inputs here are realpath()-resolved so the mix can't occur
+        on POSIX, leaving the different-drives case unreachable on Linux
+        CI — hence the simulated raise. A path that can't be compared
+        with the archive root can't be inside it, so it must be kept
+        for parsing, and the ValueError must not propagate."""
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_dir = os.path.join(tmp_dir, "archive")
+            os.makedirs(archive_dir)
+            report_path = os.path.join(tmp_dir, "report.xml")
+            with open(report_path, "w") as f:
+                f.write("x")
+
+            with patch(
+                "parsedmarc.cli.os.path.commonpath",
+                side_effect=ValueError("Paths don't have the same drive"),
+            ):
+                result = _exclude_archived_paths([report_path], archive_dir)
+
+        self.assertEqual(result, [report_path])
+
 
 class TestMoveFileToArchive(unittest.TestCase):
     """Unit tests for _move_file_to_archive (issue #570): the collision
@@ -4283,6 +4310,42 @@ class TestMoveFileToArchive(unittest.TestCase):
                 self.assertEqual(f.read(), "original report.xml")
             with open(os.path.join(dest_dir, "report-1.xml")) as f:
                 self.assertEqual(f.read(), "original report-1.xml")
+
+    def test_failed_move_reraises_even_when_placeholder_cleanup_fails(self):
+        """When the move fails and removing the placeholder also fails,
+        the move failure still propagates: the OSError from the
+        best-effort cleanup must be swallowed, not allowed to mask the
+        actionable error. The move error is deliberately a non-OSError
+        type so the assertion proves which of the two exceptions
+        escaped; the placeholder is left behind, as expected when its
+        cleanup fails."""
+        from parsedmarc.cli import _move_file_to_archive
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("content")
+            dest_dir = os.path.join(tmp_dir, "dest")
+
+            with (
+                patch(
+                    "parsedmarc.cli.shutil.move",
+                    side_effect=RuntimeError("move failed"),
+                ),
+                patch(
+                    "parsedmarc.cli.os.remove",
+                    side_effect=OSError("remove failed"),
+                ),
+            ):
+                with self.assertRaises(RuntimeError):
+                    _move_file_to_archive(src_path, dest_dir)
+
+            # The source file is untouched and the zero-byte placeholder
+            # survives its failed cleanup.
+            self.assertTrue(os.path.isfile(src_path))
+            placeholder = os.path.join(dest_dir, "report.xml")
+            self.assertTrue(os.path.isfile(placeholder))
+            self.assertEqual(os.path.getsize(placeholder), 0)
 
 
 class TestArchiveProcessedFile(unittest.TestCase):
