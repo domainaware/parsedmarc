@@ -190,14 +190,13 @@ A review that only verifies functional correctness (queries return the right val
 
 ### Nothing is pre-verified
 
-Code that *feels* already-reviewed has zero review coverage. Four disguises, each waved through by an author pass and caught externally:
+Code that *feels* already-reviewed — or exempt from review — has zero review coverage. Five disguises, each waved through by an author pass and caught externally:
 
 - **Moved code** (#849: a "verbatim extraction" carried a latent handler-dedup asymmetry past review, and had just gained a new caller that widened its exposure). A "pure move" is a claim about behavior preservation, not an exemption from review — read extractions cold, and be *more* suspicious when a hunk gains callers than when it changes logic.
 - **Extracted helpers** (#849: a promoted helper lacked the bound check its old call site had made unnecessary, and its docstring misdescribed its stop path). A helper inherits none of its call site's implicit guarantees: it needs its own eager input validation and docstring↔behavior check even when every current caller is safe.
 - **Fixes made during review** (#851: fixing `__getstate__` and stopping there left `__setstate__`'s version-skew hole — old pickles into new code — unexamined; `__init__` never runs during unpickling, so missing fields end up not defaulted but *unset*). Touching one direction of a paired protocol (`__getstate__`↔`__setstate__`, save↔load, encode↔decode) obligates re-deriving the inverse, including inputs no current fixture produces. The review isn't done when the fixes are written.
 - **Rewritten code, for coverage** (#858: a log-equivalent rewrite of the disposal loop shipped its error handler uncovered). Rewritten lines are new patch lines even when behavior is intentionally identical.
-
-Mid-incident glue gets the same bar as planned code: before writing new shell/infra code while firefighting, check the file for an existing helper that already does it (#834: hand-written bootstrap duplicated `wait_for()`).
+- **Mid-incident glue** (#834: hand-written bootstrap code duplicated the script's existing `wait_for()` helper). Firefighting is not an exemption: before writing new shell/infra code mid-incident, check the file for an existing helper that already does it, and give your own inline code the same scrutiny you'd give a subagent's.
 
 ### Check claims against what they range over
 
