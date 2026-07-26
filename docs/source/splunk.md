@@ -18,5 +18,5 @@ The Splunk dashboards display the same content and layout as the
 Kibana dashboards, although the Kibana dashboards have slightly
 easier and more flexible filtering options.
 
-[xml files]: https://github.com/domainaware/parsedmarc/tree/master/splunk
+[xml files]: https://github.com/domainaware/parsedmarc/tree/master/dashboards/splunk
 [http event collector (hec)]: http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
