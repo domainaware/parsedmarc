@@ -1717,7 +1717,12 @@ def _main():
             domain = report["policy_published"]["domain"]
         elif "reported_domain" in report:
             domain = report["reported_domain"]
-        elif "policies" in report:
+        elif report.get("policies"):
+            # Guarded with .get() truthiness: parse_smtp_tls_report_json()
+            # accepts a report whose policies list is empty, which would
+            # make [0] raise IndexError here. Such a report has no domain
+            # to map, so it falls through to return None like any other
+            # unmappable report.
             domain = report["policies"][0]["policy_domain"]
         if domain:
             domain = get_base_domain(domain)

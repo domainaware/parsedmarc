@@ -1774,6 +1774,19 @@ class TestExtractReport(unittest.TestCase):
         result = parsedmarc.extract_report(compressed)
         self.assertIn("<feedback>", result)
 
+    def testExtractReportFromPlainJson(self):
+        """extract_report passes uncompressed JSON bytes through as text.
+
+        Regression test: MAGIC_JSON was written as b"\\7b", which Python
+        reads as the octal escape \\7 (BEL, 0x07) followed by a literal
+        "b" -- not 0x7B, the "{" every RFC 8259 JSON object begins with --
+        so plain JSON was rejected as "Not a valid zip, gzip, json, or
+        xml file". Every in-tree caller pre-guarded with its own zip/gzip
+        or "{" check, which masked the dead branch."""
+        json_bytes = b'{"organization-name": "Example"}'
+        result = parsedmarc.extract_report(json_bytes)
+        self.assertEqual(result, '{"organization-name": "Example"}')
+
     def testExtractReportFromZip(self):
         """extract_report handles zip compressed content"""
         import zipfile

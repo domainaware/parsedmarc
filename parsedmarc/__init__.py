@@ -109,7 +109,12 @@ MAGIC_ZIP = b"\x50\x4b\x03\x04"
 MAGIC_GZIP = b"\x1f\x8b"
 MAGIC_XML = b"\x3c\x3f\x78\x6d\x6c\x20"
 MAGIC_XML_TAG = b"\x3c"  # '<' - XML starting with an element tag (no declaration)
-MAGIC_JSON = b"\7b"
+# 0x7B, "{" -- a JSON text that is an object begins with it (RFC 8259).
+# Previously written as b"\7b", which Python reads as the octal escape
+# \7 (BEL) followed by a literal "b", so the branch never matched real
+# JSON; every in-tree caller happened to pre-guard with its own zip/gzip
+# or "{" check, which masked it.
+MAGIC_JSON = b"\x7b"
 
 # Per-message count of consecutive failed saves, keyed on
 # ``(reports_folder, str(message_uid))``. Populated only when

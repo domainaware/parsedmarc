@@ -3989,9 +3989,12 @@ watch = true
 
 
 def _domain_map_tls_reports():
-    """Three SMTP TLS reports for the index_prefix_domain_map tests: two
+    """Four SMTP TLS reports for the index_prefix_domain_map tests: two
     whose policy domains fold to the mapped base domain example.com (one of
-    them mixed-case) and one for an unmapped domain."""
+    them mixed-case), one for an unmapped domain, and one with an empty
+    policies list -- parse_smtp_tls_report_json() accepts those, and
+    get_index_prefix() must treat them as unmappable (dropped by the
+    filter) rather than crash on policies[0]."""
     return [
         {
             "organization_name": "Allowed Org",
@@ -4037,6 +4040,14 @@ def _domain_map_tls_reports():
                     "failed_session_count": 0,
                 }
             ],
+        },
+        {
+            "organization_name": "No Policies Org",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "report_id": "no-policies-1",
+            "contact_info": "tls@nopolicies.example.org",
+            "policies": [],
         },
     ]
 
@@ -4100,6 +4111,9 @@ password = test-password
         self.assertIn("allowed-1", report_ids)
         self.assertIn("mixed-case-1", report_ids)
         self.assertNotIn("unmapped-1", report_ids)
+        # Unmappable (no policies -> no domain), dropped rather than an
+        # IndexError from get_index_prefix() on policies[0].
+        self.assertNotIn("no-policies-1", report_ids)
 
     @patch("parsedmarc.cli.email_results")
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
