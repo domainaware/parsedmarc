@@ -275,6 +275,14 @@ def _archive_subdir_for_result(result: ParsedReport) -> str | None:
     ``arrival_date_utc``, and SMTP TLS reports use ``begin_date``.
     """
     report_type = result["report_type"]
+    # Only the wall-clock year/month fields are read from the parsed
+    # datetime, so no timezone conversion ever happens here — but tag
+    # the strings whose zone is known, per human_timestamp_to_datetime's
+    # contract. Aggregate begin_date is a local-time string
+    # (timestamp_to_human uses datetime.fromtimestamp) and must stay
+    # naive; arrival_date_utc is UTC wall-clock; SMTP TLS begin_date is
+    # RFC 3339 with an offset, so assume_utc would be a no-op anyway.
+    assume_utc = False
     try:
         if result["report_type"] == "aggregate":
             type_folder = "Aggregate"
@@ -282,13 +290,14 @@ def _archive_subdir_for_result(result: ParsedReport) -> str | None:
         elif result["report_type"] == "failure":
             type_folder = "Failure"
             date_string = result["report"]["arrival_date_utc"]
+            assume_utc = True
         elif result["report_type"] == "smtp_tls":
             type_folder = "SMTP-TLS"
             date_string = result["report"]["begin_date"]
         else:
             logger.warning(f"Cannot archive unknown report type: {report_type}")
             return None
-        dt = human_timestamp_to_datetime(date_string)
+        dt = human_timestamp_to_datetime(date_string, assume_utc=assume_utc)
     except (KeyError, TypeError, ValueError, OverflowError) as e:
         logger.warning(f"Cannot determine archive date for {report_type} report: {e}")
         return None
